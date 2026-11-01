@@ -37,7 +37,6 @@ from aia_core.domain.report.model import (
     Inline,
     KeyFinding,
     KpiRow,
-    ListItem,
     NumberCell,
     Paragraph,
     Quote,
@@ -50,6 +49,7 @@ from aia_core.domain.report.model import (
     Text,
     TextCell,
     Value,
+    block_inlines,
 )
 from aia_core.domain.research_sociomap import MethodologyStatus
 
@@ -90,6 +90,7 @@ class ProblemCode(StrEnum):
     LIST_DEPTH = "list_depth"
     QUOTE_UNATTRIBUTED = "quote_unattributed"
     SOCIOMAP_NOT_APPROVED = "sociomap_not_approved"
+    CONTROLLED_VALUE = "controlled_value"
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,16 +108,7 @@ class ReportInvalid(ValueError):
 
 
 def _inlines(block: Block) -> Iterator[Inline]:
-    if isinstance(block, Paragraph | Callout):
-        yield from block.content
-    elif isinstance(block, BulletList):
-        yield from _item_inlines(block.items)
-
-
-def _item_inlines(items: tuple[ListItem, ...]) -> Iterator[Inline]:
-    for item in items:
-        yield from item.content
-        yield from _item_inlines(item.children)
+    yield from block_inlines(block)
 
 
 def _prose(block: Block) -> Iterator[str]:
@@ -234,6 +226,19 @@ def validate(doc: ReportDocument) -> tuple[Problem, ...]:
         for bi, block in enumerate(section.blocks):
             where = f"section {si + 1} ({section.title}), block {bi + 1}"
 
+            # Text code wrote from a stored source prints in one locked control; a ledger value
+            # inside it would be a control within a control, which a reader one level deep (the
+            # client-source reader) would lose.
+            if (
+                isinstance(block, Paragraph | Callout | BulletList)
+                and block.control
+                and any(isinstance(inline, Value) for inline in _inlines(block))
+            ):
+                add(
+                    ProblemCode.CONTROLLED_VALUE,
+                    "a block written from a stored source holds no ledger value",
+                    where,
+                )
             for ref in _prose_refs(block):
                 if ledger.is_suppressed(ref):
                     add(ProblemCode.SUPPRESSED_CITED, f"{ref!r} is suppressed", where)

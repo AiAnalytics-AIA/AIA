@@ -54,7 +54,10 @@ REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 # (artifact-report RPT8a, part 1), so a draft rendered before is never reused for an editor.
 # -16: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
 # -15 is the brief's goal, F19).
-REPORT_CONTRACT_VERSION = "aia-internal-report-16"
+# -17: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
+# -18: the design and method chapters' numbers locked under their sources (design:, run:).
+# -19: the audit's values locked under the run (RPT8a, part 3, P15).
+REPORT_CONTRACT_VERSION = "aia-internal-report-19"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 
@@ -300,9 +303,11 @@ def store_pdf_rendering(
                 runtime_version=build.sha or "",
                 produced_by_job_id=step.attempt_id,
                 metadata={
+                    # The report it renders is the client's or internal: the client report's
+                    # PDF (report-delivery RD1) says so, as its DOCX does.
+                    "report_kind": ReportKind.INTERNAL.value,
                     **metadata,
                     "step_id": step.step_id,
-                    "report_kind": ReportKind.INTERNAL.value,
                     "rendering_of": docx_id,
                     "converter": pdf.version,
                     "conversion_seconds": seconds,
@@ -413,6 +418,9 @@ class ReportPdfExecutor:
                 approved=exported if mark.state is ReviewState.APPROVED else None,
                 metadata={
                     "run_id": payload.get("run_id"),
+                    "report_kind": str(
+                        artifact.metadata.get("report_kind") or ReportKind.INTERNAL.value
+                    ),
                     **(
                         {"deep_research_run_id": payload["deep_research_run_id"]}
                         if payload.get("deep_research_run_id")

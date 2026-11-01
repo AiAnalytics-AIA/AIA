@@ -15,6 +15,24 @@ const ITEMS = [
 const button = () => screen.getByRole("button", { name: "Přesunout do složky" });
 
 describe("MenuButton (I3): an action is a menu, never a select that fires on change", () => {
+  it("names the button and the menu by `name` when given, keeping `label` as the visible text; by `label` otherwise", () => {
+    render(<MenuButton label="Jedna odpověď" name="Jedna odpověď, typ otázky" items={ITEMS} onSelect={vi.fn()} />);
+    const named = screen.getByRole("button", { name: "Jedna odpověď, typ otázky" });
+    expect(named.textContent).toContain("Jedna odpověď");
+    fireEvent.click(named);
+    expect(screen.getByRole("menu", { name: "Jedna odpověď, typ otázky" })).toBeTruthy();
+    cleanup();
+    render(<MenuButton label="Přesunout do složky" items={ITEMS} onSelect={vi.fn()} />);
+    expect(button().getAttribute("aria-label")).toBeNull();
+    fireEvent.click(button());
+    expect(screen.getByRole("menu", { name: "Přesunout do složky" })).toBeTruthy();
+    cleanup();
+    // An icon-only button and its menu share the one name.
+    render(<MenuButton hideLabel label="Akce" name="Akce složky Archiv" items={ITEMS} onSelect={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Akce složky Archiv" }));
+    expect(screen.getByRole("menu", { name: "Akce složky Archiv" })).toBeTruthy();
+  });
+
   it("opens a menu with focus on the first item; arrows move without acting (audit IA-6)", async () => {
     const act = vi.fn();
     render(<MenuButton label="Přesunout do složky" items={ITEMS} onSelect={act} />);

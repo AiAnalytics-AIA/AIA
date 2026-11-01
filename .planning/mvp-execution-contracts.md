@@ -31,7 +31,7 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E08 | W1 | S2: `run-qc-and-checkpoint#RQC0`, `run-qc-and-checkpoint#RQC1`, `run-qc-and-checkpoint#RQC2`, `run-qc-and-checkpoint#RQC4a`, `run-qc-and-checkpoint#RQC7` | E03, E04 | Durable respondent/paid-call recovery, deterministic QC flags and event payload before Fieldwork UI; uncertain dispatched calls never replay automatically |
 | E09 | W1 | S3: `client-knowledge-lifecycle#K3`, `client-knowledge-lifecycle#K4`, `client-knowledge-lifecycle#K8`; S1: `lead-orchestration#LO13` | E02 | Reviewed revisions, frozen eligible context and capture/import semantics; accepted client-level paid-work exception recorded separately from study-stage starts |
 | E10 | W1 | S1: `lead-orchestration#LO4`, `lead-orchestration#LO5`, `lead-orchestration#LO6`, `lead-orchestration#LO7`, `working-copy-edit-ops#WCE4`, `working-copy-edit-ops#WCE10`, `working-copy-edit-ops#WCE12` | E06, E07, E08, E09 | Minimum plan card in the existing Lead pane, direct typed human start, continuation and two-person journey; no wait for W4's richer cards |
-| E11 | W1 | S1: `lead-orchestration#LO8`; S2: `evidence-integrity#6`, `evidence-integrity#8a`, `run-qc-and-checkpoint#RQC3` | E02, E08 | Bounded ResultsContext, admitted/suppressed result API, proposed two-origin contract, run-derived MaterialRule/lineage; unapproved module prose stays unapproved |
+| E11 | W1 | S1: `lead-orchestration#LO8`, `lead-orchestration#LO8a`, `lead-orchestration#LO8b`, `lead-orchestration#LO8c`, `lead-orchestration#LO8d`, `lead-orchestration#LO8e`, `lead-orchestration#LO8f`; S2: `evidence-integrity#6`, `evidence-integrity#8a`, `run-qc-and-checkpoint#RQC3` | E02, E08 | Bounded ResultsContext, admitted/suppressed result API, proposed two-origin contract, run-derived MaterialRule/lineage; unapproved module prose stays unapproved; served through the Lead's read tools (ADR 0026 Amendment 2026-10-28), a frozen results layer only its index; depends on `lead-orchestration#LO8a`-`#LO8c` |
 | E12 | W1 | S1/S2/S3: `lead-orchestration#LO12b`, `deep-research-web-search#52`, `deep-research-web-search#53`, `deep-research-web-search#55` | E02, E05 | The worker's published composition record, read by Settings, the Reach panel and the Lead pane (so a route refusal names its cause); OPEN posture pinned at enqueue/retry, one cost ceiling used by API and worker, live I-R record with required archive/connector evidence; missing archive leaves I-R BLOCKED |
 | E13 | W1 | Method owner/S2: `sociomap-formula-corrections#0b`, `sociomap-formula-corrections#I0`, `segment-maps-and-drilldown#0a` | — | Approved decisions and pinned input/descriptor contract before affected W2 numerical behavior; proposal/fixture preparation may proceed, approval cannot be inferred from completed code |
 | E14 | W2 | S2/S3: `sociomap-formula-corrections#I1`, `sociomap-formula-corrections#I3`, `sociomap-formula-corrections#3`, `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#5`, `client-knowledge-lifecycle#K5` | E10, E11, E12, E13 | Actual population/own-dimension values reach respondents, descriptors, filters and map consumers; missing inputs refuse; changing only a hash is insufficient proof |
@@ -42,7 +42,7 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E19 | W3 | S1/S2: `system-prompts-settings#7`, `system-prompts-settings#13` | E03, E11, E18 | Eight analysis pins reach assembly, reuse identity, repairs and usage; all eleven worker slots wired; queued work keeps its pin, new activation changes new work only |
 | E20 | W3 | S2/S3: `evidence-integrity#7`, `evidence-integrity#9b`, `client-data-in-analysis#5`, `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD5`, `research-lead-workbench#21` | E15, E17, E18, E19, E32 | Admitted findings plus separately labelled external/client context; full Report artifact hosts approval/export; revised wording invalidates approval without recollecting fieldwork; a module with no supported finding blocks composition and export (MVPQ-04, settled) |
 | E21 | W3 | S2/S3: `deep-research#4`, `develop-spend-attribution#5b`, `production-environment#PE7` | E02, E12 | Tool ledger/migration M11 and profile accounting complete before final accounting; E03 already supplies model identity versus invocation-target compatibility before early configuration; legacy reservations stay explicit and no call is charged twice |
-| E22 | W4 | S2/S3: `deep-research-web-search#24`, `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27`; S1: `research-lead-workbench#23` | E12, E20, E21, E27, E28 | The operator screen for both purposes (24) comes first; approved evaluation metrics/thresholds and separate allowance precede final live 27; Design and Interpretation paths use captured sources and budget; mature conversation cards consume working contracts |
+| E22 | W4 | S2/S3: `deep-research-web-search#24`, `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27` (S1's research-lead-workbench 23 re-waved to W1 on 2026-10-26, second table) | E12, E20, E21, E27, E28 | The operator screen for both purposes (24) comes first; approved evaluation metrics/thresholds and separate allowance precede final live 27; Design and Interpretation paths use captured sources and budget; mature conversation cards consume working contracts |
 | E23 | W4 | S3: `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL5`, `study-data-lifecycle#SDL6`, `production-environment#PE9a` | E21 | Accepted residual-retention/audit policy before M12; delete/restore exercise proves the independent journal is replayed before serving restored traffic |
 | E24 | W5 | S3/all: `mvp-acceptance-harness#5`, `mvp-acceptance-harness#10`, `mvp-acceptance-harness#13`, `mvp-acceptance-harness#15`, `assumptions-and-open-answer-coding#AOC9`, `client-knowledge-lifecycle#K7a` | E10, E15, E16, E20, E22, E23, E26, E30, E31, E34 | All fifteen full criteria, all eleven browser artifacts and negative cases at one pinned release candidate; research intake→knowledge→dimension→report→reuse proven without a hidden Simulation prerequisite |
 | E25 | W5 | S3/operator: `mvp-acceptance-harness#6`, `mvp-acceptance-harness#7`, `mvp-acceptance-harness#11`, `mvp-acceptance-harness#12`, `production-environment#PE8`, `production-environment#PE9b` | E24 | Budget (E01's allocation) respected by every paid dispatch, candidate held stable for tier B, costs/unknowns reconciled and production checklist evidenced; production release remains a separate recorded act |
@@ -86,7 +86,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `evidence-integrity#2` | W1 | development plan §3 |
 | `lead-orchestration#LO9c` | W2 | cross-check G47: after LO9a, before LO9b (E18) |
 | `segment-maps-and-drilldown#10` | W2 | cross-check G48, owner 2026-10-20: after 1 (E14); before `evidence-integrity#9b` and `artifact-chain-to-draft-report#CHN10` (OI-192) |
-| `working-copy-edit-ops#WCE8b` | W2 | cross-check G49: with WCE8, before `research-lead-workbench#17` (E26) is accepted on a map study |
+| `working-copy-edit-ops#WCE8b` | W1 | re-waved 2026-10-26 from W2 (cross-check G49: with WCE8, before `research-lead-workbench#17` (E26) is accepted on a map study): `artifact-questionnaire#QST5`'s per-item accept is W1 |
 | `report-delivery#RD5a` | W2 | cross-check G50: before RD5 and RD7 |
 | `client-data-in-analysis#3a` | W3 | cross-check G52: before 2a and 3 (E17) |
 | `client-data-in-analysis#3b` | W3 | cross-check G52: with 3 (E17) |
@@ -159,6 +159,15 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-orchestration#LO9d` | W2 | scope freeze, Q12: after LO9a and `working-copy-edit-ops#WCE7a`, `working-copy-edit-ops#WCE7b`, `working-copy-edit-ops#WCE7c` |
 | `lead-orchestration#LO19` | W2 | scope freeze, Q5: the study's context file; after LO8 and `working-copy-edit-ops#WCE4` |
 | `lead-orchestration#LO20` | W3 | scope freeze, Q6: Hledat na webu; after `deep-research-web-search#56`; an ADR first |
+| `lead-orchestration#LO21` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21a` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21b` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21c` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21d` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21e` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `research-lead-workbench#35` | W1 | the stage navigator of the frame `research-lead-workbench#15` (E26) (registered 2026-10-25) |
+| `working-copy-edit-ops#WCE7d2` | W1 | with `working-copy-edit-ops#WCE7a` to `#WCE7c` (E26); WCE7d1 landed (registered 2026-10-25) |
+| `run-qc-and-checkpoint#RQC7c` | W1 | its parent `run-qc-and-checkpoint#RQC7` (E08) (registered 2026-10-25) |
 | `deep-research-web-search#56` | W3 | scope freeze, Q6: the Lead's quick lookup through RetrievalGate |
 | `research-lead-workbench#32` | W3 | scope freeze, Q5 and Q6: with `lead-orchestration#LO19` and `#LO20` |
 | `deep-research-web-search#51a` | W1 | cross-check G67: with E12 |
@@ -179,6 +188,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `research-lead-workbench#30` | W3 | scope freeze, D-39: with `lead-orchestration#LO18` |
 | `research-lead-workbench#31` | W3 | scope freeze, D-41: with `report-delivery#RD12` |
 | `report-delivery#RD11` | W3 | MVP-26, chunk missing until the scope freeze: after RD0 |
+| `report-delivery#RD0b` | W3 | with `report-delivery#RD11`, as the plan says (registered 2026-10-25) |
 | `report-delivery#RD12` | W3 | scope freeze, D-41: after RD0 |
 | `segment-maps-and-drilldown#11` | W3 | scope freeze, D-42: after 8 and `research-lead-workbench#20` (E15) |
 | `working-copy-edit-ops#WCE14` | W2 | scope freeze, D-45 |
@@ -194,6 +204,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `develop-spend-attribution#7` | W3 | owner, Q40 (2026-10-21): per-researcher spend; after `lead-orchestration#LO1`'s wallet holds, with chunk 6; its actor columns are migration M13; landed in #583 (migration `568761e1c719`, M13) |
 | `production-environment#PE10` | W1 | scope freeze, D-22: before the first production sign-in |
 | `production-environment#PE11` | W4 | scope freeze, D-23: before the release candidate |
+| `production-environment#PE12` | W1 | OI-35 (a), the owner 2026-10-25: before the first production sign-in |
 | `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
 | `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
 | `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
@@ -228,6 +239,15 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-conversation#LC9` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC10` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC11` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC5b` | W2 | split from LC5 (#817, 2026-10-22): edit-as-replacement and requeue need LC10's `replaces_turn_id`, so it is in LC10's wave |
+| `lead-identity#LI0` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI1` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI2` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI3` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI4` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI5` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI6` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI7` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
 | `lead-conversation#LC12` | W3 | the plan's own: with `lead-orchestration#LO18` |
 | `lead-conversation#LC13` | W3 | the plan's own: with `lead-orchestration#LO18` |
 | `lead-conversation#LC14` | POST | the plan's own: after the MVP |
@@ -279,11 +299,11 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-results#RES1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
-| `artifact-results#RES4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES4b` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); RES4 split, RES4a landed (2026-10-25) |
 | `artifact-results#RES5b` | W3 | artifact plans: the coded counts, after `assumptions-and-open-answer-coding#AOC8` (RES5a landed) |
 | `artifact-results#RES8` | W2 | the per-question CSV/XLSX export, moved from `report-delivery#RD12` by the coordinator (2026-10-21); umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
-| `artifact-results#RES7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES7b` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); RES7 split, RES7a landed (2026-10-25) |
 | `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); landed in #601 |
 | `artifact-sociomap#SOC2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-sociomap#SOC3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
@@ -319,6 +339,11 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-report#RPT5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT8` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT8a` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT8e` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT9` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT10` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
 | `artifact-chain-to-draft-report#CHN1` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); landed in #621 |
 | `artifact-chain-to-draft-report#CHN2` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
 | `artifact-chain-to-draft-report#CHN3` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
@@ -343,6 +368,271 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-client-knowledge#LK7` | W3 | after LK4-LK6 and the measurement: switched on for develop |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
+| `research-lead-workbench#36` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh X1 + vzorek H1, built once |
+| `research-lead-workbench#37` | W1 | the research build spec (2026-10-26, research chunk register): spec sber F7 |
+| `research-lead-workbench#38` | W2 | the research build spec (2026-10-26, research chunk register): spec szz S5 |
+| `research-lead-workbench#39` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-1 |
+| `research-lead-workbench#40` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-2 |
+| `research-lead-workbench#41` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-3 |
+| `research-lead-workbench#42` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-6 |
+| `research-lead-workbench#43` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-8 |
+| `research-lead-workbench#44` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-9 |
+| `research-lead-workbench#45` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-10 |
+| `research-lead-workbench#46` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-11 |
+| `research-lead-workbench#47` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-12 |
+| `research-lead-workbench#48` | W3 | the research build spec (2026-10-26, research chunk register): spec lead LP-13 |
+| `research-lead-workbench#49` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-15 |
+| `research-lead-workbench#50` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-16 |
+| `research-lead-workbench#51` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-17 |
+| `research-lead-workbench#52` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-20 (was LP-18; corrected 2026-10-27) |
+| `deep-research-web-search#59` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-14, lead B9 |
+| `system-prompts-settings#15` | W1 | Nigel, 2026-10-26 (`prototype-build.md`) |
+| `system-prompts-settings#16` | W1 | Nigel, 2026-10-26 (`prototype-build.md`) |
+| `lead-orchestration#LO23` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-4, lead B1, szz A6 |
+| `lead-orchestration#LO24` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-5, lead B2 |
+| `lead-orchestration#LO25` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-7, lead B3 |
+| `lead-orchestration#LO18a` | W1 | Nigel, 26 Oct: any document to the Lead on any stage (D-a: the client's source) |
+| `lead-orchestration#LO18b` | W1 | Nigel, 26 Oct: a questionnaire table as a no-model proposal; with QST12 |
+| `lead-orchestration#LO18c` | W2 | the Lead worker's LO18 split, 26 Oct |
+| `lead-orchestration#LO18d` | W2 | with lead-client-knowledge LK3 (ADR 0041 A3) |
+| `lead-orchestration#LO27` | W1 | Nigel, 26 Oct (the Lead drafts the questionnaire without a file) |
+| `artifact-questionnaire#QST12` | W1 | Nigel, 26 Oct: one editor, with LO18b in one PR or after it |
+| `artifact-questionnaire#QST13` | W1 | Nigel, 26 Oct ("All verified findings"): for LO27 |
+| `lead-conversation#LC20` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-19 |
+| `lead-identity#LI8` | W3 | Nigel, 2026-10-26 (`prototype-build.md`) |
+| `lead-identity#LI9` | W3 | Nigel, 2026-10-26 (`prototype-build.md`) |
+| `artifact-questionnaire#QST10` | W2 | the research build spec (2026-10-26, research chunk register): spec navrh D6 + Q8 |
+| `artifact-questionnaire#QST11` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh Q5 |
+| `artifact-brief#BRF7` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh B9, OQ18 (was cited B6; corrected 2026-10-27) |
+| `artifact-design#DSN2b` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D3 |
+| `artifact-design#DSN3c` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D1 |
+| `artifact-design#DSN9` | W2 | the research build spec (2026-10-26, research chunk register): spec navrh B4 |
+| `artifact-design#DSN10` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D2 |
+| `artifact-design#DSN11` | W2 | the research build spec (2026-10-26, research chunk register): spec navrh D4 |
+| `artifact-design#DSN12` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D5 |
+| `artifact-design#DSN12b` | W2 | the research build spec (2026-10-26, research chunk register): spec navrh D5 |
+| `artifact-design#DSN13` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D7 |
+| `artifact-design#DSN14` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D8 |
+| `artifact-sample#SMP2b` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V6 |
+| `artifact-sample#SMP3b` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V4 |
+| `artifact-sample#SMP4b` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V5 |
+| `artifact-sample#SMP5b` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V7 |
+| `artifact-sample#SMP10` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V5, OQ3 |
+| `artifact-sample#SMP6b` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V8 |
+| `artifact-sample#SMP7` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V1 |
+| `artifact-sample#SMP8` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V2 |
+| `artifact-sample#SMP9` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek V3 |
+| `artifact-fieldwork#FLD2b` | W1 | the research build spec (2026-10-26, research chunk register): spec sber F6 |
+| `artifact-fieldwork#FLD2c` | W1 | the research build spec (2026-10-26, research chunk register): spec sber P2 |
+| `artifact-fieldwork#FLD4e` | W1 | the research build spec (2026-10-26, research chunk register): spec sber P1 |
+| `artifact-fieldwork#FLD8b` | W1 | the research build spec (2026-10-26, research chunk register): spec sber D6 |
+| `artifact-fieldwork#FLD9` | W1 | the research build spec (2026-10-26, research chunk register): spec sber F1 + P6 |
+| `artifact-fieldwork#FLD10` | W1 | the research build spec (2026-10-26, research chunk register): spec sber P3 / G2, lead B4 |
+| `artifact-fieldwork#FLD11` | W1 | the research build spec (2026-10-26, research chunk register): spec sber P5 |
+| `artifact-results#RES4c` | W2 | the research build spec (2026-10-26, research chunk register): spec sber V2 |
+| `artifact-results#RES9` | W2 | the research build spec (2026-10-26, research chunk register): spec sber V1 |
+| `artifact-results#RES10` | W2 | the research build spec (2026-10-26, research chunk register): spec sber V4 |
+| `artifact-sociomap#SOC11b` | W2 | the research build spec (2026-10-26, research chunk register): spec szz S1 |
+| `artifact-sociomap#SOC14` | W2 | the research build spec (2026-10-26, research chunk register): spec szz S2 |
+| `artifact-audience#AUD7` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek A2 |
+| `artifact-audience#AUD8` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek A4 |
+| `artifact-audience#AUD9` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek A5 |
+| `artifact-audience#AUD10` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek A6 |
+| `artifact-audience#AUD11` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek A7 |
+| `artifact-dimensions#DIM3b` | W1 | the research build spec (2026-10-26, research chunk register): spec vzorek D1 |
+| `artifact-dimensions#DIM7` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek D3 |
+| `artifact-dimensions#DIM8` | W2 | the research build spec (2026-10-26, research chunk register): spec vzorek D6 |
+| `artifact-analysis#ANL2b` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A3 |
+| `artifact-analysis#ANL3b` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A4 |
+| `artifact-analysis#ANL9` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A1 |
+| `artifact-analysis#ANL10` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A2 |
+| `artifact-analysis#ANL11` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A7 |
+| `artifact-analysis#ANL12` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A8 |
+| `artifact-report#RPT3c` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z2 |
+| `artifact-report#RPT3d` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z4 |
+| `artifact-report#RPT8b.1` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z6 |
+| `artifact-report#RPT8c.1` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z5 |
+| `artifact-report#RPT8d.1` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z7 |
+| `artifact-report#RPT11` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z1 |
+| `artifact-report#RPT12` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z3 |
+| `artifact-report#RPT13` | W3 | the research build spec (2026-10-26, research chunk register): spec szz Z8, OQ10 |
+| `artifact-report#RPT14` | W3 | the research build spec (2026-10-26, research chunk register): spec szz T5 |
+| `artifact-report#RPT15` | W3 | the research build spec (2026-10-26, research chunk register): spec szz T7 |
+| `artifact-chain-to-draft-report#CHN13` | W3 | the research build spec (2026-10-26, research chunk register): spec szz A9 |
+| `run-qc-and-checkpoint#RQC7d` | W2 | the research build spec (2026-10-26, research chunk register): spec sber D5 |
+| `settings-redesign#F8b` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F9` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F10` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F11` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F12` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F12a` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F12b` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F14` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F15` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F16` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F17` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F18` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F19` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F20` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F21` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `settings-redesign#F22` | W1 | proposed 2026-10-26 (`prototype-build` step 2-3, lane B): `settings-redesign` proposed core, every open chunk W1; Nigel may change it |
+| `prototype-build#PB1` | W0 | `prototype-build` (Nigel's order, 2026-10-26): the step's chunks are listed in the plan; ticks when they are |
+| `prototype-build#PB2` | W1 | `prototype-build` (Nigel's order, 2026-10-26): the step's chunks are listed in the plan; ticks when they are |
+| `prototype-build#PB3` | W1 | `prototype-build` (Nigel's order, 2026-10-26): the step's chunks are listed in the plan; ticks when they are |
+| `prototype-build#PB4` | W2 | `prototype-build` (Nigel's order, 2026-10-26): the step's chunks are listed in the plan; ticks when they are |
+| `prototype-build#PB5` | W3 | `prototype-build` (Nigel's order, 2026-10-26): the step's chunks are listed in the plan; ticks when they are |
+| `prototype-build#PB6` | W1 | Nigel, 26 Oct ~01:52 UTC: data class gates out of the MVP (advisory in the MVP deployments) |
+| `prototype-build#PBA1` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `prototype-build#PBA2` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `prototype-build#PBA3` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `prototype-build#PBA4` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `prototype-build#PBA5` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `prototype-build#PBA6` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `prototype-build#PBA7` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
+| `research-lead-workbench#23` | W1 | re-waved 2026-10-26 from W4 (E22): the research build spec's job and run cards (`research-lead-workbench#37`, `#45`) stand on it (research chunk register §6.4; `prototype-build.md`) |
+| `system-prompts-settings#17` | W1 | ADR 0020 Q2 (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "fix the stale reason word at once"; chunks 7 and 13 stay the named follow-ups (E19) |
+| `deep-research-web-search#60` | W1 | ADR 0022 Q1 (b), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Remove the test policies" |
+| `deep-research-web-search#61` | W1 | ADR 0022 Q2 (b), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Remove the setting" (OI-158); takes `budgets.run_limit.*` off the live-readiness list before chunk 1's sign-off approves it |
+| `client-knowledge-lifecycle#K13` | W1 | REV-5B-KNOWLEDGE (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): one `ai_proposal` ledger row per accept of an AI knowledge proposal, as `two-roles-human-ai-gates#5b.3` does for design proposals |
+| `report-delivery#RD13` | W2 | ADR 0024 Q6 (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): the print grade follows the row's origin (OI-103); before RD3's first client-report approval (E15) |
+| `study-deletion#SD1` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD2` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD3` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD4` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD5` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; `study-data-lifecycle#SDL3`'s study half (SDL3's client half is SB5, #850) |
+| `study-deletion#SD6` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD7` | W1 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; REV-SD-F1-NOW (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Yes, a small fix PR now": the client half (OI-232) as its own PR ahead of the plan; the study half with SD5 |
+| `study-deletion#SD8` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD9` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD10` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD11` | W4 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; beside `study-data-lifecycle#SDL6` (E23, W4) |
+| `study-files#SF1` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF2` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF3` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF4` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF5` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF6` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF7` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF8` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA1` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA2` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA3` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA4` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF11` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `client-pages-redesign#CPR1` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR2` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR3` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR4` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR5` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR6` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR7` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR8` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR9` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR10` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR11` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR14` | W1 | Nigel, 27 Oct 2026 (PM coordinator's chat): remove Projektová paměť; its search and reuse fold into Výzkumy (CPR9); wave proposed here |
+| `client-pages-redesign#CPR15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR16` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR18` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client canvas v7's defect (a contact removed with no undo); wave proposed here |
+| `client-pages-redesign#CPR21` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the visual base Petrol core v4 (the design-system session's canvas v10) into tokens.json, a separate later chunk; wave proposed here |
+| `client-pages-redesign#CPR22` | W2 | Nigel, 27 Oct 2026, Q3 (the Klienti canvas session, relayed by the PM coordinator): deleting a knowledge item, the screens; after K19 |
+| `client-knowledge-lifecycle#K19` | W2 | Nigel, 27 Oct 2026, Q3: deleting a knowledge item for good, the route; before `study-files#SF2` uses it |
+| `research-lead-workbench#53` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (Q44); wave proposed here |
+| `research-lead-workbench#54` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (run card cancel); wave proposed here |
+| `research-lead-workbench#55` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (folded card rows); wave proposed here |
+| `research-lead-workbench#56` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (the Přidat tab); wave proposed here |
+| `research-lead-workbench#57` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (Kam); wave proposed here |
+| `research-lead-workbench#58` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (B3, an operator and infrastructure chunk); wave proposed here |
+| `research-lead-workbench#59` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a price before approval on every paid card); wave proposed here |
+| `research-lead-workbench#60` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Vrátit until the next change); wave proposed here |
+| `research-lead-workbench#61` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (reused-run spend); wave proposed here |
+| `research-lead-workbench#62` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: Přehled fází, a V2 element checked against v73 first; wave proposed here |
+| `research-lead-workbench#63` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the fictional-data chip, a V2 element checked against v73 first; wave proposed here |
+| `research-lead-workbench#64` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (revision diff); wave proposed here |
+| `research-lead-workbench#65` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (the cost of re-running before an edit); wave proposed here |
+| `lead-orchestration#LO28` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Deep Research cards priced); wave proposed here |
+| `lead-orchestration#LO29` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (re-ask when the ceiling grows); wave proposed here |
+| `lead-orchestration#LO30` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (reused-run spend); wave proposed here |
+| `working-copy-edit-ops#WCE15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (undo an accepted proposal); wave proposed here |
+| `working-copy-edit-ops#WCE16` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (undo a dismissed Lead edit); wave proposed here |
+| `working-copy-edit-ops#WCE17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (the cost of re-running before an edit); wave proposed here |
+| `working-copy-edit-ops#WCE18` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (revision diff); wave proposed here |
+| `client-knowledge-lifecycle#K14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (knowledge review); wave proposed here |
+| `client-knowledge-lifecycle#K15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (names, not ids); wave proposed here |
+| `client-knowledge-lifecycle#K16` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Cena nejvýše from a document); wave proposed here |
+| `client-knowledge-lifecycle#K17` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Cena nejvýše from a document); wave proposed here |
+| `client-knowledge-lifecycle#K18` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: the Data Library shared-layer flow |
+| `artifact-brief#BRF8` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Zadání's served class sentence (B6); wave proposed here |
+| `artifact-design#DSN15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Návrh's edits bar (navrh D9); wave proposed here |
+| `artifact-questionnaire#QST14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: "All verified findings" (QST13 and LO27); wave proposed here |
+| `artifact-questionnaire#QST15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST16` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST17` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST18` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-sample#SMP11` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Vzorek: the start's own refusal (B1); wave proposed here |
+| `artifact-fieldwork#FLD13` | W1 | proposed 2026-10-27 (it had no wave, so `tools/master_check.py` failed on develop `dbaa7720`): with the respondent disc, `artifact-fieldwork#FLD8b` and `run-qc-and-checkpoint#RQC7c` |
+| `artifact-fieldwork#FLD14` | W1 | proposed 2026-10-27 (it had no wave, so `tools/master_check.py` failed on develop `dbaa7720`): with the respondent disc, `artifact-fieldwork#FLD8b` and `run-qc-and-checkpoint#RQC7c` |
+| `artifact-fieldwork#FLD15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a run stopped at the budget); wave proposed here |
+| `artifact-fieldwork#FLD16` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a run stopped at the budget); wave proposed here |
+| `artifact-fieldwork#FLD17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a run stopped at the budget); wave proposed here |
+| `artifact-fieldwork#FLD18` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD21` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD22` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD23` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD24` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD25` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-results#RES11` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Výsledky' smaller gaps (the familiarity base); wave proposed here |
+| `artifact-results#RES12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Výsledky' smaller gaps (the familiarity base); wave proposed here |
+| `artifact-results#RES13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (evidence grades); wave proposed here |
+| `artifact-results#RES14` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: Další krok · Ideální skupina |
+| `artifact-sociomap#SOC15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (evidence grades); wave proposed here |
+| `artifact-audience#AUD12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Cílová skupina's smaller gap (audience:strategy); wave proposed here |
+| `artifact-dimensions#DIM9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM11` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-analysis#ANL13` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (evidence grades); wave proposed here |
+| `artifact-report#RPT16` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT17` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT18` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT19` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT20` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT21` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: board 11b as a board (design only) |
+| `deep-research-web-search#62` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: a study-level Deep Research permission panel; wave proposed here |
+| `sociomap-5-web#9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; the methodology owner's sign-off before a client sees a scenario; wave proposed here |
+| `sociomap-5-web#10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; wave proposed here |
+| `sociomap-5-web#11` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: Zajímavé skupiny |
+| `sociomap-5-web#12` | W1 | Nigel, 27 Oct 2026 (PM coordinator's chat): the map's switch between the two stored IDW terrains; built in #1015 with `signed-off-sociomap-method#12` |
+| `signed-off-sociomap-method#12` | W1 | the methodology owner, 26 Oct 2026, and Nigel, 27 Oct 2026: the `-5` terrain by inverse-distance weighting, both terrains stored; built in #1015 |
+| `signed-off-sociomap-method#13` | W2 | Nigel, 27 Oct 2026: the report's map terrain chosen by the study's lead researcher; after `signed-off-sociomap-method#9` and #1015 |
+| `study-data-lifecycle#SDL7` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: client data export |
+| `settings-redesign#F23` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the -5 render, once -5 is live); wave proposed here |
+| `settings-redesign#F24` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Metodik's coral count); wave proposed here |
+| `settings-redesign#F25` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (Audit categories as a dropdown); wave proposed here |
+| `settings-redesign#F26` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the sealed Lead kept 365 days (ADR 0030 amendment as Doc follow-up); wave proposed here |
+| `settings-redesign#F27` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the 365-day erase of AI spend and audit (F22's finding); wave proposed here |
+| `system-prompts-settings#18` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (Text / Změny); wave proposed here |
+| `lead-identity#LI10` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (Náhled v chatu); lead-identity is W3; wave proposed here |
+| `lead-identity#LI11` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Vypěstovat hero); lead-identity is W3; wave proposed here |
+| `prototype-build#PBA8` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the rail's badge dot and ring), lane A; wave proposed here |
+| `prototype-build#PBA9` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the flyout's fourth column), lane A; wave proposed here |
+
+**Added 2026-10-27** (the unplanned-features inventory, Nigel's decisions of 27 Oct, ~01:10-01:40 UTC, in the PM coordinator's chat). Two new core plans, `study-files` and `client-pages-redesign` (master §3.1), and new chunks in the plans that own each page. Each wave is the one its chunk names, proposed here where nothing did; the after-MVP chunks are POST. `artifact-fieldwork#FLD13` and `#FLD14` had no wave at develop `dbaa7720`, so `tools/master_check.py` failed there; both are W1 now.
+
+**Re-waves of 2026-10-26** (`prototype-build.md`, from the research chunk register §6): `working-copy-edit-ops#WCE8b` W2 → W1, because the per-item accept (`artifact-questionnaire#QST5`, W1) needs it; `research-lead-workbench#23` W4 → W1, out of E22; the money APIs in W1 (`lead-orchestration#LO23`, the ceiling before a start; `artifact-fieldwork#FLD10`, a parked step's `budget_need`); the composer's "+" menu as `research-lead-workbench#41`, W1, on today's contract, since `lead-orchestration#LO21b` is the prompt's action section only. `settings-redesign` is proposed core with every open chunk W1 (master §3.1), a proposal Nigel may change.
 
 ## Gate records
 

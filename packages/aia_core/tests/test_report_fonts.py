@@ -13,6 +13,7 @@ import struct
 import zipfile
 
 import pytest
+import report_samples
 from docx import Document
 from docx.oxml.ns import qn
 from lxml import etree
@@ -98,13 +99,17 @@ def test_obfuscation_follows_the_standard_key_order() -> None:
     assert out[16:32] == out[:16]
 
 
-def _saved(names: list[str]) -> zipfile.ZipFile:
+def _saved_bytes(names: list[str]) -> bytes:
     doc = Document()
     doc.add_paragraph("Příliš žluťoučký kůň úpěl ďábelské ódy.")
     embed.embed_fonts(doc, names)
     buf = io.BytesIO()
     doc.save(buf)
-    return zipfile.ZipFile(buf)
+    return buf.getvalue()
+
+
+def _saved(names: list[str]) -> zipfile.ZipFile:
+    return zipfile.ZipFile(io.BytesIO(_saved_bytes(names)))
 
 
 def test_embedded_faces_round_trip_to_the_vendored_bytes() -> None:
@@ -154,3 +159,68 @@ def test_embedding_the_same_font_twice_adds_no_duplicate_font_entry() -> None:
 def test_an_unvendored_font_is_refused_not_substituted() -> None:
     with pytest.raises(KeyError, match="Aptos"):
         embed.embed_fonts(Document(), ["Aptos"])
+
+
+def test_an_editor_save_that_dropped_the_fonts_gets_every_report_face_back() -> None:
+    """RPT15 (spec szz T7): every face the renderer embeds comes back as the renderer embeds it,
+    each round-tripping to its vendored bytes; a font AIA does not vendor is left as it is."""
+    saved = report_samples.without_embedded_fonts(_saved_bytes(["IBM Plex Sans", "IBM Plex Mono"]))
+    assert not any(
+        n.startswith("word/fonts/") for n in zipfile.ZipFile(io.BytesIO(saved)).namelist()
+    )
+    carried = embed.reembed_fonts(saved)
+    assert carried is not None
+    z = zipfile.ZipFile(io.BytesIO(carried))
+    table = etree.fromstring(z.read("word/fontTable.xml"))
+    rels = etree.fromstring(z.read("word/_rels/fontTable.xml.rels"))
+    targets = {r.get("Id"): r.get("Target") for r in rels}
+    fonts = {f.get(f"{W}name"): f for f in table.iter(f"{W}font")}
+    for name, slots in embed.FACES.items():
+        embeds = [e for e in fonts[name] if e.tag.startswith(f"{W}embed")]
+        assert {e.tag.removeprefix(f"{W}embed") for e in embeds} == set(slots), name
+        for e in embeds:
+            original = (embed.FONT_DIR / slots[e.tag.removeprefix(f"{W}embed")]).read_bytes()  # type: ignore[index]
+            part = z.read("word/" + targets[e.get(f"{R}id")])
+            assert embed.obfuscate(part, e.get(f"{W}fontKey")) == original
+    others = [n for n in fonts if n not in embed.FACES]
+    assert others, "the template names fonts AIA does not vendor"
+    assert not any(c.tag.startswith(f"{W}embed") for n in others for c in fonts[n])
+    assert "embedTrueTypeFonts" in z.read("word/settings.xml").decode()
+
+
+def test_only_the_embedding_parts_change_every_other_part_is_the_saved_ones() -> None:
+    """Text, controls and tags are byte-equal outside the font table, its relationships, the
+    settings and the content types: the download is the version the editor stored."""
+    saved = report_samples.without_embedded_fonts(_saved_bytes(["IBM Plex Sans"]))
+    before = zipfile.ZipFile(io.BytesIO(saved))
+    after = zipfile.ZipFile(io.BytesIO(embed.reembed_fonts(saved) or b""))
+    changed = {
+        "word/fontTable.xml",
+        "word/_rels/fontTable.xml.rels",
+        "word/settings.xml",
+        "[Content_Types].xml",
+    }
+    for name in before.namelist():
+        if name not in changed:
+            assert after.read(name) == before.read(name), name
+    assert set(after.namelist()) - set(before.namelist()) == {
+        n for n in after.namelist() if n.startswith("word/fonts/")
+    }
+
+
+def test_the_same_saved_version_downloads_as_the_same_bytes() -> None:
+    saved = report_samples.without_embedded_fonts(_saved_bytes(["Source Serif 4"]))
+    assert embed.reembed_fonts(saved) == embed.reembed_fonts(saved)
+
+
+def test_a_package_that_carries_every_face_is_left_exactly_as_it_is() -> None:
+    buf = io.BytesIO()
+    doc = Document()
+    embed.embed_fonts(doc, list(embed.FACES))
+    doc.save(buf)
+    assert embed.reembed_fonts(buf.getvalue()) is None
+
+
+def test_bytes_that_are_no_package_are_refused_by_name() -> None:
+    with pytest.raises(ValueError, match="not a readable DOCX package"):
+        embed.reembed_fonts(b"not a zip at all")

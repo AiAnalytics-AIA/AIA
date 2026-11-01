@@ -14,9 +14,10 @@ chunks:
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
+  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a); each row also yields the Lead's request definition (ADR 0026 Amendment 2026-10-28 R7, lead-orchestration LO8e)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
-  - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
+  - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"
+  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
   - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
@@ -47,6 +48,38 @@ chunks:
   - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
+  - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
+  - "[x] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
+  - "[x] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
+  - "[ ] 37. The Lead's run card agrees with Průběh: done steps, spend and ceiling from the single-run read (spec sber F7; W1)"
+  - "[ ] 38. Sociomapa's own state in the stage navigator (spec szz S5; W2)"
+  - "[ ] 39. The Lead pane's header status line (Připravena / Přemýšlí… / Pracuje na …) with the orb in the avatar (spec lead LP-1; W2)"
+  - "[ ] 40. The conversation's timeline axis, a node per card: chat layout F (spec lead LP-2; Nigel P6, 26 Oct 2026; W2)"
+  - "[ ] 41. The composer's '+' menu and shell: '+', the token chip, Vidí under the composer, the quick buttons removed; built on today's contract and GET /lead commands, not on LO21b, which is the prompt's action section only (spec lead LP-3; W1)"
+  - "[ ] 42. Zastavit on a running job card, folded 'zastaveno · zaplaceno x' afterwards (spec lead LP-6; W1, beside lead-orchestration LO17)"
+  - "[ ] 43. The budget lift in the card through SpendDialog, '+N USD a pokračovat', sized by the parked step's need (spec lead LP-8; W2)"
+  - "[ ] 44. A running job card's elapsed time, and the note when step events are off (spec lead LP-9; W1)"
+  - "[ ] 45. An advice answer's first paragraph in the folded card (spec lead LP-10; W2, optional)"
+  - "[ ] 46. Run spend on an expanded run card from the single-run read (spec lead LP-11; W2)"
+  - "[ ] 47. A typed 'Spusť výzkum' shows the run request card's facts (spec lead LP-12; W1)"
+  - "[ ] 48. The analysis retry card reads /analysis/retryable and names the modules (spec lead LP-13; W3, with artifact-analysis ANL6)"
+  - "[ ] 49. The composer's Akce built from GET /lead commands (spec lead LP-15; W2)"
+  - "[ ] 50. The edits card: its targets listed, 'Zahodit vše', 'Otevřít lištu' (spec lead LP-16; W2)"
+  - "[ ] 51. Akce = the artifact contract's starts ∩ the commands; no extra text after a run or a retry (spec lead LP-17; W2)"
+  - "[ ] 52. Přiložit soubor in the '+' menu files to the Lead, without opening the intake sheet: the file goes with the message as lead-orchestration#LO18a keeps it (spec lead LP-20 since spec v5, was LP-18; W2)"
+  - "[ ] 53. The Interpretation card shows its target run's date (Q44), from the turn's frozen candidates; if a candidate does not carry it, the server adds it first (W2)"
+  - "[ ] 54. Zastavit on a running research run card, through the run's cancel route, folded 'zastaveno · zaplaceno x' afterwards (#42 covers job cards only; W1)"
+  - "[ ] 55. Folded card rows: Hotovo, Ponecháno and Zastaveno each folded to one row ('hotovo · x USD', 'ponecháno · nic nespuštěno', 'zastaveno · zaplaceno x'), re-expandable (spec lead §2.0; W2, with #23 and lead-orchestration#LO21c)"
+  - "[ ] 56. The '+' menu's Přidat tab: 'Hledat na webu' shown disabled with 'připravujeme' until lead-orchestration#LO20 and #32, and 'Ukázat na prvek' in the menu with '@' kept as its shortcut (spec lead §3.2; W2, after #41, with #16)"
+  - "[ ] 57. The 'Zapamatovat si' card's 'Kam' fact: the file the note goes to (USER.md · Můj Vedoucí, or the client's notes) as a card fact (spec lead §2.7; W2)"
+  - "[ ] 58. Step events on for develop: deploy/develop/docker-compose.yml's AIA_AI_STEP_EVENTS default false -> true, so the cards and Průběh read model requests as they happen (spec lead B10, settled B3; an operator and infrastructure chunk; W1)"
+  - "[ ] 59. A price before approval on every paid card: Deep Research (design, interpretation, retry) and the agent jobs show 'Cena nejvýše', 'horní mez, ne odhad', before the approve button, and ask again when the ceiling grows, never as an error (Nigel, 27 Oct 2026; W1, after lead-orchestration#LO28 and #LO29; extends #23b's quote)"
+  - "[ ] 60. Vrátit on an accepted agent proposal and on a dismissed Lead edit, until the next change to the same item, offered where the server offers it (Nigel, 27 Oct 2026; W2, after working-copy-edit-ops#WCE15 and #WCE16)"
+  - "[ ] 61. A reused run on the agent-job card: 'využit předchozí běh', its spend named as that run's (W2, after lead-orchestration#LO30)"
+  - "[ ] 62. Přehled fází: a popover from the study header listing the six phases and their stages' states; checked first against the research stages prototype v73's header (a V2 element; W1)"
+  - "[ ] 63. The 'Fiktivní data' chip on the study header while the study's runs answer with fictional respondents; checked first against the research stages prototype v73's header (a V2 element; W1)"
+  - "[ ] 64. The difference between any two Design Revisions: two revisions chosen, their items' changes listed by item (#15's stepper shows one at a time; W2, after working-copy-edit-ops#WCE18)"
+  - "[ ] 65. The cost of re-running, shown before an edit commits: the stages an edit reopens and the ceiling of re-running them, before it is saved or accepted (W2, after working-copy-edit-ops#WCE17)"
 ---
 # Research Lead workbench
 
@@ -1758,8 +1791,9 @@ Measured on a fresh workbench at e508e483: 2 jobs and 10 model calls (20 ledger 
 at $0. The run took about 8 s and the DOCX was 1.5 MB. It passes once per fresh workbench; a second
 pass finds the jobs already done for the design.
 
-- **F19. The internal draft never says what the person asked for** *(open; the report's owner,
-  artifact-report)*.
+- **F19. The internal draft never says what the person asked for** *(partly fixed by #792, merged as
+  `f188646a`: the draft states the brief; the cover title and the client report remain, OI-195;
+  the report's owner, artifact-report)*.
   1. Claim: the brief's title, goal and decision use do not reach the internal draft. Its cover and
      introduction name the study record (`study.name`), and "Návrh studie" says it describes "co
      měl výzkum zjistit" but prints only the research questions, sets and sample.
@@ -1830,3 +1864,415 @@ pass finds the jobs already done for the design.
   once.
 - **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
   production build). Sharing them is another change, not this one.
+
+### The stages remounted the whole workbench on every click (2026-10-23, `fix/workbench-persistent-stages`; chunk 34)
+
+- **F23. Every stage change drew the Lead's pane anew and read the whole study again** *(fixed)*.
+  1. Claim: each stage was the page of its own route segment (`[stage]/page.tsx` rendered
+     `ResearchStage` -> `ResearchScreen` -> `Ready` -> `Workbench` -> `LeadPane`), and Next.js
+     remounts a page when its dynamic segment changes; only the study's layout (the session and
+     its store) survived. The Lead's pane, its draft and scroll, the jobs, runs, limits, the
+     study and the Lead's turns were all read again.
+  2. Anchor: `apps/web/src/components/aia/ResearchStudy.tsx:131-137 @ 82541803`.
+  3. Reproduction: `ResearchStudy.stages.test.tsx` "keeps the Lead's pane, its draft and the
+     study's reads when the stage changes" fails with the screen keyed by its step (a remount per
+     stage). In a browser on the UI workbench (`next dev`, warm): Zadání -> Návrh -> Dotazník ->
+     Cílová skupina -> Dimenze -> Zadání took 297, 344, 381, 251 and 251 ms with 22-26 API reads
+     each, the Lead's composer a new element every time.
+  4. Consequence: a lag and a flash of the conversation on every stage click (Nigel, 2026-10-22).
+  5. Fix: the study's layout draws the stages (`ResearchStages`, `useSelectedLayoutSegment`); the
+     stage page only answers an unknown stage with 404. The screen tolerated a step change
+     already (the item drawer, the runs, the heading focus); what a remount used to reset is reset
+     on the step: an open proposal or advice review is kept for later ("keep", as the unmount
+     did), the AI pomoc panel closes, the artifact opens at its top. A card that opens a review on
+     another stage still opens it there (the effect follows the step).
+  6. Test: the test above and `workbench_journey.mjs` (the same composer and conversation, the
+     draft kept, no read of the study's Lead, each switch timed). After: 187, 234, 187, 208 and
+     146 ms, 4-9 reads each, all the stage's own (its runs, limits, readiness, PUT
+     `/workspace/stage`); the journey's four switches 138-229 ms.
+- **Not changed, recorded:** the runs are read again per route (`useRuns(studyId, step, …)`), and
+  the study with them (the header's state follows the runs). They are the lane's input on every
+  stage; sharing them across stages is another change.
+
+### The Lead's `show_diff` (2026-10-22, `feature/lead-show-diff`; chunk 14)
+
+The owner's choice (2026-10-22, through the PM): on Návrh, Dotazník and Dimenze, `show_diff` shows that
+stage's waiting changes, the Lead's edits still to decide there, else the newest proposal still
+waiting for review. On Zpráva it waits for report-delivery RD5's tracked changes.
+- **Server.** `research_lead.ShowDiff` (`op: "show_diff"`, a stage) joins `ViewOp`; harness
+  `aia-research-lead-5`. `show_diff_refusal` drops one on a stage outside `SHOW_DIFF_STAGES`
+  (design, questionnaire, dimensions) or whose contract has none, as `not_available`, Zpráva
+  included. The prompt says where it applies. `show_diff` is live on both sides and in the fixture.
+- **Web.** `changesToShow` (pure): the Lead's edits waiting on the stage first, else the stage's
+  newest proposal with `proposal_state` pending (`JOB_STAGE`), else nothing.
+  - Workbench reveals the "Návrhy Vedoucího" bar (scrolled to and marked, as a focus is), or opens
+    the proposal as its card's review opens (`openJob`); with neither, it opens the stage through
+    its leave guard.
+  - The focus branch's find-and-mark is now `reveal(selector)`, shared by both.
+  - The chip reads "Změny: <stage>".
+- **Scripted Lead.** A message asking for "změny" on Návrh, Dotazník or Dimenze shows that stage's.
+- **Each stage shows it.** The frame does this generically for the three stages, so `show_diff` is
+  live with this change (the PM: "keep it out of the Lead's live ops until each stage shows it").
+- **In a browser** (UI workbench, the `questionnaire` fixture, scripted Lead, zero paid): at 1440 and
+  390 px, "Ukaž mi změny" proposes an edit and shows the bar, marked; the turn's chip reads
+  "Změny: Dotazník"; no page error, no overflow, no paid start.
+- **Tests.** `test_research_lead.py` "show_diff only where the stage shows its waiting changes";
+  `test_research_lead_workbench.py` "a scripted message asking for the changes…"; `lead.test.ts`
+  "changesToShow"; `LeadPane.test.tsx` "names a show_diff chip…"; `Workbench.layout.test.tsx`
+  "the Lead's show_diff": marks the edits, opens the waiting proposal, opens the stage when nothing
+  waits. Each fails without the change.
+- **Older than the page (Codex on #809).** The workbench's `jobs` are the newest 20, and the
+  server's `?pending=true` filtered that page, so a proposal waiting behind 20 newer jobs was never
+  shown. `?pending=true` now filters the study's newest 200 jobs (`list_runs`' cap) before reading
+  them in full, and show_diff asks it when its page holds no proposal for the stage. Tests:
+  `test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pending`;
+  `Workbench.layout.test.tsx` "asks the server for the stage's pending proposals…".
+- **Review fixes after it was marked ready.**
+  - *A slow lookup could act after the person moved on* (Codex). Each `?pending=true` lookup carries
+    its own number (`lookup`), moved on by a newer show_diff, a stage change or a study change; an
+    older answer is ignored. Test: `Workbench.layout.test.tsx` "drops a pending-proposal lookup…".
+  - *An older proposal on another stage did not open* (stand-in review). `openJob` kept only the job's
+    id in page memory, and the next stage looked for it in the newest page alone. The job itself is
+    now kept (`OPEN_REVIEW_KEY`), the page's copy preferred. Test: `ResearchScreen.workbench.test.tsx`
+    "opens on its own stage a proposal the Lead's show_diff found older than the newest page".
+  - *Silence on the current stage* (stand-in review). Nothing found says "Na této fázi nic nečeká na
+    rozhodnutí (prohledáno posledních 200 úloh)."; a lookup that failed says the proposals could not be
+    read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
+    is on when…" (both).
+
+### A card's review drawn under the drawer (2026-10-25, `fix/review-steps-drawer-aside`; the Dotazník audit)
+
+- **F24. Below 1100 px a card's "Zkontrolovat návrh" opened the review under the Lead's drawer or sheet**
+  *(fixed)*.
+  1. Claim: `openJob` opened the review, or moved to its stage, but never stepped the conversation aside,
+     so the review lay under the open drawer, with the focus held in it.
+  2. Anchor: `apps/web/src/components/workbench/Workbench.tsx:719-724 @ fd04ba89`.
+  3. Reproduction: at 768 or 390 px, a finished `optimize_questionnaire` job's card, "Zkontrolovat návrh":
+     "Použít návrh" and "Zahodit" are hidden behind the drawer (reported by the Dotazník session).
+  4. Consequence: the review could not be read or decided below 1100 px without closing the drawer by hand.
+  5. Fix: in a compact layout `openJob` steps the drawer aside (`view`, a peek with "Zpět k Vedoucímu"), as
+     a Lead's view does; the review takes the focus when it mounts.
+  6. Test: `Workbench.layout.test.tsx` "a card's review steps the drawer aside…"; `lead_stale_journey.mjs`
+     now checks it at 768 and 390 px (it had closed the drawer by hand, which hid the defect).
+
+### The stage navigator, a steady full-width bar (2026-10-23, `fix/workbench-stage-bar`; chunk 35)
+
+- **F24. The navigator shifted and resized with the current stage, and said little of status** *(fixed)*.
+  1. Claim: the current stage was drawn bold (`font-weight: 600`), so its button grew and every
+     stage after it moved; the bar used a part of the width (it ended at 1094 px of 1440); the
+     phase labels hid below 1500 px; a stage's status was an 11 px glyph alone, a coral stripe for
+     "waiting on you" and nothing for a fault.
+  2. Anchor: `apps/web/src/components/workbench/workbench.css:89-99 @ a25d2435`.
+  3. Reproduction: on the UI workbench at 1440 px, Dotazník's slot at x 154, width 96 when
+     current, 94 otherwise; Cílová skupina 110 -> 113 px when current; every later slot moved 1-4 px.
+  4. Consequence: "the menu resizes depending on what stage you're currently on … it looks chaotic"
+     (Nigel, 2026-10-22).
+  5. Fix: the six phases as labelled groups across the whole width, each phase's width its stage
+     count, every stage an equal grid column; the current stage a fill and an underline, never a
+     weight; a stage's status by its glyph and a word under its name (Hotovo, Čeká na vás, Chyba,
+     Běží) and a strip in its tone on top, a needs-you or fault stage washed in its tone; a stage the
+     lane says nothing of says nothing, muted.
+  6. Test: `Workbench.layout.test.tsx` "the stage navigator: a steady, full-width bar" (groups and
+     slots, aria-current with the same content either way, the tones, the keys);
+     `workbench_journey.mjs` "the navigator spans the width, and no slot moves or grows with the
+     current stage at 1440, 1280 and 1100" (every slot's x, width and height equal across four
+     current stages).
+- The journey's stage locators match a stage by its own name: a button's words (its status, what
+  reopened it, "změna dříve v návrhu") can name another stage.
+- **Review on #840 (stand-in, thread 4355136231), fixed:** the word was the tone's, so a stage read
+  "Hotovo" where the lane never called it done: Sběr dat after a cancelled or unread newest run
+  (Kontrola's "Spuštěno N×" is done), and Sociomapa, Analýza and Zpráva whenever Výsledky was.
+  `stageState` now returns the word beside the tone (`lib/workbench-stages.ts`): Sběr dat is done
+  only when the newest run's results are ready, otherwise as that run is, or inert with its line;
+  the three views are inert with Výsledky's line. Tests: `workbench-stages.test.ts` (cancelled,
+  unread, none, ready; the three views) and `Workbench.layout.test.tsx` "never calls Sběr dat done
+  for a run that was only started and then cancelled…".
+- **F25, a follow-up (hypothesis until built):** Sociomapa, Analýza and Zpráva have no state of
+  their own in the lane, so the navigator says nothing of them. Each could: a map stored for the
+  newest finished run (and its register status), its analysis modules COMPLETED or BLOCKED
+  (`needsRepair`), its report composed or approved (`reportStatus`). Smallest fix: extend
+  `runLane` with `sociomap`, `analysis` and `report` from the run's steps as `run-state.ts` and
+  `report-status.ts` already read them, and route the three views to them in `stageState`.
+
+### The Lead's map views: the web half (2026-10-26, `feature/lead-map-view-web`; chunk 14)
+
+The freeze lifted (the owner, 2026-10-26). The held `feature/lead-map-view-ops` lands in two parts; this is
+the first, rebuilt on develop (the held branch predates #809 and conflicted in 13 files).
+- **What it adds, not live.** `LeadView` carries `select` and `filter` (artifact-sociomap SOC1's forms).
+  `LIVE_VIEW_OPS` and `contract.json` are unchanged, so the server's output does not carry them yet.
+  - `lead.ts`: `LeadMapView`, `LEAD_MAP_VIEW` (the event), `sendLeadMapView` (kept for a map that mounts
+    after the move, sent to one on screen), `takeLeadMapView` (taken once), and `mapViewWords` (the chip:
+    what the picture becomes, "Mapa: reliéf", "Vybrat: Objekt set1/fio").
+  - `Workbench.onView` moves to Sociomapa through the leave guard and hands the map the view; a move the
+    guard stops keeps nothing. In a compact layout a filter peeks on Sociomapa.
+- **For Sociomapa (2).** The listener in the map panel imports `LEAD_MAP_VIEW` and `takeLeadMapView`, reads
+  each through `readMapOp`, and changes its display state.
+- **Next, the server half** (after the listener lands): `research_lead.MapFilter` / `SelectItem` with
+  `filter_refusal` / `select_refusal`, `filter_values` in `contract.json`, both sides' `LIVE_VIEW_OPS`,
+  the scripted Lead; `labels` and `hide_weak` left out of the server's values until the panel offers those
+  controls; harness `aia-research-lead-7` (6 went to LO5a.1 first).
+- **Tests.** `lead.test.ts` "mapViewWords"; `LeadPane.test.tsx` "names the Lead's map views…";
+  `Workbench.layout.test.tsx` "the Lead's views on Sociomapa" (moved and kept, kept nothing when stopped,
+  sent at once on Sociomapa). Each fails without the change.
+- **The server half, prepared** (`feature/lead-map-view-server`, on the web half; local until the
+  listener lands). `MapFilter` / `SelectItem` join `ViewOp` under harness `aia-research-lead-7`;
+  `select_refusal` (the person's own pointing only, `not_selectable` where the contract has no select)
+  and `filter_refusal` (`unknown_value`; a battery `not_in_context`); the executor passes the turn's
+  focus to `ground_view`; `filter_values` in `contract.json`, `FILTER_VALUES` on the server held to it
+  and to SOC1's; `select` and `filter` live on both sides; the scripted Lead runs both. The Lead
+  is offered only what the panel applies (Sociomapa (2), 2026-10-26): `select`, `view`, `mode` and
+  `battery`; `labels` and `hide_weak` have no control on it and leave `MapFilter`, while the map's
+  own `FILTER_VALUES` (SOC1, the contract) keep them. A `battery` stays refused (`not_in_context`):
+  the Lead's context names no battery.
+
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**36. Stage header slot and next-stage primary** (spec `navrh/X1` and `vzorek/H1`, one chunk: the spec defines the header's next button twice; W1, lane C). One StageHeader context with an action slot and a status slot; StepSection shows number, cap and need state; WellItem is the shared row. The header's primary is the next stage from `FrameNavigation`; inside the workbench the dock's own button is dropped. Serves `artifact-brief#BRF2`, `artifact-design#DSN3c`, `artifact-questionnaire#QST2`. Test: every stage's header names the next stage and opens it through the frame; no dock button inside the workbench.
+
+**37. Run card agrees with Průběh** (spec `sber/F7`; W1, lane C). The run card reads the same `GET …/research/runs/{id}` as Průběh: done steps over total, spent, held, the run's ceiling. On #23. Test: a fixture run shows the same counts and sums on the card and on Průběh.
+
+**38. Sociomapa's state in the navigator** (spec `szz/S5`; W2, lane C). The navigator marks Sociomapa by the map's own state (computed, not mappable, old method), not by Výsledky's. After #35.
+
+**39. Header status line** (spec `lead/LP-1`; W2, lane C). Připravena, Přemýšlí… or Pracuje na <step>, from the turn and job state the pane already reads; the orb in the avatar, the Lead's mark when `lead-identity#LI3` lands (P4: five marks). Unknown reads as unknown, never Připravena.
+
+**40. Timeline axis** (spec `lead/LP-2`; W2, lane C). Nigel chose chat layout F (P6, 26 Oct 2026): a timeline axis with a node per card. The radii are the rest of the product's (UI-3, `prototype-build#PBA7`).
+
+**41. The composer's '+' menu** (spec `lead/LP-3`; W1, lane C). `lead-orchestration#LO21b` generates the prompt's action section; it is not a menu, so the menu has no base there (register contradiction 4). This chunk builds the composer shell: '+' opening the menu, the token chip, Vidí under the composer, the quick buttons removed, over today's artifact contract and `GET /lead`'s `commands`. #49 and #51 fill the menu's Akce. Rešerše items are disabled with their reason until `lead-orchestration#LO5a.3` (decided by default by planning, open to Nigel's override). Test: the menu opens by keyboard, lists only what the contract and commands allow, and a disabled item names why.
+
+**42. Zastavit on job cards** (spec `lead/LP-6`; W1, lane C). Through `lead-orchestration#LO17`'s cancel; the folded card names what was paid. Unknown spend reads as unknown, never 0.
+
+**43. Budget lift in the card** (spec `lead/LP-8`; W2, lane C). Through `input-interactions#6`'s SpendDialog, the need read from `artifact-fieldwork#FLD10`'s `budget_need` (one API for `sber/P3`, `sber/G2` and lead gap B4).
+
+**44. Elapsed time and the step-events-off note** (spec `lead/LP-9`; W1, lane C). B3 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: `AIA_AI_STEP_EVENTS` is on for develop, set by infra (OQ12). The note stays for an environment where it is off.
+
+**45. Advice preview** (spec `lead/LP-10`; W2, lane C, optional). On #23.
+
+**46. Run spend on the card** (spec `lead/LP-11`; W2, lane C). Reads `artifact-fieldwork#FLD4a`'s spend; held, spent and uncertain apart.
+
+**47. Typed start shows the request's facts** (spec `lead/LP-12`; W1, lane C). After `lead-orchestration#LO5`; the ceiling from `lead-orchestration#LO23`.
+
+**48. Retry card names the modules** (spec `lead/LP-13`; W3, lane C). With `artifact-analysis#ANL6`; its ceiling from `lead-orchestration#LO23`.
+
+**49. Akce from commands** (spec `lead/LP-15`; W2, lane C). Lead gap B15: `commands` is served and unread by the web. After #41.
+
+**50. Edits card** (spec `lead/LP-16`; W2, lane C).
+
+**51. Akce as starts ∩ commands** (spec `lead/LP-17`; W2, lane C). After #41 and #49; Deep Research items after `lead-orchestration#LO5a.3`, disabled with a reason until then.
+
+**52. Přiložit soubor** (spec `lead/LP-20`; W2, lane C; after #41). *Updated 2026-10-27:* spec `lead/LP-18` is gone;
+since spec v5 the "+" menu's file item is LP-20, "Přiložit soubor", and it files to the Lead: the file goes with
+the message (`lead-orchestration#LO18a` keeps it as the client's source, `study-files#SF7` files it in the study's
+Vstupy), without opening `IntakeSheet`. Test: a file chosen from the menu shows as a chip and is sent with the message.
+
+**Notes.**
+- `navrh/D9` (edits bar keeps decided rows) is #7 with `working-copy-edit-ops#WCE9`.
+- `sber/F7`, `lead/LP-10` stand on #23, re-waved to W1 (register §6.4; the contracts' second table).
+- `navrh/Q7` and `szz/S4` stand on #23b and #26f.1.
+
+### The stage header's slots and its next stage (2026-10-26, `feature/stage-header-slot`; chunk 36 of #923, v73 X1 + H1)
+
+Chunk 36 is ticked in the front matter (it arrived with #923).
+- **`step.tsx`.** `StepSection` prints `n` as two mono digits ("03"), or `num` ("B1", "S1"); `cap` is the
+  right-hand caption; `need` draws the coral edge and a "chybí" pill, in words. `optional` keeps its
+  title suffix, since stage tests read section names with it. `StageHeader` (context) and
+  `StageHeaderSlot` (`actions` | `status`) put a stage's header parts into the workbench's header, and
+  leave them where they stand outside it. `ActionDock` inside the workbench claims the header's primary
+  slot and puts its action there: the stage's own forward action (its label, its conditions, what it
+  saves on the way: Návrh's questionnaire path, Dotazník's run-check reset) rather than a plain next.
+- **`ui.tsx`.** `WellItem`: one row of a section, mono id at the left, actions at the right.
+- **`Workbench.tsx`.** Three slot elements: actions beside the inspector toggle, the primary at the
+  right, a status row under the header (hidden when empty). With no dock claiming the primary, the
+  header shows the frame's next stage ("Cílová skupina ›"), opened through `FrameNavigation.next`
+  (the leave guard, the heading's focus). Vzorek keeps Dimenze's screen mounted but hidden, so it gets no
+  header context: Dimenze's dock would otherwise claim Vzorek's primary.
+- **In a browser** (`workbench_journey.mjs` on a fresh UI workbench built from the branch, fictional
+  studies, nothing paid): every check passes at 1440, 1280, 1100, 1099, 768 and 390 px. It found two
+  defects the unit tests could not: at 390 px the title column fell to 126 px beside the new primary, so
+  the header now wraps, the title keeping 240 px; and the stage's own forward button was 36 px high
+  there, so the header's buttons join the sheet's 44 px rule. The journey waited for a button in the
+  artifact body as its sign that a stage had drawn, and Cílová skupina's only one was its dock action,
+  now in the header; it waits for the stage's first heading instead.
+- **Stand-in review (P2, fixed).** Every dock's action had moved to the header, Sběr dat's paid
+  "Spustit výzkum" with it; v73 keeps it in "Co spustíte" beside its conditions, with "Výsledky ›" in the
+  header. `ActionDock inHeader={false}` keeps an action that is not a way on in its place, and
+  `ExecutionSteps` passes it. Also from the review: the claim is a layout effect (no frame of the plain
+  next before the dock's action), and a dock left with nothing to show draws no empty card. Left: the
+  classic layout now numbers the sections that pass `n` (Dimenze mixes "01" and unnumbered ones), which
+  the stage chunks set per their boards. The journey's navigator clicks match a stage by its `.nav__label`
+  exactly (#840's helper, taken in the merge): since #680 a reopened stage's mark ("ověřit znovu: změna
+  dříve v návrhu") made "Návrh" match eight buttons.
+- **Reversed rule.** `step.test.tsx` had held that sections are not numbered (research-lane-redesign);
+  v73 numbers every section, so that assertion moved to the new test.
+- **For the stage owners.** Zadání's readiness chips go in `StageHeaderSlot slot="status"`, header
+  actions in `slot="actions"`; Dimenze's "N dimenzí…" and Vzorek's readiness pill in `status` (H1).
+- **Tests.** `step.test.tsx` "StepSection prints its number and cap, and the need state names what is
+  missing", "WellItem is one row…", "a stage's header parts stay where they stand outside the
+  workbench…", "ActionDock in the workbench puts its action in the header's primary slot…";
+  `Workbench.layout.test.tsx` "the stage header's slots and its next stage" (actions in the header with
+  no remount across 1100 px; the frame's next when no dock claims it; the dock's action instead, one
+  copy); `ResearchScreen.workbench.test.tsx` "the header's next is the stage's own forward action; no
+  dock button inside the workbench". Each fails without the change.
+
+### Návrh's hypotheses as a plan part (2026-10-26, `feature/plan-hypotheses-anchor`; for artifact-design DSN12)
+
+Návrh draws its hypotheses in their own section (`plan-hypotheses`, between Porozumění and Sady). Each
+hypothesis keeps its `hypothesis:<id>` mark, but the section had no `plan:<part>` anchor: "@" on its
+empty text or add row, and a Lead focus of the section, named nothing, and `plan:narrative` scrolled
+to Porozumění, which no longer shows them (asked by the Návrh owner). `plan:hypotheses` is now a part:
+the server's `_PLAN_PARTS`, the contract's plan id, and `lib/lead.ts`'s focus selector, element map and
+label ("Návrh: hypotézy"). Návrh's own `lib/artifacts/design.ts` PLAN_PARTS gains it in the Návrh
+owner's PR. Tests: `test_research_lead.py` (`plan:hypotheses` grounded), `lead.test.ts` "names Návrh's
+hypotheses section…" and the focus selector. Each fails without the change.
+
+### Dimenze and Vzorek each read their own line on the navigator (2026-10-26, `fix/dimenze-own-lane`; for #945)
+
+#945 (DIM3b + SMP7) moves N to Vzorek. The navigator's `stageState` read the classic track's one persona
+step for both stages, so both showed "2 dimenze · N=300", and Dimenze stayed idle until N was set on
+Vzorek (reported by the Dimenze session). `designLane` now also gives `dimensions` (the chosen
+dimensions alone, done once one is chosen) and `sample` (`N=…`, else "N nezadáno"); `stageState` reads
+them for the two stages. The classic track's `persona` line is unchanged. Tests: `lane.test.ts` "gives
+the workbench's Dimenze its dimensions alone and Vzorek its N…"; `workbench-stages.test.ts` "read their
+state from the lane…". Each fails without the change.
+
+### A parked Lead turn's hold that is not a number stays parked (2026-10-26, `fix/lead-budget-hold-unknown`)
+
+Relayed from the Sběr dat session (#974).
+1. Claim: `release_lead_budget_waits` sent a parked turn whose recorded hold was NaN, `True` or
+   negative, as if it fit the raised budget.
+2. Anchor: `application/research_lead.py:482 @ 8fb1e2ce`. `isinstance(True, int)` holds, and
+   `nan > remaining` is false.
+3. Reproduction: `test_research_lead_application.py::test_a_parked_turn_whose_hold_is_unknown_stays_parked`
+   `[nan]`, `[True]` and `[-1.0]`.
+4. Consequence: a turn whose hold is unknown was sent on a budget raise and counted against nothing.
+5. Fix: `_recorded_hold` reads a hold only as a finite, non-negative number of USD; anything else is
+   unknown and stays parked.
+6. Test: that parametrised test; the three cases fail without the change.
+
+Left to the Lead's later chunk: a Lead turn parked at the cap carries no `budget_need` yet (#974 adds it
+to the steps it owns).
+
+### A stage's "Požádat Vedoucího" opens the conversation, asks only when the Lead answers, and once (2026-10-26, `fix/lead-ask-from-stage`)
+
+From the Zadání owner's `/code-review` on #986, three defects in `LeadPane.tsx` `fromStage` and
+`Workbench.tsx` `askLead` (every stage's ask through `useAskLead`):
+- below 1100 px the ask was sent with the conversation closed, so its answer and approval card went unseen; the
+  ask now opens the drawer or the sheet (and, in the split, brings the pane back from the artifact's focus mode);
+- it was sent while the composer was shut (Lead not hatched, unavailable, or read only); now nothing is sent,
+  and the open pane shows the composer's reason;
+- each click queued another copy; the same ask on its way, queued here or waiting on the server is dropped.
+Tests: `Workbench.layout.test.tsx` "a stage's 'Požádat Vedoucího'…" (three cases), each failing without the change.
+
+### The Vidí chip is a 44 px target at a phone's width (2026-10-26, `fix/lead-pane-sees-chip`)
+
+Reported by the Zadání owner: `workbench_journey.mjs` failed on develop 01babfb2 with "frame targets under
+44 px @390 (conversation)". The Lead pane's "Vidí: …" chip (`LeadPane.tsx:304`, a button since LC2) was 16 px
+high, outside the phone-width rule that gives every frame control 44 px (input-interactions I11). It joins
+that rule (`workbench.css`). Test: `workbench-css.test.ts` "makes the Lead pane's Vidí chip a 44 px target…",
+which fails without the change.
+
+### The dock's moved action keeps its place (2026-10-26, `fix/action-dock-stable-root`; follow-up to #936)
+
+From #936's stand-in review (P3): inside the workbench, `ActionDock` returned its header portal as the root
+when it had no note, and as a child of its card when it had one. A note arriving (PlanStep's, once the
+analysis loads) remounted the header's forward button, and a focused one lost its focus. The portal now
+stays first in one fragment, with the card beside it only when it has something to show. Test:
+`step.test.tsx` "ActionDock keeps its moved action, and the focus on it, when its note comes and goes",
+which fails without the change. The review's other P3, a comment beside the journey's `navStage`, fell
+away: #840's helper, taken in #936's merge, matches a stage's label exactly.
+- **Codex on #992 (P2, fixed).** A turn carrying several map views, answered on another stage, kept only the last:
+  `sendLeadMapView` held one waiting view, and `Workbench.onView` moved to Sociomapa once per view. The views now
+  wait in order (`lib/lead.ts`, `takeLeadMapViews` drains them), Sociomapa replays all of them when it mounts
+  (`SociomapStage.tsx`, two lines, agreed with Sociomapa), and a turn moves to the map once. Tests:
+  `ExecutionSteps.test.tsx` "applies every view sent before the stage drew its maps, in order…",
+  `Workbench.layout.test.tsx` "keeps every map view of one turn for the map, in order", each failing without it.
+
+### The Lead's prompt version 3 (2026-10-26, `fix/lead-prompt-version-3`)
+
+#992 changed the Lead's baseline task text (the select and filter instruction on Sociomapa) but left
+`LEAD_PROMPT_VERSION` at "2", following the show_diff precedent; Settings' baseline label and each turn's
+`prompt_version` then named two wordings, told apart only by the SHA-256. The product owner (2026-10-26):
+"yes lets upgrade the Leads prompt". It is "3". `test_prompt_slots.py` "the Lead's baseline wording changes only
+with its version" pins the baseline's SHA-256 to its version, so the next wording change without a bump fails.
+An organization with an activated stored Lead prompt keeps it until it rebases on the new baseline.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**Front matter repaired (2026-10-27).** Chunks 35 and 36 each appeared twice with opposite ticks, with a blank line
+inside the front matter, and 12a and 13 were fused on one line. Both 35 and 36 are ticked once now. How it was decided:
+the code is on develop (`apps/web/src/components/workbench/workbench.css:88-95 @ dbaa7720`, "stage navigator
+(research-lead-workbench 35)"; `StageHeaderSlot` in `Workbench.tsx`), and both PRs are merged: #840
+(`fix/workbench-stage-bar`, "Make the stage navigator a steady, full-width bar", merged 2026-10-26 05:57 UTC; § "The stage
+navigator, a steady full-width bar", F24 fixed) and #936 (`feature/stage-header-slot`, merged 2026-10-26 07:19 UTC; §
+"The stage header's slots and its next stage": "Chunk 36 is ticked"). The duplicate pair came in with a merge.
+
+**52** is updated in place above (LP-18 to LP-20).
+
+**53. The Interpretation card's date** (W2, lane C). Q44: the Lead offers Interpretation Research over a result of the
+study's own run; the card names which run by its date ("Běh z 12. 10. · revize 4"). The candidates come from the turn's
+frozen targets layer (`application/lead_deep_research.py:100 @ dbaa7720`, `card_target`); whether a candidate carries its
+run's `created_at` is unchecked (a **hypothesis**): if not, the server adds it in its own PR first. Test: the card prints
+the run's date; a candidate without one reads "datum neznámé".
+
+**54. Zastavit on a run card** (W1, lane C). The run cancel route exists (`POST …/research/runs/{run_id}/cancel`,
+`apps/api/src/aia_api/routers/research.py:1857 @ dbaa7720`); the run card has no Zastavit (#42 is the job card's). Test:
+the run card posts cancel and folds to "zastaveno · zaplaceno x"; an unknown spend reads unknown.
+
+**55. Folded rows** (W2, lane C). The card life of spec `lead/§2.0`: done, kept and stopped each fold to one row and
+reopen. With #23's job half and `lead-orchestration#LO21c`. Test: each lifecycle state renders its folded row from a
+fixture job.
+
+**56. Přidat** (W2, lane C). "Hledat na webu" disabled, `aria-disabled`, subtitle "připravujeme", until
+`lead-orchestration#LO20` (ADR 0040) and #32 enable it; "Ukázat na prvek" in the menu (#16's picking), "@" kept. Test:
+the menu renders the web item disabled; "@ on an objective" passes from the menu.
+
+**57. Kam** (W2, lane C). The self-update card's file is shown per item (`LeadPane.tsx:565 @ bd0d1ad6`) but not as a
+fact. Make it the card's "Kam" fact. Test: the card's facts row names the file.
+
+**58. Step events on for develop** (W1; the infrastructure session). `deploy/develop/docker-compose.yml:306 @ dbaa7720`
+reads `AIA_AI_STEP_EVENTS: ${AIA_AI_STEP_EVENTS:-false}`; settled B3 (spec `lead.md` B10) is on for develop. Change the
+default for develop only (two event writes per request, ~1.3 ms measured, CLAUDE.md § 2 `ai_runtime.py`); test and the
+other deployments keep it off. Test: `tools/caddy_routes.py`-style CI check of the Compose file, or the deploy's smoke,
+reads it on.
+
+**59. Price on every paid card** (W1, lane C). The rule (Nigel, 27 Oct 2026): every paid card shows "Cena nejvýše" with
+"horní mez, ne odhad" (D-01's money words, `src/i18n/cs.ts` `money`) before the approve button; when the server answers
+LO29's 409 the card asks again with the new ceiling. #23b quotes the Design Research request card; this adds the
+interpretation and retry cards and the agent-job cards. Test: each paid card shows its ceiling before approval; a 409
+re-asks without an error state.
+
+**60. Vrátit** (W2, lane C). Nigel, 27 Oct 2026: undo after accepting an agent proposal or dismissing a Lead edit is
+available until the next change to the same item, by a person or the Lead; it writes a new revision and a ledger row,
+nothing is erased. The card and the edits bar offer it while the server does. Test: Vrátit restores the before-values;
+after a later change to the item it is gone.
+
+**61. Reused run on the card** (W2, lane C). Test: a job answering `reused_run_id` says so and shows no new spend.
+
+**62. Přehled fází and 63. Fiktivní data** (W1, lane C). Two V2 elements on the study header the inventory found in no
+plan. Each is checked first against the research stages prototype v73's header (the canonical V2 frame, MVPQ-01): a
+part v73 dropped is recorded here as dropped rather than built. 62: a popover listing the six phases and each stage's
+state from `lib/lane.ts`. 63: the chip while the study's runs answer with fictional respondents (`originKind` SIMULATED,
+`lib/research-execution.ts`), unknown never fictional. Tests: the popover lists eleven stages in six phases; the chip
+shows for a fictional run and not for a modelled one.
+
+**64. Revision diff** (W2, lane C). Two Design Revisions chosen; their changes item by item, from WCE18. Test: two
+revisions of a fixture study list the changed questions.
+
+**65. Cost before an edit** (W2, lane C). WCE7c and WCE7d1 show the impact after an edit is in the working copy; this
+shows it before the edit commits, from WCE17: the stages reopened and the ceiling of re-running them. Test: an edit
+that reopens Sběr dat shows its ceiling before it is saved.

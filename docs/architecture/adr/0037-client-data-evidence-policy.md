@@ -1,6 +1,6 @@
 # ADR 0037 — A client dataset's evidence policy is compiled from its accepted data contract, and nothing else
 
-**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (a), now that MQ-16 to MQ-18 are answered; relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
 owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The support,
 metric and benchmark rules (decision 4) are awaiting the methodology owner** (ADR 0027 Q1, Q2, Q4).
 **Amends** [ADR 0027](0027-client-data-is-client-reported-evidence.md), as that ADR reads after the
@@ -9,6 +9,25 @@ MVPQ-05, and Q4), without editing it: this ADR is the mechanism behind its decis
 on** [ADR 0024](0024-panel-grounded-respondents-are-modelled-evidence.md) (an origin of its own,
 admitted only as what it is) and the evidence gates. **Leaves unchanged** the population contract as
 the authority for panel respondents, `aia-instrument-evidence-1` and `-2`, and every existing run.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
+**Decision notes, 2026-10-26** (the product owner, Decision Review, relayed by the PM coordinator;
+answered in part, the status unchanged, the rest the methodology owner's):
+
+- **0037-Q4 (a): "A Metodika module ('client data'), versioned, pinned per run".** Decision 4's
+  support rule version lives in the ADR 0023 store as a module of its own, written by the methodology
+  owner, and a run pins it like every other module; it is not a code constant.
+- **0037-Q5 (a): "Close it".** *Open for Nigel* item 2 (sequencing with #508) is closed: #508 has
+  merged and ADR 0027 carries its 2026-10-20 amendment.
+- **MQ-17 (a): "Never"** (shared with ADR 0027 Q2). A client's survey answers never condition the
+  AI respondents' personas; client data stays a separate comparison. Decision 4's "grounding
+  forbidden until answered" is now forbidden, full stop.
+
+Still open: MQ-16, MQ-18 and the verdict, left for the methodology owner.
+
 **Date:** 2026-10-20
 **Plan:** [client-data-in-analysis](../../../.planning/plans/client-data-in-analysis.md) 0-9
 
@@ -104,6 +123,16 @@ and AC-10.
 
 ## Open for Nigel
 
-1. **Q1, Q2, Q4** are the methodology owner's (A. Bahbouh).
-2. **Sequencing with #508.** This ADR reads ADR 0027 as #508 amends it; if #508 changes before it
-   merges, this ADR follows it.
+1. **Q1, Q4** are the methodology owner's (A. Bahbouh); Q2 is answered, "Never" (MQ-17 (a), the
+   product owner, 2026-10-26).
+2. ~~**Sequencing with #508.** This ADR reads ADR 0027 as #508 amends it; if #508 changes before it
+   merges, this ADR follows it.~~ Closed 2026-10-26 (the product owner, Q5 (a): "Close it"): #508
+   has merged.
+
+## Amendment, 2026-10-29
+
+Accepted on the methodology owner's verdict (a), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. Decision 4's support, metric and
+benchmark rules are his answers to MQ-16 and MQ-18 (2026-10-28), as ADR 0027's amendment of the same
+day states them: both intervals and no difference claimed; a survey's n is its row count or Kish n
+with an interval; a record count is "not a sample", exact, with no interval or test; a supplied
+aggregate is shown as reported; the metrics are mean, pct, n, count, amount and rate.

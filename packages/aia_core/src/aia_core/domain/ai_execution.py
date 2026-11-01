@@ -36,16 +36,20 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from .ai_contracts import AIUsageEvent, ModelCallFailed, ModelRequest, ModelResult
+from .material_rules import REFUSED_ANSWER_SOURCE
 from .scope import ClientWorkContext, ScopeDenied, ScopeGrant, StudyContext, WorkScope
 from .workflow import FailureClass
 
 __all__ = [
+    "REFUSED_ANSWER_ARTIFACT",
+    "UNCLASSIFIED",
     "CallJournal",
     "ExecutionContext",
     "ModelGateway",
     "RecoveryInputs",
     "ReservationView",
     "recovery_inputs",
+    "refused_answer",
 ]
 
 
@@ -174,3 +178,33 @@ def recovery_inputs(error: ModelCallFailed) -> RecoveryInputs:
             "call_ids": sorted({e.call_id for e in error.usage_events}),
         },
     )
+
+
+#: The artifact a refused answer is kept as, on the failing step's own project.
+REFUSED_ANSWER_ARTIFACT = "refused_answer"
+#: A refused answer whose request was sent unclassified (advisory class gates): no class guessed.
+UNCLASSIFIED = "unclassified"
+
+
+def refused_answer(request: ModelRequest, error: ModelCallFailed) -> dict[str, Any] | None:
+    """What is kept of an answer its output contract refused, or ``None`` for any other failure.
+
+    Only ``structured_output_invalid`` with the answer the gateway carried back: the last one, the
+    repair's (the product owner, 2026-10-28, W1Q3). It takes the class its request was sent as
+    (``REFUSED_ANSWER_SOURCE``, W1Q2); a request sent unclassified records no class, never a
+    guessed one. Read by an operator only (W1Q4): no route serves it.
+    """
+    if error.reason != "structured_output_invalid" or error.rejected_output is None:
+        return None
+    sent_as = request.data_classification
+    return {
+        "agent_id": request.agent.agent_id,
+        "agent_version": request.agent.version,
+        "prompt_id": request.agent.prompt_id,
+        "prompt_version": request.agent.prompt_version,
+        "call_ids": sorted({e.call_id for e in error.usage_events}),
+        "violations": list(error.violations),
+        "rejected_output": error.rejected_output,
+        "data_class": sent_as.value if sent_as is not None else None,
+        "class_source": REFUSED_ANSWER_SOURCE if sent_as is not None else UNCLASSIFIED,
+    }

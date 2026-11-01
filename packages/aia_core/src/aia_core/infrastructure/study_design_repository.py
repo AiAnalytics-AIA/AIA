@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ..domain.design import (
@@ -38,7 +38,12 @@ from .tables import (
     as_utc,
 )
 
-__all__ = ["AUTHORED_REASON", "DesignRevisionNotFound", "StudyDesignRepository"]
+__all__ = [
+    "AUTHORED_REASON",
+    "DesignRevisionNotFound",
+    "StudyDesignRepository",
+    "erase_client_designs",
+]
 
 #: ``project_revisions.reason`` for a design submitted from a stage: the provenance
 #: of a Design Revision without a column of its own.
@@ -239,33 +244,6 @@ class StudyDesignRepository:
             content=stored.content, source_stage=source_stage, workspace_revision=saved.revision
         )
 
-    def submit_if_current(
-        self,
-        *,
-        content: Any,
-        source_stage: str,
-        expected_revision_id: str,
-        workspace_revision: int,
-    ) -> tuple[DesignRevision, bool]:
-        """Apply a reviewed proposal only against its unchanged baseline.
-
-        The same Study row lock serializes ordinary submit() and proposal
-        acceptance, including first-design creation. ``workspace_revision`` is the working
-        revision the accept wrote, as :meth:`submit` requires. The caller commits.
-        """
-        self._scope.require(Permission.EDIT_STUDY)
-        self._scope.require_open_study()
-        self._require_research(lock=True)
-        self.get(expected_revision_id)
-        latest = self.latest()
-        if latest is None or latest.revision_id != expected_revision_id:
-            raise DesignRejected(
-                "the proposal's design baseline has changed", reason="stale_proposal"
-            )
-        return self.submit(
-            content=content, source_stage=source_stage, workspace_revision=workspace_revision
-        )
-
     def record_source(
         self,
         *,
@@ -376,3 +354,11 @@ class StudyDesignRepository:
             .limit(max(1, min(int(limit), 200)))
         ).all()
         return [_to_domain(r, self._scope.study_id) for r in rows]
+
+
+def erase_client_designs(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's Design Revision rows and reused-design citations (SB5); their
+    design projects go with the client's projects, after these."""
+    session.execute(delete(StudyDesignSourceRow).where(StudyDesignSourceRow.client_id == client_id))
+    session.execute(delete(StudyDesignRow).where(StudyDesignRow.client_id == client_id))
+    session.flush()

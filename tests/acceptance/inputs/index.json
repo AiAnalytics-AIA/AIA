@@ -1,0 +1,36 @@
+{
+  "about": "The representative study's fixed inputs (docs/migration/mvp-acceptance.md section 1; mvp-acceptance-harness chunk 2). Fictional, committed, each pinned by SHA-256 like the golden fixtures; test_acceptance_inputs.py holds the files to these pins. Change an input only with its pin, in the same commit.",
+  "inputs": {
+    "brief": {
+      "file": "brief.json",
+      "sha256": "58852cb017540d4f7d7316960eba1a9194eee530bda0d65a17d484c5ee466507",
+      "what": "The brief, the audience (age 18-65) and n 300: the study's working content, over the research template"
+    },
+    "concepts": {
+      "file": "concepts.json",
+      "sha256": "a4a8fb8f664dedfd250f229e0cc5b25bfc6a85898732735b3ff55f8b7fbfec82",
+      "what": "The five fictitious service concepts service_a ... service_e, one tracked set"
+    },
+    "client_document": {
+      "file": "annual-summary.md",
+      "sha256": "971e2f76a9122ab9ed6ca11bb7017b2b6fba1213f90f9e610785591941251adb",
+      "what": "The library's fictional annual summary: a client source, read by paragraph"
+    },
+    "client_dataset": {
+      "file": "visits.csv",
+      "sha256": "e7baf5cb24fd216e9982db53e30f6bdeb9b8f115ee82d248c1a175a2bb70cfdf",
+      "what": "Visits by branch and month, with one personal column (E-mail kontaktní osoby) the data contract must drop"
+    },
+    "web_page": {
+      "file": "web-page.html",
+      "sha256": "8dc1265f9569f4c5cc55159589dc98ac1f71e65423cc4cdcc5bdb930dc436586",
+      "what": "The one public page, as tier A's recorded retrieval serves it; tier B's live page is named in the tier B runbook (chunk 7)",
+      "url": "https://knihovna-kvitkov.example/sluzby-knihoven"
+    },
+    "past_study": {
+      "file": "past-study.json",
+      "sha256": "0dfd8962f4e3c26d92d3739aa58d59c9faeaeb1735d37d2688ba57569b0ad692",
+      "what": "One past fictional study of the same client, whose design is reused"
+    }
+  }
+}

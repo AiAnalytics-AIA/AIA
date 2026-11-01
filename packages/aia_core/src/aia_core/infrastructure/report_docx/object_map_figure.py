@@ -111,10 +111,27 @@ def draw_object_map_snapshot(
     return png
 
 
-def object_map_snapshots(result: Mapping[str, object]) -> dict[tuple[str, str, str], bytes]:
+def object_map_snapshot(
+    artifact: SociomapArtifactV3, labels: Mapping[str, str], view: str
+) -> bytes | None:
+    """One stored map's ``view`` (``top`` or ``3d``), drawn as the report draws it (report-
+    delivery RD4); ``None`` where the map cannot show it: not mappable, or 3D with no terrain."""
+    if artifact.layout is None:
+        return None
+    if is_signed_off(artifact) and isinstance(artifact.terrain, EnvelopeTerrain):
+        return signed_off_snapshots(artifact, labels, only=view).get(view)
+    if view == "3d" and not isinstance(artifact.terrain, EnvelopeTerrain):
+        return None
+    return draw_object_map_snapshot(artifact, labels, perspective=view == "3d")
+
+
+def object_map_snapshots(
+    result: Mapping[str, object], *, respondents: bool = True
+) -> dict[tuple[str, str, str], bytes]:
     """Render every stored contract-3 map's available views, with integrity checked first.
     A signed-off map with its terrain is drawn as the AIA panel draws it, its respondent map
-    included (:mod:`.signed_off_map_figure`); every other map keeps these snapshots."""
+    included unless ``respondents`` is false (the client report, which never prints it: MQ-01
+    (b)) (:mod:`.signed_off_map_figure`); every other map keeps these snapshots."""
     images: dict[tuple[str, str, str], bytes] = {}
     for battery in cast(list[dict[str, Any]], result.get("batteries", [])):
         labels = {o["id"]: o["label"] for o in battery["objects"]}
@@ -122,7 +139,9 @@ def object_map_snapshots(result: Mapping[str, object]) -> dict[tuple[str, str, s
             if artifact.layout is None:
                 continue
             if is_signed_off(artifact) and isinstance(artifact.terrain, EnvelopeTerrain):
-                for view, png in signed_off_snapshots(artifact, labels).items():
+                for view, png in signed_off_snapshots(
+                    artifact, labels, respondents=respondents
+                ).items():
                     images[(battery["battery_id"], method, view)] = png
                 continue
             images[(battery["battery_id"], method, "top")] = draw_object_map_snapshot(

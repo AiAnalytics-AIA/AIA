@@ -180,3 +180,11 @@ Full-process acceptance still requires chunks 5–8 above. Continue on this bran
 reference source remains frozen. No Claude session trailer was fabricated.
 *(Superseded: the branch merged as #63. Chunks 5–8 continue on the owning jobs' branches;
 see § Integration.)*
+
+## Disposition (MP3, 2026-10-26)
+
+**FOLD**, accepted (the product owner in the Decision Review, 2026-10-26, relayed by the PM
+coordinator: "Accept: FOLD"). Chunks 5-8 are covered by D17's workers, Interpretation Research
+(`deep-research-web-search` 30) and `evidence-integrity`; its I4 (OI-64) is already
+`run-qc-and-checkpoint#RQC0`. The plan closes with a pointer to those; its chunks are left as they
+are.

@@ -80,7 +80,7 @@ export function UndoToast({ offer, onDone, ms = UNDO_MS }: { offer: UndoOffer | 
           onBlur={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusInside(false);
           }}
-          className="pointer-events-auto flex max-w-full items-center gap-3 rounded-md border border-border-strong bg-surface-inverse py-1.5 pl-4 pr-1.5 text-sm text-ink-inverse shadow-[var(--shadow-overlay)]"
+          className="pointer-events-auto flex max-w-full items-center gap-3 rounded-control bg-surface-inverse py-1.5 pl-4 pr-1.5 text-sm text-ink-inverse shadow-[var(--shadow-overlay)]"
         >
           <span className="min-w-0">{offer.message}</span>
           <button

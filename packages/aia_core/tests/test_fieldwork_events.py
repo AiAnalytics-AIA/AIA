@@ -24,6 +24,9 @@ def test_the_contract_is_the_case_file_the_web_reads() -> None:
     assert set(progress(respondents=1, of=2, sent=3, replayed=4)) == set(
         PAYLOAD_KEYS[FieldworkEvent.PROGRESS]
     )
+    # A report carries its cells only when the attempt counts them; otherwise null, never {}.
+    assert progress(respondents=1, of=2, sent=3, replayed=4)["cells"] is None
+    assert progress(respondents=1, of=2, sent=3, replayed=4, cells={"a": 1})["cells"] == {"a": 1}
 
 
 def test_progress_is_due_every_few_respondents_at_the_last_and_as_a_heartbeat() -> None:

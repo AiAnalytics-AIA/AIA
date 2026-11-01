@@ -14,6 +14,8 @@ import type { LeadMemory } from "@/lib/lead";
 import { Button } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { CARD, Empty, Loaded } from "./states";
+import { announceHatched } from "@/lib/rail-lead";
+
 import { useResource } from "./useResource";
 
 const when = (iso: string) => {
@@ -101,7 +103,7 @@ export function LeadProfilePage() {
   // What the last change answered, until the page is read again.
   const [changed, setChanged] = useState<ResearcherLeadView | null>(null);
   return (
-    <AppShell title="Můj Vedoucí výzkumu" sub="Váš vlastní Vedoucí, jeho soubory a paměť. Měníte je rozhovorem s ním, ne zde.">
+    <AppShell hero title="Můj Vedoucí výzkumu" sub="Váš vlastní Vedoucí, jeho soubory a paměť. Měníte je rozhovorem s ním, ne zde.">
       <Loaded res={res} retry={retry}>
         {(me: ResearcherLeadView) => {
           if (!me.hatched || !me.lead) {
@@ -109,7 +111,7 @@ export function LeadProfilePage() {
               <Empty>
                 <span className="flex flex-col items-start gap-3">
                   <span>Svého Vedoucího jste si zatím nevylíhli. Vylíhne se jednou a pak se učí s vámi ve všech vašich studiích.</span>
-                  <Button variant="primary" onClick={() => void researcherLead.hatch().then(retry, retry)}>Vylíhnout mého Vedoucího</Button>
+                  <Button variant="primary" onClick={() => void researcherLead.hatch().then(() => { announceHatched(); retry(); }, retry)}>Vylíhnout mého Vedoucího</Button>
                 </span>
               </Empty>
             );

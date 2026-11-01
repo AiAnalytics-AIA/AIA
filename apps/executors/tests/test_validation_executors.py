@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.validation import ValidationRuns, validation_artifacts
+from aia_core.domain.ai_models import DEFAULT_REQUEST_PROFILE
 from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.evidence.validation import respondent_system_fingerprint
 from aia_core.domain.holdout.bank import HoldoutItem, ItemBank, Option, SourceDocument
@@ -156,7 +157,9 @@ class _Caller:
         self.model = model
 
     def preflight(self, request: Any) -> Any:
-        return SimpleNamespace(route_id=ROUTE, model=self.model)
+        return SimpleNamespace(
+            route_id=ROUTE, model=self.model, request_profile=DEFAULT_REQUEST_PROFILE
+        )
 
     def invoke(self, request: Any) -> Any:
         self.requests.append(request)

@@ -23,7 +23,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -33,7 +33,12 @@ from ..domain.holdout.scoring import SCORING_VERSION
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
 from .tables import HoldoutConfirmationRow, HoldoutPreregistrationRow, StudyRow, as_utc
 
-__all__ = ["HoldoutRepository", "StoredConfirmation", "StoredPreregistration"]
+__all__ = [
+    "HoldoutRepository",
+    "StoredConfirmation",
+    "StoredPreregistration",
+    "erase_client_holdouts",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,3 +259,21 @@ def _confirmation(row: HoldoutConfirmationRow) -> StoredConfirmation:
         started_by=row.started_by,
         started_at=as_utc(row.started_at),
     )
+
+
+def erase_client_holdouts(session: Session, *, client_id: str) -> None:
+    """Erase a deleted client's holdout content, keeping each confirmation (SB5, OI-232).
+
+    A confirmation is its respondent system's once per organization
+    (``holdout_confirmation_once_per_system``): deleting it would let another Study start
+    confirming the same system and keep the run that passes. So the confirmation row stays
+    (ids, fingerprint, hashes, who and when: no content), and its preregistration row, which
+    it cascades from, stays too with its content erased. Nothing reads either again: both
+    are found only through their Study, which is a tombstone.
+    """
+    session.execute(
+        update(HoldoutPreregistrationRow)
+        .where(HoldoutPreregistrationRow.client_id == client_id)
+        .values(content=b"")
+    )
+    session.flush()

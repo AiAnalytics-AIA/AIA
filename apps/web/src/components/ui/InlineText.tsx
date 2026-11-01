@@ -10,11 +10,10 @@
 import { type KeyboardEvent, type MouseEvent, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type SaveState, type TextRules, editKeyAction, isThenable, opensEdit, readDraft } from "@/lib/inline-edit";
+import { type SaveState, type TextRules, editKeyAction, isThenable, opensEdit, readDraft, SAVED_MS } from "@/lib/inline-edit";
 import { Icon } from "../rehome/icons";
 import { EDIT_FIELD, FIELD_ERROR, FOCUS, SaveNote } from "./parts";
 
-const SAVED_MS = 3000;
 /** How long a selectable value waits for a second click before a click opens it. */
 export const SELECT_SETTLE_MS = 300;
 

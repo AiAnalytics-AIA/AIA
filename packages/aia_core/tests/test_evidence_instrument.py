@@ -36,16 +36,16 @@ from aia_core.domain.evidence import (
     instrument_policy,
     instrument_policy_book,
     instrument_policy_version,
-    load_joint_status,
 )
 from aia_core.domain.fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from aia_core.domain.population import evaluate_joint_certificate
 
 ITEMS = (
     InstrumentItem("q1", "Jak často pijete kávu?"),
     InstrumentItem("q2", "Co si ráno koupíte?"),
 )
 SOURCE = "fieldwork aia-synthetic-fixture-1"
-MISSING = load_joint_status(None, measured_panel_sha256=None)
+MISSING = evaluate_joint_certificate(None, panel_sha256=None)
 
 
 def book(origin: DataOrigin | None = DataOrigin.SYNTHETIC_AI_FICTIONAL) -> FieldPolicyBook:

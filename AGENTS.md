@@ -551,6 +551,19 @@ table.** After a migration that adds columns, the workbench's API fails with
 `python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
 (client-workspace C5, #380).
 
+**The UI workbench started from a git worktree serves the main checkout's server code.** The venv's
+editable installs point at the checkout `make setup` ran in, so a workbench started from another
+worktree runs that checkout's API and worker, not the branch's (#913). Put the worktree's sources
+first:
+
+```bash
+# WRONG -- from a worktree: the venv's editable installs serve the main checkout's server code
+python tools/ui_workbench/workbench.py up
+# RIGHT -- the worktree's own four source trees first
+PYTHONPATH=packages/aia_core/src:apps/api/src:apps/worker/src:apps/executors/src \
+  python tools/ui_workbench/workbench.py up
+```
+
 **A `select` of more than ten columns types its rows as a variadic tuple.** SQLAlchemy's stubs
 type `Row` positionally only up to ten columns; past that, unpacking a row in the `for` fails
 `mypy --strict` with "Variadic tuple unpacking requires a star target". Read such rows by column
@@ -659,6 +672,18 @@ move a revision that a database may already have applied.
 # RIGHT -- one empty revision with both parents; correct whichever one a database has
 alembic merge -m "merge the budget-lift and prompt-declaration heads" 8c2f4a6d1b3e b3e8f1a47c60
 alembic heads   # exactly one
+```
+
+**A constraint name must fit PostgreSQL's 63 characters, prefix included.** The naming
+convention prepends `ck_<table>_` to a CHECK constraint's name; past 63 characters PostgreSQL
+truncates it with a hash suffix, and a later `op.f(...)` drop names a constraint that does not
+exist (lead-conversation LC5a, #817).
+
+```python
+# WRONG -- the stored name is ck_<table>_<name> cut to 63 characters with a hash; the drop misses it
+sa.CheckConstraint("...", name="<a name that with ck_<table>_ passes 63 characters>")
+op.drop_constraint(op.f("ck_<table>_<that name>"), "<table>")
+# RIGHT -- check len("ck_<table>_<name>") <= 63 before the migration is written
 ```
 
 ## mypy --strict
@@ -817,6 +842,20 @@ Bedrock lists it; a rule that demands a version suffix, as the route's own model
 refuses the model, while an alias ending `latest` must still be refused
 (`apps/executors/src/aia_executors/ai_runtime.py:251-270 @ 1648e6d5`, `_pinned_eu_profile` beside `_lead_eu_profile`;
 `test_an_id_without_a_version_suffix_is_accepted_as_bedrock_lists_it`).
+
+**Adaptive thinking is counted inside `maxTokens`** (Claude Sonnet 5.5 on the route, #907). A cap
+sized for the answer alone truncates (`stopReason: max_tokens`) at the model's default effort, since
+the thinking it chose spends the same budget first. Set a lower effort per capability
+(`ModelPolicy.efforts`: `AIA_AI_FIELDWORK_EFFORT`, `AIA_AI_RESEARCH_EFFORT`) or raise the cap on a
+measurement (`.planning/plans/sonnet-5-5-switch.md` chunk 5).
+
+```python
+# WRONG -- an adaptive model's maxTokens is the answer's limit
+{"inferenceConfig": {"maxTokens": answer_tokens}}
+# RIGHT -- the thinking is inside it: a configured effort, or a cap measured with the thinking in
+{"inferenceConfig": {"maxTokens": measured_tokens},
+ "additionalModelRequestFields": {"output_config": {"effort": "low"}}}
+```
 
 **Invocation logging off is not a retention of 0** (review of #487). The route's
 `aia_ai_route_retention_days` is what Bedrock and the model provider keep, and logging off says
@@ -1019,6 +1058,24 @@ fallback = name.encode("ascii", "replace").decode().replace("?", "_").replace('"
 headers = {"Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name)}"}
 ```
 
+**An optional `Body()` parameter covers only a missing body.** A body FastAPI cannot parse is
+answered 422 before the handler runs, so a route that must refuse first (an unsigned request is 403,
+or 404 while the feature is off) never gets to. The report editor's callback reads the raw body in a
+dependency instead (`routers/report_editor.py:381 @ 5d5ed250`, `_callback_body`; #865).
+
+```python
+# WRONG -- an unparseable body is 422 before the signature is checked
+def callback(body: Annotated[dict[str, Any] | None, Body()] = None): ...
+
+# RIGHT -- read the bytes in a dependency; anything unparseable is {} and refused as unsigned
+async def _callback_body(request: Request) -> dict[str, Any]:
+    try:
+        parsed = json.loads(await request.body())
+    except (ValueError, RecursionError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+```
+
 ## Pydantic strict mode
 
 **Strict *Python* mode rejects what JSON can express.** `model_validate(data,
@@ -1144,6 +1201,26 @@ Two consequences to carry:
   file missing from that list will not fire. OI-37 records the first time this
   was learned here.
 
+**A job's `success()` looks through its whole `needs` chain, not only its direct needs.**
+Dropping a job from `needs:` does not stop it gating: if a job still in the list needs it
+(and runs under `!cancelled()`), a failure upstream still makes `success()` false
+downstream. Found when `dispatch-develop` stopped needing the 18.6.6 comparison jobs
+(MVP-21, #1060) but still needed `parity-status`, which needs them.
+
+```yaml
+# WRONG -- parity and oracle-parity still block the deploy through parity-status
+needs: [backend, parity-status, ...]
+if: success() && github.event_name == 'push'
+
+# RIGHT -- each direct need's own result, by name
+needs: [backend, parity-status, ...]
+if: >-
+  !cancelled() && github.event_name == 'push'
+  && needs.backend.result == 'success' && needs.parity-status.result == 'success' && ...
+```
+
+`test_parity_reports_never_blocks.py::test_the_deploy_waits_for_no_comparison_job` holds it.
+
 ## Caddy
 
 **Inside `handle`, Caddy re-sorts directives into its fixed order.** The
@@ -1215,6 +1292,19 @@ handle / {
 handle / {
 	redir * /app/clients 302
 }
+```
+
+**An exact `path` matcher does not refuse an ONLYOFFICE Document Server path.** Its nginx passes
+`/<a.b.c-d>/<any path>` to the same service, merges repeated slashes and matches without regard to
+case, so `/9.4.0-1/coauthoring/CommandService.ashx` and `//coauthoring//commandservice.ashx` reach
+the path an exact matcher refuses (report-editor-hosting, #785; `tools/caddy_routes.py` holds the
+variants).
+
+```caddyfile
+# WRONG — refuses one spelling of the path
+@server_only path /coauthoring/CommandService.ashx
+# RIGHT — any case, the optional version prefix, repeated slashes
+@server_only path_regexp server_only (?i)^/+(?:[0-9]+\.[0-9]+\.[0-9]+[.|-]\w+/+)?(?:coauthoring/+commandservice\.ashx|…)(?:[/?].*)?$
 ```
 
 ## DOCX (python-docx) and embedded fonts
@@ -1299,6 +1389,17 @@ picture to its leading in LibreOffice and Word alike: seven charts rendered as
 characters.** Grep a newly written file for NBSP, en dash and minus before
 running ruff; RUF001 then catches the rest.
 
+**`Paragraph.text` and `_Cell.text` read `w:r` and `w:hyperlink` only; an inline `w:sdt`'s runs
+are skipped.** AIA's report renderer locks every printed ledger number in one (RPT8a, #786), so
+`p.text` reads an AIA report without its numbers.
+
+```python
+# WRONG
+text = p.text
+# RIGHT -- the runs inside inline content controls too (infrastructure/document_text.py)
+text = paragraph_text(p)
+```
+
 **python-docx writes the current time into the zip.** Two renders of the same
 document differ in bytes unless the package is rewritten with fixed timestamps
 (`renderer._normalise_zip`) and the core properties are dated explicitly.
@@ -1330,6 +1431,18 @@ pip freeze --all --exclude-editable > reqs.txt && pip-audit --strict --no-deps -
 
 The runner's own pip sits in the audited environment, so upgrade it first (`python -m pip install
 --upgrade pip`): pip 24.0 carried six advisories.
+
+**npm's audit endpoint can hang for about 420 s and then answer `{"summary":"","detail":""}`**
+(2026-10-22, three CI runs). One unbounded call made the security job wait it out and fail on an
+unreadable report (#676).
+
+```bash
+# WRONG -- one unbounded call; npm ci's own audit asks the same endpoint again
+npm ci && npm audit --json
+# RIGHT -- bounded attempts, failing closed (apps/web/scripts/audit-gate.mjs: two attempts,
+# 150 s each, each in the step summary; no readable report after both fails the job)
+npm ci --no-audit && node scripts/audit-gate.mjs
+```
 
 **A contract assertion that outlives the contract is worse than none.** CI
 asserted `/api/v1/projects` after projects had moved under
@@ -1370,6 +1483,22 @@ which reports new findings (`set-state-in-effect`, `use-memo`; 11 on the 16.4.2 
 # WRONG -- overriding the plugin back to 7.0.1 breaks eslint-config-next's own range
 # RIGHT -- fix the effect, or disable the rule on that line with its reason:
 # eslint-disable-next-line react-hooks/set-state-in-effect -- <reason>
+```
+
+**An open-redirect check on the raw string misses what the URL parser rewrites.** A browser's URL
+parser drops tab, CR and LF, so `/\t/evil.example` is `//evil.example`, another host; and it
+normalises dot segments, so `/.//evil.example` has the pathname `//evil.example` (security-audit S1,
+#705). Resolve `next` against a fixed origin, require that origin, then hand back `next` as given,
+never the parsed path (`apps/web/src/lib/session.ts` `localPath`; the API's `_local_path` refuses
+any control character).
+
+```ts
+// WRONG -- "/\t/evil.example" passes, and the browser goes to evil.example
+const ok = next.startsWith("/") && !next.startsWith("//") && !next.includes("\\");
+// WRONG -- returning url.pathname reopens it through dot segments
+// RIGHT
+const url = new URL(next, HERE);           // HERE: a fixed origin, "https://aia.invalid"
+return url.origin === HERE ? next : "/";
 ```
 
 **Route modules cannot export arbitrary helpers or constants.** The production
@@ -1877,6 +2006,59 @@ owed.current = true; setRenaming(false);
 useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
 ```
 
+**A focus restored when an async save answers must not steal focus the person has since moved.**
+Restoring focus in an effect after `onSettled` (a save's answer) ran after the person had opened
+another control, and took focus from it; it showed as a CI flake under load (#735). Restore only
+when focus is on the page. Deciding by containment at the moment the save settles does not work:
+the field's own DOM has already dropped focus by then (`KnowledgeOrganizers.tsx` `useRenaming`).
+
+```tsx
+// WRONG: takes focus from wherever the person went while the save was in flight
+useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
+// RIGHT: only focus left on the page comes back
+const now = document.activeElement;
+if (now && now !== document.body) return;
+row.current?.focus();
+```
+
+**Time a page on a production build, never on `next dev`.** The dev server compiles routes on
+demand and runs dev-only checks: the same Metodika interaction took 506–570 ms on `next dev` and
+57–103 ms on `next build` + the standalone server (#752). The standalone server renames its process
+to `next-server`, so identify it by its working directory, not its command line
+(`tools/ui_workbench/production.mjs`). The timed journeys run on `workbench.py up --production`
+and refuse `next dev`; their budgets are 400 ms an interaction and 800 ms a research stage's cold
+first open (Q78 (c), #768).
+
+```text
+WRONG: time a journey against `next dev`, or find the server with pgrep -f "next start"
+RIGHT: python3 tools/ui_workbench/workbench.py up --production; the web process's cwd ends
+       with apps/web/.next/standalone
+```
+
+**A Vitest test that crosses a DST change passes vacuously in CI's UTC.** UTC has no 23- or 25-hour
+day. Set `process.env.TZ` in `vi.hoisted` (before the imports build any `Intl` formatter), restore it
+in `afterAll`, and assert the zone took effect (`apps/web/src/lib/day-label.test.ts`, #730).
+
+```ts
+// WRONG: set in a beforeAll, after the module's formatters exist; or not asserted at all
+// RIGHT
+const zone = vi.hoisted(() => { const before = process.env.TZ; process.env.TZ = "Europe/Prague"; return before; });
+afterAll(() => { if (zone === undefined) delete process.env.TZ; else process.env.TZ = zone; });
+expect(new Date(2026, 9, 26).getTime() - new Date(2026, 9, 25).getTime()).toBe(25 * 3_600_000);
+```
+
+**A Playwright `waitForFunction` over `querySelector(...)?.prop` is vacuously true when nothing
+matches.** The Lead journey waited for an enabled composer that way, and went on before it existed
+(#678). Wait on the locator the test acts on; for a hidden element that must be ready, use
+`.waitFor({ state: "attached" })`, since the default `visible` never resolves.
+
+```js
+// WRONG: true while no element matches
+await page.waitForFunction(() => !document.querySelector("textarea")?.disabled);
+// RIGHT
+await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached" });
+```
+
 **Under Tailwind 4, an unlayered element rule beats every utility class, whatever the specificity.**
 Utilities live in `@layer utilities`, and any unlayered rule outranks every layer, so
 `.wb button { color: inherit }` overrode a screen's `text-…` utility on its buttons (#591). Put base
@@ -1887,6 +2069,58 @@ element rules in `@layer base`.
 .wb button { color: inherit; }
 /* RIGHT */
 @layer base { .wb button { color: inherit; } }
+```
+
+**A dynamic segment's page remounts on every change of that segment.** State that must survive a
+move between stages (the Lead's conversation, the split) lives in the layout above it. The workbench
+rendered each stage from `[stage]/page.tsx`, so every stage click remounted the whole screen (#835).
+`ResearchStages` now reads the stage in the layout (`components/aia/ResearchStudy.tsx:139 @
+5d5ed250`), and the stage page only answers an unknown stage with 404.
+
+```tsx
+// WRONG -- [stage]/page.tsx: the chat, the split and the study's reads remount on every stage
+export default function Page({ params }) { return <ResearchScreen step={stepFromSlug(params.stage)} />; }
+// RIGHT -- the layout draws the stage; the page returns null
+const segment = useSelectedLayoutSegment();   // in the [studyId] layout
+return <ResearchScreen step={stepFromSlug(segment)} frame={frame} />;
+```
+
+**An `sr-only` element in a scrolling grid needs a positioned ancestor inside the scroller.**
+`sr-only` is `position: absolute`. With no positioned ancestor inside the scrolling container it is
+placed against one outside it and widens the page (#859; `components/aia/settings/AccessPanel.tsx:277
+@ 5d5ed250`).
+
+```tsx
+// WRONG -- the label is positioned against the page, and the page scrolls sideways
+<div role="columnheader"><span className="sr-only">Deaktivovat</span></div>
+// RIGHT
+<div role="columnheader" className="relative"><span className="sr-only">Deaktivovat</span></div>
+```
+
+**With `@theme inline`, read a colour at runtime as `var(--X)`, never `var(--color-X)`.**
+`tokens-theme.css` maps `--color-X` onto the runtime property `--X` inline, so Tailwind emits
+`--color-X` only when a utility class uses it. A style that names `var(--color-hue-blue)` gets
+nothing where no class does, and the Metodika art drew no colour (#867;
+`components/aia/settings/MethodologyArt.tsx:7 @ 5d5ed250`).
+
+```tsx
+// WRONG -- defined only if some utility uses it
+style={{ color: "var(--color-hue-blue)" }}
+// RIGHT -- the runtime property tokens.css always defines
+style={{ color: "var(--hue-blue)" }}
+```
+
+**A control inside a page that forces `min-h` on every button opts out with `data-dense`.**
+Settings enlarges every button to a touch target (`[&_button:not([data-dense])]:!min-h-11`,
+`components/aia/settings/ControlPanel.tsx:752 @ 5d5ed250`), which an `!important` utility on the
+child cannot undo. The segmented bar and the few compact buttons carry `data-dense` (#870;
+`components/ui/ChoiceChips.tsx:82 @ 5d5ed250`).
+
+```tsx
+// WRONG -- the page's !min-h-11 wins over the bar's own height
+<button className="min-h-7">…</button>
+// RIGHT -- the page's selector leaves it out
+<button data-dense className="min-h-11 sm:min-h-7">…</button>
 ```
 
 ## The 18.6.6 unit, run outside its container
@@ -2104,6 +2338,32 @@ copy nobody writes.
 `docker rm "$cid"`, copies files out of a volume without running anything of the
 image.
 
+**Compose interpolates the whole file for every command.** A `${VAR:?}` the file requires stops
+`docker compose down`, `ps` and `logs` too, so once the secret is gone (a rollback removed it) the
+service can no longer be stopped or read (#829). Keep the guard for `up`; give the other commands a
+placeholder (`deploy/develop/bin/docs.sh:20-22 @ 5d5ed250`).
+
+```bash
+# WRONG -- "required variable AIA_ONLYOFFICE_JWT_SECRET is missing a value" on down
+docker compose -f docs/docker-compose.yml down
+# RIGHT -- only up keeps the guard
+if [ "${1:-}" != "up" ]; then
+  export AIA_ONLYOFFICE_JWT_SECRET="${AIA_ONLYOFFICE_JWT_SECRET:-unused-unless-starting}"
+fi
+```
+
+**Under `set -euo pipefail`, a command substitution that fails ends the script silently.** In an
+assignment `c="$(curl …)"`, curl's non-zero exit (a refused connection, a timeout) is the
+assignment's status, and errexit stops there before any check prints (#829;
+`deploy/develop/bin/smoke-docs.sh:38 @ 5d5ed250`).
+
+```bash
+# WRONG -- a transport failure exits the smoke without a word
+c="$(code "$base/")"
+# RIGHT -- the empty or 000 code reaches the check that reports it
+c="$(code "$base/" || true)"
+```
+
 ## numba, numpy and scipy in the domain (aia-sociomap-5, #504)
 
 `aia-sociomap-5` ports the methodology owner's numerical code as written, so the domain imports
@@ -2113,6 +2373,13 @@ numpy, scipy and numba (pinned 2.5 / 1.18 / 0.68 in `packages/aia_core/pyproject
   and numba raises at import without a cache directory it can write. Wrong: rely on the default
   (beside the package). Right: `NUMBA_CACHE_DIR=/tmp/numba` in the image's environment
   (`deploy/docker/python.Dockerfile`).
+- **numba compiles holding the GIL.** Beside a server, compile in a separate process, never a
+  thread: in a thread the API's health p95 went from 8 ms to 60 ms (max 624 ms) for the minute the
+  compile took. And a read-only image's cache directory in `/tmp` is empty on every start, so the
+  first call after a deploy pays the whole compile (47.6 s against 8 s warm). Wrong: warm the
+  kernels in a `threading.Thread`, or count on a cache the image ships. Right: a low-priority child
+  process after start that writes the shared cache (`apps/api/src/aia_api/warmup.py:56 @ 5d5ed250`,
+  `AIA_SOCIOMAP_WARMUP_ENABLED`; #871).
 - **BB1 (soft-rank Spearman with Coulomb) is platform-dependent.** With identical library versions,
   macOS and Linux can give different BB1 maps from about 12 objects: last-bit differences in the
   compiled kernel, amplified by a chaotic criterion. A given image is deterministic. Wrong: a parity
@@ -2396,17 +2663,93 @@ and the [Docker command reference](https://docs.docker.com/reference/cli/docker/
 ## Office and OpenDocument files read with the stdlib
 
 **Refuse an XML part that declares a DTD before parsing it.** OOXML (DOCX, PPTX, XLSX) and
-OpenDocument (ODT, ODS) never carry a document type declaration, so a part with `<!DOCTYPE` or
-`<!ENTITY` in it is hostile or broken. Refusing it outright closes entity expansion whatever the
-expat version, instead of trusting the parser's amplification limits (client sources K2b, #395).
-Check the ZIP's declared sizes first (`document_text.check_zip_bounds`), then the part:
+OpenDocument (ODT, ODS) never carry a document type declaration, so a part that declares one is
+hostile or broken. Refusing it outright closes entity expansion whatever the expat version, instead
+of trusting the parser's amplification limits (client sources K2b, #395). Check the ZIP's declared
+sizes first (`document_text.check_zip_bounds`), then the part.
+
+A byte search for `<!DOCTYPE` misses a part written in UTF-16, where those bytes never occur
+(security-audit S6, #709). Let expat read the declaration the way the real parse would:
+`document_text.refuse_dtd`, a pre-pass whose doctype and entity handlers raise before anything is
+defined. Run it over every member before openpyxl parses any: openpyxl finds a part by its content
+type and relationship, not by its name, so a worksheet can be stored as `xl/s.bin` (S11).
 
 ```python
 # Wrong: parses whatever the part declares
 root = ET.fromstring(archive.read("content.xml"))
-# Right: bounded, and no DTD
+# Wrong: a UTF-16 part's DTD passes
+if b"<!DOCTYPE" in data or b"<!ENTITY" in data: raise ...
+# Right: bounded, and no DTD in whatever encoding the part declares
 data = archive.read("content.xml")
-if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
-    raise DocumentRefused("the part declares a DTD", reason="document_malformed")
+try:
+    refuse_dtd(data)
+except DtdDeclared as exc:
+    raise DocumentRefused("the part declares a DTD", reason="document_malformed") from exc
 root = ET.fromstring(data)
+```
+
+## ONLYOFFICE Docs, the report editor (`deploy/develop/docs`)
+
+**Set a Document Server option in `local-production-linux.json`, never `local.json`.** The image's
+start script rewrites `local.json` at every start, the JWT secrets among it, and the loader reads
+`local-<NODE_ENV>.json` after it. Some options, `services.CoAuthoring.autoAssembly` (the five-minute
+force-save) among them, have no environment variable in 9.4.0.1 (#829;
+`deploy/develop/docs/docker-compose.yml:61-63 @ 5d5ed250`).
+
+```yaml
+# WRONG -- the start script rewrites local.json at every start
+- ./local.json:/etc/onlyoffice/documentserver/local.json:ro
+# RIGHT
+- ./local-production-linux.json:/etc/onlyoffice/documentserver/local-production-linux.json:ro
+```
+
+**The saved file behind a cookie gate.** The save callback's `url` is the Document Server's own
+signed `/cache/files/…?md5=…&expires=…` link, which AIA's API fetches server to server with no
+cookie. A gate over every path of the origin refuses that fetch, and no save is ever stored. Let
+exactly that shape past the gate (GET or HEAD, both signature parameters, the pinned path), let the
+Document Server's nginx check the signature, and drop `md5` and `expires` from every access log: a
+logged link opens the saved document without the gate until it expires (#829;
+`deploy/develop/Caddyfile:180-195 @ 5d5ed250`).
+
+```caddyfile
+# WRONG -- every path behind forward_auth: the API's fetch of the saved file is 401
+handle { forward_auth api:8000 { uri /api/v1/session/docs-gate } reverse_proxy onlyoffice:80 }
+# RIGHT -- the signed cache link alone goes by, without a cookie
+@cache_file {
+	method GET HEAD
+	path_regexp cache_file ^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$
+	query md5=* expires=*
+}
+handle @cache_file { reverse_proxy onlyoffice:80 { header_up -Cookie } }
+```
+
+**api.js's hash moves with every start unless its cache tag is pinned.** The image ships
+`api.js.tpl`, and its start script writes `api.js` from it under a tag made from the start's minute
+(md5 of `%Y.%m.%d-%H%M`). Zpráva loads that script only under its Subresource Integrity
+(`AIA_ONLYOFFICE_API_INTEGRITY`), so a hash taken once refuses the editor after the next restart.
+Run upstream's own `documentserver-flush-cache.sh -h <tag>` after the start script's last step, so
+api.js and nginx's `$cache_tag` are written by the same script under a fixed tag (#918;
+`deploy/develop/docs/start-fixed-cache-tag.sh @ 7f587b84`).
+
+```bash
+# WRONG -- the SRI of a running Document Server's api.js, taken once
+curl -s "$DOCS_ORIGIN/web-apps/apps/api/documents/api.js" | openssl dgst -sha384 -binary | base64
+# RIGHT -- the cache tag pinned after the start script, then the hash of that file
+documentserver-flush-cache.sh -h "$AIA_DS_CACHE_TAG"
+```
+
+## Two clocks compared without a bound fail open when one runs ahead
+
+The report editor's approval holds every edit only once a save covers the last edit AIA received
+(RPT8f, #880). The save callback's `lastsave` is the Document Server's clock; the edit's receipt is
+AIA's. A Document Server running ahead makes a save look later than an edit it does not hold, and
+the approval passes over an unsaved edit. A change cannot be later than the message that reports
+it, so bound the remote time by the local receipt of that message, and log a remote time ahead of it
+as skew (`apps/api/src/aia_api/routers/report_editor.py:491 @ 5d5ed250`, `_held_through`).
+
+```python
+# WRONG -- the Document Server's lastsave compared with AIA's receipt of an edit report
+content_at = _lastsave(payload.get("lastsave"))
+# RIGHT -- min(lastsave, receipt): a clock ahead can make an edit look later, never held early
+content_at = _held_through(_lastsave(payload.get("lastsave")), now)
 ```

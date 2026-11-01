@@ -26,6 +26,14 @@ from typing import Any, Final
 from .ai_contracts import canonical_json
 from .ai_material import most_restrictive_material
 from .lead_digest import DIGEST_SHARE_MAX_BYTES
+from .lead_files import FILES_LAYER, FILES_MAX_BYTES
+from .lead_research_targets import (
+    DEEP_RESEARCH_MAX_BYTES,
+    DEEP_RESEARCH_RUNS,
+    RUNS_FOR_TARGETS,
+    TARGETS_MAX,
+    TARGETS_MAX_BYTES,
+)
 from .research_agents import KNOWLEDGE_MAX_BYTES
 from .research_lead import (
     CONTEXT_MAX_BYTES,
@@ -93,10 +101,31 @@ LEAD_LAYERS: Final[tuple[LeadLayer, ...]] = (
         "runs", None, f"the newest {RUNS_IN_CONTEXT} research runs", "older runs are left out"
     ),
     LeadLayer(
+        "deep_research",
+        DEEP_RESEARCH_MAX_BYTES,
+        f"the newest {DEEP_RESEARCH_RUNS} Deep Research runs within {DEEP_RESEARCH_MAX_BYTES} "
+        "bytes",
+        "runs past the byte bound are counted; older runs are left out",
+    ),
+    LeadLayer(
+        "targets",
+        TARGETS_MAX_BYTES,
+        f"at most {TARGETS_MAX} results of the newest {RUNS_FOR_TARGETS} completed runs, "
+        f"within {TARGETS_MAX_BYTES} bytes",
+        "results past the bound are counted; a run that does not read is named",
+    ),
+    LeadLayer(
         EXTERNAL_LAYER,
         None,
         "the newest Design Research findings, pinned; context, never evidence",
         "never shortened",
+    ),
+    LeadLayer(
+        FILES_LAYER,
+        FILES_MAX_BYTES,
+        f"the client's documents attached to this message, within {FILES_MAX_BYTES} bytes "
+        "shared evenly: each one's outline, then its segments in order; a dataset its preview",
+        "a file's segments past its share are counted and the first left out named",
     ),
     LeadLayer("view", None, "the stage, the focus and the message", "never shortened"),
     LeadLayer(
@@ -117,7 +146,14 @@ _BY_NAME: Final = {spec.name: spec for spec in LEAD_LAYERS}
 
 #: The part of a layer its ``ceiling_bytes`` bounds, measured as ``notes_layer`` and
 #: ``knowledge_entries`` measure it.
-_BOUNDED: Final = {"lead": "notes", "knowledge": "items", "memory": "digest"}
+_BOUNDED: Final = {
+    "lead": "notes",
+    "knowledge": "items",
+    "memory": "digest",
+    "deep_research": "runs",
+    "targets": "candidates",
+    FILES_LAYER: "files",
+}
 
 
 def _bytes(value: Any) -> int:
@@ -137,13 +173,33 @@ PART_LAYERS: Final[Mapping[str, str]] = {
     "study_name": "study",
     "design": "design",
     "design_analysis": "design",
+    "design_research_questions": "design",
     "message": "view",
     "focus_label": "view",
     "external_context": EXTERNAL_LAYER,
+    "deep_research": "deep_research",
+    "targets": "targets",
     "decision_digest": "memory",
+    "client_file": FILES_LAYER,
     "earlier_message": "conversation",
     "earlier_reply": "conversation",
 }
+
+
+def _file_left_out(file: Mapping[str, Any]) -> str | None:
+    """Why part of an attached file did not reach the turn, or ``None`` when all of it did."""
+    if file.get("outcome") == "files_bound":
+        return "over_budget"
+    if file.get("outcome") in ("reading_changed", "source_unavailable"):
+        return str(file["outcome"])
+    if file.get("outcome") not in ("READ", "PARTIAL"):
+        return "not_read"
+    cut = any(seg.get("cut") for seg in file.get("segments") or ())
+    if cut or file.get("omitted") or file.get("omitted_columns") or file.get("omitted_sheets"):
+        return "over_budget"
+    if file.get("outcome") == "PARTIAL":
+        return "partly_read"
+    return None
 
 
 def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int | None]:
@@ -159,6 +215,27 @@ def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int
         return included, omitted, 0
     if name == "runs":
         return [str(r["run_id"]) for r in entry.get("runs") or ()], [], None
+    if name == "deep_research":
+        runs = [str(r["run_id"]) for r in entry.get("runs") or ()]
+        return runs, [], int(entry.get("omitted") or 0)
+    if name == "targets":
+        # A candidate by its turn-local id; a completed run whose specification did not read
+        # is named with its reason, the candidates past the bound counted.
+        included = [str(c["id"]) for c in entry.get("candidates") or ()]
+        unreadable = [
+            {"id": str(r), "reason": "unreadable"} for r in entry.get("unreadable_runs") or ()
+        ]
+        return included, unreadable, int(entry.get("omitted") or 0)
+    if name == FILES_LAYER:
+        # Each file by its source; one that left part of itself out is named with why.
+        files = list(entry.get("files") or ())
+        included = [str(f["source_id"]) for f in files]
+        omitted = [
+            {"id": str(f["source_id"]), "reason": why}
+            for f in files
+            if (why := _file_left_out(f)) is not None
+        ]
+        return included, omitted, 0
     if name == "view":
         focus = entry.get("focus")
         if isinstance(focus, Mapping) and focus.get("id"):

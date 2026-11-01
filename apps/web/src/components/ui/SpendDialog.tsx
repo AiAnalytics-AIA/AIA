@@ -90,7 +90,7 @@ export function SpendDialog({ open, question, ...q }: Question & {
         e.preventDefault();
         if (!q.busy) q.onCancel();
       }}
-      className="m-auto w-[min(30rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
+      className="m-auto w-[min(35rem,calc(100vw-2rem))] rounded-panel bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-ink/10 backdrop:backdrop-blur-[2px]"
     >
       {open ? <SpendForm key={question} titleId={titleId} {...q} /> : null}
     </dialog>
@@ -111,7 +111,7 @@ function SpendForm({
   const amountMissing = amount !== undefined && (newAmount === null || amountProblem !== null);
 
   return (
-    <div className="flex flex-col gap-4 p-5">
+    <div className="flex flex-col gap-4 p-6">
       <h2 id={titleId} className="text-base font-semibold leading-6">{spendTitle(kind)}</h2>
       <div className="text-sm leading-6">{summary}</div>
       <dl className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-x-3 gap-y-2 text-[13px] leading-5">

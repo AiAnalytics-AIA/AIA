@@ -11,6 +11,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import pytest
+
 from aia_core.domain.methodology.expressions import compile_formula
 from aia_core.domain.methodology.sociomap_check import (
     CHECK_PANELS,
@@ -20,6 +22,7 @@ from aia_core.domain.methodology.sociomap_check import (
 from aia_core.domain.methodology.sociomap_formulas import SOCIOMAP_FORMULAS
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.metrics import ObjectRole
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 
 SLOTS = {f.slot.id: f.slot for f in SOCIOMAP_FORMULAS}
 IN_FORCE = (AIA_SOCIOMAP_V3, {})
@@ -50,8 +53,15 @@ def test_a_methodology_beside_itself_moves_nothing() -> None:
         assert c.alignment_rmsd is not None and c.alignment_rmsd < 1e-12
         assert max(c.shifts.values()) < 1e-12
         assert all(a == b for a, b in c.heights.values())
-        assert all(a == b for a, b in c.k100.values())
+        assert c.k100 is not None and all(a == b for a, b in c.k100.values())
         assert c.terrain_max_change == 0.0
+
+
+def test_under_aia_sociomap_5_k100_is_unknown_never_unchanged() -> None:
+    # -5 computes no object scores (the methodology owner, 2026-10-28, MQ-05).
+    for c in compare_object_maps((AIA_SOCIOMAP_V5, {}), (AIA_SOCIOMAP_V5, {})):
+        assert c.k100 is None
+        assert c.notes == ()
 
 
 def test_a_higher_n_min_changes_statuses_on_the_small_panel() -> None:
@@ -79,6 +89,7 @@ def test_a_replaced_distance_moves_the_objects() -> None:
 def test_a_replaced_k100_is_the_k100_compared() -> None:
     draft = (AIA_SOCIOMAP_V3, {"f9.k100": compile_formula(SLOTS["f9.k100"], "50 * k")})
     for c in compare_object_maps(IN_FORCE, draft):
+        assert c.k100 is not None
         for before, after in c.k100.values():
             assert before is not None and after is not None
             assert math.isclose(after, before / 2, rel_tol=1e-12)
@@ -95,6 +106,7 @@ def test_a_draft_payload_is_checked_through_the_runs_own_pin() -> None:
     assert [p.panel for p in panels] == [p.id for p in CHECK_PANELS]
     first = panels[0]
     assert first.terrain_max_change is not None and first.terrain_max_change > 0
+    assert first.k100 is not None
     before, after = next(iter(first.k100.values()))
     assert before is not None and after is not None and math.isclose(after, before / 2)
 
@@ -123,3 +135,22 @@ def test_with_nothing_stored_a_draft_is_compared_with_the_signed_off_map_over_wh
     roles = next(p for p in CHECK_PANELS if p.id == "weighted").inputs().roles
     # The weighted panel's context object is the one the signed-off map leaves out.
     assert ObjectRole.SECONDARY.value in {roles[o] for o in roles if o not in weighted.objects}
+
+
+def test_the_warm_up_computes_the_presets_map_on_every_check_panel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """warm_object_maps computes what a comparison computes first -- the code's preset on each
+    check panel -- so the kernels a person's first comparison needs are compiled before it."""
+    from aia_core.domain.methodology import sociomap_check
+
+    seen: list[tuple[str, ...]] = []
+
+    def compute(inputs: Any, spec: Any, **kwargs: Any) -> None:
+        assert kwargs == {"connectedness_interval": False, "slots": sociomap_check._pin(None)[1]}
+        assert spec == sociomap_check._pin(None)[0]
+        seen.append(tuple(inputs.object_ids))
+
+    monkeypatch.setattr(sociomap_check, "compute_object_map", compute)
+    assert sociomap_check.warm_object_maps() == len(sociomap_check.CHECK_PANELS)
+    assert seen == [tuple(p.inputs().object_ids) for p in sociomap_check.CHECK_PANELS]

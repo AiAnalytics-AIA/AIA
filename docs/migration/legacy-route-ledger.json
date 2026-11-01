@@ -77,10 +77,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/report/approve",
+   "scope": "study",
+   "notes": "the reference decides any queued approval by its id; AIA approves each subject where it lives (a report here, a map snapshot, an agent job's proposal, a knowledge proposal), each recorded in the approval ledger",
    "decision": null
   },
   {
@@ -108,10 +108,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "with ?pending=true: the proposals still waiting in a study; the reference's one queue across every project is not kept",
    "decision": null
   },
   {
@@ -199,10 +199,10 @@
     }
    ],
    "slice": 7,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/population/audience-preview",
+   "scope": "organization",
+   "notes": "sanitize_filters + feasibility ported EXACT (domain/population/audience.py, audience_preview.py); counts only",
    "decision": null
   },
   {
@@ -224,10 +224,10 @@
     }
    ],
    "slice": 7,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/population/audience-catalogue",
+   "scope": "organization",
+   "notes": "the factor catalogue ported EXACT (audience_catalogue.py); the research-only factors are not sent to the screen",
    "decision": null
   },
   {
@@ -839,10 +839,10 @@
     }
    ],
    "slice": 10,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/runs",
+   "scope": "study",
+   "notes": "the reference lists every run on the machine; AIA lists one study's runs",
    "decision": null
   },
   {
@@ -921,10 +921,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/runs/{run_id}",
+   "scope": "study",
+   "notes": "one run, found through its study",
    "decision": null
   },
   {
@@ -949,10 +949,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/runs",
+   "scope": "study",
+   "notes": "a study's runs; the reference lists every job",
    "decision": null
   },
   {
@@ -977,10 +977,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/runs/{run_id}",
+   "scope": "study",
+   "notes": "one run, found through its study",
    "decision": null
   },
   {
@@ -1017,10 +1017,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/retry",
+   "scope": "study",
+   "notes": "the reference's retry / cancel / configure suffixes: retry and cancel are AIA routes, configure is not kept",
    "decision": null
   },
   {
@@ -1073,10 +1073,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/clients/{client_id}/knowledge",
+   "scope": "organization",
+   "notes": "the data library is Client Knowledge, one client's (ADR 0015); no global pool",
    "decision": null
   },
   {
@@ -1101,10 +1101,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/clients/{client_id}/sources/{source_id}/proposals",
+   "scope": "organization",
+   "notes": "AI proposals from a client's document, as the client's own work",
    "decision": null
   },
   {
@@ -1129,10 +1129,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/clients/{client_id}/sources",
+   "scope": "organization",
+   "notes": "one file per request; the intake sheet sends a batch as several",
    "decision": null
   },
   {
@@ -1185,10 +1185,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/population/materializations",
+   "scope": "study",
+   "notes": "a client's dimension materialized from a study into its owned child",
    "decision": null
   },
   {
@@ -1269,10 +1269,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/population/materializations",
+   "scope": "study",
+   "notes": "a client's materialized dimensions, found through a study",
    "decision": null
   },
   {
@@ -1353,10 +1353,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/clients/{client_id}/knowledge/proposals/{proposal_id}/decision",
+   "scope": "organization",
+   "notes": "a person decides a proposal against the revision it was written from",
    "decision": null
   },
   {
@@ -1549,10 +1549,10 @@
     }
    ],
    "slice": 12,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/clients/{client_id}/sources",
+   "scope": "organization",
+   "notes": "a client's source, kept once per client and SHA-256, read by its format's reader",
    "decision": null
   },
   {
@@ -1575,10 +1575,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "the design job is the native agent jobs (eight closed contracts)",
    "decision": null
   },
   {
@@ -1604,10 +1604,10 @@
     }
    ],
    "slice": 7,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/population/audience-catalogue",
+   "scope": "organization",
+   "notes": "each factor's allowed values come with the catalogue; no row is read",
    "decision": null
   },
   {
@@ -1739,10 +1739,10 @@
     }
    ],
    "slice": 10,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "the suggest_dimensions agent job",
    "decision": null
   },
   {
@@ -1855,10 +1855,10 @@
     }
    ],
    "slice": 7,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/population",
+   "scope": "organization",
+   "notes": "the population registry, read-only; status derived, never stored",
    "decision": null
   },
   {
@@ -1886,10 +1886,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/readiness",
+   "scope": "study",
+   "notes": "readiness over a Design Revision; Kontrola's server readiness is the authority",
    "decision": null
   },
   {
@@ -1938,10 +1938,10 @@
     }
    ],
    "slice": 3,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/readiness/working",
+   "scope": "study",
+   "notes": "readiness on a revision of the working copy, nothing submitted",
    "decision": null
   },
   {
@@ -2453,10 +2453,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "the optimize_questionnaire agent job",
    "decision": null
   },
   {
@@ -2556,10 +2556,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "the analyze_brief agent job",
    "decision": null
   },
   {
@@ -2581,10 +2581,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "the build_questionnaire agent job",
    "decision": null
   },
   {
@@ -2631,10 +2631,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/deep-research/runs",
+   "scope": "study",
+   "notes": "Design Research (ADR 0017, ADR 0021); the 18.6.6 leakage screen kept EXACT",
    "decision": null
   },
   {
@@ -2656,10 +2656,10 @@
     }
    ],
    "slice": 9,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "the native agent jobs (eight closed contracts)",
    "decision": null
   },
   {
@@ -2707,10 +2707,10 @@
     }
    ],
    "slice": 10,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/clients/{client_id}/memory/search",
+   "scope": "organization",
+   "notes": "the results registry is project memory, searched within one client",
    "decision": null
   },
   {
@@ -2759,10 +2759,10 @@
     }
    ],
    "slice": 13,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/report/client/prepare",
+   "scope": "study",
+   "notes": "the client report of a modelled run, composed and stored; downloaded and approved on the run",
    "decision": null
   },
   {
@@ -2838,10 +2838,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs",
+   "scope": "study",
+   "notes": "a run executes a Design Revision (ADR 0016); its respondents per the pinned persona source",
    "decision": null
   },
   {
@@ -3150,10 +3150,10 @@
     }
    ],
    "slice": 14,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/settings/ai-activity",
+   "scope": "organization",
+   "notes": "the reference probes providers with the person's keys; AIA reads each activity's last answered call from the usage ledger and probes nothing",
    "decision": null
   },
   {
@@ -3175,10 +3175,10 @@
     }
    ],
    "slice": 14,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": " Product connection endpoint retired with gated HTTP 410 (2026-09-26 Bedrock settings cleanup); the unchanged independent oracle remains LEGACY. No capability port/parity claim.",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/settings/ai-activity",
+   "scope": "organization",
+   "notes": "as /api/settings/ai_check",
    "decision": null
   },
   {
@@ -3562,10 +3562,10 @@
     }
    ],
    "slice": 8,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/runs/{run_id}/artifacts/{artifact_id}",
+   "scope": "study",
+   "notes": "the reference computes the map on request; AIA computes it once in the run's sociomap step and serves the stored artifact",
    "decision": null
   },
   {
@@ -3711,10 +3711,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/cancel",
+   "scope": "study",
+   "notes": "the reference's pause / resume / cancel / schedule suffixes: cancel and resume are AIA routes; pause and schedule are not kept",
    "decision": null
   },
   {
@@ -3822,10 +3822,10 @@
     }
    ],
    "slice": 15,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/cancel",
+   "scope": "study",
+   "notes": "suffix arm of /api/jobs/ and /api/workflows/",
    "decision": null
   },
   {
@@ -3878,10 +3878,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/report/approve",
+   "scope": "study",
+   "notes": "suffix arm of /api/approvals/{id}/decide; as POST /api/approvals/",
    "decision": null
   },
   {
@@ -3909,10 +3909,10 @@
     }
    ],
    "slice": 15,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "prototype_server.py arm: retain or retire is reference decision D9",
+   "status": "PORTING",
+   "aia_route": "GET /api/v1/studies/{study_id}/research/runs/{run_id}/artifacts/{artifact_id}",
+   "scope": "study",
+   "notes": "a run's artifact, only through its run; never a disk path",
    "decision": "D9"
   },
   {
@@ -4075,10 +4075,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/resume",
+   "scope": "study",
+   "notes": "suffix arm of /api/workflows/",
    "decision": null
   },
   {
@@ -4103,10 +4103,10 @@
     }
    ],
    "slice": 4,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "suffix arm of a prefix dispatch (recovered by the reference's AST scan as its own route)",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/runs/{run_id}/retry",
+   "scope": "study",
+   "notes": "suffix arm of /api/jobs/; a retry keeps every pin of the original",
    "decision": null
   },
   {
@@ -4183,10 +4183,10 @@
     }
    ],
    "slice": 7,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "OI-48: served by `path in {…}` with /api/audience/propose; AI audience proposal job (audience_propose).",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "OI-48: served by `path in {…}` with /api/audience/propose; the AI audience proposal is the propose_audience agent job",
    "decision": null
   },
   {
@@ -4205,10 +4205,10 @@
     }
    ],
    "slice": 7,
-   "status": "LEGACY",
-   "aia_route": null,
-   "scope": "undecided (D8)",
-   "notes": "OI-48: the path the classic interface calls (proposeAudience); same arm as /api/audience/navrh.",
+   "status": "PORTING",
+   "aia_route": "POST /api/v1/studies/{study_id}/research/agent-jobs",
+   "scope": "study",
+   "notes": "OI-48: the path the classic interface calls (proposeAudience); the AI audience proposal is the propose_audience agent job",
    "decision": null
   },
   {

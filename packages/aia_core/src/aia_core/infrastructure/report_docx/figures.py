@@ -97,7 +97,8 @@ def render_sociomap(ctx: RenderContext, container: Container, block: SociomapFig
         anchor=block.id,
         base_ref=None,
         grade=None,
-        extra=stress if approved else f"{stress}; {note}",
+        # The fit is the stored map's, locked under its tag; the methodology's note is not.
+        extras=((stress, block.control),) if approved else ((stress, block.control), (note, None)),
     )
     with Image.open(BytesIO(block.image_png)) as im:
         px_w, px_h = im.size

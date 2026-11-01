@@ -135,7 +135,11 @@ await shot("1-progress");
 
 // 3. Results: the experimental card, its map, interactions, details, fit, limitations.
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
-await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
+// In the workbench each view is a stage of its own, opened by its hash (artifact-results RES9).
+// The layout is known once the workbench or Výsledky's tabs are drawn (the loading frame has neither).
+await page.locator("[data-workbench], [role=tablist]").first().waitFor({ timeout: 60000 });
+if ((await page.locator("[data-workbench]").count()) > 0) await page.evaluate(() => { location.hash = "maps"; });
+else await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
 const cardView = page.locator("#res-sociomapping");
 const card = cardView.getByText("Sociomapping · experimentální metoda AIA");
 await card.first().waitFor({ timeout: 60000 }).catch(() => fail("no experimental Sociomapping card on Results"));

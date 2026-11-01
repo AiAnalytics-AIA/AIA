@@ -11,7 +11,7 @@
 // stage in the AIA shell -- client, study and stage in the breadcrumbs, the
 // study's stages in its own rail -- and a stage AIA has not rebuilt says so.
 
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
@@ -20,27 +20,31 @@ import { RAIL_STEPS, type StepKey } from "@/research/steps";
 import { type ResearchState, ResearchStore, loadResearch, newResearch, readWorkingContent } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
-import { type Ask, AskDialog, Button, Toast } from "../ui";
+import { type Ask, AskDialog, Button, FaultNote, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { StageTrack, TRACK_STEPS } from "./StageTrack";
 import { Blockers, InspectorProvider, ReadOnly } from "./Inspector";
 import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
-import { ResearchContext, type RunJob } from "./context";
+import { ResearchContext, type RunJob, type SpendAsk } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
-import Link from "next/link";
 import { AgentBudgetWaits } from "./AgentBudgetWaits";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
+import { ReopenStudy, StudyStatusMenu } from "./StudyStatus";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
 import { OPEN_REVIEW_KEY, Workbench } from "../../workbench/Workbench";
 import { leadOwnsAiStarts } from "@/lib/lead-cards";
 import { loadConfig } from "@/lib/auth";
+import { SpendDialog } from "../../ui/SpendDialog";
+import { readBudget } from "@/lib/budget-line";
+import { type MoneyLine, spendAct } from "@/lib/spend";
+import { errorText } from "@/lib/error-words";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
 const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
@@ -60,67 +64,92 @@ type Loaded =
   | { kind: "failed"; message: string }
   | { kind: "awaiting_migration" }
   | { kind: "unrecoverable"; template: Template; canEdit: boolean }
-  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null };
+  /** `forCanEdit`: what the study allowed (the session's `canEdit`) when this store was built. */
+  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null; forCanEdit?: boolean };
 
-type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown> };
+type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown>; lost: string | null };
 const SessionContext = createContext<Session | null>(null);
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 /** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
 const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
-/** The stable item ids switch once read (/config's stableItemIds, WCE1); null until then. */
-let itemIdsKnown: boolean | null = null;
+type StoreSwitches = { itemIds: boolean; editOps: boolean };
 
-/** Whether the store keeps stable item ids: off when the config cannot be read. */
-function stableItemIds(): Promise<boolean> {
-  if (itemIdsKnown !== null) return Promise.resolve(itemIdsKnown);
+/** The store's switches once read (/config's stableItemIds, WCE1; editOps, WCE3a); null until then. */
+let switchesKnown: StoreSwitches | null = null;
+
+/** Whether the store keeps stable item ids and saves edits as operations: each off when the config cannot be read. */
+function storeSwitches(): Promise<StoreSwitches> {
+  if (switchesKnown !== null) return Promise.resolve(switchesKnown);
   return loadConfig().then(
-    (c) => (itemIdsKnown = c.stableItemIds === true),
-    () => false,
+    (c) => (switchesKnown = { itemIds: c.stableItemIds === true, editOps: c.editOps === true }),
+    () => ({ itemIds: false, editOps: false }),
   );
 }
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
-export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
+export function ResearchSession({ studyId, initialContent, canEdit, children }: { studyId: string; initialContent?: WorkingContent; canEdit?: boolean; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
   const [memory] = useState(() => new Map<string, unknown>());
+  // A change the store being replaced could not save (the study closed under it): said, never dropped.
+  const [lost, setLost] = useState<string | null>(null);
+  // The store is built read-only or not from what the study allowed when it loaded. A status changed
+  // on the study (reopened, closed) changes that: the content is read again and the store rebuilt, so
+  // a reopened study takes edits and a closed one refuses them at the field, never silently (#892).
+  const editable = useRef(canEdit);
+  useEffect(() => {
+    if (canEdit === undefined || editable.current === canEdit) return;
+    editable.current = canEdit;
+    setVersion((v) => v + 1);
+  }, [canEdit]);
 
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    // Stable item ids are kept only behind their switch (WCE1); a config that cannot be read is off.
-    stableItemIds().then((itemIds) =>
-      (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent, { itemIds })) : loadResearch(studyId, undefined, { itemIds })).then((r) => ({ r, itemIds })),
+    // Stable item ids (WCE1) and edits saved as operations (WCE3a) only behind their switches; a config that cannot be read is off.
+    storeSwitches().then(({ itemIds, editOps }) =>
+      (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent, { itemIds })) : loadResearch(studyId, undefined, { itemIds })).then((r) => ({ r, itemIds, editOps })),
     ).then(
-      ({ r, itemIds }) => {
+      ({ r, itemIds, editOps }) => {
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
-        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit, itemIds });
+        // Read-only when the content says so or the study does: never a store that takes edits the
+        // study refuses, nor one the screen would show enabled while it drops them.
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit || editable.current === false, itemIds, editOps });
         store = s;
-        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
+        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin, forCanEdit: editable.current });
       },
       (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
     );
     return () => {
       live = false;
-      store?.dispose();
+      store?.dispose((e) => setLost(message(e)));
     };
   }, [studyId, version, initialContent]);
 
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: switchesKnown?.itemIds === true, editOps: switchesKnown?.editOps === true }), template: l.template, origin: null, forCanEdit: editable.current } : l));
   }, [studyId]);
 
-  const value = useMemo(
-    () => ({ studyId, loaded, retry: () => setVersion((v) => v + 1), startAgain, memory }),
-    [studyId, loaded, startAgain, memory],
-  );
+  // A store built for what the study allowed before is not handed out: until the store for what it
+  // allows now is in, the stages wait (loading), so no field is enabled over a store that drops its
+  // edits, nor a read-only one shown over a store still taking them (Codex on #892).
+  const value = useMemo(() => {
+    const current: Loaded = loaded.kind === "ready" && canEdit !== undefined && loaded.forCanEdit !== canEdit ? { kind: "loading" } : loaded;
+    return { studyId, loaded: current, retry: () => setVersion((v) => v + 1), startAgain, memory, lost };
+  }, [studyId, loaded, canEdit, startAgain, memory, lost]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+/** A change the replaced store could not save when the study's status changed under it. */
+function LostEdit() {
+  const lost = useContext(SessionContext)?.lost;
+  return lost ? <FaultNote data-lost-edit className="mb-4">{tv("aia.study.status.lost", { reason: lost })}</FaultNote> : null;
 }
 
 /** The stages a person edits the design on: read-only, as one, when the study may not change. */
@@ -131,7 +160,7 @@ const DESIGN_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "q
  * and where it is reopened. Without it, a delivered study looked editable and every save was
  * refused as a role the person has (productization-coherence PC1).
  */
-export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["closed"]> }) {
+export function ClosedStudyNotice({ closed, studyId, onChanged, hold }: { closed: NonNullable<StudyFrame["closed"]>; studyId: string; onChanged?: () => Promise<void> | void; hold?: (on: boolean) => void }) {
   const when = closed.deliveredAt ? new Date(closed.deliveredAt).toLocaleDateString("cs-CZ") : null;
   const title =
     closed.status === "DELIVERED" && when
@@ -141,16 +170,17 @@ export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["
     <section role="status" data-study-closed={closed.status} className="mb-4 max-w-3xl rounded-sm border border-border-strong bg-surface-sunken p-3 text-sm leading-6 text-ink">
       <p className="font-semibold">{title}</p>
       <p>{t("aia.study.closed.help")}</p>
-      <p className="text-ink-muted">
-        <Link href={`${appRoutes.settings()}#studies`} className="text-signal underline">{t("aia.study.closed.reopen")}</Link>.
-      </p>
+      {/* Reopened here, in place: the study is where its status is changed (F7). */}
+      {onChanged ? <div className="mt-2"><ReopenStudy studyId={studyId} onChanged={onChanged} hold={hold} /></div> : null}
     </section>
   );
 }
 
 /** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its track. */
-function StageChrome({ frame, step, state, status, help, children }: {
-  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode; children: ReactNode;
+function StageChrome({ frame, step, state, status, help, flush, children }: {
+  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode;
+  /** Saves what is typed before the study's status changes (the store's flush). */
+  flush?: () => Promise<unknown>; children: ReactNode;
 }) {
   const onTrack = TRACK_STEPS.includes(step);
   // The track carries the order: a stage on it is named without its number.
@@ -170,13 +200,14 @@ function StageChrome({ frame, step, state, status, help, children }: {
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
       eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
-      action={help}
+      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} hold={frame.holdEdits} /></> : help}
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
-        <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
+        <FaultNote className="mb-4">{frame.notice}</FaultNote>
       ) : null}
-      {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+      <LostEdit />
+      {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
       {children}
     </AppShell>
   );
@@ -260,9 +291,12 @@ function useWorkbenchSwitch(): boolean | null {
   return on;
 }
 
-function Ready({ store, template, origin, memory, step, frame, reload }: {
+function Ready({ store, template, origin, memory, step, frame: given, reload }: {
   store: ResearchStore; template: Template; origin: string | null; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
 }) {
+  // The stages may edit only what the store that receives the edit takes: the study's permission and
+  // the store's own editability, never the first alone.
+  const frame = useMemo(() => (given.canEdit && !store.editable ? { ...given, canEdit: false } : given), [given, store]);
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const { onStage, stepHref } = frame;
   useEffect(() => {
@@ -279,8 +313,25 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   }, [toast]);
 
   const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
-  // A job reaching the study's confirmation threshold asks here first (LO15).
-  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirm);
+  // Money asks in SpendDialog, with the study's budget read as it asks (design system v3, I-Penize).
+  const [spend, setSpend] = useState<(SpendAsk & { lines: MoneyLine[]; key: number; resolve: (yes: boolean) => void }) | null>(null);
+  const confirmSpend = useCallback(async (q: SpendAsk) => {
+    const budget = await readBudget(frame.studyId);
+    const lines: MoneyLine[] = [{ name: "study_budget", usd: budget?.budget_usd ?? null, remainingUsd: budget?.remaining_usd ?? null }];
+    if (q.thresholdUsd !== undefined) lines.push({ name: "threshold", usd: q.thresholdUsd });
+    return new Promise<boolean>((resolve) => setSpend({ ...q, lines, key: Date.now(), resolve }));
+  }, [frame.studyId]);
+  const answerSpend = (yes: boolean) => {
+    spend?.resolve(yes);
+    setSpend(null);
+  };
+  // A job reaching the study's confirmation threshold asks here first (LO15), in SpendDialog.
+  const confirmJobCost = useCallback(
+    (message: string, asked?: { ceiling: number; limit: number }) =>
+      asked ? confirmSpend({ summary: t("input.spend.research.job"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.startJob") }) : confirm(message),
+    [confirm, confirmSpend],
+  );
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirmJobCost);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.
@@ -337,12 +388,20 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     [],
   );
   const value = useMemo(
-    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, template, runJob, continueJob, claimWait, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, confirmSpend, prompt, memory, stepHref, frame }),
+    [store, template, runJob, continueJob, claimWait, job, confirm, confirmSpend, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
   const workbench = useWorkbenchSwitch();
+  // Another stage opens at the page's top in the classic layout, as its own page did: the stage's
+  // page is empty now, and Next.js scrolls to no empty segment. The workbench resets its artifact.
+  const scrolledFor = useRef(step);
+  useLayoutEffect(() => {
+    if (scrolledFor.current === step) return;
+    scrolledFor.current = step;
+    if (workbench !== true) window.scrollTo(0, 0);
+  }, [step, workbench]);
   const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
   // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
   const refreshAgents = agents.refresh;
@@ -357,16 +416,26 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const inWorkbench = workbench === true;
   const leadOwns = leadOwnsAiStarts(inWorkbench ? "workbench" : "classic");
   const starts = !leadOwns;
-  // A card on another stage asked for this job's review: opened here once the jobs are read.
+  // A card on another stage asked for this job's review: opened here once the jobs are read. The
+  // job itself is kept, so one older than the newest page (the Lead's show_diff finds those through
+  // ?pending=true) opens too; the page's copy is preferred when it holds one.
   const openAgent = agents.open;
+  // The screen stays mounted from stage to stage (research-lead-workbench 34): a review left open on
+  // the stage the person leaves is kept for later, as leaving the page kept it, never carried over
+  // the next stage. Declared before the review a card asked the next stage for, which it opens.
+  const review = agents.proposalReview ?? agents.adviceReview;
+  const reviewedOn = useRef(step);
   useEffect(() => {
-    const wanted = memory.get(OPEN_REVIEW_KEY);
-    if (typeof wanted !== "string" || agents.busy) return;
-    const job = agents.recent.find((j) => j.run_id === wanted);
-    if (!job) return;
+    if (reviewedOn.current === step) return;
+    reviewedOn.current = step;
+    review?.decide("keep");
+  }, [step, review]);
+  useEffect(() => {
+    const wanted = memory.get(OPEN_REVIEW_KEY) as ResearchAgentJob | undefined;
+    if (!wanted?.run_id || agents.busy) return;
     memory.delete(OPEN_REVIEW_KEY);
-    void openAgent(job);
-  }, [memory, agents.recent, agents.busy, openAgent]);
+    void openAgent(agents.recent.find((j) => j.run_id === wanted.run_id) ?? wanted);
+  }, [memory, agents.recent, agents.busy, openAgent, step]);
 
   // The layout is the switch's: mounting the classic one while it is unread would read and record
   // the stage twice, once for each layout. Until then the stage's chrome says it is loading.
@@ -382,7 +451,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>
       {inWorkbench ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
-          <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
+          <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} confirmSpend={confirmSpend} onAgentStarted={() => void agents.refresh()}
             jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={refreshJobs}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
@@ -396,8 +465,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
                 </div>
               </section> : null}
             </>)}>
-            {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
-            {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+            {frame.notice ? <FaultNote className="mb-4">{frame.notice}</FaultNote> : null}
+            <LostEdit />
+            {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">
@@ -411,7 +481,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
           </Workbench>
         )}</InspectorProvider>
       ) : (
-      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+      <StageChrome frame={frame} step={step} state={state} flush={() => store.flush()} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
           <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
           {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
           <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
@@ -445,6 +515,18 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
       {job && starts && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
+      <SpendDialog
+        open={spend !== null}
+        question={String(spend?.key ?? "")}
+        kind="spend_confirm"
+        summary={spend?.summary ?? ""}
+        ceilingUsd={spend?.ceilingUsd ?? null}
+        lines={spend?.lines ?? []}
+        pays="study_budget"
+        confirmLabel={spend ? spendAct(spend.act, spend.ceilingUsd) : ""}
+        onConfirm={() => answerSpend(true)}
+        onCancel={() => answerSpend(false)}
+      />
       <Toast message={toast} />
     </ResearchContext.Provider>}
     </ResearchAssistance>

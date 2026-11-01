@@ -16,7 +16,7 @@ import { codeWords } from "@/lib/reason-words";
 import { CodedWords } from "../../rehome/research/CodedWords";
 import { STUDY_FILTERS, STUDY_SORTS, type StudyFilter, type StudySort, brought, countByFilter, inFilter, sortStudies } from "@/lib/study-table";
 import { Icon } from "../../rehome/icons";
-import { Chip, Select } from "../../rehome/ui";
+import { StatusPill, Select } from "../../rehome/ui";
 import { MemorySearch } from "../MemorySearch";
 import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -37,7 +37,8 @@ export function StudyList({ kind }: { kind: StudyKind }) {
   const research = kind === "RESEARCH";
   return (
     <ClientPage>
-      <h2 className="mb-3 text-base font-semibold">{research ? t("aia.studies.researchTitle") : t("aia.studies.simulationsTitle")}</h2>
+      {/* The active tab already names the list; the heading stays for assistive technology. */}
+      <h2 className="sr-only">{research ? t("aia.studies.researchTitle") : t("aia.studies.simulationsTitle")}</h2>
       <ListOrSearch clientId={client.client_id} research={research}>
         <Loaded res={res} retry={retry}>
           {(list) =>
@@ -112,7 +113,7 @@ function StudyTable({ clientId, studies, research }: { clientId: string; studies
                     </Link>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <Chip tone={TONE[s.status] ?? "neutral"}><CodedWords inline coded={codeWords("aia.status", s.status, "research.exec.phase.other")} /></Chip>
+                    <StatusPill tone={TONE[s.status] ?? "neutral"}><CodedWords inline coded={codeWords("aia.status", s.status, "research.exec.phase.other")} /></StatusPill>
                     {showKnowledge && brought(s)?.waiting ? (
                       <span className="mt-1 block text-[13px] font-medium text-status-you-ink sm:hidden">
                         {tv("aia.studies.waitingNarrow", { n: brought(s)!.waiting })}

@@ -47,6 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      # The Terraform roots or this workflow changed: the Terraform jobs run. A push
+      # to main or develop always runs them; they take seconds and need no AWS access.
+      infra: ${{ steps.filter.outputs.infra }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,8 +62,10 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           code=true
+          infra=true
           if [ "$EVENT" = "pull_request" ]; then
             files="$(git diff --name-only HEAD^1 HEAD)"
+            infra=false
             if [ -n "$files" ]; then
               code=false
               while IFS= read -r f; do
@@ -68,12 +73,16 @@ jobs:
                   .planning/*|docs/architecture/adr/*|CLAUDE.md|AGENTS.md|ARCHITECTURE.md) ;;
                   *) code=true ;;
                 esac
+                case "$f" in
+                  infra/*|.github/workflows/ci.yml) infra=true ;;
+                esac
               done <<< "$files"
             fi
             printf 'Changed files:\n%s\n' "$files"
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "code=$code"
+          echo "infra=$infra" >> "$GITHUB_OUTPUT"
+          echo "code=$code infra=$infra"
 
   docs-checks:
     # What a documentation-only change can still break: a client-identifying
@@ -107,7 +116,10 @@ jobs:
 
   backend:
     name: Backend (lint, types, tests)
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: on Ubuntu 26.04 (glibc 2.43) the aia-sociomap-5 kernels' last
+    # bits differ, and the byte-exact pins (test_object_map_web_fixture.py,
+    # test_sociomap_signed_off_segments.py) were written on 24.04. Move with the fixtures, never alone.
+    runs-on: ubuntu-24.04
     needs: [changes]
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
 
@@ -314,7 +326,10 @@ jobs:
           if [ ! -f "${AIA_LEGACY_REFERENCE:-../npc-panel-reference}/project_pipeline.py" ]; then
             echo "::warning::Legacy prototype not available in CI; its parity tests are skipped and reported as NOT_EXECUTED."
           fi
-          pytest packages/aia_core -q -m parity -rs \
+          # Reports and never blocks (MVP-21): a failed comparison is a warning and a summary
+          # line, its capability FAIL is in Parity status; a suite that could not run fails.
+          python tools/parity_report_only.py "Parity against legacy prototype" \
+            pytest packages/aia_core -q -m parity -rs \
             --junit-xml=tmp/junit/parity-legacy.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
@@ -329,9 +344,9 @@ jobs:
     # repository and need no raw archive. F1-F9 are vendored and gated in the
     # backend job; this job checks out the reference at the commit pinned in
     # docs/migration/parity-matrix.json, refuses any fixture that does not hash
-    # to its pin, proves each vendored copy is byte-identical to its original,
-    # and runs the F10/F11, population-contract and evidence-contract gates
-    # that read the checkout.
+    # to its pin, proves each vendored copy is byte-identical to its original
+    # (blocking), and runs the population-contract and evidence-contract parity
+    # that reads the checkout (reports, never blocks: MVP-21).
     #
     # Access is a read-only deploy key on AiAnalytics-AIA/AIA-reference, stored
     # as the AIA_REFERENCE_DEPLOY_KEY secret. Without it (forks, or before it is
@@ -384,14 +399,24 @@ jobs:
       - name: Run golden-fixture gates
         # F1-F9 are vendored and run in the backend job with no checkout; what
         # needs the reference repository is the pin check against its manifest
-        # and parity plan, F10/F11, and the population and evidence contract parity.
+        # and parity plan. Integrity, not parity: a fixture edited to make a test
+        # pass fails here, so this step blocks.
         env:
           AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
         run: >-
-          pytest packages/aia_core/tests/test_golden_fixtures.py
-          packages/aia_core/tests/test_population_reference_parity.py
-          packages/aia_core/tests/test_evidence_gate_parity.py -q -rs
+          pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
           --junit-xml=tmp/junit/golden.xml -o junit_family=xunit1
+
+      - name: Run reference contract parity (reports, never blocks)
+        # The population and evidence contracts compared with 18.6.6's: a difference
+        # is reported and never blocks (MVP-21); a suite that could not run fails.
+        env:
+          AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
+        run: >-
+          python tools/parity_report_only.py "Reference contract parity"
+          pytest packages/aia_core/tests/test_population_reference_parity.py
+          packages/aia_core/tests/test_evidence_gate_parity.py -q -rs
+          --junit-xml=tmp/junit/golden-parity.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -408,7 +433,9 @@ jobs:
     # `oracle` tests skip and parity-status reports their gates as NOT_EXECUTED,
     # never as a pass. With them present, `AIA_REQUIRE_LEGACY_ORACLE=1` turns an
     # unreachable oracle into a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
-    # Never a `|| true`: an oracle that answers differently is a finding.
+    # Never a `|| true`: an oracle that answers differently is a finding, reported
+    # and never blocking (MVP-21, tools/parity_report_only.py); an unreachable one
+    # is an error and fails the job.
     name: Parity against the running 18.6.6 unit (needs the oracle secrets)
     runs-on: ubuntu-latest
     needs: [changes]
@@ -446,7 +473,9 @@ jobs:
           AIA_LEGACY_REFERENCE_USER: ${{ secrets.AIA_LEGACY_REFERENCE_USER }}
           AIA_LEGACY_REFERENCE_PASSWORD: ${{ secrets.AIA_LEGACY_REFERENCE_PASSWORD }}
           AIA_REQUIRE_LEGACY_ORACLE: ${{ env.HAS_ORACLE == 'true' && '1' || '' }}
+        # Reports and never blocks (MVP-21), as the parity suite does.
         run: >-
+          python tools/parity_report_only.py "Parity against the running 18.6.6 unit"
           pytest packages/aia_core -q -m oracle -rs
           --junit-xml=tmp/junit/oracle.xml -o junit_family=xunit1
 
@@ -458,8 +487,10 @@ jobs:
           if-no-files-found: warn
 
   parity-status:
-    # One verdict per capability, from every JUnit file above. FAIL (a gate ran
-    # and failed, or could have run and did not) fails this job. NOT_EXECUTED
+    # One verdict per capability, from every JUnit file above. A capability's FAIL
+    # (a gate ran and failed, or could have run and did not) is reported here and
+    # never blocks (MVP-21, --report-only); an acceptance criterion's FAIL fails
+    # this job, and so does a malformed matrix. NOT_EXECUTED
     # and NOT_RUNNABLE are reported in the step summary beside the passes, so a
     # skip can no longer be read as one.
     name: Parity status
@@ -492,8 +523,10 @@ jobs:
           if [ "$REFERENCE_AVAILABLE" = "true" ]; then available="$available reference_repo"; fi
           if [ "$ORACLE_AVAILABLE" = "true" ]; then available="$available legacy_oracle"; fi
           set +e
+          # --report-only: a capability's FAIL is reported here and never blocks (MVP-21); an
+          # acceptance criterion's FAIL or a malformed matrix still fails this job.
           python tools/parity_status.py --junit tmp/junit/*.xml --available $available \
-            --json parity-status.json --markdown parity-status.md
+            --report-only --json parity-status.json --markdown parity-status.md
           status=$?
           set -e
           cat parity-status.md >> "$GITHUB_STEP_SUMMARY"
@@ -948,6 +981,30 @@ jobs:
                       "USE_UNAUTHORIZED_STORAGE", "WOPI_ENABLED", "EXAMPLE_ENABLED"):
               assert env[key] == "false", key
           assert docs["networks"]["docs"]["name"] == "aia-docs" and docs["networks"]["docs"]["external"]
+          # Its one configuration file: a timed force-save and nothing else, read-only, and never
+          # local.json, which the image's start script writes with the JWT secret.
+          conf = "/etc/onlyoffice/documentserver/local-production-linux.json"
+          start = "/aia/start-fixed-cache-tag.sh"
+          mounts = [v for v in oo["volumes"] if v["type"] == "bind"]
+          assert [(m["target"], m.get("read_only")) for m in mounts] == [(conf, True), (start, True)], mounts
+          local = json.load(open("deploy/develop/docs/local-production-linux.json"))
+          assert local == {"services": {"CoAuthoring": {"autoAssembly": {"enable": True, "interval": "5m"}}}}, local
+          # api.js under a fixed cache tag (RPT8e's integrity): upstream's entrypoint, then its own
+          # flush-cache script with -h; healthy only once api.js carries the tag. Word characters
+          # only, as tools/caddy_routes.py's version prefix reads them.
+          # The tag is md5("aia-documentserver-" + the image's tag), so a new image forces a new tag
+          # (it is upstream's only cache-buster) and, with it, a new integrity.
+          import hashlib, os, re
+          assert oo["entrypoint"] == [start], oo["entrypoint"]
+          assert os.access("deploy/develop/docs/start-fixed-cache-tag.sh", os.X_OK)
+          version = oo["image"].split(":", 1)[1].split("@", 1)[0]
+          tag = hashlib.md5(f"aia-documentserver-{version}".encode()).hexdigest()
+          assert env["AIA_DS_CACHE_TAG"] == tag, (env["AIA_DS_CACHE_TAG"], version)
+          health = " ".join(oo["healthcheck"]["test"])
+          prefix = ".".join(version.split(".")[:3])  # api.js's own version prefix, /9.4.0-<tag>
+          # The variable as the container's shell expands it ($$ escaped in the file). Spelled in
+          # parts, so Actions never reads an expression in it.
+          assert prefix + "-$$" + "{AIA_DS_CACHE_TAG}'" in health, health
           product = json.load(open("composed.json"))
           on_docs = sorted(n for n, s in product["services"].items() if "docs" in s.get("networks", {}))
           assert on_docs == ["caddy"], on_docs
@@ -957,6 +1014,9 @@ jobs:
           api = product["services"]["api"]["environment"]
           assert api["AIA_ONLYOFFICE_URL"] == "" and api["AIA_ONLYOFFICE_JWT_SECRET"] == "", \
               "the editor is off unless SSM switches it on"
+          # The integrity is versioned beside the tag (docs/), so a rollback carries its own.
+          assert re.fullmatch(r"sha384-[A-Za-z0-9+/]{64}", api["AIA_ONLYOFFICE_API_INTEGRITY"]), \
+              api["AIA_ONLYOFFICE_API_INTEGRITY"]
           assert not any("ONLYOFFICE" in k for k in product["services"]["worker"]["environment"])
           PY
 
@@ -1030,6 +1090,102 @@ jobs:
       - name: Host Python scripts parse
         run: python3 -m py_compile deploy/develop/bin/*.py
 
+  terraform:
+    # Every Terraform root under infra/ as written: formatted, and valid against its
+    # providers' schemas (production-environment PE3). No backend and no AWS
+    # credentials: `init -backend=false` reads no state, and `validate` calls no API.
+    # A new root (infra/production, PE1) is checked without an edit here.
+    name: Terraform (format, validate)
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1.10.5: the lowest release infra/*/versions.tf accepts (its S3 backend takes
+      # use_lockfile), so CI never passes what an operator's minimum would refuse.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -recursive -diff infra
+
+      - name: Validate every root
+        run: |
+          status=0
+          for root in infra/*/; do
+            [ -f "$root/versions.tf" ] || continue
+            echo "::group::$root"
+            terraform -chdir="$root" init -backend=false -input=false -no-color || status=1
+            terraform -chdir="$root" validate -no-color || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+
+      - name: Say whether the plan runs
+        if: vars.TERRAFORM_PLAN_ENABLED != 'true'
+        run: |
+          {
+            echo "### Terraform plan: not configured"
+            echo "The plan job runs once a person has created its read-only role and the"
+            echo "\`terraform-plan\` environment and set the repository variable"
+            echo "\`TERRAFORM_PLAN_ENABLED=true\` (.planning/plans/production-environment.md, PE3)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  terraform-plan:
+    # What `terraform apply` would change in develop, on a pull request that touches
+    # infra/. The state it reads holds develop's secrets, and anyone who can push a
+    # branch can change this job, so it runs in the `terraform-plan` environment,
+    # which requires a person's approval before the job starts; its role may be
+    # assumed from that environment alone and reads, never writes (-lock=false: not
+    # even the state's lock file). It stays off until TERRAFORM_PLAN_ENABLED is set,
+    # so the environment is not created on a first run without its reviewer.
+    name: Terraform plan (develop)
+    runs-on: ubuntu-latest
+    needs: [changes, terraform]
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.infra == 'true'
+      && vars.TERRAFORM_PLAN_ENABLED == 'true'
+    environment: terraform-plan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: eu-central-1
+          role-session-name: terraform-plan-${{ github.run_id }}
+
+      - name: Plan
+        working-directory: infra/develop
+        run: |
+          umask 077
+          # The tfvars and the saved plan hold secrets: gone however the step ends.
+          trap 'rm -f "$RUNNER_TEMP/develop.tfvars" "$RUNNER_TEMP/develop.tfplan"' EXIT
+          # The tfvars an operator's apply reads, from SSM: GitHub keeps no copy of them.
+          aws ssm get-parameter --name /aia/terraform/develop/tfvars --with-decryption \
+            --query Parameter.Value --output text > "$RUNNER_TEMP/develop.tfvars"
+          terraform init -input=false -no-color
+          terraform plan -lock=false -input=false -no-color \
+            -var-file="$RUNNER_TEMP/develop.tfvars" -out="$RUNNER_TEMP/develop.tfplan"
+          {
+            echo "### Terraform plan: develop"
+            echo '```'
+            terraform show -no-color "$RUNNER_TEMP/develop.tfplan" | head -c 900000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   security:
     name: Security and dependency scan
     runs-on: ubuntu-latest
@@ -1094,8 +1250,17 @@ jobs:
 
   dispatch-develop:
     name: Dispatch verified develop deployment
-    needs: [backend, parity, golden-fixtures, oracle-parity, parity-status, api-contract, frontend, startup-smoke, develop-host-config, security]
-    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    # Not the 18.6.6 comparison jobs (parity, oracle-parity): parity reports and never blocks a
+    # deploy (MVP-21). golden-fixtures stays for its pin check; parity-status for the acceptance.
+    needs: [backend, golden-fixtures, parity-status, api-contract, frontend, startup-smoke, develop-host-config, security]
+    # Each direct need by name, not success(): success() also looks through parity-status to the
+    # comparison jobs it needs, and one of those failing would hold the deploy back.
+    if: >-
+      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      && needs.backend.result == 'success' && needs.golden-fixtures.result == 'success'
+      && needs.parity-status.result == 'success' && needs.api-contract.result == 'success'
+      && needs.frontend.result == 'success' && needs.startup-smoke.result == 'success'
+      && needs.develop-host-config.result == 'success' && needs.security.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read

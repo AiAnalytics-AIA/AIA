@@ -34,7 +34,7 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Final
 
@@ -251,6 +251,25 @@ class RequestProfile:
         """True for the shape every model was sent before profiles existed."""
         return self == DEFAULT_REQUEST_PROFILE
 
+    def thinking_budget(self, budget_tokens: int | None) -> int | None:
+        """The thinking budget a request to this model carries: ``budget_tokens`` for a
+        budgeted model, none for an adaptive one, which decides for itself and refuses a
+        budget (the adapter refuses it unsent)."""
+        return None if self.thinking is ThinkingMode.ADAPTIVE else budget_tokens
+
+    def tag(self) -> str:
+        """The profile in words for an identity that must move with it (a respondent system's
+        model binding); empty for the default profile, so an identity recorded before
+        profiles existed is unchanged."""
+        if self.is_default:
+            return ""
+        parts = [self.structured_output.value, self.thinking.value]
+        if not self.accepts_sampling:
+            parts.append("no_sampling")
+        if self.effort is not None:
+            parts.append(f"effort={self.effort.value}")
+        return ",".join(parts)
+
 
 #: The profile of a catalog entry that declares none: forced tool, budgeted thinking,
 #: sampling accepted, no effort.
@@ -341,6 +360,11 @@ class ModelPolicy:
     bindings: Mapping[ModelCapability, ModelBinding]
     permitted: Mapping[ModelCapability, tuple[ModelBinding, ...]] = field(default_factory=dict)
     retirements: Mapping[tuple[Provider, str], str] = field(default_factory=dict)
+    #: An adaptive model's effort for one capability, in place of its catalog entry's: the
+    #: same model can be asked for less thinking where its answers are short (a respondent's
+    #: block) and more where they are long. Only for a capability every candidate of which
+    #: thinks adaptively (checked by the registry, which holds the catalog).
+    efforts: Mapping[ModelCapability, Effort] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.version.strip():
@@ -404,6 +428,16 @@ class ModelResolution:
     #: True when the caller pinned a provider or model rather than taking the
     #: policy default.
     explicit_choice: bool = False
+    #: The policy's effort for this capability (:attr:`ModelPolicy.efforts`); ``None``: the
+    #: catalog entry's own.
+    effort: Effort | None = None
+
+    @property
+    def request_profile(self) -> RequestProfile:
+        """What this request may carry: the model's profile, with the policy's effort for the
+        capability when it names one."""
+        profile = self.descriptor.request_profile
+        return profile if self.effort is None else replace(profile, effort=self.effort)
 
     @property
     def provider(self) -> Provider:
@@ -458,6 +492,22 @@ class ModelRegistry:
                     raise ModelConfigError(
                         f"policy {policy.version} binds {binding.label()} for "
                         f"{capability.value}, which that model does not declare"
+                    )
+            for capability in policy.efforts:
+                candidates = policy.candidates(capability)
+                if not candidates:
+                    raise ModelConfigError(
+                        f"policy {policy.version} sets an effort for {capability.value}, "
+                        "which it binds to no model"
+                    )
+                if any(
+                    catalog[(b.provider, b.model)].request_profile.thinking
+                    is not ThinkingMode.ADAPTIVE
+                    for b in candidates
+                ):
+                    raise ModelConfigError(
+                        f"policy {policy.version} sets an effort for {capability.value}, "
+                        "which only an adaptive-thinking model takes"
                     )
             for (provider, _old), new in policy.retirements.items():
                 if (provider, new) not in catalog:
@@ -611,6 +661,7 @@ class ModelRegistry:
             descriptor=descriptor,
             substituted_from=substituted_from,
             explicit_choice=explicit,
+            effort=policy.efforts.get(capability),
         )
 
 
@@ -666,6 +717,7 @@ class _PolicyDoc(_Strict):
     bindings: dict[ModelCapability, _BindingDoc]
     permitted: dict[ModelCapability, list[_BindingDoc]] = Field(default_factory=dict)
     retirements: list[_RetirementDoc] = Field(default_factory=list)
+    efforts: dict[ModelCapability, Effort] = Field(default_factory=dict)
 
 
 class _ConfigDoc(_Strict):
@@ -722,6 +774,7 @@ def parse_model_config(document: Mapping[str, Any]) -> ModelRegistry:
             bindings={cap: _binding(b) for cap, b in p.bindings.items()},
             permitted={cap: tuple(_binding(b) for b in bs) for cap, bs in p.permitted.items()},
             retirements={(r.provider, r.retired): r.replacement for r in p.retirements},
+            efforts=dict(p.efforts),
         )
         for p in doc.policies
     ]

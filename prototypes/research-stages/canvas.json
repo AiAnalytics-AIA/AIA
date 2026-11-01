@@ -1,0 +1,453 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Analysis.dc.html": {
+      "h": 2700,
+      "is_interactive": true,
+      "title": "10 · Analýza",
+      "w": 1440,
+      "x": 0,
+      "y": 13400
+    },
+    "Audience.dc.html": {
+      "h": 2400,
+      "is_interactive": true,
+      "title": "4 · Cílová skupina",
+      "w": 1440,
+      "x": 0,
+      "y": 5900
+    },
+    "Brief.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "1 · Zadání",
+      "w": 1440,
+      "x": 0,
+      "y": 3000
+    },
+    "Cards.dc.html": {
+      "h": 2600,
+      "is_interactive": true,
+      "title": "Karty Vedoucího",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "CardsF.dc.html": {
+      "h": 5200,
+      "is_interactive": true,
+      "title": "Karty Vedoucího v chatu (nové)",
+      "w": 1440,
+      "x": 3080,
+      "y": -2600
+    },
+    "ChatF.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat Vedoucího · bubliny na časové ose",
+      "w": 440,
+      "x": 0,
+      "y": 17500
+    },
+    "Design.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "2 · Návrh",
+      "w": 1440,
+      "x": 1520,
+      "y": 3000
+    },
+    "Dimensions.dc.html": {
+      "h": 2400,
+      "is_interactive": true,
+      "title": "5 · Dimenze",
+      "w": 1440,
+      "x": 1520,
+      "y": 5900
+    },
+    "Fieldwork.dc.html": {
+      "h": 2800,
+      "is_interactive": true,
+      "title": "7 · Sběr dat",
+      "w": 1440,
+      "x": 0,
+      "y": 8700
+    },
+    "FieldworkDisc.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "7b · Respondenti při sběru dat",
+      "w": 1100,
+      "x": 4560,
+      "y": 8700
+    },
+    "Main.dc.html": {
+      "h": 2600,
+      "is_interactive": true,
+      "title": "Přehled, kritika a předání",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Marks.dc.html": {
+      "h": 1240,
+      "is_interactive": true,
+      "title": "Značka Vedoucího · 5 variant",
+      "w": 1440,
+      "x": 0,
+      "y": 18760
+    },
+    "Overview.dc.html": {
+      "h": 2200,
+      "is_interactive": true,
+      "title": "Přehled studie (nový, UX v4)",
+      "w": 1440,
+      "x": 4640,
+      "y": 0
+    },
+    "Questionnaire.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "3 · Dotazník",
+      "w": 1440,
+      "x": 3040,
+      "y": 3000
+    },
+    "Report.dc.html": {
+      "h": 2800,
+      "is_interactive": true,
+      "title": "11 · Zpráva",
+      "w": 1440,
+      "x": 1520,
+      "y": 13400
+    },
+    "ReportEditor.dc.html": {
+      "h": 2900,
+      "is_interactive": true,
+      "title": "11b · Editor zprávy: vzhled a ověření",
+      "w": 1440,
+      "x": 3040,
+      "y": 13400
+    },
+    "Results.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "8 · Výsledky",
+      "w": 1440,
+      "x": 1520,
+      "y": 8700
+    },
+    "Sample.dc.html": {
+      "h": 2400,
+      "is_interactive": true,
+      "title": "6 · Vzorek",
+      "w": 1440,
+      "x": 3040,
+      "y": 5900
+    },
+    "Sociomap.dc.html": {
+      "h": 4300,
+      "is_interactive": true,
+      "title": "9 · Sociomapa (schválená dílna)",
+      "w": 1440,
+      "x": 3040,
+      "y": 8700
+    },
+    "Z0Flow.dc.html": {
+      "h": 1940,
+      "is_interactive": true,
+      "title": "Z0 · Zadání se dvěma cestami: průchod",
+      "w": 1440,
+      "x": 0,
+      "y": 20600
+    },
+    "Z1Start.dc.html": {
+      "h": 1320,
+      "is_interactive": true,
+      "title": "Z1 · Zadání: začátek",
+      "w": 1440,
+      "x": 1520,
+      "y": 20600
+    },
+    "Z2Triage.dc.html": {
+      "h": 1720,
+      "is_interactive": true,
+      "title": "Z2 · Zadání: triáž",
+      "w": 1440,
+      "x": 3040,
+      "y": 20600
+    },
+    "Z3Decision.dc.html": {
+      "h": 1500,
+      "is_interactive": true,
+      "title": "Z3 · Zadání: rozhodnutí a pravidlo",
+      "w": 1440,
+      "x": 4560,
+      "y": 20600
+    },
+    "Z4Research.dc.html": {
+      "h": 2100,
+      "is_interactive": true,
+      "title": "Z4 · Zadání: cesta Výzkum",
+      "w": 1440,
+      "x": 0,
+      "y": 22660
+    },
+    "Z5Model.dc.html": {
+      "h": 2460,
+      "is_interactive": true,
+      "title": "Z5 · Zadání: cesta Model",
+      "w": 1440,
+      "x": 1520,
+      "y": 22660
+    },
+    "Z6Both.dc.html": {
+      "h": 1720,
+      "is_interactive": true,
+      "title": "Z6 · Zadání: obojí",
+      "w": 1440,
+      "x": 3040,
+      "y": 22660
+    },
+    "Z7Ready.dc.html": {
+      "h": 1280,
+      "is_interactive": true,
+      "title": "Z7 · Zadání: připravenost a předání",
+      "w": 1440,
+      "x": 4560,
+      "y": 22660
+    },
+    "Z8aPhone.dc.html": {
+      "h": 980,
+      "is_interactive": true,
+      "title": "Z8a · Telefon: začátek",
+      "w": 390,
+      "x": 6080,
+      "y": 20600
+    },
+    "Z8bPhone.dc.html": {
+      "h": 1060,
+      "is_interactive": true,
+      "title": "Z8b · Telefon: triáž",
+      "w": 390,
+      "x": 6550,
+      "y": 20600
+    },
+    "KM1Data.dc.html": {
+      "h": 1700,
+      "is_interactive": true,
+      "title": "M1 · Model: Data",
+      "w": 1440,
+      "x": 0,
+      "y": 27460
+    },
+    "KM2Assumptions.dc.html": {
+      "h": 1540,
+      "is_interactive": true,
+      "title": "M2 · Model: Předpoklady",
+      "w": 1440,
+      "x": 1520,
+      "y": 27460
+    },
+    "KM3Model.dc.html": {
+      "h": 2120,
+      "is_interactive": true,
+      "title": "M3 · Model: Model",
+      "w": 1440,
+      "x": 3040,
+      "y": 27460
+    },
+    "KM4Results.dc.html": {
+      "h": 2220,
+      "is_interactive": true,
+      "title": "M4 · Model: Výsledky",
+      "w": 1440,
+      "x": 4560,
+      "y": 27460
+    },
+    "KM5Map.dc.html": {
+      "h": 1500,
+      "is_interactive": true,
+      "title": "M5 · Model: Mapa rozhodnutí",
+      "w": 1440,
+      "x": 6080,
+      "y": 27460
+    },
+    "KO1Link.dc.html": {
+      "h": 1860,
+      "is_interactive": true,
+      "title": "O1 · Obojí: výzkum do modelu",
+      "w": 1440,
+      "x": 7600,
+      "y": 27460
+    },
+    "KM6Report.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "M6 · Model: Zpráva",
+      "w": 1440,
+      "x": 9120,
+      "y": 27460
+    },
+    "KV1Design.dc.html": {
+      "h": 1240,
+      "is_interactive": true,
+      "title": "V1 · Výzkum: Návrh a Dotazník",
+      "w": 1440,
+      "x": 0,
+      "y": 25520
+    },
+    "KV2Sample.dc.html": {
+      "h": 1100,
+      "is_interactive": true,
+      "title": "V2 · Výzkum: Vzorek",
+      "w": 1440,
+      "x": 1520,
+      "y": 25520
+    },
+    "KV3Results.dc.html": {
+      "h": 1280,
+      "is_interactive": true,
+      "title": "V3 · Výzkum: Výsledky",
+      "w": 1440,
+      "x": 3040,
+      "y": 25520
+    },
+    "KV4Sociomap.dc.html": {
+      "h": 1540,
+      "is_interactive": true,
+      "title": "V4 · Výzkum: Sociomapa",
+      "w": 1440,
+      "x": 4560,
+      "y": 25520
+    },
+    "KV5Report.dc.html": {
+      "h": 1300,
+      "is_interactive": true,
+      "title": "V5 · Výzkum: Zpráva",
+      "w": 1440,
+      "x": 6080,
+      "y": 25520
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-27T16:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "t0": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Přehled a karty Vedoucího",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Návrh výzkumu",
+      "w": 240,
+      "x": 0,
+      "y": 2700
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Vymezení vzorku",
+      "w": 240,
+      "x": 0,
+      "y": 5600
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Sběr a evidence",
+      "w": 240,
+      "x": 0,
+      "y": 8400
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Interpretace a předání",
+      "w": 240,
+      "x": 0,
+      "y": 13100
+    },
+    "t6": {
+      "kind": "title1",
+      "maxW": 6940,
+      "text": "Zadání se dvěma cestami · případ Kupsi s.r.o. (smyšlený)",
+      "w": 240,
+      "x": 0,
+      "y": 20300
+    },
+    "t8": {
+      "kind": "title1",
+      "maxW": 10600,
+      "text": "Kupsi · cesta Model: Vlastní sklad, nebo 3PL? · a jejich spojení",
+      "w": 240,
+      "x": 0,
+      "y": 27160
+    },
+    "t7": {
+      "kind": "title1",
+      "maxW": 7400,
+      "text": "Kupsi · cesta Výzkum: Ochota čekat na doručení",
+      "w": 240,
+      "x": 0,
+      "y": 25220
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Overview.dc.html",
+    "Cards.dc.html",
+    "CardsF.dc.html",
+    "Brief.dc.html",
+    "Design.dc.html",
+    "Questionnaire.dc.html",
+    "Audience.dc.html",
+    "Dimensions.dc.html",
+    "Sample.dc.html",
+    "Fieldwork.dc.html",
+    "FieldworkDisc.dc.html",
+    "Results.dc.html",
+    "Sociomap.dc.html",
+    "Analysis.dc.html",
+    "Report.dc.html",
+    "ReportEditor.dc.html",
+    "ChatF.dc.html",
+    "Marks.dc.html",
+    "Z0Flow.dc.html",
+    "Z1Start.dc.html",
+    "Z2Triage.dc.html",
+    "Z3Decision.dc.html",
+    "Z8aPhone.dc.html",
+    "Z8bPhone.dc.html",
+    "Z4Research.dc.html",
+    "Z5Model.dc.html",
+    "Z6Both.dc.html",
+    "Z7Ready.dc.html",
+    "KV1Design.dc.html",
+    "KV2Sample.dc.html",
+    "KV3Results.dc.html",
+    "KV4Sociomap.dc.html",
+    "KV5Report.dc.html",
+    "KM1Data.dc.html",
+    "KM2Assumptions.dc.html",
+    "KM3Model.dc.html",
+    "KM4Results.dc.html",
+    "KM5Map.dc.html",
+    "KO1Link.dc.html",
+    "KM6Report.dc.html"
+  ],
+  "pages": [],
+  "title": "AIA Výzkumné kroky – prototyp"
+}

@@ -24,7 +24,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from aia_core.application.analysis_results import SourcesRefused, native_sources
+from aia_core.application.analysis_results import SourcesRefused, native_sources, sources_evidence
 from aia_core.application.report import (
     RESEARCH_SUBTITLE,
     SOCIOMAP_ARTIFACT,
@@ -39,14 +39,14 @@ from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import METHOD_SOURCES, compose_method_section
 from aia_core.application.report_tables import question_tables, scale_notes
 from aia_core.application.research import ResearchRuns, research_artifacts
-from aia_core.domain.analysis.native import native_evidence, native_items
+from aia_core.domain.analysis.native import native_items
 from aia_core.domain.evidence import ClaimSurface, EvidenceTable
 from aia_core.domain.evidence.claims import Disclosure
 from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
 from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
-from aia_core.domain.report.client_gate import GateCode, GateRefusal, client_gate
+from aia_core.domain.report.client_gate import GateCode, GateFinding, client_gate
 from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
@@ -63,11 +63,13 @@ from aia_core.domain.report.model import (
     SpecSource,
     text,
 )
+from aia_core.domain.report.sentence_check import SentenceFinding, sentence_findings
 from aia_core.domain.report.validation import require_valid
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
 # The client report's document model beside its DOCX, under the same fingerprint
@@ -75,7 +77,10 @@ CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
 CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_client_document"
 # -5: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
 # -6: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2).
-CLIENT_REPORT_CONTRACT = "aia-client-report-6"
+# -7: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
+# -8: a -5 map's respondent map and taste segments left out (MQ-01 (b)); a -7 draft that printed
+# them is never served again.
+CLIENT_REPORT_CONTRACT = "aia-client-report-8"
 CLIENT_REPORT_STAGE = "REPORT"
 
 
@@ -126,16 +131,7 @@ def compose_client_report(
             "Klientská zpráva vzniká jen z běhu, v němž odpovídali AI respondenti sestavení "
             "z populace. Tento běh použil smyšlené respondenty nebo neznámý zdroj.",
         )
-    evidence = native_evidence(
-        sources.specification,
-        sources.aggregate,
-        dataset_sha256=sources.refs.dataset.sha256,
-        origin=origin,
-        support=sources.support.analysis,
-        respondent_system=sources.respondent_system,
-        joint_certificate=sources.joint_certificate,
-        report_lift=MODELLED_CLIENT_REPORT_LIFT,
-    )
+    evidence = sources_evidence(sources, report_lift=MODELLED_CLIENT_REPORT_LIFT)
     meta_run: Mapping[str, Any] = run.get("metadata") or {}
     population = (
         meta_run.get("population") if isinstance(meta_run.get("population"), Mapping) else None
@@ -173,9 +169,16 @@ def compose_client_report(
         specification_fingerprint=sources.refs.specification_fingerprint,
     )
     maps = compose_map_sections(
-        mapped.body, object_map_snapshots(mapped.body), source=scope_line, client=True
+        mapped.body,
+        object_map_snapshots(mapped.body, respondents=False),
+        source=scope_line,
+        client=True,
     )
-    design = compose_design_sections(sources.specification, sources.research_questions)
+    # Unlocked: the client report never opens in the editor, and a control's tag would carry the
+    # specification's fingerprint into the client's file, which holds no identifier.
+    design = compose_design_sections(
+        sources.specification, sources.research_questions, locked=False
+    )
 
     names = ScopeRepository(session)
     meta = ReportMeta(
@@ -359,6 +362,9 @@ def _client_report(
         return approved, None
     composed = compose_client_report(session, scope, store, run_id=run_id)
     key = fingerprint(composed.sources)
+    # Two first reads store one draft: the second waits on the run's row and finds the first's
+    # (artifacts have no unique key), so the draft approved is the one read after.
+    WorkflowRepository(session, scope).lock_run(run_id)
     found = artifacts.find_reusable(
         project_id=run["project_id"],
         stage_type=CLIENT_REPORT_STAGE,
@@ -390,6 +396,9 @@ def _client_report(
             **review_stamp_record(data),
         },
         depends_on=list(composed.depends_on),
+        # Composed by code from the run; the person whose download stored it is not its author
+        # (RD8): its approval names the run's starter as the producer instead.
+        by_person=False,
     )
     _store_document(artifacts, run_id, artifact, composed.document, build)
     return artifact, data
@@ -426,7 +435,8 @@ def client_report_document(
     docx: Artifact | None = None,
 ) -> tuple[Artifact, Artifact | None] | None:
     """The run's client report as stored, and the document model beside it, composing
-    nothing: the approved version when a person approved one, else the newest stored draft.
+    nothing: the approved version when a person approved one, else the newest stored draft of
+    the current composition (CLIENT_REPORT_CONTRACT).
     ``None`` while no client report was stored; the model ``None`` for a version stored before
     RD5a (an approved one keeps its bytes and gets none). ``docx``: that version's document
     instead, the one its download hands over."""
@@ -449,8 +459,21 @@ def client_report_document(
         return None
     if docx is None:
         approved = [a for a in drafts if a.is_approved]
-        docx = approved[-1] if approved else drafts[-1]
+        # A draft of an earlier composition is never shown for approval: a -7 draft printed a
+        # -5 respondent map a client may not see (MQ-01 (b)); the next download composes anew.
+        current = [a for a in drafts if of_current_composition(a)]
+        if not approved and not current:
+            return None
+        docx = approved[-1] if approved else current[-1]
     return docx, _document_of(stored, docx)
+
+
+def of_current_composition(artifact: Artifact) -> bool:
+    """Whether a stored client report, composed or saved in the editor (which copies its
+    composition's contract), is of today's composition (CLIENT_REPORT_CONTRACT). One recorded no
+    contract is not: unknown, never current. An unapproved one that is not is never shown for
+    approval nor approved (MQ-01 (b): a -7 draft printed a -5 respondent map)."""
+    return artifact.metadata.get("report_contract") == CLIENT_REPORT_CONTRACT
 
 
 def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
@@ -466,19 +489,16 @@ def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
     return models[-1] if models else None
 
 
-class ClientGateRefused(Exception):
-    """The client deliverable may not be approved (RD0): every refusal, each by its block."""
-
-    def __init__(self, refusals: tuple[GateRefusal, ...]) -> None:
-        super().__init__("; ".join(f"{r.message} ({r.where})" for r in refusals))
-        self.refusals = refusals
-
-
-def require_client_gate(artifacts: ArtifactRepository, docx: Artifact) -> None:
-    """Refuse ``docx``, a stored client report, unless the document it was rendered from passes
-    the client deliverable's gate (RD0). A version with no stored document (stored before RD5a)
-    is not judged, so not passed: its next download stores the document beside it. Raises the
-    store's errors for a document that does not verify, and :class:`ClientGateRefused`."""
+def client_gate_findings(
+    artifacts: ArtifactRepository, docx: Artifact
+) -> tuple[GateFinding | SentenceFinding, ...]:
+    """What the client deliverable's checks (RD0) and the sentence check (RD7) find on
+    ``docx``, a stored client report, read from the document it was rendered from: warnings
+    the approval shows and records, never a
+    refusal (the product owner, 2026-10-22). A version with no stored document (stored before
+    RD5a) cannot be checked, which is itself the warning (``gate_unrecorded``: unknown, never
+    passed); its next download stores the document beside it. Raises the store's errors for a
+    document that does not verify."""
     model = _document_of(
         artifacts.list_for_stage(
             project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
@@ -486,15 +506,12 @@ def require_client_gate(artifacts: ArtifactRepository, docx: Artifact) -> None:
         docx,
     )
     if model is None:
-        raise ClientGateRefused(
-            (
-                GateRefusal(
-                    GateCode.UNRECORDED,
-                    "report",
-                    "verze nemá uložený dokument, brána ji nemůže posoudit; stáhněte ji znovu",
-                ),
-            )
+        return (
+            GateFinding(
+                GateCode.UNRECORDED,
+                "report",
+                "verze nemá uložený dokument, nelze ji ověřit; stáhněte ji znovu",
+            ),
         )
-    refusals = client_gate(read_document_payload(artifacts.read(model.artifact_id)))
-    if refusals:
-        raise ClientGateRefused(refusals)
+    document = read_document_payload(artifacts.read(model.artifact_id))
+    return (*client_gate(document), *sentence_findings(document))

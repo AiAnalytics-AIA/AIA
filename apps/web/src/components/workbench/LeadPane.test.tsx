@@ -30,12 +30,32 @@ const MANIFEST = {
   ] },
 };
 
+// jsdom's Blob has no arrayBuffer() (every current browser has); read it through FileReader. AGENTS.md § jsdom.
+if (!Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = function (this: Blob) {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as ArrayBuffer);
+      r.onerror = () => reject(r.error);
+      r.readAsArrayBuffer(this);
+    });
+  };
+}
+
 let me: ResearcherLead;
 let state: LeadState;
 let posts: unknown[];
 let failPosts = 0;
 let selfUpdates: unknown[];
 let staleAnswer: string[];
+let drains = 0;
+let failDrains = 0;
+let failStates = 0;
+let drainStarts: LeadTurn[] = [];
+let onDrain: (() => void) | null = null;
+let withdrawn: string[] = [];
+let attachedFiles: { filename: string; data_b64: string }[] = [];
+let releaseAttach: (() => void) | null = null;
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
@@ -50,6 +70,30 @@ function api() {
       return new Response(JSON.stringify(me), { status: 201 });
     }
     if (u === "/api/v1/lead") return new Response(JSON.stringify(me));
+    if (u.endsWith("/lead/turns/queued")) {
+      drains += 1;
+      if (failDrains > 0) {
+        failDrains -= 1;
+        return new Response(JSON.stringify({ code: "service_unavailable" }), { status: 500 });
+      }
+      onDrain?.();
+      return new Response(JSON.stringify({ turns: drainStarts }), { status: drainStarts.length ? 201 : 200 });
+    }
+    if (u.endsWith("/lead/files")) {
+      const body = JSON.parse(String(init?.body)) as { filename: string; data_b64: string };
+      attachedFiles.push(body);
+      if (body.filename.endsWith(".exe")) return new Response(JSON.stringify({ code: "unsupported_format", message: "x" }), { status: 422 });
+      await new Promise<void>((resolve) => { releaseAttach = resolve; });
+      const dataset = body.filename.endsWith(".csv");
+      return new Response(JSON.stringify({
+        source_id: `SRC-000000000000000${attachedFiles.length}`, filename: body.filename, family: dataset ? "DATASET" : "DOCUMENT",
+        outcome: "READ", reason: null, segments: 2, characters: 120,
+      }), { status: 201 });
+    }
+    if (u.endsWith("/withdraw")) {
+      withdrawn.push(u.split("/").at(-2)!);
+      return new Response(JSON.stringify({ turns: [] }));
+    }
     if (u.endsWith("/lead/turns")) {
       if (failPosts > 0) {
         failPosts -= 1;
@@ -62,7 +106,13 @@ function api() {
       return new Response(JSON.stringify({ layer: "knowledge", after: 50, total: 51, omitted: [{ id: "K-51", reason: "over_budget" }] }));
     }
     if (u.endsWith("/manifest")) return new Response(JSON.stringify(MANIFEST));
-    if (u.endsWith("/lead")) return new Response(JSON.stringify(state));
+    if (u.endsWith("/lead")) {
+      if (failStates > 0) {
+        failStates -= 1;
+        return new Response(JSON.stringify({ code: "service_unavailable" }), { status: 503 });
+      }
+      return new Response(JSON.stringify(state));
+    }
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
 }
@@ -72,7 +122,15 @@ beforeEach(() => {
   posts = [];
   selfUpdates = [];
   staleAnswer = [];
+  drains = 0;
+  withdrawn = [];
+  attachedFiles = [];
+  releaseAttach = null;
   failPosts = 0;
+  failDrains = 0;
+  failStates = 0;
+  drainStarts = [];
+  onDrain = null;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
   api();
@@ -115,6 +173,33 @@ describe("LeadPane", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("shows a turn parked on the budget in coral to whoever can raise it, and slate to a reader who cannot", async () => {
+    state.turns = [turn({ turn_id: "LDT-B", status: "WAITING", reason: "budget_exceeded", output: null })];
+    render(pane());
+    const wait = await waitFor(() => { const n = document.querySelector('[data-lead-wait="budget_exceeded"]'); if (!n) throw new Error("no wait"); return n as HTMLElement; });
+    expect(wait.querySelector(".glyph")?.getAttribute("data-tone")).toBe("you");
+    expect(wait.textContent).toMatch(/Nastavte ho v Nastavení → Studie/);
+    cleanup();
+    state.turns = [turn({ turn_id: "LDT-B", status: "WAITING", reason: "budget_exceeded", output: null })];
+    render(pane({ canEdit: false }));
+    const read = await waitFor(() => { const n = document.querySelector('[data-lead-wait="budget_exceeded"]'); if (!n) throw new Error("no wait"); return n as HTMLElement; });
+    expect(read.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
+  });
+
+  it("says a greeting the budget could not pay for in one quiet line, and a released turn as sent again (F-LO-PARK-1)", async () => {
+    state.turns = [turn({ turn_id: "LDT-G", kind: "greeting", status: "COMPLETED", reason: "greeting_unfunded", output: null })];
+    render(pane());
+    const quiet = await waitFor(() => { const n = document.querySelector('[data-lead-wait="greeting_unfunded"]'); if (!n) throw new Error("no line"); return n as HTMLElement; });
+    expect(quiet.textContent).toMatch(/Přehled studie čeká na rozpočet\./);
+    expect(quiet.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
+    expect(quiet.querySelector("button")).toBeNull();
+    cleanup();
+    state.turns = [turn({ turn_id: "LDT-R", status: "CANCELLED", reason: "lead_turn_released", output: null })];
+    render(pane());
+    const released = await waitFor(() => { const n = document.querySelector('[data-lead-wait="lead_turn_released"]'); if (!n) throw new Error("no line"); return n as HTMLElement; });
+    expect(released.textContent).toMatch(/odpoví znovu, nad návrhem, jak je teď/);
   });
 
   it("opens what the last Lead turn could see from the Vidí chip, naming what it left out", async () => {
@@ -167,6 +252,52 @@ describe("LeadPane", () => {
     await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
   });
 
+  it("gives the Lead a file: kept as the client's source first, the message holding until then, then carrying it (LO18a)", async () => {
+    render(pane());
+    await waitFor(() => expect(posts).toHaveLength(1));
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(["%PDF-1"], "Zadání.pdf", { type: "application/pdf" })] } });
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Co v zadání chybí?" } });
+    // Still being kept: the message waits for it rather than going without it.
+    await screen.findByText("Ukládá se k podkladům klienta…");
+    expect((screen.getByRole("button", { name: "Odeslat" }) as HTMLButtonElement).disabled).toBe(true);
+    // The quick asks hold too, rather than dropping a click unsaid (review of LO18a).
+    expect((screen.getByRole("button", { name: "Kde jsme?" }) as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(releaseAttach).not.toBeNull());
+    act(() => releaseAttach!());
+    await screen.findByText("Přečteno: 2 části, 120 znaků", { exact: false });
+    expect(attachedFiles[0]!.filename).toBe("Zadání.pdf");
+    fireEvent.click(screen.getByRole("button", { name: "Odeslat" }));
+    await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Co v zadání chybí?", stage: "brief", focus: null, files: ["SRC-0000000000000001"] }));
+    // The chips go with the message.
+    expect(screen.queryByRole("list", { name: "Přiložené soubory" })).toBeNull();
+  });
+
+  it("says a refused file at its chip, sends none of it, and takes at most three files", async () => {
+    render(pane());
+    await waitFor(() => expect(posts).toHaveLength(1));
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(["MZ"], "a.exe"), new File([""], "prázdný.txt")] } });
+    expect(await screen.findByText(/Nepřiloženo: tento formát AIA nepřijímá/)).toBeTruthy();
+    expect(screen.getByText(/Nepřiloženo: soubor je prázdný/)).toBeTruthy();
+    // The empty file was refused here, never sent.
+    expect(attachedFiles.map((f) => f.filename)).toEqual(["a.exe"]);
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Přečti." } });
+    fireEvent.click(screen.getByRole("button", { name: "Odeslat" }));
+    await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Přečti.", stage: "brief", focus: null }));
+    fireEvent.change(input, { target: { files: ["1", "2", "3", "4"].map((n) => new File(["x"], `${n}.md`)) } });
+    await waitFor(() => expect(attachedFiles).toHaveLength(4));
+    expect(screen.getAllByText("Ukládá se k podkladům klienta…")).toHaveLength(3);
+    expect((screen.getByRole("button", { name: /Přiložit soubor/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("names the files a sent message carried", async () => {
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Přečti.", run_id: null, files: [{ source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "Zadání.pdf" }] })] };
+    render(pane());
+    const list = await screen.findByRole("list", { name: "Soubory pro Vedoucího" });
+    expect(within(list).getByText("Zadání.pdf")).toBeTruthy();
+  });
+
   it("saves the working copy's waiting change before a message goes, so the Lead reads it", async () => {
     const order: string[] = [];
     const beforeMessage = vi.fn(async () => {
@@ -195,6 +326,44 @@ describe("LeadPane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-1" }), expect.objectContaining({ kind: "agent_job" })));
     expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
+  });
+
+  it("starts a Deep Research card on its approval, saying what starts and how it is paid (LO5a.2)", async () => {
+    state.turns = [turn({ output: { reply: "Doplňme literaturu.", request: { kind: "design_research", why: "Chybí kontext trhu.", preset: "QUICK", focus: ["rq-1", "rq-2"] } } })];
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest }));
+    expect(await screen.findByText("Hloubkový výzkum k návrhu")).toBeTruthy();
+    expect(screen.getByText("Čeká na schválení")).toBeTruthy();
+    expect(screen.getByText("Rychlý")).toBeTruthy();
+    expect(screen.getByText("2 výzkumné otázky")).toBeTruthy();
+    expect(screen.queryByText("Otevře se krok, kde spuštění potvrdíte")).toBeNull();
+    expect(onRequest).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Spustit hloubkový výzkum" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-1" }), expect.objectContaining({ kind: "design_research", focus: ["rq-1", "rq-2"] })));
+    expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
+  });
+
+  it("says a Deep Research card approved on a run already there in its own words (review of #1006)", async () => {
+    state.turns = [turn({ output: { reply: "Doplňme literaturu.", request: { kind: "interpretation_research", why: "Kontext k výsledkům." } }, request_decision: { status: "approved", run_id: "RUN-dr", reused: true } })];
+    render(pane({ onRequest: vi.fn(async () => {}) }));
+    expect(await screen.findByText("Už proběhlo")).toBeTruthy();
+    expect(screen.getByText("Tento hloubkový výzkum už běží nebo doběhl")).toBeTruthy();
+    // Not an agent job's: there is no card of the run above, and it need not be this design's.
+    expect(screen.queryByText(/její karta je výše v konverzaci/)).toBeNull();
+    expect(screen.queryByText("Tato úloha pro tento návrh už proběhla")).toBeNull();
+  });
+
+  it("says the most a prepared job can cost before it starts, and an unknown ceiling in words (LO23)", async () => {
+    state.turns = [
+      turn({ turn_id: "LDT-1", output: { reply: "Připravil.", request: { kind: "agent_job", action: "build_questionnaire", why: "Chybí." } }, ceiling_usd: 2 }),
+      turn({ turn_id: "LDT-2", output: { reply: "Další.", request: { kind: "agent_job", action: "analyze_brief", why: "Znovu." } }, ceiling_usd: null }),
+    ];
+    render(pane({ onRequest: vi.fn(async () => {}) }));
+    const known = await screen.findByText("2,00 USD");
+    expect(known.closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
+    // Unknown is said, never priced at zero.
+    expect(screen.getByText("neznámé").closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
+    expect(screen.queryByText("0,00 USD")).toBeNull();
   });
 
   it("follows a person's typed start with their own card, which starts it on their approval (LO5)", async () => {
@@ -369,7 +538,7 @@ describe("LeadPane", () => {
     expect(startRun).not.toHaveBeenCalled();
     // The ceiling is the card's key fact, labelled; the state pill says it is ready.
     const key = await screen.findByText("4,2 USD");
-    expect(key.className).toContain("card__key");
+    expect(key.hasAttribute("data-fact-key")).toBe(true);
     expect(key.closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
     expect(screen.getByText("Připraveno")).toBeTruthy();
     expect(screen.getByText("Rozpočet studie")).toBeTruthy();
@@ -412,17 +581,83 @@ describe("LeadPane", () => {
     expect(screen.getByRole("link", { name: "Otevřít Kontrolu a spuštění" })).toBeTruthy();
   });
 
-  it("sends a message written while the Lead works with the stage and element it was written about", async () => {
+  it("sends a message written while the Lead works at once, with the stage and element it was written about", async () => {
     state = { ...state, busy: true, turns: [turn({ status: "RUNNING", output: null })] };
     const focus = { id: "question:Q_1", label: "Otázka Q_1" };
-    const { rerender } = render(pane({ focus }));
+    render(pane({ focus }));
     await screen.findByLabelText("Napište Vedoucímu výzkumu");
     fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Zkrať ji" } });
     fireEvent.keyDown(screen.getByLabelText("Napište Vedoucímu výzkumu"), { key: "Enter" });
-    expect(await screen.findByText("Zkrať ji")).toBeTruthy();
-    rerender(pane({ focus: null, stage: "design" }));
-    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
+    // The server keeps it until the Lead is free (ADR 0041 decision 7): nothing waits in the page.
     await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }));
+  });
+
+  it("shows what waits on the server, withdraws it on request, and asks a free Lead to answer the rest", async () => {
+    const waiting = (id: string, text: string) => turn({ turn_id: id, actor: "person", text, run_id: null, queued: true });
+    state = { ...state, busy: true, turns: [turn({ status: "RUNNING", output: null }), waiting("LDT-8", "Z jiné karty"), waiting("LDT-9", "Zkrať ji")] };
+    render(pane());
+    const queue = await screen.findByLabelText("Čeká na Vedoucího");
+    expect(within(queue).getByText("Z jiné karty")).toBeTruthy();
+    // A waiting message is shown once, in the queue: not yet a turn of the conversation.
+    expect(screen.getAllByText("Zkrať ji")).toHaveLength(1);
+    expect(drains).toBe(0); // the Lead is still at work
+    // The Lead finishes; the withdrawal's read finds it free with one message still waiting.
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting("LDT-8", "Z jiné karty")] };
+    fireEvent.click(within(queue).getAllByRole("button", { name: "Odebrat z fronty" })[1]!);
+    await waitFor(() => expect(withdrawn).toEqual(["LDT-9"]));
+    await waitFor(() => expect(drains).toBe(1));
+  });
+
+  it("reads again when the tab comes back to a turn parked on the budget, and sends what a budget set released (F-LO-PARK-1)", async () => {
+    const asked = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: false });
+    state = { ...state, busy: false, turns: [asked, turn({ turn_id: "LDT-P", status: "WAITING", reason: "budget_exceeded", output: null })] };
+    render(pane());
+    await screen.findByText("Jsi tam?");
+    expect(drains).toBe(0); // nothing waits: the parked turn holds the message
+    // The budget is set in Nastavení (another tab, or a colleague): the turn is released and its
+    // message waits again. Not busy, so only the parked read finds it; here, the tab coming back.
+    state = { ...state, turns: [{ ...asked, queued: true }, turn({ turn_id: "LDT-P", status: "CANCELLED", reason: "lead_turn_released", output: null })] };
+    fireEvent(window, new Event("focus"));
+    await waitFor(() => expect(drains).toBe(1));
+  });
+
+  it("asks again for what waits once a turn parked on the budget is released and answered", async () => {
+    const waiting = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: true });
+    state = { ...state, busy: false, turns: [turn({ status: "WAITING", reason: "budget_exceeded", output: null }), waiting] };
+    const { rerender } = render(pane());
+    await waitFor(() => expect(drains).toBe(1)); // the server answers none: the turn waits on the budget
+    // The budget is raised, the parked turn answered; the next read finds the message still waiting.
+    state = { ...state, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
+    rerender(pane({ epoch: 1 }));
+    await waitFor(() => expect(drains).toBe(2));
+  });
+
+  it("says when asking the Lead to answer the queue failed, and asks again on Zkusit znovu", async () => {
+    const waiting = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: true });
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
+    failDrains = 1;
+    render(pane());
+    expect(await screen.findByText(/Vedoucí zatím neodpovídá na zprávy ve frontě/)).toBeTruthy();
+    expect(drains).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    await waitFor(() => expect(drains).toBe(2));
+    await waitFor(() => expect(screen.queryByText(/Vedoucí zatím neodpovídá/)).toBeNull());
+  });
+
+  it("keeps reading after it started the queue's turn, though the read after the start failed", async () => {
+    const waiting = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: true });
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
+    const started = turn({ turn_id: "LDT-10", sequence_no: 3, run_id: "RUN-2", status: "RUNNING", output: null });
+    drainStarts = [started];
+    onDrain = () => {
+      // The server starts the turn, which soon answers; the read right after the start fails once.
+      state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), { ...waiting, queued: false }, { ...started, status: "COMPLETED", output: { reply: "Odpověď z fronty" } }] };
+      failStates = 1;
+    };
+    render(pane({ canEdit: false })); // no greeting, whose read would hide the gap
+    // Only a pane that kept polling after the failed read sees the answer.
+    expect(await screen.findByText("Odpověď z fronty", undefined, { timeout: 4000 })).toBeTruthy();
+    expect(drains).toBe(1);
   });
 
   it("names a view chip's research question or hypothesis by its words in the working copy (F18)", async () => {
@@ -435,6 +670,26 @@ describe("LeadPane", () => {
     expect(onView).toHaveBeenCalledWith([{ op: "inspect", target }]);
     // One the copy no longer holds keeps its id rather than borrowing words.
     expect(screen.getByRole("button", { name: "Ukázat: Hypotéza hyp_gone" })).toBeTruthy();
+  });
+
+  it("names a show_diff chip by the stage whose changes it shows", async () => {
+    state = { ...state, turns: [turn({ output: { reply: "Tady jsou.", view: [{ op: "show_diff", stage: "questionnaire" }] } })] };
+    const onView = vi.fn();
+    render(pane({ onView }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změny: Dotazník" }));
+    expect(onView).toHaveBeenCalledWith([{ op: "show_diff", stage: "questionnaire" }]);
+  });
+
+  it("names the Lead's map views by what the picture becomes, and hands them to the frame", async () => {
+    const filter = { op: "filter", name: "labels", value: "off" } as const;
+    const select = { op: "select", target: "object:set1/fio" } as const;
+    state = { ...state, turns: [turn({ output: { reply: "Na mapě.", view: [filter, select] } })] };
+    const onView = vi.fn();
+    render(pane({ onView }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mapa: popisky vypnout" }));
+    expect(onView).toHaveBeenCalledWith([filter]);
+    fireEvent.click(screen.getByRole("button", { name: "Vybrat: Objekt set1/fio" }));
+    expect(onView).toHaveBeenLastCalledWith([select]);
   });
 
   it("keeps a message the server did not take, held until the researcher tries again", async () => {

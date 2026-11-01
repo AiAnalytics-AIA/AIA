@@ -150,23 +150,21 @@ def _entry(**profile: Any) -> dict[str, Any]:
     }
 
 
-def _registry(**profile: Any) -> ModelRegistry:
+def _registry(*, efforts: dict[str, str] | None = None, **profile: Any) -> ModelRegistry:
     binding = {"provider": Provider.AWS_BEDROCK.value, "model": MODEL, "route_id": ROUTE}
-    return parse_model_config(
-        {
-            "models": [_entry(**profile)],
-            "policies": [
-                {
-                    "version": POLICY,
-                    "allowed_providers": [Provider.AWS_BEDROCK.value],
-                    "bindings": {ModelCapability.CRITIC.value: binding},
-                }
-            ],
-        }
-    )
+    policy: dict[str, Any] = {
+        "version": POLICY,
+        "allowed_providers": [Provider.AWS_BEDROCK.value],
+        "bindings": {ModelCapability.CRITIC.value: binding},
+    }
+    if efforts is not None:
+        policy["efforts"] = efforts
+    return parse_model_config({"models": [_entry(**profile)], "policies": [policy]})
 
 
-def _gateway(transport: ScriptedTransport, **profile: Any) -> GovernedModelGateway:
+def _gateway(
+    transport: ScriptedTransport, *, efforts: dict[str, str] | None = None, **profile: Any
+) -> GovernedModelGateway:
     route = ProviderRoute(
         route_id=ROUTE,
         provider=Provider.AWS_BEDROCK.value,
@@ -179,7 +177,7 @@ def _gateway(transport: ScriptedTransport, **profile: Any) -> GovernedModelGatew
         transport=transport, signer=Signer(), region="eu-central-1", model_id=MODEL
     )
     return GovernedModelGateway(
-        registry=_registry(**profile),
+        registry=_registry(efforts=efforts, **profile),
         egress=EgressPolicy(routes=(route,)),
         licence=recorded_policy(),
         adapters={ROUTE: adapter},
@@ -551,3 +549,74 @@ def test_adapters_that_send_only_the_default_shape_refuse_another_profile(name: 
     assert refused.value.delivery is Delivery.NOT_SENT
     assert "sends only the default request profile" in str(refused.value)
     assert transport.requests == [] and runner.invocations == []
+
+
+# --------------------------------------------------------------------------- #
+# A capability's own effort (sonnet-5-5-switch)
+# --------------------------------------------------------------------------- #
+
+
+def _resolve(registry: ModelRegistry) -> Any:
+    return registry.resolve(capability=ModelCapability.CRITIC, policy_version=POLICY)
+
+
+def test_a_policy_sets_one_capabilitys_effort_on_an_adaptive_model() -> None:
+    plain = _resolve(_registry(**_ADAPTIVE_ENTRY, effort="high"))
+    assert plain.effort is None and plain.request_profile.effort is Effort.HIGH
+    low = _resolve(_registry(efforts={"CRITIC": "low"}, **_ADAPTIVE_ENTRY, effort="high"))
+    assert low.request_profile == dataclasses.replace(ADAPTIVE, effort=Effort.LOW)
+    # The catalog entry keeps its own: the effort is the capability's, not the model's.
+    assert low.descriptor.request_profile.effort is Effort.HIGH
+
+
+@pytest.mark.parametrize(
+    ("efforts", "profile"),
+    [
+        ({"CRITIC": "low"}, {}),
+        ({"CRITIC": "extreme"}, _ADAPTIVE_ENTRY),
+        ({"SIMULATION": "low"}, _ADAPTIVE_ENTRY),
+    ],
+    ids=["budget-model", "effort-value", "capability-not-bound"],
+)
+def test_an_effort_the_policy_cannot_set_is_refused_at_load(
+    efforts: dict[str, str], profile: dict[str, Any]
+) -> None:
+    with pytest.raises(ModelConfigError):
+        _registry(efforts=efforts, **profile)
+
+
+def test_an_effort_refusal_names_its_cause() -> None:
+    with pytest.raises(ModelConfigError, match="which it binds to no model"):
+        _registry(efforts={"SIMULATION": "low"}, **_ADAPTIVE_ENTRY)
+    with pytest.raises(ModelConfigError, match="only an adaptive-thinking model takes"):
+        _registry(efforts={"CRITIC": "low"})
+
+
+def test_a_capabilitys_effort_is_sent_and_fingerprinted(
+    scope: Any, journal: InMemoryCallJournal
+) -> None:
+    transport = ScriptedTransport([_converse(_tool())])
+    _invoke(
+        transport,
+        _request(),
+        _context(scope, journal),
+        efforts={"CRITIC": "low"},
+        **_ADAPTIVE_ENTRY,
+    )
+    [sent] = transport.requests
+    assert sent.body["additionalModelRequestFields"] == {"output_config": {"effort": "low"}}
+
+
+def test_the_profile_tag_names_every_non_default_choice_and_nothing_for_the_default() -> None:
+    assert DEFAULT_REQUEST_PROFILE.tag() == ""
+    assert ADAPTIVE.tag() == "auto_tool,adaptive,no_sampling"
+    assert dataclasses.replace(ADAPTIVE, effort=Effort.LOW).tag() == (
+        "auto_tool,adaptive,no_sampling,effort=low"
+    )
+    assert RequestProfile(accepts_sampling=False).tag() == "forced_tool,budget,no_sampling"
+
+
+def test_an_adaptive_model_takes_no_thinking_budget_and_a_budgeted_one_its_own() -> None:
+    assert ADAPTIVE.thinking_budget(2048) is None
+    assert DEFAULT_REQUEST_PROFILE.thinking_budget(2048) == 2048
+    assert DEFAULT_REQUEST_PROFILE.thinking_budget(None) is None

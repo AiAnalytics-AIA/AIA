@@ -441,3 +441,17 @@ def test_readiness_counts_agree_with_their_number_in_czech(
     _, ready = prepare(design, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert _check(ready, "questionnaire").message == questionnaire
     assert _check(ready, "sociomap_input").message == sociomap
+
+
+def test_a_questionnaire_of_tracked_sets_only_is_not_ready() -> None:
+    """OI-52, the data owner's answer (2026-10-25, (b)): a questionnaire needs a plain question."""
+    battery = next(s for s in DESIGN["sections"] if s.get("type") == "object_battery")
+    _, ready = prepare({**DESIGN, "sections": [battery]}, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    check = _check(ready, "questionnaire")
+    assert check.status is CheckStatus.FAIL and not ready.ready
+    assert check.message == (
+        "0 otázek, 1 sledovaná sada (5 položek k zodpovězení). Samotné sledované sady dotazník "
+        "netvoří: přidejte v Dotazníku alespoň jednu běžnou otázku."
+    )
+    _, ready = prepare(DESIGN, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    assert _check(ready, "questionnaire").status is CheckStatus.PASS

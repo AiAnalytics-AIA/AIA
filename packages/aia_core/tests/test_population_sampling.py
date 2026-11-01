@@ -639,6 +639,31 @@ def test_a_samples_quota_cells_are_the_units_largest_remainder(
         cell = tuple(category_keys(f, [COLUMNS[f][r.row]])[0] for f in sample.audit.quota_fields)
         drawn[cell] = drawn.get(cell, 0) + 1
     assert {c.values: c.n for c in sample.quota_cells if c.n} == drawn
+    # Each respondent names its own cell (RQC7b), the one its row's values fall in.
+    for r in sample.respondents:
+        assert r.quota_cell is not None
+        assert sample.quota_cells[r.quota_cell].values == tuple(
+            category_keys(f, [COLUMNS[f][r.row]])[0] for f in sample.audit.quota_fields
+        )
+    # The fieldwork events carry the same cells and keys: a cell's fill counts its respondents.
+    from collections import Counter
+
+    from aia_core.domain.fieldwork_events import PAYLOAD_KEYS, FieldworkEvent, respondent_cells
+    from aia_core.domain.fieldwork_events import sample as sample_event
+    from aia_core.domain.population.sampling import quota_keys
+
+    event = sample_event(sample)
+    assert event is not None
+    assert set(event) == set(PAYLOAD_KEYS[FieldworkEvent.SAMPLE])
+    assert event["quota_fields"] == list(sample.audit.quota_fields)
+    # Only the cells allotted respondents: one allotted none is nobody's.
+    assert event["cells"] == [
+        {"key": k, "values": list(c.values), "n": c.n}
+        for k, c in zip(quota_keys(sample.quota_cells), sample.quota_cells, strict=True)
+        if c.n
+    ]
+    fill = Counter(respondent_cells(sample))
+    assert {c["key"]: c["n"] for c in event["cells"]} == dict(fill)
     # What a run records is unchanged.
     assert "quota_cells" not in sample.provenance()
 

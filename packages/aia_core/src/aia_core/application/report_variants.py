@@ -35,6 +35,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from ..domain.report.editor import EDIT_ARTIFACT_TYPES
 from ..domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
@@ -47,6 +48,7 @@ from ..infrastructure.artifact_repository import (
 )
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
+from .client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from .contextual_report import (
     CONTEXT_REPORT_ARTIFACT_TYPE,
     CONTEXT_REPORT_CONTRACT,
@@ -75,8 +77,17 @@ __all__ = [
 
 
 #: The report DOCX types a ``report_pdf`` job renders: the run's own report and the report with
-#: a chosen literature review (the client report is DOCX only).
-RENDERABLE_REPORTS = frozenset({INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE})
+#: a chosen literature review, a version of either a person saved in the report editor (RPT8c),
+#: and the client report (report-delivery RD1), which is never edited. Each PDF renders exactly
+#: the stored DOCX it names, so a client report's PDF is the client report a person approves.
+RENDERABLE_REPORTS = frozenset(
+    {
+        INTERNAL_REPORT_ARTIFACT_TYPE,
+        CONTEXT_REPORT_ARTIFACT_TYPE,
+        CLIENT_REPORT_ARTIFACT_TYPE,
+        *EDIT_ARTIFACT_TYPES.values(),
+    }
+)
 
 
 class VariantState(StrEnum):

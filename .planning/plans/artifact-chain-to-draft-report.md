@@ -15,6 +15,7 @@ chunks:
   - "[ ] CHN11a. The number census: a new scan of the stored document model's text, every numeric token classed as an admitted ledger ref, a value of the stored Sociomap artifact, or a design or document-control number with typed provenance; an unclassed token fails"
   - "[ ] CHN11. The chain over HTTP: a fictional study from brief to internal DOCX on recorded answers, every hand-off chunk's output (CHN1-CHN6, CHN8-CHN10, RD5a) asserted in the draft, every number in an accepted provenance class"
   - "[ ] CHN12. The chain in a browser: draft_report_journey.mjs on the UI workbench, brief through every stage to the internal DOCX at 1440 px, zero paid calls"
+  - "[ ] CHN13. The report prints only accepted or edited findings (spec szz A9; W3, after artifact-analysis ANL11; touches RPT4)"
 ---
 # The artifacts in one chain: brief to a draft research document
 
@@ -451,3 +452,17 @@ bases stay visibly apart. The Report artifact shows both and names which is whic
   > the run's outputs no section read, with the experimental Sociomapping named by its step.
   > `with_source_audit` prints them in `app-audit`. Stored in the document model
   > `aia-report-document-2`, which still reads `-1`.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**CHN13. Only reviewed findings print** (spec `szz/A9`, no backend; W3, lane G). After `artifact-analysis#ANL11`. B2 (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report too carries only accepted findings.
+
+**Notes.**
+- CHN8 is kept (26 Oct 2026): literature is woven into the body only through "Použít ve zprávě". Nigel, 26 Oct 2026 (P3): no third document; "Zpráva s rešerší" leaves the pane (register contradiction 9 resolved for CHN8).

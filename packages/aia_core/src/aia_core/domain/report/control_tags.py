@@ -8,7 +8,14 @@ A tag names where a printed span came from:
 - ``<ref>#n``: a base n (a caption's, or a KPI tile's line under it);
 - ``appendix:<ref>#<column>``: one cell of the evidence appendix's row for ``ref``;
 - ``figure:<id>``: a figure's picture, its refs the stored figure's;
-- ``count:suppressed:<id>``: what suppression removed from that table or figure.
+- ``count:suppressed:<id>``: what suppression removed from that table or figure;
+- ``map:<battery>/<method>``: text code wrote whole from one stored map (``source_tag``), which the
+  section's manifest names by id and SHA-256;
+- ``design:<fingerprint>``: text code wrote from the research specification the run executed, by its
+  fingerprint;
+- ``run:<run>``: text code wrote from the run's own record (its metadata, its pins, its audit rows);
+- ``bundle:<Deep Research run>``: text code wrote from that run's sealed bundle (the literature
+  chapter).
 """
 
 from __future__ import annotations
@@ -29,7 +36,11 @@ APPENDIX_COLUMNS: Final = (
     "disclosures",
 )
 
-Kind = Literal["value", "interval", "base_n", "appendix", "figure", "suppressed"]
+Source = Literal["map", "design", "run", "bundle"]
+Kind = Literal["value", "interval", "base_n", "appendix", "figure", "suppressed"] | Source
+
+#: The stored sources, other than the ledger, that code writes numbers from.
+SOURCE_KINDS: Final[tuple[Source, ...]] = ("map", "design", "run", "bundle")
 
 
 def value_tag(ref: str) -> str:
@@ -60,6 +71,12 @@ def suppressed_tag(owner: str) -> str:
     return f"count:suppressed:{owner}"
 
 
+def source_tag(kind: Source, name: str) -> str:
+    if not name:
+        raise ValueError("a source tag names what it was written from")
+    return f"{kind}:{name}"
+
+
 @dataclass(frozen=True)
 class ControlTag:
     """A parsed tag: what kind of span, and the ref or block it names (``column`` for the
@@ -82,6 +99,9 @@ def parse_tag(tag: str) -> ControlTag | None:
         return ControlTag("figure", tag.removeprefix("figure:"))
     if tag.startswith("count:suppressed:") and len(tag) > len("count:suppressed:"):
         return ControlTag("suppressed", tag.removeprefix("count:suppressed:"))
+    for source in SOURCE_KINDS:
+        if tag.startswith(f"{source}:") and len(tag) > len(source) + 1:
+            return ControlTag(source, tag.removeprefix(f"{source}:"))
     if m := _REF.match(tag):
         if m["part"] == "n":
             return ControlTag("base_n", m["ref"])

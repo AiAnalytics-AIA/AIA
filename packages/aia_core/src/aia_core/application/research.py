@@ -14,7 +14,7 @@ provides.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -34,9 +34,11 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
+from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
@@ -70,6 +72,7 @@ from ..domain.report.review import ReviewMark
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
     DESIGN_ACTIONS,
+    EXTERNAL_ACTIONS,
     HARNESS_VERSION,
     ProposalState,
     ResearchAction,
@@ -78,6 +81,7 @@ from ..domain.research_agents import (
     proposal_documents,
     proposal_state,
     snapshot_hash,
+    with_external_context,
 )
 from ..domain.research_design import (
     Readiness,
@@ -104,17 +108,17 @@ from ..domain.research_trace import (
 )
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
-from ..domain.scope import OrganizationRole, Permission, StudyContext
-from ..domain.spend_attribution import ActivitySpend, run_spend
+from ..domain.run_start import StartRun
+from ..domain.scope import Permission, ScopeDenied, StudyContext
+from ..domain.spend_attribution import ActivitySpend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
-from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
+from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
-from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
-from ..infrastructure.researcher_spend_repository import run_spend_facts
-from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.prompt_repository import PromptResolver
+from ..infrastructure.scope_repository import ScopeRepository, member_display_names
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
 from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -134,6 +138,8 @@ from .proposal_accept import (
     proposal_baseline,
 )
 from .report_export import exports_stamped
+from .researcher_spend import run_spend_of
+from .spend_confirmation import SpendConfirmation
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -152,6 +158,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "RunStartSettings",
     "WorkingImpact",
     "WorkingRevisionNotFound",
     "readiness_in_force",
@@ -387,6 +394,9 @@ class FrozenDataset:
     #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
     specification_artifact_id: str | None = None
     specification_sha256: str | None = None
+    #: Modules already asked again earlier in this retry chain (evidence-integrity 9a): with
+    #: :attr:`retried`, the chain's ``tried``, so a module still empty is offered no further round.
+    tried: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -396,7 +406,12 @@ class FrozenDataset:
         return {"run_id": self.run_id, "artifact_id": self.artifact_id, "sha256": self.sha256}
 
     def note(self) -> dict[str, Any]:
-        return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+        return {
+            **self.step_input(),
+            "round": self.analysis_round,
+            "modules": list(self.retried),
+            "tried": sorted({*self.tried, *self.retried}),
+        }
 
     def specification_input(self) -> dict[str, Any] | None:
         """The compile step's ``frozen_specification``; ``None`` when none is named."""
@@ -456,6 +471,36 @@ class RunReservations:
     analysis_usd: float | None
 
 
+@dataclass(frozen=True, slots=True)
+class RunStartSettings:
+    """What a research run's start takes from the deployment, never from the request: the
+    values every way of starting a run passes (``routers/research.py`` ``run_start_settings``;
+    the Run stage, the typed chat start and, from LO3, a plan step), beside the run its caller
+    names (:class:`~aia_core.domain.run_start.StartRun`)."""
+
+    fieldwork_source: FieldworkSource
+    analysis_enabled: bool
+    sociomapping_enabled: bool
+    #: AIA_RUN_QC_ENABLED: a new run carries the run QC step (``run-qc-and-checkpoint`` RQC2)
+    qc_enabled: bool
+    reservations: RunReservations
+    #: The deployment's default persona source; a caller that offers no choice names it.
+    persona_source: PersonaSource
+    require_answerability: bool
+    population_contract: PopulationImportContract
+    population_id: str
+    #: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: the run pins its Design Research context
+    #: (evidence-integrity 7)
+    external_context: bool = False
+    #: Draws a panel run's sample, as readiness does (RQC6b); ``None``: unknown, as before.
+    panel_sampler: PanelSampler | None = None
+    #: The artifact store an analysis retry reads the run's stored outcomes from; without it a
+    #: typed analysis retry is refused (``run_start_unavailable``).
+    store: ArtifactStore | None = None
+    #: AIA_ROUTING_ENABLED: a valid display condition passes and the run pins it (WCE13 (d))
+    routing_enabled: bool = False
+
+
 def _population_note(binding: PopulationBinding, *, read_by_fieldwork: bool) -> dict[str, Any]:
     """What the run says about its population: the version it names, and whether fieldwork
     draws its respondents from it.
@@ -510,6 +555,23 @@ class ResearchRuns:
     #: passes readiness and a new run pins it (``routing``), which its preflight reads. Off until
     #: fieldwork routes by it (run-qc-and-checkpoint RQC11).
     routing_enabled: bool = False
+    #: The deployment's run start (:meth:`for_settings`), which :meth:`start_run` reads.
+    start_settings: RunStartSettings | None = None
+
+    @classmethod
+    def for_settings(
+        cls, session: Session, scope: StudyContext, settings: RunStartSettings
+    ) -> ResearchRuns:
+        """The runs of the Study in scope, composed as the deployment's run start composes them."""
+        return cls(
+            session,
+            scope,
+            population_contract=settings.population_contract,
+            population_id=settings.population_id,
+            panel_sampler=settings.panel_sampler,
+            routing_enabled=settings.routing_enabled,
+            start_settings=settings,
+        )
 
     def _panel_draw(self, spec: ResearchSpecification) -> PanelDraw | None:
         """The sample a panel run of ``spec`` would draw: the design's filters, its n and the
@@ -595,6 +657,36 @@ class ResearchRuns:
             analysis_modules=analysis_modules,
         )
 
+    def start_run(
+        self,
+        command: StartRun,
+        *,
+        confirmation: SpendConfirmation | None = None,
+        _probe: bool = False,
+    ) -> StartedRun:
+        """The typed run start (ADR 0028 decision 3, lead-orchestration LO2): the run its caller
+        names (``command``) under the deployment's settings these runs were composed with
+        (:meth:`for_settings`), through :meth:`start`. The command names no confirmation; a
+        person's is passed beside it (``confirmation``)."""
+        settings = self.start_settings
+        if settings is None:
+            raise TypeError("start_run needs runs composed by ResearchRuns.for_settings")
+        return self.start(
+            design_revision_id=command.design_revision_id,
+            fieldwork_source=settings.fieldwork_source,
+            analysis_enabled=settings.analysis_enabled,
+            external_context=settings.external_context,
+            sociomapping_enabled=settings.sociomapping_enabled,
+            qc_enabled=settings.qc_enabled,
+            reservations=settings.reservations,
+            confirmation=confirmation,
+            persona_source=command.persona_source,
+            population_version_id=command.population_version_id,
+            acknowledge=command.acknowledge,
+            require_answerability=settings.require_answerability,
+            _probe=_probe,
+        )
+
     def start(
         self,
         *,
@@ -604,8 +696,9 @@ class ResearchRuns:
         analysis_enabled: bool = False,
         external_context: bool = False,
         sociomapping_enabled: bool = False,
+        qc_enabled: bool = False,
         reservations: RunReservations | None = None,
-        confirm_cost_usd: float | None = None,
+        confirmation: SpendConfirmation | None = None,
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
@@ -716,11 +809,13 @@ class ResearchRuns:
         When this would create a run, its cost ceiling is worked out here, never taken from the
         request, and recorded in the run's metadata as ``cost_ceiling`` (artifact-fieldwork
         FLD4d). When the study has a spend limit (``Study.spend_confirm_usd``), a ceiling
-        at or above the limit needs ``confirm_cost_usd`` to cover it
+        at or above the limit needs a person's ``confirmation`` to cover it
         (:class:`CostConfirmationRequired` otherwise) and the yes is recorded in the approval
-        ledger with the run. A ceiling that cannot be worked out is not let by
-        (:class:`CostCeilingUnknown`). A start that finds its run already there spends
-        nothing and asks nothing.
+        ledger with the run. A confirmation is issued only by
+        :func:`~.spend_confirmation.confirm_spend` (lead-orchestration LO2), to the person and
+        Study it names; another person's or Study's is refused (``ScopeDenied``). A ceiling
+        that cannot be worked out is not let by (:class:`CostCeilingUnknown`). A start that
+        finds its run already there spends nothing and asks nothing.
         """
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
@@ -768,6 +863,8 @@ class ResearchRuns:
             key += ":analysis"
         if sociomapping_enabled:
             key += ":sociomapping"
+        if qc_enabled:
+            key += ":qc"
         if methodology is not None:
             # An edited methodology is new identity: the same revision under it is another
             # run, and its cost goes through the spend confirmation below like any new run.
@@ -893,11 +990,22 @@ class ResearchRuns:
                 raise ResearchQuestionsUnanswerable(answer)
             else:
                 answer_note = {**answerability_note(trace, answer), "enforced": False}
-        confirmation: tuple[float, float] | None = None
+        confirmed_ceiling: tuple[float, float] | None = None
         # A run this start would create records the ceiling it started under (artifact-fieldwork
         # FLD4d); a run it finds keeps what it recorded.
         ceiling: RunCostCeiling | None = None
         limit = self.spend_limit()
+        if confirmation is not None and (
+            confirmation.confirmed_by != self.scope.actor_id
+            or confirmation.study_id != self.scope.study_id
+        ):
+            # A yes is the person's who gave it, in the Study they gave it in: anything else
+            # is a wiring fault, refused by name, never read as no yes.
+            raise ScopeDenied(
+                "a spend confirmation is the person's and Study's it was issued to",
+                reason="confirmation_not_yours",
+            )
+        confirmed = confirmation.usd if confirmation is not None else None
         if not exists:
             assert _spec is not None  # a ready design compiles
             ceiling = self.cost_ceiling(
@@ -910,7 +1018,7 @@ class ResearchRuns:
             )
         if limit is not None and ceiling is not None:
             # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2).
-            verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
+            verdict = threshold_verdict(ceiling.total_usd, limit, confirmed)
             if verdict is ThresholdVerdict.CEILING_UNKNOWN:
                 assert ceiling.unknown is not None
                 raise CostCeilingUnknown(ceiling.unknown, limit_usd=limit)
@@ -918,7 +1026,7 @@ class ResearchRuns:
             if verdict is ThresholdVerdict.ASK:
                 raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
             if verdict is ThresholdVerdict.CONFIRMED:
-                confirmation = (ceiling.total_usd, limit)
+                confirmed_ceiling = (ceiling.total_usd, limit)
         started = start_workflow(
             self.session,
             self.scope,
@@ -933,6 +1041,7 @@ class ResearchRuns:
                 "analysis_enabled": analysis_enabled,
                 **({"analysis_context": context_pin} if context_pin else {}),
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
+                **({"qc_enabled": True} if qc_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"methodology": methodology} if methodology else {}),
                 "support": support_pin,
@@ -1012,6 +1121,7 @@ class ResearchRuns:
                     analysis_step_inputs(
                         ClaimSurface.INTERNAL,
                         analysis_round=frozen_dataset.analysis_round if frozen_dataset else 0,
+                        retried=frozen_dataset.retried if frozen_dataset else (),
                     )
                     if analysis_enabled
                     else {}
@@ -1020,6 +1130,7 @@ class ResearchRuns:
             owner=DESIGN_PROJECT_OWNER,
             analysis_enabled=analysis_enabled,
             sociomapping_enabled=sociomapping_enabled,
+            qc_enabled=qc_enabled,
             population=population,
         )
         if fresh_acknowledgement is not None and started.created:
@@ -1032,13 +1143,13 @@ class ResearchRuns:
                 rules=ANSWERABILITY_RULES,
                 design_revision_id=revision.revision_id,
             )
-        if confirmation is not None and started.created:
-            assert confirm_cost_usd is not None
+        if confirmed_ceiling is not None and started.created:
+            assert confirmed is not None
             self._workflows().record_spend_confirmation(
                 started.run_id,
-                ceiling_usd=confirmation[0],
-                limit_usd=confirmation[1],
-                confirmed_usd=confirm_cost_usd,
+                ceiling_usd=confirmed_ceiling[0],
+                limit_usd=confirmed_ceiling[1],
+                confirmed_usd=confirmed,
             )
         return started
 
@@ -1048,7 +1159,7 @@ class ResearchRuns:
         *,
         fieldwork_source: FieldworkSource,
         reservations: RunReservations | None = None,
-        confirm_cost_usd: float | None = None,
+        confirmation: SpendConfirmation | None = None,
         acknowledge: Acknowledgement | None = None,
         require_answerability: bool = False,
     ) -> StartedRun:
@@ -1070,7 +1181,7 @@ class ResearchRuns:
             run,
             fieldwork_source=fieldwork_source,
             reservations=reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
             acknowledge=acknowledge,
             require_answerability=require_answerability,
         )
@@ -1081,7 +1192,7 @@ class ResearchRuns:
         *,
         frozen_dataset: FrozenDataset,
         reservations: RunReservations | None = None,
-        confirm_cost_usd: float | None = None,
+        confirmation: SpendConfirmation | None = None,
         acknowledge: Acknowledgement | None = None,
     ) -> StartedRun:
         """Start ``run_id`` again over its own collected data: an analysis retry.
@@ -1100,7 +1211,7 @@ class ResearchRuns:
             run,
             fieldwork_source=FieldworkSource(str(run["metadata"]["fieldwork_source"])),
             reservations=reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
             analysis_enabled=True,
             frozen_dataset=frozen_dataset,
             acknowledge=acknowledge,
@@ -1112,7 +1223,7 @@ class ResearchRuns:
         *,
         fieldwork_source: FieldworkSource,
         reservations: RunReservations | None,
-        confirm_cost_usd: float | None,
+        confirmation: SpendConfirmation | None,
         analysis_enabled: bool | None = None,
         frozen_dataset: FrozenDataset | None = None,
         acknowledge: Acknowledgement | None = None,
@@ -1147,8 +1258,9 @@ class ResearchRuns:
             if analysis_enabled is None
             else analysis_enabled,
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
+            qc_enabled=bool(run["metadata"].get("qc_enabled", False)),
             reservations=reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
             sociomap_methods=pinned,
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
@@ -1613,19 +1725,19 @@ class ResearchRuns:
         """What one research run of this Study has spent, holds open and could not settle, by
         the rules a person's spend is read (``artifact-fieldwork`` FLD4). ``run`` is what
         :meth:`get` found through this Study; the query is in the Study and organization too."""
-        self.scope.require(Permission.VIEW_COSTS)
-        usage, holds = run_spend_facts(
-            self.session,
-            organization_id=self.scope.organization_id,
-            study_id=self.scope.study_id,
-            run_id=str(run["run_id"]),
-        )
-        return run_spend(usage, holds)
+        return run_spend_of(self.session, self.scope, str(run["run_id"]))
 
-    def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
+    def runs(
+        self,
+        *,
+        limit: int = 20,
+        steps: bool = False,
+        statuses: Sequence[WorkflowRunStatus] | None = None,
+    ) -> list[dict[str, Any]]:
         """This Study's research runs, newest first, with their phases.
 
         ``steps``: each with its steps, without their attempt history (one more query).
+        ``statuses``: only runs in those states, filtered before the limit.
         """
         project_id = self._designs().project_id()
         if project_id is None:
@@ -1633,7 +1745,11 @@ class ResearchRuns:
         runs = [
             r
             for r in self._workflows().list_runs(
-                project_id=project_id, limit=limit, workflow_type=RESEARCH, steps=steps
+                project_id=project_id,
+                limit=limit,
+                workflow_type=RESEARCH,
+                steps=steps,
+                statuses=statuses,
             )
             if r["workflow_type"] == RESEARCH
         ]
@@ -1646,6 +1762,31 @@ class ResearchRuns:
         """The run's append-only events after ``since``."""
         self.get(run_id)
         return self._workflows().events(run_id, since=since, limit=limit)
+
+    def approvals(self, run_id: str, store: ArtifactStore) -> list[tuple[LedgerEntry, str | None]]:
+        """The approval-ledger rows about this run, oldest first, each with its approver's
+        display name (``None`` when the person has none, never an e-mail). A row names the run
+        itself, or an artifact the run made: an approved report or map snapshot is recorded by
+        its artifact, whose metadata names its run. Found only through the Study: a run of
+        another study is :class:`ResearchRunNotFound`, as everywhere."""
+        self.get(run_id)
+        artifacts = research_artifacts(self.session, self.scope, store)
+
+        def about_run(entry: LedgerEntry) -> bool:
+            if run_id in (entry.run_id, entry.subject_id):
+                return True
+            if entry.subject is not ApprovalSubject.ARTIFACT:
+                return False
+            try:
+                return artifacts.get(entry.subject_id).metadata.get("run_id") == run_id
+            except ArtifactNotFound:
+                return False
+
+        entries = [e for e in self._workflows().ledger() if about_run(e)]
+        names = member_display_names(
+            self.session, self.scope.organization_id, sorted({e.approver_user_id for e in entries})
+        )
+        return [(e, names.get(e.approver_user_id)) for e in entries]
 
     def artifact_ids(self, run_id: str) -> list[str]:
         """The artifacts this run's steps produced, in step order."""
@@ -1696,13 +1837,16 @@ class ResearchAgentJobs:
 
     session: Session
     scope: StudyContext
-    #: The clients a draft prompt may be tested on (``AIA_AI_FICTIONAL_CLIENT_IDS``). Empty
-    #: by default, so a caller that does not pass it can run no draft at all.
-    draft_client_ids: frozenset[str] = frozenset()
     #: What one job can cost at most: the design job's reservation
     #: (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one repair). ``None`` is unknown,
     #: never zero: with a threshold set, a new job is then refused (:class:`CostCeilingUnknown`).
     reservation_usd: float | None = None
+    #: With the API's ``ai_analysis_external_context`` on, the store a questionnaire job reads the
+    #: Study's newest Design Research findings through (artifact-questionnaire QST13); ``None``
+    #: off, and the job's context is what it always was.
+    external_store: ArtifactStore | None = None
+    #: The layer as read once for this request: a probe and the start it precedes read one bundle.
+    _external_read: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     def spend_gate(self, confirm_cost_usd: float | None) -> tuple[float, float] | None:
         """The confirmation threshold's one rule (``domain/money.py``) for one new job.
@@ -1735,7 +1879,6 @@ class ResearchAgentJobs:
         design_revision_id: str,
         action: ResearchAction,
         instruction: str = "",
-        prompt_version: int | None = None,
         rebuild_of: str | None = None,
         confirm_cost_usd: float | None = None,
         _probe: bool = False,
@@ -1752,24 +1895,23 @@ class ResearchAgentJobs:
         which may hold edits the design does not. ``rebuild_of`` names the job this one rebuilds
         (:meth:`rebuild`), which it supersedes.
 
-        ``prompt_version`` names a stored version to run instead of the active one --
-        how a draft is tested before it is put live (ADR 0020). Only an organization
-        administrator may ask for it, and only on a client the deployment lists as
-        fictional: a draft is not what the organization runs, and an unreviewed prompt
-        is not tried on real client work.
+        A job runs the organization's active prompt, never a draft: a draft is compared and
+        activated, and its effect seen on the next real job (D-15, system-prompts-settings 14).
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         if len(instruction.encode()) > 8000:
             raise ValueError("agent instruction exceeds 8 KB")
-        prompt = self._pin(action, prompt_version)
+        prompt = self._pin(action)
         designs = StudyDesignRepository(self.session, self.scope)
         revision = designs.get(design_revision_id)
         snapshot = context_snapshot(
             designs.content(design_revision_id),
             ClientKnowledgeRepository(self.session).for_study(self.scope),
         )
+        if self.external_store is not None and action in EXTERNAL_ACTIONS:
+            snapshot = self._with_external(snapshot, self.external_store)
         import hashlib
 
         digest = hashlib.sha256(
@@ -1852,26 +1994,36 @@ class ResearchAgentJobs:
             )
         return started
 
-    def _pin(self, action: ResearchAction, prompt_version: int | None) -> PromptPin:
-        """The prompt this job will run: the organization's active one, or a draft to test."""
-        resolver = PromptResolver(self.session, self.scope.organization_id)
-        prompt_id = f"aia.research.{action.value}"
-        if prompt_version is None:
-            return resolver.pin_for(prompt_id)
-        if self.scope.organization_role not in (OrganizationRole.OWNER, OrganizationRole.ADMIN):
-            raise DesignRejected(
-                "only an organization administrator may test a prompt version",
-                reason="prompt_test_requires_administrator",
-            )
-        if self.scope.client_id not in self.draft_client_ids:
-            raise DesignRejected(
-                "a draft prompt can be tried only on a client listed as fictional",
-                reason="prompt_test_requires_fictional_client",
-            )
-        try:
-            return resolver.pin_for_version(prompt_id, prompt_version)
-        except PromptRefused as exc:
-            raise DesignRejected(str(exc), reason=exc.reason) from exc
+    def _with_external(self, snapshot: dict[str, Any], store: ArtifactStore) -> dict[str, Any]:
+        """The snapshot with the Study's newest finished Design Research run's verified public
+        findings, frozen into the job (and its fingerprint) at enqueue: the same pinned,
+        seal-verified reader the analysis and the Lead read through. No run adds nothing; a
+        bundle that does not read is said in the layer by its reason, as the Lead's is, and the
+        job is asked on the design and knowledge alone, never stopped."""
+        from .analysis_results import SourcesRefused, _external_context  # it imports this module
+
+        if "pin" not in self._external_read:
+            pin = ResearchRuns(self.session, self.scope).design_research_pin()
+            lines: tuple[str, ...] = ()
+            unavailable: str | None = None
+            if pin is not None:
+                try:
+                    lines = tuple(_external_context(self.session, self.scope, store, pin))
+                except SourcesRefused as exc:
+                    unavailable = exc.reason
+            self._external_read.update(pin=pin, lines=lines, unavailable=unavailable)
+        read = self._external_read
+        if read["pin"] is None:
+            return snapshot
+        return with_external_context(
+            snapshot, read["pin"], read["lines"], unavailable=read["unavailable"]
+        )
+
+    def _pin(self, action: ResearchAction) -> PromptPin:
+        """The prompt this job will run: the organization's active one."""
+        return PromptResolver(self.session, self.scope.organization_id).pin_for(
+            f"aia.research.{action.value}"
+        )
 
     def get(self, run_id: str) -> dict[str, Any]:
         try:
@@ -1926,6 +2078,21 @@ class ResearchAgentJobs:
             )
             for r in runs
         }
+
+    def _rebuilt(self, run_id: str) -> bool:
+        """Whether a job of this Study rebuilds ``run_id``, looked up for this run alone: the
+        listing's projection (:meth:`proposal_states`) sees only the Study's newest jobs."""
+        project_id = StudyDesignRepository(self.session, self.scope).project_id()
+        if project_id is None:
+            return False
+        rebuilds = WorkflowRepository(self.session, self.scope).list_runs(
+            project_id=project_id,
+            workflow_type=RESEARCH_AGENT,
+            # A rebuild's key carries the job it rebuilds (start); its metadata says so exactly.
+            key_contains=f":rebuild-of:{run_id}",
+            limit=200,
+        )
+        return any(r["metadata"].get("rebuild_of") == run_id for r in rebuilds)
 
     def dismiss(self, run_id: str) -> bool:
         """A person sets a proposal aside: a ``dismiss`` row in the approval ledger, nothing else.
@@ -2047,15 +2214,33 @@ class ResearchAgentJobs:
         transaction (:func:`~.proposal_accept.accept_into_working_copy`): the stale rule, the
         merge into the working copy at ``expected_workspace_revision``, the working revision, the
         Design Revision naming it, and the approval-ledger row naming both. Refused as
-        :class:`~.proposal_accept.StaleProposal` when the head moved, the baseline is unknown or
-        an item it changes was edited since.
+        :class:`~.proposal_accept.StaleProposal` when ``expected_revision_id`` is not the job's
+        own design, the baseline is unknown or a field it changes was edited since (D-06); a newer
+        Design Revision alone stales nothing. An accepted proposal is refused
+        (``proposal_already_accepted``), and so is one a rebuild replaces (``proposal_superseded``).
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
+        # The Study row lock the accept writes under: the decision read here is the one it
+        # writes beside, never one a concurrent accept is about to change.
+        StudyDesignRepository(self.session, self.scope).lock()
         run = self.get(run_id)
         if expected_revision_id != run["metadata"]["design_revision_id"]:
             raise StaleProposal("proposal baseline does not match", why="design_moved")
+        # A newer Design Revision no longer stales a proposal (WCE5), so what it was decided
+        # stands on its own: an accepted proposal is in the design, a rebuilt one is replaced.
+        state = self.proposal_states([run])[run_id]
+        if state is ProposalState.ACCEPTED:
+            raise DesignRejected(
+                "an accepted proposal is in the design", reason="proposal_already_accepted"
+            )
+        if state is ProposalState.SUPERSEDED or (
+            state is ProposalState.PENDING and self._rebuilt(run_id)
+        ):
+            raise DesignRejected(
+                "a rebuild of this proposal replaces it", reason="proposal_superseded"
+            )
         action = ResearchAction(run["metadata"]["action"])
         if action not in DESIGN_ACTIONS:
             raise DesignRejected("an advice answer is not a design mutation", reason="advice_only")
@@ -2077,6 +2262,7 @@ class ResearchAgentJobs:
             expected_workspace_revision=expected_workspace_revision,
             source_stage=_ACCEPT_STAGES[action],
             reason="ai_proposal_accepted",
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.PROPOSAL_ACCEPT, run_id),
             touched=[ItemKey.parse(str(k)) for k in recorded]
             if isinstance(recorded, list)
             else None,

@@ -272,3 +272,9 @@ have more readable labels in the formula selector menu"). The code had drifted f
   WCAG 2.5.8's 24 px. The rest of Settings keeps 44 px.
 Measured on the workbench (next dev): a step opens in 48-90 ms at 1440/1710, no overflow;
 `settings_journey.mjs` and `methodology_journey.mjs` PASS; web 1484 tests pass.
+
+## Disposition (MP3, 2026-10-26)
+
+**Kept open as it is** (Nigel, 26 Oct: "Keep it open as it is", the product owner in the Decision
+Review, 2026-10-26, relayed by the PM coordinator; against the proposed CLOSE (verify)). Its open
+chunks stay as written; it is outside the development plan and gates nothing.

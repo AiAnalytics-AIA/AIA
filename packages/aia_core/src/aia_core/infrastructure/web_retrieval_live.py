@@ -20,6 +20,7 @@ Pages are untrusted evidence candidates, never instructions.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import socket
@@ -58,6 +59,9 @@ from .web_retrieval import (
     SearchResponse,
     ToolCallFailed,
     extract_page,
+    fetch_out_of_time,
+    fetch_time_left,
+    note_request_sent,
 )
 
 __all__ = [
@@ -116,21 +120,78 @@ class UrllibWire:
     ``assert_hostname`` make TLS verify the URL's host. A pool keeps no cookies,
     reads no proxy from the environment and, with ``retries=False`` and
     ``redirect=False``, neither retries nor follows. A compressed answer is refused.
+
+    The read timeout bounds one read, not the answer: a server that sends a byte inside every
+    timeout would hold the fetch, and its host's pacing turn, until ``max_bytes``. So the whole
+    request has a deadline (security-audit-2026-10 S13), past which the fetch fails ``timeout``:
+    ``deadline_s``, or what is left of the fetch in progress (``fetch_time_left``), whichever
+    is less, so a redirect or a robots.txt read never starts a fresh one. A request with no
+    time left is not sent, and the connect is bounded by it too. Two things keep the
+    deadline:
+
+    * a watchdog shuts the connection's socket at the deadline. The TLS handshake, the status
+      and headers, and a chunked body's size lines and trailers are all read inside calls
+      that never return to this loop; only shutting the socket under them stops a trickle
+      there. The socket is watched from the moment it exists (``_new_conn``), through a
+      ``dup()``, because wrapping it for TLS detaches the original object;
+    * the body loop checks the clock between reads, and reads with ``read1``, one socket read
+      at a time (``read`` would wait to fill its amount).
+
+    A timeout says ``RESPONDED`` once a status line has come, ``NOT_SENT`` when no connection
+    was made, ``UNKNOWN`` between.
     """
 
-    def __init__(self, *, connect_timeout_s: float = 8.0, read_timeout_s: float = 20.0) -> None:
+    def __init__(
+        self,
+        *,
+        connect_timeout_s: float = 8.0,
+        read_timeout_s: float = 20.0,
+        deadline_s: float = 120.0,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         import urllib3
 
+        if deadline_s <= 0:
+            raise ValueError("deadline_s must be positive")
         self._urllib3 = urllib3
         self._connect_timeout_s = connect_timeout_s
         self._read_timeout_s = read_timeout_s
+        self._deadline_s = deadline_s
+        self._clock = clock
 
     def get(
+        self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
+    ) -> FetchedResponse:
+        try:
+            response = self._request(
+                address=address, host=host, target=target, headers=headers, max_bytes=max_bytes
+            )
+        except ToolCallFailed as exc:
+            if exc.delivery is not Delivery.NOT_SENT:
+                note_request_sent(answered=exc.delivery is Delivery.RESPONDED)
+            raise
+        note_request_sent(answered=True)
+        return response
+
+    def _request(
         self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
     ) -> FetchedResponse:
         if max_bytes <= 0:
             raise ValueError("max_bytes must be positive")
         u = self._urllib3
+        budget = self._deadline_s
+        left = fetch_time_left()
+        if left is not None:
+            budget = min(budget, left)
+        if budget <= 0:
+            raise ToolCallFailed(
+                "the fetch's deadline passed before this request",
+                reason="timeout",
+                delivery=Delivery.NOT_SENT,
+            )
+        expired = threading.Event()
+        sockets: list[Any] = []
+        guard = threading.Lock()
         pool = u.HTTPSConnectionPool(
             address,
             port=443,
@@ -141,13 +202,45 @@ class UrllibWire:
             maxsize=1,
             block=True,
         )
+        base = getattr(pool, "ConnectionCls", None)
+        if base is not None:
+
+            class _Watched(base):  # type: ignore[misc, valid-type]
+                """The pool's connection, its raw socket watched from the moment it exists."""
+
+                def _new_conn(self) -> Any:
+                    sock = super()._new_conn()
+                    # A dup: TLS wrapping detaches ``sock``, and shutting a detached object
+                    # fails; a shutdown through the dup acts on the connection itself.
+                    watched = sock.dup()
+                    with guard:
+                        sockets.append(watched)
+                        if expired.is_set():
+                            _shut(watched)
+                    return sock
+
+            pool.ConnectionCls = _Watched
+
+        def expire() -> None:
+            with guard:
+                expired.set()
+                for sock in sockets:
+                    _shut(sock)
+
+        watchdog = threading.Timer(budget, expire)
+        watchdog.daemon = True
         response: Any = None
+        started = self._clock()
+        watchdog.start()
         try:
             response = pool.request(
                 "GET",
                 target,
                 headers=dict(headers),
-                timeout=u.Timeout(connect=self._connect_timeout_s, read=self._read_timeout_s),
+                # The connect is outside the watchdog (no socket exists yet): bound it too.
+                timeout=u.Timeout(
+                    connect=min(self._connect_timeout_s, budget), read=self._read_timeout_s
+                ),
                 retries=False,
                 redirect=False,
                 preload_content=False,
@@ -161,12 +254,19 @@ class UrllibWire:
                     reason="content_encoding",
                     delivery=Delivery.RESPONDED,
                 )
+            # read1 where the response has it (urllib3 2): one socket read, whatever it brings.
+            read = getattr(response, "read1", None) or response.read
             body = bytearray()
             while len(body) <= max_bytes:
-                chunk = response.read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
+                if self._clock() - started > budget:
+                    raise _deadline_passed(answered=True, sent=True)
+                chunk = read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
                 if not chunk:
                     break
                 body.extend(chunk)
+            if expired.is_set():
+                # A socket shut under a read can end it as if the server had: never a page.
+                raise _deadline_passed(answered=True, sent=True)
             return FetchedResponse(
                 status=int(response.status),
                 headers=answered,
@@ -176,27 +276,67 @@ class UrllibWire:
             )
         except ToolCallFailed:
             raise
-        except (u.exceptions.ConnectTimeoutError, u.exceptions.NewConnectionError) as exc:
-            raise ToolCallFailed(
-                "the connection was not established",
-                reason="connect_failed",
-                delivery=Delivery.NOT_SENT,
-            ) from exc
-        except u.exceptions.SSLError as exc:
-            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
-            raise ToolCallFailed(
-                "the TLS session failed", reason="tls_failed", delivery=delivery
-            ) from exc
-        except u.exceptions.HTTPError as exc:
-            raise ToolCallFailed(
-                "the request failed after it was sent",
-                reason="transport_failed",
-                delivery=Delivery.UNKNOWN,
-            ) from exc
+        except Exception as exc:
+            if expired.is_set():
+                # Past the deadline, whatever broke the request broke because its socket was
+                # shut under it (or after it): the deadline is the reason.
+                raise _deadline_passed(answered=response is not None, sent=bool(sockets)) from exc
+            failure = _wire_failure(u, exc)
+            if failure is exc:
+                raise
+            raise failure from exc
         finally:
+            watchdog.cancel()
             if response is not None:
                 response.release_conn()
             pool.close()
+            with guard:
+                for watched in sockets:
+                    with contextlib.suppress(OSError):
+                        watched.close()
+
+
+def _shut(sock: Any) -> None:
+    """Shut a socket under whatever is reading it; it may be closed already."""
+    with contextlib.suppress(OSError):
+        sock.shutdown(socket.SHUT_RDWR)
+
+
+def _deadline_passed(*, answered: bool, sent: bool) -> ToolCallFailed:
+    """The deadline as the fetch's failure: ``RESPONDED`` once a status line came,
+    ``NOT_SENT`` when no connection was ever made, else ``UNKNOWN`` (the request may have
+    reached the server; nothing came back)."""
+    if answered:
+        delivery = Delivery.RESPONDED
+    elif not sent:
+        delivery = Delivery.NOT_SENT
+    else:
+        delivery = Delivery.UNKNOWN
+    return ToolCallFailed(
+        "the answer did not arrive within the fetch's deadline",
+        reason="timeout",
+        delivery=delivery,
+    )
+
+
+def _wire_failure(u: Any, exc: Exception) -> Exception:
+    """urllib3's failure as the wire says it; anything else as it was."""
+    if isinstance(exc, (u.exceptions.ConnectTimeoutError, u.exceptions.NewConnectionError)):
+        return ToolCallFailed(
+            "the connection was not established",
+            reason="connect_failed",
+            delivery=Delivery.NOT_SENT,
+        )
+    if isinstance(exc, u.exceptions.SSLError):
+        delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
+        return ToolCallFailed("the TLS session failed", reason="tls_failed", delivery=delivery)
+    if isinstance(exc, u.exceptions.HTTPError):
+        return ToolCallFailed(
+            "the request failed after it was sent",
+            reason="transport_failed",
+            delivery=Delivery.UNKNOWN,
+        )
+    return exc
 
 
 class HostPinnedHttpsTransport:
@@ -470,6 +610,10 @@ class PublicHttpsTransport:
                     hop_host, hop_address = next_host, addresses[0]
             return RobotsPolicy.unavailable("too_many_redirects")
         except (ToolCallFailed, FetchRefused) as exc:
+            if isinstance(exc, ToolCallFailed) and fetch_out_of_time():
+                # The fetch's own deadline ran out, not the host: nothing is learned about
+                # it, and nothing is held (a held "unavailable" would refuse it for a day).
+                raise
             # Unreachable (RFC 9309 2.3.1.4): nothing on the host is requested.
             return RobotsPolicy.unavailable(exc.reason)
 

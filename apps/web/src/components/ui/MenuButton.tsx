@@ -31,10 +31,16 @@ export function menuSide(asked: "start" | "end", trigger: { left: number; right:
 }
 
 export function MenuButton<K extends string>({
-  label, items, onSelect, icon, disabled = false, small = true, empty, hideLabel = false, align = "start", className = "",
+  label, name, items, onSelect, icon, disabled = false, small = true, empty, hideLabel = false, align = "start", className = "",
 }: {
   /** What the menu does ("Přesunout do složky"): the button's text and the menu's name. */
   label: string;
+  /**
+   * The button's and the menu's accessible name when the visible `label` alone would not say what
+   * the menu does: a tag showing a value ("Jedna odpověď") named for its choice ("Jedna odpověď, typ
+   * otázky"). Start it with the label, so the visible text stays in the name (WCAG 2.5.3).
+   */
+  name?: string;
   items: readonly MenuItem<K>[];
   /**
    * Does the chosen action. Awaited by nothing: the menu has closed by then, so the caller owns
@@ -57,6 +63,7 @@ export function MenuButton<K extends string>({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const accessible = name ?? label;
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -107,8 +114,8 @@ export function MenuButton<K extends string>({
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={hideLabel ? label : undefined}
-        title={hideLabel ? label : undefined}
+        aria-label={hideLabel ? accessible : name}
+        title={hideLabel ? accessible : undefined}
         onClick={() => (open ? setOpen(false) : openAt("first"))}
         onKeyDown={onTriggerKey}
         className={
@@ -128,7 +135,7 @@ export function MenuButton<K extends string>({
         )}
       </button>
       {open ? (
-        <div role="menu" aria-label={label} className={`${side === "end" ? POPOVER_END : POPOVER} flex max-h-72 min-w-48 max-w-[calc(100vw-1rem)] flex-col overflow-y-auto`}>
+        <div role="menu" aria-label={accessible} className={`${side === "end" ? POPOVER_END : POPOVER} flex max-h-72 min-w-48 max-w-[calc(100vw-1rem)] flex-col overflow-y-auto`}>
           {items.length === 0 && empty ? <p className="px-2 py-1.5 text-xs text-ink-faint">{empty}</p> : null}
           {items.map((item, i) => (
             <button

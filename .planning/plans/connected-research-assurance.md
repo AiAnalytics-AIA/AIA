@@ -109,3 +109,9 @@ combination already passed all 342 executor and 12 knowledge tests on PostgreSQL
 The complete PostgreSQL pre-commit sequence and GitHub CI are being repeated
 on the refreshed publication candidate. The knowledge fix is stacked on this
 PR and must follow it in the merge order.
+
+## Disposition (MP3, 2026-10-26)
+
+**Kept open as it is** (Nigel, 26 Oct: "Keep it open as it is", the product owner in the Decision
+Review, 2026-10-26, relayed by the PM coordinator; against the proposed CLOSE (verify)). Its open
+chunk stays as written; it is outside the development plan and gates nothing.

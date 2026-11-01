@@ -42,7 +42,6 @@ from aia_core.domain.evidence import (
     FieldPolicyBook,
     FieldUse,
     GateDecision,
-    JointDegradation,
     NumericClaim,
     ProductionGrade,
     SupportAssessment,
@@ -57,9 +56,9 @@ from aia_core.domain.evidence import (
     block,
     evaluate_claim,
     evaluate_predictive_validity_claim,
-    load_joint_status,
     system_fingerprint,
 )
+from aia_core.domain.population import JointState, evaluate_joint_certificate
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -152,14 +151,14 @@ def test_certificate_restrictions_are_the_ledgers(
         matched_blocks=m03["matched_blocks"],
         **restrictions,
     )
-    status = load_joint_status(certificate, measured_panel_sha256=sha)
+    status = evaluate_joint_certificate(certificate, panel_sha256=sha)
     assert status.certified
     for key, expected in restrictions.items():
         assert getattr(status, key) == expected, key
     assert sorted(status.matched_blocks) == sorted(m03["matched_blocks"])
 
-    moved = load_joint_status(certificate, measured_panel_sha256=hashlib.sha256(b"x").hexdigest())
-    assert moved.degradation is JointDegradation.PANEL_HASH_MISMATCH
+    moved = evaluate_joint_certificate(certificate, panel_sha256=hashlib.sha256(b"x").hexdigest())
+    assert moved.state is JointState.NOT_THIS_PANEL
 
 
 @pytest.mark.parity
@@ -174,8 +173,8 @@ def test_the_real_certificate_is_honoured_against_the_real_panel(legacy_root: Pa
     assert hashlib.sha256(raw).hexdigest() == manifest["files"]["CORE_JOINT_STATUS.json"]
     declared = json.loads(raw)
     panel = next(legacy_root.rglob(str(declared["production_panel"])))
-    status = load_joint_status(
-        raw, measured_panel_sha256=hashlib.sha256(panel.read_bytes()).hexdigest()
+    status = evaluate_joint_certificate(
+        raw, panel_sha256=hashlib.sha256(panel.read_bytes()).hexdigest()
     )
     assert status.certified, status.detail
     assert not status.cross_block_same_person_joint
@@ -265,12 +264,10 @@ def _certificate(
 
     def run(w: Any) -> GateDecision:
         data = None if raw is _MISSING else raw if isinstance(raw, bytes) else w.cert(**overrides)
-        status = load_joint_status(data, measured_panel_sha256=measured)
+        status = evaluate_joint_certificate(data, panel_sha256=measured)
         if status.certified:
             return GateDecision()
-        return block(
-            ViolationCode.JOINT_CERTIFICATE_DEGRADED, "certificate", str(status.degradation)
-        )
+        return block(ViolationCode.JOINT_CERTIFICATE_DEGRADED, "certificate", status.state.value)
 
     return run
 
@@ -304,10 +301,14 @@ GATE_CASES: tuple[GateCase, ...] = (
         _decide(_claim("value_security")), False,
         frozenset({ViolationCode.NEVER_DIRECT_SCHWARTZ, ViolationCode.NOT_MEASURED_EVIDENCE}),
     ),
+    # The reference refuses these two; production also refuses the measured basis itself, since
+    # a calibrated or derived value is not client-measurable under the population contract (MVP-29).
     GateCase(
-        "person-value-modeled-individual", "M02", "EXACT",
+        "person-value-modeled-individual", "M02", "SEMANTIC",
         _decide(_claim("has_savings", level=ClaimLevel.INDIVIDUAL)), False,
-        frozenset({ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD}),
+        frozenset(
+            {ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD, ViolationCode.NOT_MEASURED_EVIDENCE}
+        ),
     ),
     GateCase(
         "audit-only", "M02", "EXACT",
@@ -315,9 +316,9 @@ GATE_CASES: tuple[GateCase, ...] = (
         frozenset({ViolationCode.FIELD_AUDIT_ONLY}),
     ),
     GateCase(
-        "mandated-weight", "M02, R3", "EXACT",
+        "mandated-weight", "M02, R3", "SEMANTIC",
         _decide(_claim("is_procurement_buyer_current", weight_scheme="vaha_kalibrovana")), False,
-        frozenset({ViolationCode.WEIGHT_SCHEME_MISMATCH}),
+        frozenset({ViolationCode.WEIGHT_SCHEME_MISMATCH, ViolationCode.NOT_MEASURED_EVIDENCE}),
     ),
     GateCase(
         "undeclared-runtime-column", "field-policy.json runtime_columns_without_dictionary_entry",
@@ -474,9 +475,9 @@ def test_claim_gate_never_permits_what_the_reference_policy_forbids(
     """
     m03 = ledger["M03"]
     sha = m03["constants"]["panel_sha256"].split()[0]
-    status = load_joint_status(
+    status = evaluate_joint_certificate(
         certificate_bytes(panel_sha256=sha, matched_blocks=m03["matched_blocks"]),
-        measured_panel_sha256=sha,
+        panel_sha256=sha,
     )
     narrowed: set[str] = set()
     for policy in reference_book.fields.values():

@@ -4,7 +4,9 @@
 // in its `source` field), stubs the panel state and page, feeds them the stored hudba map of
 // `object-map-signed-off.json` in frame units, and records what they return and paint on a recording
 // context; `nodeScale` is the methodology's sociomap_3d.node_scale, which the panel reads from its
-// backend. The port must match to 1e-9, colour strings exactly.
+// backend. The slab (the terrain's sides) was recorded again the same way from the panel's `drawSlab66`
+// once it drew them (`source.slabLines`), with each scene's grid and camera. The port must match to
+// 1e-9, colour strings exactly.
 import { describe, expect, it } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -32,8 +34,10 @@ import {
   drawObjectMap,
   nodeScale,
   nodeTones,
+  floorWords,
   normalizer,
   panelNodes,
+  relativeFloor,
   projection,
   quadClip,
   relationGeometry,
@@ -123,8 +127,27 @@ describe("colour and normalisation", () => {
 
   it("colours the nodes by the stored relative heights, which are the panel's Relativni of the stored means", () => {
     const relative = normalizer(nodes.map((n) => n.value!), "range");
-    nodeTones(nodes, "range").forEach((t, k) => expect(Math.abs(t - relative.t(nodes[k].value!))).toBeLessThanOrEqual(1e-12));
-    expect(nodeTones(nodes, "absolute")).toEqual(nodes.map((n) => n.value));
+    nodeTones(nodes, "range", relativeFloor(map)).forEach((t, k) => expect(Math.abs(t - relative.t(nodes[k].value!))).toBeLessThanOrEqual(1e-12));
+    expect(nodeTones(nodes, "absolute", relativeFloor(map))).toEqual(nodes.map((n) => n.value));
+  });
+
+  it("takes the relative floor from the map's spec, and colours a node with no relative height at it (MQ-08)", () => {
+    expect(relativeFloor(map)).toBe(0.15);
+    const zero = { ...map, spec: { ...map.spec, terrain: { ...map.spec.terrain!, relative_height_floor: 0 } } };
+    expect(relativeFloor(zero)).toBe(0);
+    const bare = nodes.map((n, k) => (k === 0 ? { ...n, relative: null } : n));
+    expect(nodeTones(bare, "range", relativeFloor(zero))[0]).toBe(0);
+    expect(nodeTones(bare, "range", relativeFloor(map))[0]).toBe(0.15);
+    // A map that declares none: unknown, never a guessed 0.15 or 0.
+    const none = { ...map, spec: { ...map.spec, terrain: null } };
+    expect(relativeFloor(none)).toBeNull();
+  });
+
+  it("words the floor by its whole per cent: 0 % reads 0 to 1, none declared says neither", () => {
+    expect(floorWords(0.15)).toEqual({ kind: "floor", percent: 15 });
+    expect(floorWords(0)).toEqual({ kind: "full" });
+    expect(floorWords(0.004)).toEqual({ kind: "full" });
+    expect(floorWords(null)).toEqual({ kind: "unknown" });
   });
 });
 
@@ -205,7 +228,7 @@ describe("frame and terrain", () => {
 });
 
 describe("relations, nodes, labels", () => {
-  it("draws the panel's pairs: Top vztahy, the selected object's, all", () => {
+  it("draws the panel's pairs: the strongest, the selected object's, all", () => {
     for (const [key, pairs] of Object.entries(golden.pairs)) {
       const [mode, selected] = key.split(":");
       close(relationPairs(map, mode as RelationMode, Number(selected)).map((p) => [p.i, p.j, p.r]), pairs);
@@ -230,7 +253,7 @@ describe("relations, nodes, labels", () => {
 
 /** A context that records the fills, strokes and texts painted; text widths as the golden run's. */
 function recorder() {
-  type Op = { op: string; path: unknown[][]; style?: string; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
+  type Op = { op: string; path: unknown[][]; style?: string | RecordedGradient; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
   const ops: Op[] = [];
   let path: unknown[][] = [];
   let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif", dash: [] as number[], textAlign: "start", textBaseline: "alphabetic", tx: 0, ty: 0, rot: 0 };
@@ -267,6 +290,10 @@ function recorder() {
   return { ctx: ctx as unknown as CanvasRenderingContext2D, ops };
 }
 
+type RecordedGradient = { kind: "gradient"; x0: number; y0: number; x1: number; y1: number; stops: [number, string][] };
+const isGradient = (style: unknown): style is RecordedGradient => typeof style === "object" && style !== null && (style as RecordedGradient).kind === "gradient";
+const gradientOf = ({ x0, y0, x1, y1, stops }: RecordedGradient) => ({ x0, y0, x1, y1, stops });
+
 /** The same summary of a frame the golden run took of the panel's `draw66`. */
 function summarise(ops: ReturnType<typeof recorder>["ops"]) {
   const tri = ops.filter((o) => o.op === "fill" && o.alpha === 0.94);
@@ -274,7 +301,7 @@ function summarise(ops: ReturnType<typeof recorder>["ops"]) {
   const { op, x, y, w, h, fill } = ops[0];
   return {
     background: { op, x, y, w, h, fill },
-    slab: ops.filter((o) => o.op === "fill" && (o.style === "#06151a" || o.style === "#071c22")).map((o) => ({ style: o.style, path: o.path })),
+    slab: ops.filter((o) => o.op === "fill" && (o.style === "#0e181d" || isGradient(o.style))).map((o) => ({ style: isGradient(o.style) ? gradientOf(o.style) : o.style, path: o.path })),
     slabStrokes: ops.filter((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.05)").map((o) => o.width),
     triangles: { count: tri.length, samples: pick.map((k) => ({ k, style: tri[k].style, path: tri[k].path })), hairline: ops.find((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.025)")?.width ?? null },
     contours: ops.filter((o) => o.op === "stroke" && o.style === "rgba(5,10,12,.30)").map((o) => ({ segments: o.path.filter((s) => s[0] === "M").length, first: o.path.slice(0, 2), last: o.path.slice(-2), width: o.width })),
@@ -297,7 +324,7 @@ describe("a whole frame", () => {
       const pairs = relationPairs(map, scene.relMode as RelationMode, scene.selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) }));
       const { ctx, ops } = recorder();
       const grid = norm === "absolute" ? absoluteGrid(map)! : storedGrid(map)!;
-      const result = drawObjectMap(ctx, { width: W, height: H, camera, grid, nodes, tones: nodeTones(nodes, norm), pairs, selected: scene.selected, hovered: scene.hovered, nodeScale: nodeScale(map.object_ids.length) });
+      const result = drawObjectMap(ctx, { width: W, height: H, camera, grid, nodes, tones: nodeTones(nodes, norm, relativeFloor(map)), pairs, selected: scene.selected, hovered: scene.hovered, nodeScale: nodeScale(map.object_ids.length) });
       close(summarise(ops), scene.summary);
       // Every hit in the panel's order: the drawn relation lines at their midpoints, then the objects.
       close(result.hits.map((h) => [h.kind, h.index, h.j ?? null, h.x, h.y, h.r]), scene.hits);
@@ -375,7 +402,7 @@ describe("what the map says about itself", () => {
       const { ctx, ops } = recorder();
       const grid = norm === "absolute" ? absoluteGrid(m)! : storedGrid(m)!;
       const result = drawObjectMap(ctx, {
-        width: W, height: H, camera, grid, nodes: ns, tones: nodeTones(ns, norm), pairs, selected: scene.selected, hovered: scene.hovered,
+        width: W, height: H, camera, grid, nodes: ns, tones: nodeTones(ns, norm, relativeFloor(m)), pairs, selected: scene.selected, hovered: scene.hovered,
         nodeScale: nodeScale(m.object_ids.length), statements: mapStatements(m, TEXTS),
       });
       close(summarise(ops), scene.summary);
@@ -459,7 +486,7 @@ describe("the respondent map", () => {
       const { W, H, ...camera } = scene.camera as PanelCamera & { W: number; H: number };
       const { ctx, ops } = recorder();
       const result = drawObjectMap(ctx, {
-        width: W, height: H, camera, grid: densityGrid(m)!, nodes: ns, tones: nodeTones(ns, "range"), pairs: [], selected: -1, hovered: scene.hovered,
+        width: W, height: H, camera, grid: densityGrid(m)!, nodes: ns, tones: nodeTones(ns, "range", relativeFloor(m)), pairs: [], selected: -1, hovered: scene.hovered,
         nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)),
         statements: { ...mapStatements(m, TEXTS), respondentNote: noteOf(m) },
         respondents: { dots, selected: scene.person ?? -1 },
@@ -514,7 +541,7 @@ describe("taste segments on the respondent map", () => {
       const b = sources[name], m = b.maps!["aia-sociomap-5"].artifact, f = storedFrame(m)!, ns = panelNodes(b, m, f);
       const { ctx, ops } = recorder();
       drawObjectMap(ctx, {
-        width: 900, height: 700, camera: INITIAL_CAMERA, grid: densityGrid(m)!, nodes: ns, tones: nodeTones(ns, "range"), pairs: [], selected: -1, hovered: -1,
+        width: 900, height: 700, camera: INITIAL_CAMERA, grid: densityGrid(m)!, nodes: ns, tones: nodeTones(ns, "range", relativeFloor(m)), pairs: [], selected: -1, hovered: -1,
         nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)), respondents: { dots: panelDots(m, f), selected: -1 },
       });
       expect(summarise(ops).discs.map((d) => `${d.style}@${d.alpha}`)).toEqual(scene.dots);

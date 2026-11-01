@@ -19,9 +19,9 @@ things the evidence gate needs -- nothing more, and nothing it has to guess:
   :func:`aia_core.domain.evidence.instrument_policy_book` from these items and the
   dataset's origin -- internal only, aggregate only, never measured.
 * **the joint status.** A native run has no population panel, so it has no
-  ``CORE_JOINT_STATUS`` certificate: :func:`load_joint_status` is asked with none and
-  answers ``MISSING``, which permits nothing client-facing. That is the honest status,
-  not a stand-in for one.
+  ``CORE_JOINT_STATUS`` certificate: its status is the ``MISSING`` fallback, which permits
+  nothing client-facing. That is the honest status, not a stand-in for one. A modelled run is
+  judged under the certificate its dataset recorded, by the population's one evaluator.
 
 :func:`research_questions_of` reads the questions the analysis must answer from the
 Design Revision the way the unit does (``analysis_agent._research_questions``), and
@@ -66,11 +66,11 @@ from ..evidence import (
     assess_support,
     instrument_field,
     instrument_policy_book,
-    load_joint_status,
 )
 from ..evidence.report_lift import ModelledReportLift
 from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
+from ..population.companions import evaluate_joint_certificate
 from ..research_aggregate import (
     AGGREGATE_VERSION,
     AIA_AGGREGATE_V1,
@@ -82,14 +82,17 @@ from .modules import AnalysisModuleSpec
 
 __all__ = [
     "INTERVAL_LEVEL",
+    "MAX_HYPOTHESES",
     "MAX_RESEARCH_QUESTIONS",
     "NATIVE_EVIDENCE_VERSION",
     "NativeEvidence",
     "NativeEvidenceRefused",
+    "hypotheses_of",
     "native_evidence",
     "native_items",
     "native_preflight",
     "reassess_support",
+    "ref_metric",
     "research_questions_of",
 ]
 
@@ -98,6 +101,8 @@ NATIVE_EVIDENCE_VERSION: Final = "aia-native-evidence-1"
 
 #: ``analysis_agent._research_questions``: at most eight.
 MAX_RESEARCH_QUESTIONS: Final = 8
+#: The most stated hypotheses the hypotheses module is given, as many as research questions.
+MAX_HYPOTHESES: Final = 8
 
 #: The aggregate's intervals are 95 % bootstrap intervals (``dotaznik.py``'s note).
 INTERVAL_LEVEL: Final = 0.95
@@ -155,6 +160,17 @@ def research_questions_of(design: Mapping[str, Any]) -> tuple[str, ...]:
     if not questions and isinstance(goal, str) and goal.strip():
         questions = [goal.strip()]
     return tuple(dict.fromkeys(questions))[:MAX_RESEARCH_QUESTIONS]
+
+
+def hypotheses_of(design: Mapping[str, Any]) -> tuple[str, ...]:
+    """The hypotheses the design states (``research_plan.hypotheses``), as the hypotheses module
+    is given them: a list of strings only, an exact repeat dropped, at most :data:`MAX_HYPOTHESES`.
+
+    The module evaluates only hypotheses it is supplied; before this it was supplied none, so it
+    answered "none supplied" whatever the design stated (Nigel, Q72, 2026-10-22)."""
+    plan = design.get("research_plan")
+    plan = plan if isinstance(plan, Mapping) else {}
+    return tuple(dict.fromkeys(_texts(plan.get("hypotheses"))))[:MAX_HYPOTHESES]
 
 
 # --------------------------------------------------------------------------- #
@@ -357,6 +373,31 @@ class _Rows:
         )
 
 
+#: The suffix :func:`_item_rows` gives each metric's ref, after the question's id; a share's is
+#: ``pct.<i>``, its option's 1-based index.
+_SUFFIX_METRIC: Final[Mapping[str, MetricKind]] = MappingProxyType(
+    {
+        "n": MetricKind.N,
+        "effective_n": MetricKind.EFFECTIVE_N,
+        "mean": MetricKind.MEAN,
+        "top2box": MetricKind.TOP2BOX_PCT,
+    }
+)
+
+
+def ref_metric(suffix: str, options: Sequence[str]) -> AnalysisMetric | None:
+    """The metric a ref's ``suffix`` names, as :func:`_item_rows` minted it, over the question's
+    ``options``: what a suppressed row, which keeps only its ref, still says. ``None`` for a
+    suffix this mapping does not mint, never a guess."""
+    if suffix.startswith("pct."):
+        index = suffix.removeprefix("pct.")
+        if index.isdigit() and 1 <= int(index) <= len(options):
+            return AnalysisMetric(MetricKind.PCT, options[int(index) - 1])
+        return None
+    kind = _SUFFIX_METRIC.get(suffix)
+    return AnalysisMetric(kind) if kind is not None else None
+
+
 def _scale(q: SpecQuestion) -> str:
     return f"{q.scale[0]}-{q.scale[1]}" if q.scale else "?"
 
@@ -516,7 +557,7 @@ def native_evidence(
     # drawn from, checked against the panel hash the loader measured (B5a); anything else has
     # none, and its evidence is uncertified: nothing client-facing.
     certificate, panel_sha256 = joint_certificate if joint_certificate is not None else (None, None)
-    joint = load_joint_status(certificate, measured_panel_sha256=panel_sha256)
+    joint = evaluate_joint_certificate(certificate, panel_sha256=panel_sha256)
     return NativeEvidence(
         table=table,
         book=book,
@@ -597,7 +638,7 @@ def native_preflight(
                 Violation(
                     ViolationCode.JOINT_CERTIFICATE_DEGRADED,
                     "preflight",
-                    f"{joint.degradation}: {joint.detail}; no client claim can be admitted",
+                    f"{joint.state.value}: {joint.detail}; no client claim can be admitted",
                 )
             )
     if not evidence.table.rows:

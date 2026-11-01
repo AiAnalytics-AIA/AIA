@@ -97,19 +97,22 @@ it("refreshes following of an uncertain running advice job without a resume muta
 
 function Confirming({ answer }: { answer: boolean }) {
   const [error, setError] = useState("");
-  const agents = useResearchAgents("STU-1", store, onUpdate, false, false, async (m) => { asked.push(m); return answer; });
+  const agents = useResearchAgents("STU-1", store, onUpdate, false, false, async (m, amounts) => { asked.push(m); askedAmounts.push(amounts); return answer; });
   return <><button onClick={() => { running = agents.run("analyze_brief", {}, "Brief").catch((e: Error) => setError(e.message)); }}>Run</button><p>{error}</p>{agents.dialog}</>;
 }
 let asked: string[] = [];
+let askedAmounts: unknown[] = [];
 const thresholdAsks = () => new ApiError(409, "cost_confirmation_required", "confirm", null, { ceiling_usd: 2, limit_usd: 1 });
 
 it("a job reaching the confirmation threshold starts only on the person's yes, confirming the server's ceiling", async () => {
-  asked = [];
+  asked = []; askedAmounts = [];
   vi.mocked(researchAgents.start).mockRejectedValueOnce(thresholdAsks()).mockResolvedValueOnce(job);
   render(<Confirming answer />); fireEvent.click(screen.getByText("Run"));
   await screen.findByRole("dialog");
   expect(asked).toHaveLength(1); expect(asked[0]).toContain("Práh potvrzení");
-  expect(vi.mocked(researchAgents.start).mock.calls.map((c) => c[5])).toEqual([undefined, 2]);
+  // The amounts travel beside the words, so the screen asks in SpendDialog, not in a sentence.
+  expect(askedAmounts[0]).toEqual({ ceiling: 2, limit: 1 });
+  expect(vi.mocked(researchAgents.start).mock.calls.map((c) => c[4])).toEqual([undefined, 2]);
 });
 
 it("a no to the threshold starts nothing and says why", async () => {
@@ -127,7 +130,7 @@ it("freezes a Study revision naming its working revision, follows the job, and w
   await screen.findByRole("dialog");
   expect(research.submitDesign).toHaveBeenCalledWith("STU-1", { goal: "Original" }, "brief", 3);
   // No confirmation is sent unless the server asks for one (LO15).
-  expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "", undefined, undefined);
+  expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "", undefined);
   expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project).toEqual({ goal: "Original" });
   fireEvent.click(screen.getByText("Použít návrh"));
   await waitFor(() => expect(reload).toHaveBeenCalledOnce());

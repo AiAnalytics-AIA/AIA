@@ -48,7 +48,7 @@ export type ItemReaders = {
 
 const str = (x: unknown): string => (typeof x === "string" ? x.trim() : "");
 /** Python's bool(), as the compiler reads a flag: empty strings, lists and objects are false. */
-const pyTrue = (x: unknown): boolean =>
+export const pyTrue = (x: unknown): boolean =>
   Array.isArray(x) ? x.length > 0 : x && typeof x === "object" ? Object.keys(x).length > 0 : Boolean(x);
 
 function questionReaders(q: Question, si: number, n: number, hasSet: boolean): ItemReaders {

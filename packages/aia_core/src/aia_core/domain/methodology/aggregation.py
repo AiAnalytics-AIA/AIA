@@ -40,9 +40,10 @@ from typing import Final
 from pydantic import BaseModel
 
 from ..report.numbers import number
-from ..research_aggregate import AIA_AGGREGATE_V1, AggregationSpec
+from ..research_aggregate import AIA_AGGREGATE_V1, MAX_DECIMALS, AggregationSpec
 from .aggregation_formulas import AGGREGATION_FORMULAS
 from .catalogue import (
+    Bound,
     ConstantRef,
     Evidence,
     EvidenceKind,
@@ -54,6 +55,8 @@ from .catalogue import (
     PreviewLine,
     StepGroup,
     Symbol,
+    at_least,
+    at_most,
 )
 
 __all__ = ["AGGREGATION"]
@@ -452,6 +455,20 @@ _GROUPS: Final = (
     StepGroup("Z", "Zobrazení čísel", ("round_share", "round_mean")),
 )
 
+_A_SPEC: Final = f"{_A}:AggregationSpec"
+_A_BOOTSTRAP: Final = f"{_A}:BootstrapSpec"
+_A_ROUNDING: Final = f"{_A}:RoundingSpec"
+#: The range each check holds a field to (F13); the quantiles are a pair, held as one.
+_BOUNDS: Final = (
+    Bound("top_box", (at_least(1),), _A_SPEC),
+    Bound("bootstrap.reps", (at_least(1),), _A_BOOTSTRAP),
+    Bound("bootstrap.reps_multi", (at_least(1),), _A_BOOTSTRAP),
+    Bound("bootstrap.seed", (at_least(0),), _A_BOOTSTRAP),
+    Bound("bootstrap.seed_top_box", (at_least(0),), _A_BOOTSTRAP),
+    Bound("rounding.share_decimals", (at_least(0), at_most(MAX_DECIMALS)), _A_ROUNDING),
+    Bound("rounding.mean_decimals", (at_least(0), at_most(MAX_DECIMALS)), _A_ROUNDING),
+)
+
 AGGREGATION: Final = MethodModule(
     id="aggregation",
     title_cs="Agregace: z odpovědí odhad s intervalem",
@@ -461,6 +478,7 @@ AGGREGATION: Final = MethodModule(
     groups=_GROUPS,
     formulas=AGGREGATION_FORMULAS,
     editable=True,
+    bounds=_BOUNDS,
     preview=_preview,
     preview_title_cs="Jak to uvidí výzkumník ve Výsledcích a ve zprávě",
     note_cs=(

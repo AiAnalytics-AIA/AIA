@@ -123,6 +123,7 @@ stays `NOT_IN_AIA` in `interface-screens.json`: a registry is not intake. Tests:
   blocks real fieldwork on the panel, not import or promotion.
 - **D8 / OI-24** (field-policy authority, 287 vs 115 eligible fields): one must be chosen
   before "eligible dimension" is decidable (P4).
+  *2026-10-25 (the owner, OI-24 (a)): the population's policy (115 fields) is the one authority.*
 - **OI-7** (enrichment derivations, archive-blocked); the 8 derived fields are unclassified
   (`population.md:102`); the archive release, EU asset source and first real import are the
   data owner's.

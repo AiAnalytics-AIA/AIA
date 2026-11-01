@@ -26,7 +26,7 @@ from aia_core.application.report import (
     sourced,
 )
 from aia_core.application.report_chapters import report_chapters
-from aia_core.application.report_document import beside, store_document_beside
+from aia_core.application.report_document import document_of, store_document_beside
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
@@ -62,7 +62,8 @@ from aia_core.domain.deep_research.triangulation import publisher_identity
 from aia_core.domain.deep_research.workflow import ARTIFACT_TYPES
 from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
-from aia_core.domain.report.document_model import DOCUMENT_MODEL_MEDIA_TYPE
+from aia_core.domain.report.control_tags import source_tag
+from aia_core.domain.report.controls import under
 from aia_core.domain.report.model import (
     ArtifactSource,
     Block,
@@ -100,7 +101,10 @@ from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, Objec
 # -10: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
 # -12: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
 # -11 is the brief's goal, F19).
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-12"
+# -13: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
+# -14: the design and method chapters' numbers locked under their sources (design:, run:).
+# -15: the literature chapter locked under its bundle, the audit under the run (P14, P15).
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-15"
 #: The sealed Deep Research bundle the literature chapter is read from.
 BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
@@ -712,7 +716,9 @@ def literature_sections(
             text(f"Deep Research: {research_run_id}. Pečeť ověřeného balíčku: {bundle.sha256}.")
         )
     )
-    return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)
+    # Written whole from the sealed bundle: its numbers print locked under it (RPT8a, part 3, P14).
+    section = Section("Literární rešerše a externí kontext", tuple(blocks), id="literature")
+    return (under(section, source_tag("bundle", research_run_id)),)
 
 
 def _composed_type(evidence: EvidenceItem, snapshots: Mapping[str, SnapshotRef]) -> DocumentTyping:
@@ -967,17 +973,7 @@ def _store_document(
 def contextual_report_document(artifacts: ArtifactRepository, docx: Artifact) -> Artifact | None:
     """The newest document model stored beside exactly ``docx``, a stored report with literature;
     ``None`` for a version stored before its document was (it still downloads). Composes nothing."""
-    models = [
-        a
-        for a in artifacts.list_for_stage(
-            project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
-        )
-        if a.artifact_type == CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE
-        and a.content_type == DOCUMENT_MODEL_MEDIA_TYPE
-        and a.status is ArtifactStatus.VALID
-        and beside(a, docx)
-    ]
-    return models[-1] if models else None
+    return document_of(artifacts, docx, CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE)
 
 
 def prepared_drafts(

@@ -3,12 +3,12 @@ status: in-progress
 chunks:
   - "[x] WCE0. The contract: the closed operation set, ids, validation, the lock rule and the text-only marker, with one shared fixture (tests/fixtures/edit_ops/cases.json) read by the Python and the TypeScript tests"
   - "[x] WCE1. Stable item identity: ids for objectives, research questions, hypotheses, options, battery objects and sections; existing content gets ids on load; `FOCUS_ID` and `design_items` keys use them"
-  - "[ ] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
+  - "[x] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
   - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions"
-  - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
+  - "[x] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
   - "[x] WCE7b. Vzorek reads it on the working revision it shows, no submit on a visit (Návrh's coverage in artifact-design, Spuštění in artifact-fieldwork#FLD6)"
@@ -16,13 +16,17 @@ chunks:
   - "[x] WCE7d1. The stage track reads it: a stage the working copy reopened says so, measured against the newest run's design, so a run whose design is older than the copy says so on every stage it reopened"
   - "[ ] WCE7d2. The working copy accepted as a revision, explicitly, from the workbench"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
-  - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
+  - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W1 from 2026-10-26, was W2; with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
   - "[ ] WCE10. The Lead's edit vocabulary widened (Audience, Dimensions, Sample), with a prompt and harness version and an `is_text_edit` ruling per operation"
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
   - "[ ] WCE12. Journey: two researchers, one study, recorded doubles (the I-1 exit)"
   - "[x] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question (behind AIA_ROUTING_ENABLED, off until RQC11 routes fieldwork; #763, #766, #777, #788)"
   - "[ ] WCE14. A stimulus item: content shown to respondents before a question (respondents.context), in the edit vocabulary and the design (D-45)"
+  - "[ ] WCE15. Undo an accepted agent proposal until the next change to the same item: a new revision restoring each item's before-values and a ledger row naming the accept it undoes; refused by name once a person or the Lead changed the item since; nothing erased (Nigel, 27 Oct 2026; W2)"
+  - "[ ] WCE16. Undo a dismissed Lead edit until the next change to the same item: the edit proposed again from the ledger, one ledger row, the dismissal kept; refused by name once the item changed (Nigel, 27 Oct 2026; W2)"
+  - "[ ] WCE17. The impact before an edit commits: an edit (a person's or a proposal's) previewed against the working copy, every stage CURRENT, CHANGED or RECHECK and the ceiling of re-running what it reopens, before it is saved (W2; WCE7c and WCE7d1 show it after)"
+  - "[ ] WCE18. The difference between any two Design Revisions of one study: a route answering their item-level changes (design_items, occurrence keys) (W2)"
 ---
 # Working-copy edit operations, merge and the Sociomap lock
 
@@ -133,9 +137,75 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   left to WCE8: with ids kept and an input declared, a reword whose links follow onto a locked rating
   question touches it, and `save` refuses the whole accept (409 `sociomap_input_locked`) rather than
   half of it.
+- **WCE2e (2026-10-22).** The proposal accepts are logged: `accept_into_working_copy` takes `by`
+  (required) and its merged write is logged as a whole-copy write made by the person who accepts,
+  citing the run (`proposal_accept` for an agent job, `ResearchAgentJobs.accept`;
+  `design_research_accept` for a Design Research proposal, `DesignResearchProposals.accept`). The
+  lock already held for them through `save` (WCE2c). Tests: the accept tests in
+  `test_research_agent_executor.py` and `test_design_research_proposals.py` assert the rows (both
+  failed before the change). With it, two tests WCE2d's review asked for (`test_lead_edits_logged.py`):
+  an automatic accept takes the unlocked text edit and refuses the locked one alone; a reword whose
+  links follow onto a locked question refuses the whole accept and writes nothing (the WCE8 edge).
+  Held at the 2026-10-22 feature freeze; released by the product owner overnight ("Drive all to
+  merge").
+- **WCE2f (2026-10-23).** No write of the working copy skips the log. `save` takes `by` (required,
+  no `None`); `import_migrated` takes `by` and logs each revision it writes against the one before
+  it, as the 18.6.6 migration passes it: `WriteBy(PERSON, None, MIGRATION)`, the one write logged
+  without its author, because the unit recorded none (`workspace_migration.MIGRATED`; the person
+  who ran it stays on the `WORKSPACE_MIGRATED` event and the lineage). `make layer_check`: only the
+  migration calls `import_migrated` ("only the 18.6.6 migration imports a working copy", and the
+  API, worker and executors never). The scoped split named `apply_edit_ops` as the gate; as WCE2c
+  recorded, `save` is the one persistence point every writer reaches, so the guarantee is the
+  required author there and the import rule, not a second wrapper. Test:
+  `test_workspace_migration.py::test_a_study_gets_every_revision_…` asserts the migrated rows
+  (failed before the change); every other test of a save names its author. Released with WCE2e by
+  the product owner's "Drive all to merge" (2026-10-23).
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
+
+- **WCE3a, first part (2026-10-26, `feature/wce3a-store-server-vocabulary`): the shared op path, Zadání's
+  fields and objectives, Návrh's narrative.**
+  - **Route.** `POST /studies/{id}/workspace/ops` (`routers/workspace.py` `apply_study_working_ops`),
+    body `{base_revision, ops: [WorkingOp, 1..100], reason}`, through
+    `application/working_copy.apply_person_edits`: `EDIT_STUDY` on an open study; a batch from any
+    revision but the current one is 409 `stale_revision`, as the PUT's (decision 4's merge is WCE5's);
+    `apply_edit_ops` with `WriteBy(PERSON, caller, UI)` and the readiness limits in force for a
+    `set_n`; **all or nothing**: any refused position is 409 `edit_refused`,
+    `details.refused = {"<position>": word}`, and nothing is saved (`apply_edit_ops(…, whole_batch=True)`
+    returns before the save), because the stage applied
+    every edit to its own copy and a server copy keeping some of them is one nobody saw. The answer is
+    the save plus the copy as saved (`content`, `analysis`). A declared operation has no payload, so the
+    body's validation refuses it (422) before `op_refusal` is reached.
+  - **Store.** `ResearchStore.apply(edits)` applies `PersonEdit`s (the vocabulary's, `why` added as
+    `person`) with `lib/lead.ts` `applyEdit`, all or none, returning the first refusal's word; `update`
+    stays the whole-copy path. Edits since the last save queue (a `set_text` of the field typed just
+    before replaces it); any whole-copy change, `replace`, more than 100 edits or the switch off makes
+    the next save the PUT, which carries them. A save is the batch only from a revision AIA holds as it
+    is (`revision` set, not `completed`). After a batch the store keeps AIA's copy (the ids it gave what
+    the batch added); edits made during the flight are applied again on it, anything else keeps the
+    screen's copy and saves it whole next. 409 `edit_refused` or 422 from the batch: the same save goes
+    whole at once, under the PUT's own stale and lock checks. A failed batch stays owed, ahead of edits
+    made since.
+  - **Switch.** `AIA_WEB_EDIT_OPS` (`/config` `editOps`, off): off, `apply` changes the copy the same
+    way and saves it whole, so nothing a person sees changes with the switch.
+  - **Sites moved.** `BriefStep` `editBrief` -> `set_text` (the same rule: the analysis dropped but for the
+    title); an objective's reword, add and remove -> `list_replace` / `list_add` / `list_remove`
+    (`plan.objectives`); `PlanNarrative` summary -> `set_text plan.problem_summary`, an item's reword,
+    add and remove -> the list operations. Each site checks the stage's rule first (its words), and
+    writes the change whole where the copy cannot take it as an edit or the item's wording names more
+    than one item (repeats stored before they were refused). A narrative edit writes only what it
+    changes, in both homes, as the server and the Lead's edits do; `applyNarrative` rewrote all four
+    narrative fields (the goal standing in for a missing summary). An undone removal going back to
+    its place stays whole (the vocabulary appends; WCE9's inverse is the place for it).
+  - **Stays whole, no operation exists:** problem types, attachments and links, Návrh's comments and
+    follow-up answers, `ui_state` flags, a variant applied, the analysis a job returns.
+  - **Left in WCE3a:** `set_add` / `set_edit` / `set_remove` and `comparison_set` given payloads and
+    applies (both sides, the case file), and Návrh's Sets card on them.
+  - Tests: `test_client_api.py::test_a_persons_edits_apply_as_one_batch_logged_under_each_operation`,
+    `…stale_revision…`, `…does_not_take_whole_saves_nothing`, `…validated_before_it_is_applied`;
+    `store.test.ts` "edits saved as the vocabulary's operations"; `BriefPlan.editOps.test.tsx` (the
+    stages with the switch on); `route.test.ts` "the edit operations switch".
 
 **WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)**  
 Includes the @ pointer carrying id and revision (workbench 16) and the questionnaire import confirmation (an import replaces all sections and drops every research-question link today: it names what it would orphan).
@@ -546,3 +616,106 @@ exactly as the old text keys did (`" ".join(split()).casefold()`, one function; 
 - `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2), F-WCE1-2 (open,
   WCE8b with WCE2; blocks switching `AIA_WEB_STABLE_ITEM_IDS` on) and F-WCE1-3 to F-WCE1-5 (open,
   switch-on prerequisites).
+
+## WCE5 delivered (2026-10-28)
+
+`application/proposal_accept.py` `accept_into_working_copy`, the one accept path (agent jobs and
+Design Research), on the field view (`domain/design_fields.py`, D-06):
+
+- **No head check.** The `design_moved` refusal when a newer Design Revision exists is gone, and
+  with it `StudyDesignRepository.submit_if_current` (its only caller); the accept submits the
+  merged copy as the newest revision with `submit`, under the same Study row lock. Each route
+  still refuses `design_moved` when `expected_revision_id` is not the proposal's own design (the
+  browser accepting what it saw), and `stale_revision` when the working copy moved since the
+  person loaded it.
+- **The stale rule** (`_conflicts`): the proposal's changed `(item, field)` pairs on the items it
+  touches, order left out (the merge keeps the person's order, so a proposal's order never
+  applies); a touched section covers the place (`item`, `section`) of the questions it holds, since
+  the recorded `touched_items` are item-level and a move is recorded as its two sections. It
+  conflicts when the working copy changed the same pair, when either side added or removed the item
+  and the other changed it, or when the proposal puts a question into a section the person
+  removed. The refusal keeps `conflicting_items` and adds `conflicting_fields`
+  (`<item>#<field>`).
+- **The merge** (`design_items.merge_items(…, fields=)`): a question, section, battery or tracked
+  set the proposal changes takes only the fields it changes (a field's id list with it:
+  `kategorie_ids`, `object_ids`) and keeps the person's others; it stands where the person has it
+  unless the proposal adds, removes or moves it. Without `fields` the merge is as before (the
+  shared merge case unchanged).
+- **What the head check used to stop, now stopped by name** (from `/code-review` on this chunk):
+  an agent job whose proposal is ACCEPTED or SUPERSEDED (its projection, read under the Study lock)
+  is refused `proposal_already_accepted` / `proposal_superseded` before any merge; a dismissed one
+  may still be accepted, as `dismiss` says; a Design Research run with any accept recorded
+  (`WorkflowRepository.design_research_accepted`) is refused `proposal_already_accepted` (from the
+  security review: a revert of its block would otherwise let the same items be written back over
+  it). Design Research's 64 KB design-jobs bound is checked on
+  the merged copy against the copy it merged into (the accept may land on a design grown since the
+  run). A question the person added or moved into a section the proposal removes conflicts on that
+  section. A section whose `questions` are not question objects has them as a field
+  (`design_fields`), so a proposal changing them is taken whole, never dropped.
+- Tests: `test_proposal_field_merge.py` (a Design Revision submitted elsewhere; another field of
+  the same item merges; the same field is stale; a removed item; a question into a removed section;
+  a proposal's move applied; the person's move kept; two additions to one section; the person's
+  question into a section the proposal removes; unkeyed questions merged whole);
+  `test_research_agent_executor.py` (`…_is_not_accepted_again`, `…_a_rebuild_replaces_is_not_accepted`);
+  `test_design_research_proposals.py::test_an_accept_onto_a_design_grown_since_the_run_is_held_to_the_context_bound`
+  and `…::test_a_run_accepted_once_is_spent_even_after_the_person_reverts_its_items` (the second-accept
+  test now expects `proposal_already_accepted` for the run's own revision); the PostgreSQL
+  race now through `accept_into_working_copy`
+  (`test_workflow_concurrency.py::test_two_reviewed_design_proposals_cannot_overwrite_each_other`);
+  `test_design_research_proposals.py::test_a_design_edited_after_the_run_is_never_written_over` now
+  asserts the person's edit is kept on the accepted revision instead of a refusal.
+
+### Findings (WCE5)
+
+- **F-WCE5-1. A proposal's move of a question between sections was dropped by the merge.**
+  Anchor: `packages/aia_core/src/aia_core/domain/design_items.py:602-622 @ df1377f7`
+  (`_merge_sections`: `question_keys` holds only touched questions). Reproduction: a proposal moving Q2
+  from section A to B touches `section:A` and `section:B` only (`design_items`); `merge_items` keeps
+  Q2 in A, as no question key is touched. Consequence: an accepted questionnaire proposal silently
+  differs from what the person reviewed. Fixed here (the move is the question's `section` field).
+  Test: `test_proposal_field_merge.py::test_a_proposals_move_between_sections_is_applied`.
+
+### Doc follow-up (WCE5)
+
+- `CLAUDE.md` § 2, `application/proposal_accept.py`: "the item-level stale rule
+  (StaleProposal: design_moved, unknown_baseline, items_changed)" becomes "the field-level stale
+  rule (D-06; StaleProposal: unknown_baseline, items_changed with conflicting_fields; no head check,
+  a newer Design Revision stales nothing)"; `design_items.py`: `merge_items(fields=)` merges a
+  changed item field by field; `infrastructure/study_design_repository.py`: drop
+  "submit / submit_if_current" for "submit".
+- `open-items.md`: number F-WCE5-1, closed by this chunk.
+
+## Re-waved (2026-10-26)
+
+**WCE8b moves from W2 to W1.** `artifact-questionnaire#QST5` (W1) accepts a proposal item by item (spec `navrh/Q6`), which needs proposed items to keep their baseline ids; the plan draft promises that accept in W1 (research chunk register, contradiction 2; `.planning/mvp-execution-contracts.md`). WCE8 stays in E15 (W2): WCE8b's copy of the declared batteries, sets and rating questions works on today's declarations and tightens when WCE8 makes them settable.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**WCE15. Undo an accept** (W2). Nigel, 27 Oct 2026: "Vrátit" after accepting an agent proposal is available until the
+next change to the same item (by a person or the Lead); the undo writes a new revision and a ledger row; nothing is
+erased. Over `accept_into_working_copy` (`application/proposal_accept.py`): the accept's ledger row records each item's
+before-values; the undo writes them back as a new working revision under the study lock, with a ledger row naming the
+accept, refused `item_changed_since` when any of the items moved after it. Test: accept, undo, the items read as
+before; accept, edit one item, undo refused by name.
+
+**WCE16. Undo a dismissal** (W2). A dismissed Lead edit (`lead_edit` ledger row, final today; spec `navrh/D9`, Návrh gap
+6) can be proposed again until the item changes: a new ledger row re-opening the edit for decision, the dismissal row
+kept. Test: dismiss, undo, the edit waits again; dismiss, edit the item, undo refused.
+
+**WCE17. Impact before commit** (W2). `GET …/research/impact` (WCE7c) compares a Design Revision with the working
+copy as stored. Add a preview for an edit not yet applied (the edit ops' `apply_edit` on a copy, never stored),
+answering the same stage states and, for each stage it reopens, the ceiling of re-running it (`domain/run_cost.py`;
+unknown never zero). Test: an edit to a question previews Sběr dat as RECHECK with a ceiling, and the stored copy is
+unchanged.
+
+**WCE18. Revision diff** (W2). `GET …/research/revisions/{a}/diff/{b}` over `design_items` and `occurrence_keys`
+(`domain/design_items.py`): added, removed and changed items, with the field diff. Test: two fixture revisions answer
+the changed question and the added objective.

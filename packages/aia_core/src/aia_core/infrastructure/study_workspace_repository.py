@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.attachments import (
@@ -68,7 +68,7 @@ from .tables import (
 )
 from .workspace_edit_repository import WorkspaceEditRepository
 
-__all__ = ["StudyWorkspaceRepository", "WorkspaceConflict"]
+__all__ = ["StudyWorkspaceRepository", "WorkspaceConflict", "erase_client_workspaces"]
 
 
 class WorkspaceConflict(Exception):
@@ -246,7 +246,7 @@ class StudyWorkspaceRepository:
         analysis: Any = None,
         base_revision: int | None,
         reason: str = "autosave",
-        by: WriteBy | None = None,
+        by: WriteBy,
         ops: Sequence[tuple[Mapping[str, Any], frozenset[Touch]]] = (),
     ) -> WorkingSave:
         """Save the Study's working content as its newest revision.
@@ -266,8 +266,8 @@ class StudyWorkspaceRepository:
         save that writes a revision logs it, one ``workspace_edit_ops`` row per ``(item, field)``
         it changed, made by ``by`` (``domain/edit_log.py``; working-copy-edit-ops WCE2): each of
         ``ops``, the vocabulary operations the write applied (``application/working_copy.py``),
-        under its own operation, the rest as a whole-copy change. ``None``: a writer not yet moved
-        onto the log (the proposals' accepts, WCE2e), which WCE2f refuses.
+        under its own operation, the rest as a whole-copy change. ``by`` is required: no write of
+        the copy skips the log (the 18.6.6 migration's, :meth:`import_migrated`, is logged too).
         """
         scope.require(Permission.EDIT_STUDY)
         scope.require_open_study()
@@ -386,7 +386,7 @@ class StudyWorkspaceRepository:
     def _log(
         self,
         scope: StudyContext,
-        by: WriteBy | None,
+        by: WriteBy,
         ops: Sequence[tuple[Mapping[str, Any], frozenset[Touch]]],
         before: Documents | None,
         after: Documents,
@@ -395,8 +395,6 @@ class StudyWorkspaceRepository:
         result_revision: int,
     ) -> None:
         """Log a write in its transaction: one row per ``(item, field)`` it changed."""
-        if by is None:
-            return
         WorkspaceEditRepository(self._session, scope).append(
             write_rows(
                 before,
@@ -457,6 +455,7 @@ class StudyWorkspaceRepository:
         files: list[tuple[str, str, bytes, dict[str, Any], int]],
         state: ContentState,
         lineage: dict[str, Any],
+        by: WriteBy,
     ) -> list[tuple[int, str, dict[str, Any]]]:
         """Write a Study's migrated content: its working project, every revision, its files.
 
@@ -469,7 +468,9 @@ class StudyWorkspaceRepository:
         migration. The Study must be waiting for migration, open and a research
         Study, and the caller must hold ``EDIT_STUDY``. Returns ``(revision, content
         sha256, analysis)`` of what was written, for the caller to validate before it
-        commits.
+        commits. Each revision is logged as ``by`` (a migrated revision's: its author unknown,
+        the ``migration`` source), one row per field it changed from the one before it, in the same
+        transaction (working-copy-edit-ops WCE2f).
 
         Files are uploaded before the transaction commits: a migration rolled back
         leaves their objects orphaned in storage (as any failed artifact write does)
@@ -494,6 +495,8 @@ class StudyWorkspaceRepository:
             author_unknown=True,
         )
         written = [(first.revision, first.content_sha256, dict(analysis or {}))]
+        previous = Documents(content=content, analysis=analysis)
+        self._log(scope, by, (), None, previous, reason, None, first.revision)
         artifacts = self._artifacts(scope, store)
         for artifact_id, filename, data, metadata, revision in files:
             artifacts.put(
@@ -518,6 +521,9 @@ class StudyWorkspaceRepository:
                 request_id=scope.request_id,
             )
             written.append((outcome.revision, outcome.content_sha256, dict(analysis or {})))
+            after = Documents(content=content, analysis=analysis)
+            self._log(scope, by, (), previous, after, reason, written[-2][0], outcome.revision)
+            previous = after
         projects.record_event(
             project.project_id,
             event_type="WORKSPACE_MIGRATED",
@@ -637,3 +643,10 @@ class StudyWorkspaceRepository:
             row.last_stage = stage
             self._session.flush()
         return _to_domain(row)
+
+
+def erase_client_workspaces(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's working-copy rows (SB5); their working projects go with the
+    client's projects, after these."""
+    session.execute(delete(StudyWorkspaceRow).where(StudyWorkspaceRow.client_id == client_id))
+    session.flush()

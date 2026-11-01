@@ -39,6 +39,7 @@ __all__ = [
     "PanelComparison",
     "compare_object_maps",
     "compare_with_in_force",
+    "warm_object_maps",
 ]
 
 #: Why the check compares K100's point and not its interval.
@@ -161,7 +162,9 @@ class PanelComparison:
     shifts: dict[str, float]
     alignment_rmsd: float | None
     heights: dict[str, tuple[float | None, float | None]]
-    k100: dict[str, tuple[float | None, float | None]]
+    #: ``None`` when either map computes no object scores (``aia-sociomap-5``: MQ-05), so no K100:
+    #: unknown, never "no change".
+    k100: dict[str, tuple[float | None, float | None]] | None
     #: The largest change of a terrain cell both maps reach; ``None`` when the grids differ
     #: or either map has no terrain.
     terrain_max_change: float | None
@@ -181,7 +184,9 @@ def _summary(art: SociomapArtifactV3) -> MapSummary:
     )
 
 
-def _k100(art: SociomapArtifactV3, slots: Slots) -> dict[str, float | None]:
+def _k100(art: SociomapArtifactV3, slots: Slots) -> dict[str, float | None] | None:
+    if "objects" not in art.scores:
+        return None  # the method computes no object scores (aia-sociomap-5, MQ-05)
     scale = slots.get(K100)
     out: dict[str, float | None] = {}
     for score in art.scores.get("objects", ()):
@@ -281,13 +286,25 @@ def compare_object_maps(
                     )
                     for oid in ids
                 },
-                k100={oid: (k_before.get(oid), k_after.get(oid)) for oid in k_before | k_after},
+                k100=None
+                if k_before is None or k_after is None
+                else {oid: (k_before.get(oid), k_after.get(oid)) for oid in k_before | k_after},
                 terrain_max_change=terrain,
                 terrain_note=terrain_note,
-                notes=(K100_INTERVAL_NOTE,),
+                notes=() if k_before is None or k_after is None else (K100_INTERVAL_NOTE,),
             )
         )
     return tuple(out)
+
+
+def _pin(payload: dict[str, Any] | None) -> tuple[SociomapSpecV3, Slots]:
+    """The object map's specification and formula slots a run started under ``payload`` pins
+    (``None``: the code's preset)."""
+    method = sociomap_methods_for(payload)[-1]
+    spec = method.resolve()
+    if not isinstance(spec, SociomapSpecV3):  # pragma: no cover - the pins guarantee it
+        raise TypeError("the object map's pin is not a contract-3 specification")
+    return spec, method.slots()
 
 
 def compare_with_in_force(
@@ -297,12 +314,18 @@ def compare_with_in_force(
     ``in_force`` is the stored version in force (``None``: the code's preset), ``draft`` an
     edit validated by ``versions.validate_version``. Each is resolved through the run's own
     pin, formulas compiled, so the check computes exactly what a run would."""
+    return compare_object_maps(_pin(in_force), _pin(draft))
 
-    def pin(payload: dict[str, Any] | None) -> tuple[SociomapSpecV3, Slots]:
-        method = sociomap_methods_for(payload)[-1]
-        spec = method.resolve()
-        if not isinstance(spec, SociomapSpecV3):  # pragma: no cover - the pins guarantee it
-            raise TypeError("the object map's pin is not a contract-3 specification")
-        return spec, method.slots()
 
-    return compare_object_maps(pin(in_force), pin(draft))
+def warm_object_maps() -> int:
+    """Compute the code's preset map once on every :data:`CHECK_PANELS` panel and discard it.
+
+    The signed-off methodology's kernels are numba's, compiled on their first call in a process
+    whose kernel cache is empty -- every container start, since the image's filesystem is read
+    only (deploy/docker/python.Dockerfile) -- and that first compile takes about 40 s. Run once
+    in the background after start, the first comparison a person asks for meets compiled
+    kernels. Returns the number of panels computed."""
+    spec, slots = _pin(None)
+    for panel in CHECK_PANELS:
+        compute_object_map(panel.inputs(), spec, connectedness_interval=False, slots=slots)
+    return len(CHECK_PANELS)

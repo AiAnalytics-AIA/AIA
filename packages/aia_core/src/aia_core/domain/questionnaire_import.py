@@ -321,7 +321,9 @@ def _battery(sec: dict[str, Any], *, section_id: str, title: str, purpose: str) 
         )
     output_type = clean_text(sec.get("output_type") or "pozicni_mapa")
     if output_type != "pozicni_mapa":  # pragma: no cover - an import makes position maps only
-        raise QuestionnaireImportRejected("unsupported output type", reason="invalid_row")
+        raise QuestionnaireImportRejected(
+            f"{title}: import zná jen výstup poziční mapa.", reason="invalid_row"
+        )
     hard_min, hard_max = _TRACKED_SET_HARD
     if not hard_min <= len(objects) <= hard_max:
         raise QuestionnaireImportRejected(

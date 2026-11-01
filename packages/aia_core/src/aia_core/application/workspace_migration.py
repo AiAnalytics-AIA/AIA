@@ -36,6 +36,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..domain.attachments import extension_of, safe_filename
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
 from ..domain.workspace import LEGACY_SOURCE, ContentState
 from ..domain.workspace_migration import (
@@ -65,6 +66,9 @@ __all__ = ["MigrationRefused", "migrate_unit_workspaces"]
 
 #: The reason every recovered revision is written with.
 RECOVERED_REASON = "unit:recovered_from_design"
+#: Who a migrated revision is logged as: a person, unknown, because 18.6.6 recorded no author.
+#: The person who ran the migration is named by the WORKSPACE_MIGRATED event and the lineage.
+MIGRATED = WriteBy(ActorKind.PERSON, None, OpSource.MIGRATION)
 
 
 class MigrationRefused(Exception):
@@ -154,6 +158,7 @@ def _recover(
         revisions=[(designs.content(latest.revision_id), {}, RECOVERED_REASON)],
         files=[],
         state=ContentState.RECOVERED,
+        by=MIGRATED,
         lineage=_lineage(
             report,
             actor_id=scope.actor_id,
@@ -244,6 +249,7 @@ def _migrate(
         ],
         files=stored,
         state=ContentState.MIGRATED,
+        by=MIGRATED,
         lineage=_lineage(
             report,
             actor_id=scope.actor_id,

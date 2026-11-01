@@ -5,7 +5,7 @@
  *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up --fresh
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/lead_stale_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
- * In the split at 1100 px and in the drawer at 768 px: the Lead's prepared job is approved from
+ * In the split at 1100 px, the drawer at 768 px and the sheet at 390 px: the Lead's prepared job is approved from
  * its card and answers; the person then accepts the Lead's edit to the question the proposal
  * also rewrites, so the proposal goes stale, and its "Použít návrh" is refused by the server and
  * said so in words. Then, with the page's own token: the used turn's request asked again returns
@@ -96,7 +96,7 @@ async function closeConversation(compact) {
 
 let lastTurn = null;
 try {
-  for (const [width, compact] of [[1100, false], [768, true]]) {
+  for (const [width, compact] of [[1100, false], [768, true], [390, true]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
     await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
@@ -157,9 +157,16 @@ try {
     // The stale card: its accept is the server's to refuse, and the refusal is said in words.
     await openConversation(compact);
     await page.locator("[data-card-review]").last().click();
-    if (compact && (await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).count())) await closeConversation(compact);
     const apply = page.getByRole("button", { name: "Použít návrh" });
     await apply.waitFor({ timeout: 30000 });
+    // In the drawer or the sheet the conversation steps aside for the review, never drawn over it.
+    if (compact) {
+      assert.equal(await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).count(), 0, `${width}: the drawer stepped aside for the review`);
+      await page.locator("[data-peek]").waitFor({ timeout: 10000 });
+      assert(await apply.isVisible(), `${width}: the review's "Použít návrh" is visible`);
+      await shot(`${width}-review-over-drawer`);
+      check(`${width} px: a card's review steps the conversation aside and shows`);
+    }
     const refused = page.waitForResponse((r) => /\/agent-jobs\/[^/]+\/accept$/.test(new URL(r.url()).pathname), { timeout: 30000 });
     await apply.click();
     const refusal = await refused;

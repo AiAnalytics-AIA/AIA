@@ -220,12 +220,9 @@ try {
 
   // 5. The internal draft, downloaded as DOCX from Výsledky.
   await openStage(`results?run=${latest.run_id}`);
-  // The report card (CompleteReport): the internal variant in DOCX, the one place a run's report is downloaded.
-  const card = page.locator("[data-complete-report]");
-  await card.waitFor({ timeout: 60000 });
-  const docx = card.getByRole("radio", { name: "DOCX" });
-  if (await docx.count()) await docx.check();
-  const download = card.getByRole("button", { name: "Stáhnout zprávu", exact: true });
+  // The internal draft, downloaded from the doc bar it is read in (RPT3c), on Rešerše a zpráva.
+  await page.getByRole("tab", { name: "Rešerše a zpráva" }).click({ timeout: 60000 });
+  const download = page.locator("[data-report-docbar]").getByRole("button", { name: "Stáhnout DOCX" });
   await download.waitFor({ timeout: 60000 });
   await shot("5-results");
   const [file] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), download.click()]);

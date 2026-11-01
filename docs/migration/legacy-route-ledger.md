@@ -56,7 +56,7 @@ Rules:
 | Status | Meaning |
 | --- | --- |
 | `LEGACY` | Runs only in the oracle's browser |
-| `PORTING` | An `aia_core.domain` implementation exists (`implementation`); parity is not yet `PASS` for the whole function |
+| `PORTING` | An AIA implementation exists (`implementation`): in `aia_core.domain`, or in `apps/web/src/lib` for a display-only function that computes no methodological number; parity is not yet `PASS` for the whole function |
 | `PORTED` | Parity `PASS` from executed gates against fixtures captured from the function's own JavaScript (`fixtures`) |
 
 Every row carries `source_sha256`, the SHA256 of the function's source as

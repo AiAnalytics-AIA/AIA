@@ -731,7 +731,7 @@ def test_an_uncertain_call_needs_recovery_and_is_never_retried(
 
 
 def test_an_off_question_answer_gets_one_repair_then_fails_the_attempt(
-    world: Any, run_with: Callable[..., Worker]
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
     off = {"q_invented": {"probabilities": [1.0]}}
     bedrock = ScriptedBedrock(answers={1: off, 2: off})
@@ -754,6 +754,19 @@ def test_an_off_question_answer_gets_one_repair_then_fails_the_attempt(
     assert reservation.settled_amount_usd == pytest.approx(
         sum(e.cost_usd for e in events if e.outcome.is_terminal)
     )
+    # The refused answer is kept on the run's project, with its request's class (chunk 5).
+    with world.sessions() as session:
+        from aia_core.infrastructure.tables import ProjectArtifactRow, WorkflowRunRow
+
+        project_id = session.get(WorkflowRunRow, run_id).project_id  # type: ignore[union-attr]
+        (kept,) = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.artifact_type == "refused_answer",
+            )
+        ).all()
+        assert kept.size_bytes > 0
+    assert {e.data_class.value for e in events} == {_refused_class(world, store, kept.artifact_id)}
 
 
 def test_a_repaired_answer_is_used_and_both_calls_are_charged(
@@ -1272,6 +1285,48 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
         assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
 
 
+def test_a_panel_run_writes_its_quota_cells_and_fills_them_through_its_reports(
+    world: Any, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """RQC7b under the real worker: with AIA_AI_FIELDWORK_QUOTA_FILL on, the feed holds the
+    sample's quota cells once, and the progress reports' counts fill each cell to its allotment."""
+    from collections import Counter
+
+    from aia_core.domain.fieldwork_events import PAYLOAD_KEYS, FieldworkEvent
+    from aia_core.infrastructure.tables import WorkflowEventRow
+
+    run_id = _start_grounded(world, grounded)
+    env = {**_grounded_env(), "AIA_AI_FIELDWORK_QUOTA_FILL": "true"}
+    worker = run_with(ScriptedBedrock(), env=env, population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        rows = session.scalars(
+            select(WorkflowEventRow)
+            .where(
+                WorkflowEventRow.run_id == run_id,
+                WorkflowEventRow.event_type == "STEP_PROGRESS",
+            )
+            .order_by(WorkflowEventRow.event_id)
+        ).all()
+        feed = [(r.message, r.payload_json) for r in rows]
+    samples = [p for m, p in feed if m == FieldworkEvent.SAMPLE]
+    reports = [p for m, p in feed if m == FieldworkEvent.PROGRESS]
+    assert len(samples) == 1 and set(samples[0]) == set(PAYLOAD_KEYS[FieldworkEvent.SAMPLE])
+    cells = samples[0]["cells"]
+    assert sum(c["n"] for c in cells) == GROUNDED_N and samples[0]["quota_fields"]
+    # The cells come before the first report; the reports' counts sum to each cell's allotment.
+    assert [m for m, _ in feed].index(FieldworkEvent.SAMPLE) < [m for m, _ in feed].index(
+        FieldworkEvent.PROGRESS
+    )
+    filled: Counter[str] = Counter()
+    for report in reports:
+        filled.update(report["cells"])
+    assert dict(filled) == {c["key"]: c["n"] for c in cells}
+    # Every respondent counted once, in one cell; a first attempt replays nothing.
+    assert sum(filled.values()) == reports[-1]["respondents"] == GROUNDED_N
+    assert reports[-1]["sent"] > 0 and reports[-1]["replayed"] == 0
+
+
 def test_a_panel_run_with_scale_labels_in_the_prompt_records_another_respondent_system(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
 ) -> None:
@@ -1332,6 +1387,9 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert "modelováno: AI respondenti z populace" in body
     assert "13. 10. 2026 rozhodl zařadit je do klientské" in body
     assert "Výsledky jednotlivých otázek" in body
+    # Nothing internal reaches the client's file, not even as a content control's tag (RPT8a).
+    assert 'w:val="run:' not in body and 'w:val="design:' not in body and run_id not in body
+    assert 'w:val="bundle:' not in body
     # The run tracks no set and has no map chapter, so its introduction names none and says
     # why not (it said "a mapy hodnocených objektů" whatever was composed; cross-review, PC17).
     assert not any((s.id or "").startswith("ch-native-map-") for s in document.sections)
@@ -1382,6 +1440,41 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     with world.sessions() as session, pytest.raises(ClientReportRefused) as refused:
         compose_client_report(session, world.lead_scope(session), store, run_id=fictional)
     assert refused.value.reason == "not_modelled"
+
+
+def test_a_client_draft_of_an_earlier_composition_is_never_shown_or_approved(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    grounded: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A -7 client draft printed a -5 respondent map a client may not see (the methodology
+    owner, 2026-10-28, MQ-01 (b)): after the contract moved, the document read skips it, its
+    approval is refused, and the next download composes anew."""
+    from aia_core.application import client_report
+    from aia_core.application.client_report import client_report_document, stored_client_report
+    from aia_core.application.report_approval import ReportNotApprovable, approve_report
+
+    run_id = _start_grounded(world, grounded)
+    worker = run_with(ScriptedBedrock(), env=_grounded_env(), population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        with monkeypatch.context() as earlier:
+            earlier.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-7")
+            old, _ = stored_client_report(session, scope, store, run_id=run_id)
+        assert old.metadata["report_contract"] == "aia-client-report-7"
+        assert client_report_document(session, scope, store, run_id=run_id) is None
+        with pytest.raises(ReportNotApprovable):
+            approve_report(session, scope, store, run_id=run_id, artifact_id=old.artifact_id)
+        new, _ = stored_client_report(session, scope, store, run_id=run_id)
+        assert new.artifact_id != old.artifact_id
+        shown = client_report_document(session, scope, store, run_id=run_id)
+        assert shown is not None and shown[0].artifact_id == new.artifact_id
+        assert approve_report(
+            session, scope, store, run_id=run_id, artifact_id=new.artifact_id
+        ).is_approved
 
 
 def test_a_panel_runs_preflight_says_its_filters_apply_and_its_sample_keeps_them(
@@ -1590,3 +1683,12 @@ def test_the_composed_panel_source_reads_the_store_only_when_it_is_configured(
     routed = panel_population_source(str(tmp_path), children)
     assert routed.read("panel.csv.gz") == b"shared"
     assert routed.read(location) == b"child"
+
+
+def _refused_class(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> str:
+    with world.sessions() as session:
+        record = research_artifacts(session, world.lead_scope(session), store).read_json(
+            artifact_id
+        )
+    assert "q_invented" in record["rejected_output"]
+    return str(record["data_class"])

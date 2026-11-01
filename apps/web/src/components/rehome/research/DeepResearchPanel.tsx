@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, deepResearch, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
 import { submitWorkingDesign } from "@/research/store";
-import { withBudget } from "@/lib/budget-line";
+import { t } from "@/i18n/t";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
@@ -18,11 +18,13 @@ import { DesignResearchReview } from "./DesignResearchReview";
 import { SearchedNothing } from "./SearchedNothing";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { isDesignRun } from "@/lib/design-evidence";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
+import { errorText } from "@/lib/error-words";
 
 const POLL_MS = 2500;
-const message = (error: unknown) => error instanceof Error ? error.message : String(error);
+const message = (error: unknown) => errorText(error);
 
 /** A persistent, review-only evidence surface. A bundle is never copied into the working design. */
 /** The ceiling the API worked out when the study's limit asks first, or null for any other refusal. */
@@ -33,7 +35,7 @@ function askedCeiling(e: unknown): number | null {
 }
 
 export function DeepResearchPanel() {
-  const { frame, store, confirm, state } = useResearch();
+  const { frame, store, confirmSpend, state } = useResearch();
   // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
   const mayReview = canReview(frame);
   const [runs, setRuns] = useState<DeepResearchRun[]>([]);
@@ -60,6 +62,13 @@ export function DeepResearchPanel() {
     }).catch((e: unknown) => { if (live) setError(message(e)); });
     return () => { live = false; };
   }, [frame.studyId]);
+
+  // A run a Lead card started while this panel is open is read and shown at once.
+  useEffect(() => onDeepResearchStarted(({ runId, purpose }) => {
+    if (purpose !== "DESIGN_RESEARCH") return;
+    setSelected(runId);
+    void refresh().catch((e: unknown) => setError(message(e)));
+  }), [refresh]);
 
   const current = runs.find((job) => job.run_id === selected) ?? null;
   const running = current ? deepResearchRunningStep(current.steps) : null;
@@ -95,7 +104,7 @@ export function DeepResearchPanel() {
         // The study's limit asks first (6d): the ceiling the API worked out, beside what remains.
         const ceiling = askedCeiling(e);
         if (ceiling === null) throw e;
-        if (!await confirm(await withBudget(frame.studyId, `Výzkum může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.deep"), ceilingUsd: ceiling, act: t("input.spend.research.startDeep") })) return;
         job = await deepResearch.start(frame.studyId, revision.revision_id, ceiling);
       }
       await refresh();
@@ -111,7 +120,7 @@ export function DeepResearchPanel() {
       } catch (e) {
         const ceiling = askedCeiling(e);
         if (ceiling === null) throw e;
-        if (!await confirm(await withBudget(frame.studyId, `Opakování výzkumu může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.retryDeep"), ceilingUsd: ceiling, act: t("input.spend.research.retryDeepAct") })) return;
         await deepResearch.retry(frame.studyId, runId, ceiling);
       }
       await refresh();

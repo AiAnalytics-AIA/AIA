@@ -15,6 +15,7 @@ import pytest
 
 from aia_core.application.design_reuse import ReuseRefused, reuse_design
 from aia_core.application.research import ResearchRuns
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.scope import ScopeDenied, StudyKind
 from aia_core.infrastructure.scope_repository import ScopeRepository
@@ -126,7 +127,10 @@ def test_an_empty_study_of_the_client_takes_the_design_and_one_with_content_is_r
 def test_a_target_with_working_content_alone_is_not_empty(world: Any, session: Any) -> None:
     sibling = world.scope(study="sibling")
     StudyWorkspaceRepository(session).save(
-        sibling, content={"title": "Rozepsáno"}, base_revision=None
+        sibling,
+        content={"title": "Rozepsáno"},
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, sibling.actor_id, OpSource.UI),
     )
     with pytest.raises(ReuseRefused) as refused:
         _reuse(world, session, target_study_id=sibling.study_id)
@@ -179,7 +183,6 @@ def test_a_source_never_run_is_cited_as_never_run(world: Any, session: Any) -> N
 def test_a_reuse_is_logged_as_a_reuse_citing_its_source_revision(world: Any, session: Any) -> None:
     """working-copy-edit-ops WCE2c: the reuse's write leaves its rows, by the person, citing the
     revision it was reused from."""
-    from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
     from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
 
     reused = _reuse(world, session, new_study=("ranni-napoj-3", "Ranní nápoj 3"))

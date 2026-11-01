@@ -38,12 +38,14 @@ def _design(n: int | None, objects: int) -> dict[str, Any]:
         "n": n,
         "audience": {"source_mode": "population", "strategy": "population", "filters": {}},
         "sections": [
+            # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+            {"type": "questions", "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}]},
             {
                 "type": "object_battery",
                 "title": "Nápoje",
                 "object_type": "nápoje",
                 "objects": [f"Nápoj {i}" for i in range(1, objects + 1)],
-            }
+            },
         ],
     }
 

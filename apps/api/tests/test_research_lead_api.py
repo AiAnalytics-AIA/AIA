@@ -8,16 +8,22 @@ repository, as a worker would.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.ai_route_reach import AiRouteReach, LeadComposition
 from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.deployment import DataClassGates
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_lead import ARTIFACT_TYPE, EXTERNAL_LAYER
+from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.deep_research_composition_repository import record_composition
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import (
@@ -61,7 +67,10 @@ def _scope(app: FastAPI, world: Any, session: Any, user: str = "researcher") -> 
 def _save_content(app: FastAPI, world: Any) -> int:
     with create_session_factory(app.state.engine)() as session:
         saved = StudyWorkspaceRepository(session).save(
-            _scope(app, world, session), content=CONTENT, base_revision=None
+            _scope(app, world, session),
+            content=CONTENT,
+            base_revision=None,
+            by=WriteBy(ActorKind.PERSON, _scope(app, world, session).actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -104,7 +113,12 @@ def _turn(client: TestClient, world: Any, app: FastAPI, output: dict[str, Any]) 
 
 
 def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
-    assert researcher.get("/api/v1/lead").json() == {"hatched": False, "lead": None}
+    assert researcher.get("/api/v1/lead").json() == {
+        "hatched": False,
+        "lead": None,
+        "pending_hatch": None,
+        "greeting": None,
+    }
     hatched = researcher.post("/api/v1/lead")
     assert hatched.status_code == 201
     lead = hatched.json()["lead"]
@@ -123,7 +137,12 @@ def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
     assert set(lead["files"]) == {"soul", "user"} and lead["files"]["user"] == ""
     again = researcher.post("/api/v1/lead")
     assert again.status_code == 409 and again.json()["code"] == "lead_already_hatched"
-    assert researcher.get("/api/v1/lead").json() == {"hatched": True, "lead": lead}
+    assert researcher.get("/api/v1/lead").json() == {
+        "hatched": True,
+        "lead": lead,
+        "pending_hatch": None,
+        "greeting": None,
+    }
     # Read-only: nothing over HTTP writes the files or the notes.
     assert researcher.put("/api/v1/lead", json={"name": "x"}).status_code == 405
     assert researcher.post("/api/v1/lead/memories", json={"text": "x"}).status_code == 404
@@ -131,7 +150,37 @@ def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
 
 def test_each_researcher_has_their_own_lead(researcher: TestClient, viewer: TestClient) -> None:
     _hatched(researcher)
-    assert viewer.get("/api/v1/lead").json() == {"hatched": False, "lead": None}
+    assert viewer.get("/api/v1/lead").json() == {
+        "hatched": False,
+        "lead": None,
+        "pending_hatch": None,
+        "greeting": None,
+    }
+
+
+_TRAITS = {"tone": "vecny", "answers": "strucne", "initiative": "ceka", "numbers": "vzdy_nejistota"}
+
+
+def test_hatching_by_the_model_is_refused_by_name_until_it_has_a_payer(
+    researcher: TestClient,
+) -> None:
+    """lead-identity LI1: no payer outside a client exists yet, so asking is refused before
+    anything is sent or kept, and no code writes the files instead."""
+    asked = researcher.post(
+        "/api/v1/lead/hatches", json={"name": "Ada", "traits": _TRAITS, "brief": "Věcně."}
+    )
+    assert asked.status_code == 409 and asked.json()["code"] == "lead_hatch_unavailable"
+    assert researcher.get("/api/v1/lead").json()["pending_hatch"] is None
+    wrong = researcher.post("/api/v1/lead/hatches", json={"name": "Ada", "traits": {}})
+    assert wrong.status_code == 422
+
+
+def test_accepting_or_discarding_a_hatch_needs_one_of_the_callers(
+    researcher: TestClient,
+) -> None:
+    for action in ("accept", "discard"):
+        r = researcher.post(f"/api/v1/lead/hatches/LHT-0000000000/{action}")
+        assert r.status_code == 409 and r.json()["code"] == "lead_hatch_not_pending"
 
 
 # --------------------------------------------------------------------------- the conversation
@@ -187,15 +236,27 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "workspace_revision",
         "created_at",
         "created_by",
+        # The prepared job's ceiling before the start (LO23): null on this turn.
+        "ceiling_usd",
         # The typed start a person's message named (LO5); null on a Lead turn.
         "command",
+        # What waits and what was answered (ADR 0041 decision 7).
+        "queued",
+        "withdrawn",
+        "answers",
+        # The client's sources a person's message carried to the Lead (LO18a).
+        "files",
     }
     assert lead["command"] is None
+    assert lead["answers"] == [person["turn_id"]] and person["queued"] is False
 
-    busy = researcher.post(
+    # While the Lead works a message waits, stored and shown in every tab.
+    waiting = researcher.post(
         f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Haló?"}
     )
-    assert busy.status_code == 409 and busy.json()["code"] == "lead_busy"
+    assert waiting.status_code == 201, waiting.text
+    (queued,) = waiting.json()["turns"]
+    assert (queued["actor"], queued["queued"]) == ("person", True)
     greeting = researcher.post(
         f"{lead_url(world)}/turns", json={"kind": "greeting", "stage": "brief"}
     )
@@ -203,7 +264,11 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
 
     state = researcher.get(lead_url(world)).json()
     assert (state["available"], state["unavailable_reason"], state["busy"]) == (True, None, True)
-    assert [t["turn_id"] for t in state["turns"]] == [person["turn_id"], lead["turn_id"]]
+    assert [t["turn_id"] for t in state["turns"]] == [
+        person["turn_id"],
+        lead["turn_id"],
+        queued["turn_id"],
+    ]
 
 
 def test_the_state_reads_the_reply_from_the_turns_step(
@@ -324,7 +389,10 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
     paths = {path for path in app.openapi()["paths"] if "/lead" in path}
     assert paths == {
         "/api/v1/studies/{study_id}/lead",
+        "/api/v1/studies/{study_id}/lead/files",
         "/api/v1/studies/{study_id}/lead/turns",
+        "/api/v1/studies/{study_id}/lead/turns/queued",
+        "/api/v1/studies/{study_id}/lead/turns/{turn_id}/withdraw",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/edits",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest/omitted",
@@ -332,6 +400,9 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/self-update",
         "/api/v1/lead",
         "/api/v1/lead/preferences",
+        "/api/v1/lead/hatches",
+        "/api/v1/lead/hatches/{hatch_id}/accept",
+        "/api/v1/lead/hatches/{hatch_id}/discard",
     }
 
 
@@ -635,6 +706,42 @@ def test_a_turns_manifest_is_its_researchers_alone(
     assert bad.status_code == 422
 
 
+def test_the_queue_is_the_researchers_bounded_and_answered_when_the_lead_is_free(
+    researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
+) -> None:
+    _hatched(researcher)
+    _save_content(app, world)
+    turns_url = f"{lead_url(world)}/turns"
+
+    def say(text: str) -> Any:
+        return researcher.post(turns_url, json={"kind": "message", "stage": "brief", "text": text})
+
+    assert say("První").status_code == 201
+    first, second = (say(t).json()["turns"][0] for t in ("Druhá", "Třetí"))
+    assert researcher.post(f"{turns_url}/queued").status_code == 200  # the Lead is at work
+    too_long = say("😀" * 4000)
+    assert too_long.status_code == 422 and too_long.json()["code"] == "message_too_long"
+    _hatched(viewer)
+    gone = viewer.post(f"{turns_url}/{second['turn_id']}/withdraw")
+    assert gone.status_code == 404 and gone.json()["code"] == "lead_turn_not_found"
+    withdrawn = researcher.post(f"{turns_url}/{second['turn_id']}/withdraw")
+    assert withdrawn.status_code == 200 and withdrawn.json()["turns"][0]["withdrawn"] is True
+    again = researcher.post(f"{turns_url}/{second['turn_id']}/withdraw")
+    assert again.status_code == 409 and again.json()["code"] == "lead_message_not_queued"
+    for i in range(4):
+        assert say(f"Další {i}").status_code == 201
+    full = say("Šestá")
+    assert full.status_code == 409 and full.json()["code"] == "lead_queue_full"
+
+    _complete(app, world, {"reply": "Hotovo."})
+    started = researcher.post(f"{turns_url}/queued")
+    assert started.status_code == 201, started.text
+    (turn,) = started.json()["turns"]
+    assert turn["actor"] == "lead" and turn["answers"][0] == first["turn_id"]
+    assert second["turn_id"] not in turn["answers"]
+    assert researcher.post(f"{turns_url}/queued").status_code == 200  # one turn, not two
+
+
 def test_the_generic_run_routes_never_serve_a_lead_turn(
     researcher: TestClient, reviewer: TestClient, world: Any, app: FastAPI
 ) -> None:
@@ -706,6 +813,42 @@ def test_the_generic_run_routes_never_serve_a_lead_turn(
     assert reviewer.get(lead_url(world)).json()["turns"] == []
 
 
+@pytest.mark.parametrize("switched_on", [False, True])
+def test_a_card_approved_questionnaire_job_reads_external_context_only_with_the_switch_on(
+    researcher: TestClient,
+    world: Any,
+    app: FastAPI,
+    monkeypatch: pytest.MonkeyPatch,
+    switched_on: bool,
+) -> None:
+    """artifact-questionnaire QST13: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT gives the job a Lead card
+    approves the store, as the stage's start and the typed command have it; off, none."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "build_questionnaire", "why": WHY},
+    }
+    turn_id = _turn(researcher, world, app, job)
+    if switched_on:
+        monkeypatch.setattr(
+            app.state,
+            "settings",
+            app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+        )
+    approved = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
+    assert approved.status_code == 200, approved.text
+    assert len(given) == (1 if switched_on else 0)
+    assert all(store is not None for store in given)
+
+
 def test_a_prepared_job_is_approved_under_the_spend_limit_once(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:
@@ -747,6 +890,7 @@ def _person_saves(app: FastAPI, world: Any, base_revision: int) -> int:
             _scope(app, world, session),
             content={**CONTENT, "title": "Přepsáno rukou"},
             base_revision=base_revision,
+            by=WriteBy(ActorKind.PERSON, _scope(app, world, session).actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -795,7 +939,10 @@ def test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on(
     def save_meanwhile(self: Any, confirm: float | None) -> Any:
         # Between the check and the submit, as another tab's save would land.
         StudyWorkspaceRepository(self.session).save(
-            self.scope, content={**CONTENT, "title": "Jinde"}, base_revision=1
+            self.scope,
+            content={**CONTENT, "title": "Jinde"},
+            base_revision=1,
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.UI),
         )
         return gate(self, confirm)
 
@@ -881,6 +1028,40 @@ def test_a_request_that_only_opens_a_stage_is_not_a_paid_request(
     turn_id = _turn(researcher, world, app, run)
     refused = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
     assert refused.status_code == 422 and refused.json()["code"] == "not_a_paid_request"
+
+
+def test_a_prepared_job_answers_its_ceiling_before_the_start_and_unknown_is_null(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """LO23 (spec lead/LP-4): a Lead card's agent job answers the most it can cost -- the
+    design job's reservation -- before anything starts; a run card answers none, and an
+    unset reservation answers null, never 0."""
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "build_questionnaire", "why": WHY},
+    }
+    job_turn = _turn(researcher, world, app, job)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "A běh?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _complete(
+        app, world, {"reply": "Můžeme spustit.", "request": {"kind": "research_run", "why": WHY}}
+    )
+    run_turn = str(posted.json()["turns"][-1]["turn_id"])
+    turns = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert turns[job_turn]["ceiling_usd"] == 2.0
+    assert turns[run_turn]["ceiling_usd"] is None
+    # A person's own message prepares nothing.
+    assert all(t["ceiling_usd"] is None for t in turns.values() if t["actor"] == "person")
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": None})
+    unknown = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert unknown[job_turn]["ceiling_usd"] is None
+    # A reservation of 0 is no price either: unknown, as analysis_ceiling_usd reads it, never
+    # "0,00 USD" on the card (stand-in review of #1014).
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": 0.0})
+    zero = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert zero[job_turn]["ceiling_usd"] is None
 
 
 def test_without_a_reservation_a_limited_study_does_not_start_the_job(
@@ -1008,7 +1189,9 @@ def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:
     """F4 and the product owner's Q39 (2026-10-21): the message that parked for lack of budget
-    is sent once a person sets the budget in Nastavení -> Studie, and the ledger names them."""
+    is sent once a person sets the budget in Nastavení -> Studie. F-LO-PARK-1 (Nigel,
+    2026-10-28, W1Q11): never on the context it froze when it parked; the parked turn is
+    released, its message waits again, and the pane's own ask sends it on the copy as it is."""
     budget_url = f"/api/v1/studies/{world.study_id()}/budget"
     assert researcher.put(budget_url, json={"budget_usd": 0.0}).status_code == 200
     _hatched(researcher)
@@ -1037,14 +1220,19 @@ def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
 
     assert researcher.put(budget_url, json={"budget_usd": 5.0}).status_code == 200
     lead = researcher.get(lead_url(world)).json()
-    assert lead["turns"][-1]["status"] == "QUEUED" and lead["busy"] is True
+    released = next(t for t in lead["turns"] if t["run_id"] == run_id)
+    assert (released["status"], released["reason"]) == ("CANCELLED", "lead_turn_released")
+    assert [t["queued"] for t in lead["turns"] if t["actor"] == "person"] == [True]
+    assert lead["busy"] is False
+    sent = researcher.post(f"{lead_url(world)}/turns/queued")
+    assert sent.status_code == 201, sent.text
+    (turn,) = sent.json()["turns"]
+    assert turn["status"] == "QUEUED" and turn["run_id"] != run_id
     with create_session_factory(app.state.engine)() as session:
         rows = session.scalars(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == run_id)
         ).all()
-        assert [(r.gate_type, r.decision, r.approver_user_id) for r in rows] == [
-            ("budget", "lift", world.users["researcher"])
-        ]
+        assert rows == []  # cancelled, never paid: nothing was lifted
 
 
 # --------------------------------------------------------------------------- the switch off (27b)
@@ -1215,6 +1403,113 @@ def test_a_worker_that_cannot_answer_is_reported_not_ready(
         None,
         None,
     )
+
+
+def _record_route(
+    app: FastAPI,
+    *,
+    classes: frozenset[DataClass],
+    retention: int | None = 0,
+) -> None:
+    """A worker start's composition, its AI route as ``ai_route_of`` would record it."""
+    route = ProviderRoute(
+        route_id="bedrock-eu-primary",
+        provider="aws_bedrock",
+        zone=ResidencyZone.EU,
+        eu_processing_approved=True,
+        excluded_from_training=True,
+        retention_days=retention,
+        approved_for=classes,
+    )
+    with create_session_factory(app.state.engine)() as session:
+        record_composition(
+            session,
+            worker="worker-1",
+            build_sha="abc1234",
+            composed_at=datetime.now(UTC),
+            agent_directed=False,
+            class_gates=None,
+            routes=[],
+            ai_route=AiRouteReach(
+                True, route, "eu-central-1", DataClassGates.ENFORCE, LeadComposition.CONFIGURED
+            ),
+        )
+        session.commit()
+
+
+def _readiness(client: TestClient, world: Any) -> tuple[Any, Any, Any]:
+    state = client.get(lead_url(world)).json()
+    return state["worker_ready"], state["worker_ready_source"], state["worker_reason"]
+
+
+def test_with_the_preflight_on_the_composition_names_the_route_refusal(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO12b: the newest worker start recorded a route approved for Class C alone, so every
+    Lead turn (Class B at least) would be refused; GET /lead says so before any turn is sent,
+    only with AIA_AI_ROUTE_PREFLIGHT_ENABLED."""
+    _hatched(researcher)
+    _record_route(app, classes=frozenset({DataClass.CLASS_C_INTERNAL}))
+    assert _readiness(researcher, world) == (None, None, None)
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": True})
+    assert _readiness(researcher, world) == (
+        False,
+        "composition",
+        "egress_route_not_approved_for_class",
+    )
+    # A newer start whose route carries Class B: ready from its record, with its time and build
+    # (Nigel, 2026-10-28, "Yes, with its time").
+    _record_route(
+        app,
+        classes=frozenset({DataClass.CLASS_B_DERIVED_CLIENT, DataClass.CLASS_C_INTERNAL}),
+    )
+    assert _readiness(researcher, world) == (True, "composition", None)
+    state = researcher.get(lead_url(world)).json()
+    assert state["worker_build"] == "abc1234" and state["worker_composed_at"] is not None
+    # Off again: never ready without a source, and no record's time.
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": False})
+    state = researcher.get(lead_url(world)).json()
+    assert (state["worker_ready"], state["worker_composed_at"]) == (None, None)
+
+
+def test_with_the_preflight_on_a_turn_refused_for_its_own_class_stays_its_own(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO12b: the route carries Class B, so the record refuses no turn; a turn refused for a
+    class its own material raised it to is that turn's reason, shown on the turn, never the
+    worker's readiness."""
+    _hatched(researcher)
+    _save_content(app, world)
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": True})
+    _record_route(
+        app, classes=frozenset({DataClass.CLASS_B_DERIVED_CLIENT, DataClass.CLASS_C_INTERNAL})
+    )
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _park(app, world, reason="egress_route_not_approved_for_class")
+    state = researcher.get(lead_url(world)).json()
+    assert state["turns"][-1]["reason"] == "egress_route_not_approved_for_class"
+    assert "decided_at" not in state["turns"][-1]
+    assert _readiness(researcher, world) == (True, "composition", None)
+
+
+def test_with_the_preflight_on_a_turn_parked_after_the_start_wins(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO12b: the newest start's record says ready, but a turn its worker parked afterwards for
+    the worker's composition is newer evidence: not ready, from the turn."""
+    _hatched(researcher)
+    _save_content(app, world)
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": True})
+    _record_route(app, classes=frozenset(DataClass))
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _park(app, world, reason="research_lead_unconfigured")
+    assert _readiness(researcher, world) == (False, "newest_turn", "research_lead_unconfigured")
 
 
 def test_a_turn_reads_external_context_only_with_the_analysis_switch_on(

@@ -16,14 +16,14 @@ from __future__ import annotations
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..domain.scope import ClientWorkContext, Permission, ScopeDenied
 from .tables import ClientWorkJournalRow
 
-__all__ = ["ClientWorkJournal"]
+__all__ = ["ClientWorkJournal", "erase_client_work_journal"]
 
 
 class ClientWorkJournal:
@@ -71,3 +71,9 @@ class ClientWorkJournal:
                 ClientWorkJournalRow.request_key == request_key,
             )
         )
+
+
+def erase_client_work_journal(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's work journal: what its paid requests answered (SB5)."""
+    session.execute(delete(ClientWorkJournalRow).where(ClientWorkJournalRow.client_id == client_id))
+    session.flush()

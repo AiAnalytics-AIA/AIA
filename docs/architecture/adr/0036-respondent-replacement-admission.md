@@ -1,6 +1,6 @@
 # ADR 0036 — Replacing respondents is a new linked run: the original stays as it is, an exclusion is pinned, kept answers are reused by hash; the weighting awaits the methodology owner
 
-**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (a), now that MQ-15 is answered; relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
 owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The replacement
 method (decision 5) is awaiting the methodology owner** (MVPQ-10) and is not chosen here. The
 admission rule [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires
@@ -9,6 +9,29 @@ before any command reaches *respondent replacement*. **Builds on** [ADR 0016](00
 [ADR 0019](0019-two-roles-and-human-ai-gates.md) gates 1 and 2, and
 [ADR 0028](0028-orchestration-scope-wallet-and-plan-card.md) (the typed start). **Leaves unchanged**
 the original run, its dataset, its results and its report.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
+**Decision notes, 2026-10-26** (the product owner, Decision Review, relayed by the PM coordinator;
+answered in part, the status unchanged, the rest the methodology owner's):
+
+- **0036-Q4 (a): "By row".** Decision 4's exclusion is by the population row each original
+  respondent was drawn from, not by donor: a substitute may share a donor with a kept respondent, and
+  support still counts unique donors (ADR 0024 §5).
+- **0036-Q5 (a): "Refuse when off".** A replacement refuses to start while
+  `AIA_AI_FIELDWORK_CHECKPOINT` is off, so decision 3's per-respondent journaling holds and a retried
+  replacement never pays twice for its substitutes (OI-64); develop turns the switch on to test it.
+- **0036-Q6 (a): "Within the original's quota cells, not as an independent representative
+  sample".** Substitutes are drawn inside the original run's quota cells (a sampler mode MQ-15a's
+  method defines), never as a fresh representative draw of the substitutes alone, which the stdlib
+  quota path refuses for small n (OI-99).
+- **MQ-15c (a): "Report Kish n of run 2, beside run 1's".** Decision 6 reports both runs' Kish
+  effective n side by side.
+
+Still open: 0036-Q7, 0036-Q8, MQ-15a, MQ-15b and the verdict, all left for the methodology owner. On 0036-Q7 (may a fictional-roster run be replaced) the product owner said, 26 Oct: "i want to ensure AIA is producing methodologically relevant data, i dont know what the best decision is here"; it is on the methodology owner's page as ADR-0036-Q7, (a) recommended.
+
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answer D-36
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
 **Plan:** [run-qc-and-checkpoint](../../../.planning/plans/run-qc-and-checkpoint.md) RQC4, RQC4a, RQC5
@@ -106,3 +129,20 @@ and its executable behaviour once MVPQ-10 is answered.
 
 1. **MVPQ-10, the method**, is the methodology owner's (A. Bahbouh).
 2. ~~Which run a report reads by default.~~ The newer, naming both (D-36, a), as written.
+
+## Amendment, 2026-10-29
+
+Accepted on the methodology owner's verdict (a), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2, with both amendments:
+
+- **The draw:** a substitute comes from a sampler exclusion or a cell-bound draw (OI-99).
+- **A refusal when the fieldwork checkpoint is off** (`AIA_AI_FIELDWORK_CHECKPOINT`): no replacement run
+  starts without it.
+
+**Decision 5, the method (MQ-15 (b), 2026-10-28):** the other weights are kept; each replacement takes
+the weight of the one it replaces; no silent renormalisation. Refused when the cell has no unused
+donors, or when more than **10 %** of the run would be replaced (a proposed default, awaiting
+sign-off).
+
+- **Q7 (a):** no replacement on fictional-roster runs; panel runs only, and a fictional run says so.
+- **Q8 (a):** a replacement run may itself be replaced. Each names its predecessor, and the 10 % cap
+  counts cumulatively against the original run.

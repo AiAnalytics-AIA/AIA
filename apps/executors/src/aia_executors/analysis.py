@@ -72,6 +72,7 @@ from aia_core.domain.analysis.artifact import (
     CallRecord,
     ProducedBy,
     TurnArtifact,
+    no_supported_finding,
     parse_module_artifact,
     parse_turn_artifact,
     turn_fingerprint,
@@ -221,7 +222,7 @@ class AnalysisConfig:
 
 def _request_bytes(request: ModelRequest) -> int:
     """An upper bound on a request's input tokens: its UTF-8 bytes, contract included."""
-    parts = [request.system, *(m.content for m in request.messages)]
+    parts = [request.system, *(m.text for m in request.messages)]
     parts.append(canonical_json(request.agent.schema or {}))
     return sum(len(p.encode("utf-8")) for p in parts)
 
@@ -591,6 +592,8 @@ class AnalysisModuleExecutor:
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
+            # Analysis keeps its refused answer in its own turn artifact (the owner's choice).
+            refused_answers=None,
         )
         turns = _Turns(
             executor=self,
@@ -755,6 +758,10 @@ class AnalysisModuleExecutor:
         if analysis_round and record.outcome == "BLOCKED" and record.attempts > 0:
             # A person asked for this module again: a model's refusal is not reused.
             # The preflight's (no turn taken) is code's, and stays.
+            return None
+        if step.payload.get("analysis_retried") is True and no_supported_finding(record):
+            # Nor an answer with no supported finding, where the person asked this module
+            # again (MVPQ-04, evidence-integrity 9a); any other module keeps its outcome.
             return None
         return self._succeeded(found, record.outcome, prepared, reused=True, sent=0, replayed=0)
 

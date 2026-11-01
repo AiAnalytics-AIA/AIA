@@ -7,6 +7,8 @@ runtime. The live search routes are fee-free Czech/English Wikipedia and priced 
 archive beside them (`AIA_DEEP_RESEARCH_COMMON_CRAWL`); a priced route runs only once its
 organization has signed off (§ 9, ADR 0022), and nothing turns Brave on until its SSM keys are
 set (DR-2). Everything else runs on recorded exchanges. The engine is frozen after #166 (ADR 0021).
+What a deployment actually reaches is not listed here by hand: Settings → Deep Research → Dosah
+states it from the worker's own composition (§ 9, *Reach*).
 Decision records: [ADR 0017](adr/0017-deep-research-external-retrieval.md) (*Proposed*,
 amended 2026-09-27) for retrieval, grounding and evidence; [ADR 0021](adr/0021-deep-research-purpose-target-lineage.md)
 for the two purposes, the typed target and the frozen lineage. Plan and chunk state:
@@ -448,6 +450,33 @@ same reason before anything is asked. The recorded exchange file's format is in
 `deep_research_recorded.py`; its SHA256 is in the adapter ids, so a changed recording changes
 every web track's fingerprint.
 
+**A setting version's states** (#841). Every proposed version is immutable and reads one state,
+derived from the append-only logs, never stored on the version: `IN_FORCE`, `APPROVED_BEFORE` (once
+in force, since replaced), `PENDING` (never approved, never turned down), `WITHDRAWN` (its proposer
+took it back) or `DECLINED` (another administrator turned it down)
+(`infrastructure/deep_research_settings_repository.py:104 @ 5d5ed250`, `VersionState`). A pending
+proposal is withdrawn or declined with a reason through
+`POST /api/v1/deep-research/settings/{key}/versions/{n}/withdrawal`
+(`apps/api/src/aia_api/routers/deep_research_settings.py:346 @ 5d5ed250`): once per version,
+appended to `deep_research_setting_declines` and audited (`DR_SETTING_PROPOSAL_WITHDRAWN` /
+`…_DECLINED`); a version that is or was in force is no longer a proposal and is refused
+`version_not_pending` (`deep_research_settings_repository.py:748 @ 5d5ed250`, `decline`). A
+withdrawn or declined version is never approved afterwards (`version_declined`,
+`deep_research_settings_repository.py:716 @ 5d5ed250`): to put that value in force, propose it
+again, as a new version.
+
+**Reach** (deep-research-web-search 52, #844). Which routes, connectors, archives and Common Crawl a
+deployment composes is stated by code, not by this document: at each start the worker's
+`build_registry` records its composition (`aia_executors/deep_research_reach.py:107 @ 5d5ed250`,
+`reach_of`; `registry.py:166 @ 5d5ed250`, `record_reach`) into `deep_research_compositions`, and
+`GET /api/v1/settings/deep-research/reach[?data_class=A|B|C]`
+(`apps/api/src/aia_api/routers/deep_research_reach.py:72 @ 5d5ed250`) answers every route the code
+builds as `waiting` (a priced route whose live settings the organization has not all approved),
+`active`, `refused` or `built` (in the code, not composed, with the switch that decides it). Read it
+on Settings → Deep Research → Dosah. With no record the answer is `recorded: false`: nothing is
+presumed reachable. The record is the newest worker's; workers that disagree mid-restart show the
+newest one.
+
 ## 10. What the integrator registers (Job 6)
 
 Items 1–3 are done: `DeepResearchRuns.start` is the entry point (`start_interpretation`
@@ -518,7 +547,7 @@ Before any live search or fetch, each of these needs an owner's decision (none i
 
 | Id | Decision | Effect until made |
 |---|---|---|
-| DR-2 | A search provider and route per data class, with terms covering stored excerpts | No search provider is composed: Czech Wikipedia (Class C) is the only live route; everything else replays recordings |
+| DR-2 | A search provider and route per data class, with terms covering stored excerpts | Every live route the composition builds is approved for Class C alone (`apps/executors/src/aia_executors/deep_research_live.py:28-30 @ 5d5ed250`) and, under enforced class gates, refuses any other class before it leaves; under advisory gates (develop) Brave's search alone takes any class (`deep_research_live.py:233`, `application/web_retrieval.py:651-673 @ 1fed2969`), and every other route is still refused by residency. Which routes a deployment composes is on Settings → Deep Research → Dosah (§ 9, *Reach*) |
 | DR-2b | May a code-built digest of a client's design (questions, object names) travel as Class B? | Queries from a real client's design are Class A and never leave |
 | DR-5 | Depth presets and default run budget | A run must name a proposed preset |
 | D6 | A model route for Class A/B | Internal tracks, and any real client's tracks, are refused before any call |

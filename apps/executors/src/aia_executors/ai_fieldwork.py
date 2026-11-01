@@ -20,6 +20,7 @@ fact, or retry anything on its own.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from time import monotonic
@@ -61,10 +62,13 @@ from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
 from aia_core.domain.fieldwork_events import (
     HEARTBEAT_SECONDS,
+    PROGRESS_EVERY,
     FieldworkEvent,
     progress,
     progress_due,
+    respondent_cells,
 )
+from aia_core.domain.fieldwork_events import sample as sample_event
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.material_rules import MaterialRule, classify_by_rule
 from aia_core.domain.methodology.pins import is_units_process, read_response_pin
@@ -80,13 +84,14 @@ from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
 from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
 from aia_core.domain.population.errors import PopulationError
 from aia_core.domain.population.runtime import RuntimePopulation
-from aia_core.domain.population.sampling import SamplingRefused
+from aia_core.domain.population.sampling import PanelSample, SamplingRefused
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.residency import DataClass
 from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION, ResponseProcessSpec
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
+from aia_core.infrastructure.artifact_repository import ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.fieldwork_journal import FieldworkJournal
 from aia_core.infrastructure.population_source import PopulationAssetSource
@@ -153,7 +158,7 @@ class AIFieldworkConfig:
     max_output_tokens: int
     #: Legacy configuration retained for compatibility; it grants no classification.
     fictional_client_ids: frozenset[str]
-    progress_every: int = 10
+    progress_every: int = PROGRESS_EVERY
     material_approvals: tuple[MaterialApproval, ...] = ()
     #: ``AIA_AI_SCALE_LABELS_IN_PROMPT`` (off by default): a scale question's verbal labels in
     #: its item, in the provisional wording the methodology owner signs before it is switched
@@ -173,6 +178,11 @@ class AIFieldworkConfig:
     #: without one, so slow answering never reads as a stalled step. At most two lease-fenced
     #: feed writes a minute, so it is a switch (CLAUDE.md § 8).
     heartbeat: bool = False
+    #: ``AIA_AI_FIELDWORK_QUOTA_FILL`` (off by default, run-qc-and-checkpoint RQC7b): a
+    #: panel run's ``fieldwork_sample`` before its first respondent, and each ``fieldwork_progress``
+    #: counting the respondents answered per cell since the last, so Průběh fills each quota cell.
+    #: One more feed write per attempt and a larger progress payload, so it is a switch (§ 8).
+    quota_fill: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,7 +227,7 @@ def request_key(request: ModelRequest, binding: str) -> str:
             "class": request.data_classification.value if request.data_classification else None,
             "max_output_tokens": request.max_output_tokens,
             "system": request.system,
-            "messages": [[m.role, m.content] for m in request.messages],
+            "messages": [[m.role, m.text] for m in request.messages],
         }
     )
 
@@ -287,6 +297,8 @@ class AIFieldwork:
         require_binding: str | None = None,
         scale_labels_in_prompt: bool | None = None,
         journal: _RunJournal | None = None,
+        quota: PanelSample | None = None,
+        refused_answers: Callable[[Session], ArtifactRepository] | None = None,
     ) -> Answered | Failed:
         """Ask the model every block of every plan and draw the answers by code.
 
@@ -304,6 +316,11 @@ class AIFieldwork:
 
         ``journal`` keeps each answered block and replays a kept one instead of sending it again
         (RQC0). A replayed block's call record says so and costs this attempt nothing.
+
+        ``quota`` is a panel run's sample, whose respondents the plans are, in order (RQC7b): with
+        the composition's ``quota_fill`` on, its cells are written once the preflight
+        passed and each ``fieldwork_progress`` counts the respondents answered in each cell since
+        the last. Without it (the roster, a validation's arms) no cell is written or counted.
         """
         cfg = self._config
         labelled = (
@@ -318,7 +335,12 @@ class AIFieldwork:
             runtime_version=self._build.sha or "",
             provider=cfg.provider,
             reservation_usd=cfg.reservation_usd,
+            refused_answers=refused_answers,
         )
+
+        # Whether the resolved model takes a sampling setting; read from its profile once the
+        # preflight resolved it. The preflight's own request resolves and sends nothing.
+        sampling = True
 
         def request_for(index: int, block_index: int, answers: dict[str, Answer]) -> Any:
             plan = plans[index]
@@ -333,6 +355,7 @@ class AIFieldwork:
                 max_output_tokens=cfg.max_output_tokens,
                 response=response,
                 scale_labels_in_prompt=labelled,
+                sampling=sampling,
             )
 
         first = next((i for i, p in enumerate(plans) if p.blocks), None)
@@ -351,6 +374,7 @@ class AIFieldwork:
                         "source": "ai_runtime",
                     },
                 )
+            sampling = resolution.request_profile.accepts_sampling
             resolved = self.binding(resolution)
             if require_binding is not None and resolved != require_binding:
                 # The respondent system is not the one asked for: a different system's answers
@@ -369,19 +393,34 @@ class AIFieldwork:
                 )
 
         binding = self.binding(resolution) if resolution is not None else ""
+        # A panel run's cells, once nothing refused it: a park writes none (RQC7b).
+        # Counted only when the cells were written: a sample without quota fields counts none.
+        event = sample_event(quota) if quota is not None and cfg.quota_fill else None
+        cells = respondent_cells(quota) if quota is not None and event is not None else None
+        if event is not None:
+            context.progress(FieldworkEvent.SAMPLE, **event)
         kept = journal.kept() if journal is not None else {}
         calls: list[dict[str, Any]] = []
         rows: list[tuple[Any, dict[str, Answer]]] = []
         details: list[dict[str, dict[str, Any]]] = []
         sent = replayed = 0
         last_report = monotonic()
+        # Respondents answered in each cell since the last report, carried by it (RQC7b).
+        filled: Counter[str] = Counter()
 
         def report(done: int) -> None:
             nonlocal last_report
             context.progress(
                 FieldworkEvent.PROGRESS,
-                **progress(respondents=done, of=len(plans), sent=sent, replayed=replayed),
+                **progress(
+                    respondents=done,
+                    of=len(plans),
+                    sent=sent,
+                    replayed=replayed,
+                    cells=None if cells is None else filled,
+                ),
             )
+            filled.clear()
             last_report = monotonic()
 
         for index, plan in enumerate(plans):
@@ -470,6 +509,8 @@ class AIFieldwork:
             rows.append((plan.persona, answers))
             details.append(detail)
             done = index + 1
+            if cells is not None and (cell := cells[index]) is not None:
+                filled[cell] += 1
             idle = monotonic() - last_report if cfg.heartbeat else 0.0
             if progress_due(
                 respondents=done, of=len(plans), idle_seconds=idle, every=cfg.progress_every
@@ -485,8 +526,15 @@ class AIFieldwork:
         )
 
     def binding(self, resolution: Any) -> str:
-        """The provider, model and route a preflight resolved, as a respondent system names it."""
-        return f"{self._config.provider.value}/{resolution.model}/{resolution.route_id}"
+        """The provider, model and route a preflight resolved, as a respondent system names it.
+
+        A model whose request profile is not the default one is named with it
+        (``RequestProfile.tag``): a respondent asked without a temperature, through an offered
+        tool or at another effort answers differently, so the system it names is another one.
+        The default profile adds nothing, so a binding recorded before profiles is unchanged."""
+        named = f"{self._config.provider.value}/{resolution.model}/{resolution.route_id}"
+        tag = resolution.request_profile.tag()
+        return f"{named}#{tag}" if tag else named
 
     def material(self, value: Any) -> Any:
         """``value``'s classification under the operator's content-bound approvals; unknown is
@@ -494,7 +542,12 @@ class AIFieldwork:
         return classify_input(value, self._config.material_approvals)
 
     def produce(
-        self, spec: ResearchSpecification, step: StepInput, context: StepContext
+        self,
+        spec: ResearchSpecification,
+        step: StepInput,
+        context: StepContext,
+        *,
+        refused_answers: Callable[[Session], ArtifactRepository] | None = None,
     ) -> ProducedDataset | Failed:
         cfg = self._config
         try:
@@ -612,6 +665,8 @@ class AIFieldwork:
             data_class=data_class,
             lineage=lineage,
             journal=_RunJournal(context, run_lineage) if run_lineage is not None else None,
+            quota=built.sample if built is not None else None,
+            refused_answers=refused_answers,
         )
         if isinstance(answered, Failed):
             return answered

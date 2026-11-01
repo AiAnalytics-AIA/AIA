@@ -8,19 +8,23 @@
 // An editable module also shows its versions and, for an administrator, the editor
 // (MethodologyVersions.tsx).
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { t } from "@/i18n/t";
-import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
-import { groupSteps, showValue, stepNumbers, stepOrigin } from "@/lib/methodology";
-import { Button, Tag, TextInput } from "../../rehome/ui";
+import { t, tv } from "@/i18n/t";
+import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, type MethodValue, type MethodVersions, methodology } from "@/lib/api";
+import { readPath } from "@/lib/methodology-edit";
+import { type GroupedSteps, groupSteps, isParameter, methodologyCount, showValue, stageNumbers, stepNumbers, stepOrigin } from "@/lib/methodology";
+import { Tag } from "../../rehome/ui";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
-import { useResource } from "../useResource";
+import { type Resource, useResource } from "../useResource";
 import { FieldOriginPanel } from "./FieldOriginPanel";
 import { Formula } from "./MethodologyFormula";
 import { StepContext } from "./MethodologyContext";
 import { MethodologyVersions, type People } from "./MethodologyVersions";
+import { ModuleArt, accentOf } from "./MethodologyArt";
+import { CHIP, RegisterChip } from "./MethodologyRegister";
 
 const M = "aia.settings.methodology";
 const WORDS = { absent: t(`${M}.absent`), none: t(`${M}.none`), yes: t(`${M}.yes`), no: t(`${M}.no`) };
@@ -42,136 +46,329 @@ const FIELD_ORIGIN: Area = {
   note_cs: "Co rozhoduje, k čemu smí posloužit každé pole populace: jeho původ, věta o použití ve slovníku a kvalita.",
   editable: false,
 };
-const PURPOSE_GROUPS = [
-  { title: "Před spuštěním", ids: ["readiness"] },
-  { title: "Mapy objektů", ids: ["sociomap", "sociomap_reference", "sociomapping"] },
-  { title: "Čísla ve výsledcích", ids: ["aggregation", "support"] },
-  { title: "Respondenti a váhy", ids: ["response", "weighting"] },
-  { title: "Populace a tvrzení", ids: ["field_origin"] },
-] as const;
+/** The order the cards stand in, the prototype's (v54): the map first (full width), then what a
+ *  number may show, how it is estimated and weighted, how a respondent's answer is drawn, and the
+ *  check before a run; the population last. No categories (the product owner, 2026-10-21: too few
+ *  to filter). */
+const ORDER = ["sociomap", "support", "aggregation", "weighting", "response", "readiness", "field_origin"];
+/**
+ * What the MVP does not list (D-13): the experimental Sociomapping (H-Model) and the 18.6.6
+ * reference map are hidden; their pages stay readable by URL nowhere here, and the API still
+ * serves them for the record.
+ */
+const HIDDEN_MODULES = new Set(["sociomap_reference", "sociomapping"]);
+/** D-13: the MVP ships aia-sociomap-5 only. Earlier presets are not offered, unless one is in force. */
+function presetsShown(summary: Pick<MethodModuleSummary, "id" | "presets" | "in_force">): string[] {
+  if (summary.id !== "sociomap") return summary.presets;
+  const base = (p: string) => p.split("+")[0];
+  return summary.presets.filter((p) => base(p) === "aia-sociomap-5" || p === summary.in_force);
+}
 
 export function MethodologyPanel({ people = anyone }: { people?: People }) {
   const [res, retry] = useResource(loadList, []);
   return <Loaded res={res} retry={retry}>{(modules) => <Modules modules={modules} people={people} />}</Loaded>;
 }
 
+const BACK = "\u0000back";
+
 function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: People }) {
-  const [active, setActive] = useState(modules[0]?.id ?? null);
-  const [query, setQuery] = useState("");
+  // The tab opens on the catalogue (prototype v51, fidelity F4); a card opens its module.
+  const [active, setActive] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
-  // The methodologists open on the editor of the area they last worked on; the chooser is a step away.
-  const [chooserOpen, setChooserOpen] = useState(false);
-  // Only unsaved changes make switching areas a decision; an open, untouched editor does not.
+  // Only unsaved changes make leaving a module a decision; an open, untouched editor does not.
   const onDirty = useCallback((value: boolean) => setEditing(value), []);
-  // Which area's editor is open: there the editor speaks for itself.
-  const [openFor, setOpenFor] = useState<string | null>(null);
-  const areas: Area[] = [...modules, FIELD_ORIGIN];
+  const areas: Area[] = [...modules.filter((m) => !HIDDEN_MODULES.has(m.id)), FIELD_ORIGIN];
   const current = areas.find((m) => m.id === active) ?? null;
-  const visible = areas.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
-  const groups: { title: string; modules: Area[] }[] = PURPOSE_GROUPS.map((group) => ({ title: group.title, modules: group.ids.map((id) => visible.find((module) => module.id === id)).filter((module): module is Area => module !== undefined) }));
-  const additional = visible.filter((module) => !PURPOSE_GROUPS.some((group) => (group.ids as readonly string[]).includes(module.id)));
-  if (additional.length) groups.push({ title: "Další výpočty", modules: additional });
-  return <div className="flex min-w-0 flex-col gap-4">
-    {current ? (
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="text-xl font-semibold leading-7">{current.title_cs}</h3>
-        <Button small variant="quiet" aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>{chooserOpen ? "Skrýt výběr" : "Změnit oblast"}</Button>
-        {/* A read-only area says why and what it is; an editable one lets the editor speak. */}
-        {openFor === current.id ? null : <p className="basis-full max-w-3xl text-sm leading-6 text-ink-muted">{current.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${current.note_cs ? ` ${current.note_cs}` : ""}`}</p>}
-      </header>
-    ) : <Button className="self-start" aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>Změnit oblast</Button>}
-    {chooserOpen ? <div id="methodology-module-chooser" className="flex flex-col gap-3">
-      <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-3 md:grid-cols-2">
-        {groups.filter((group) => group.modules.length).map((group) => <div key={group.title} role="group" aria-label={group.title} className="rounded-md border border-border bg-surface-raised p-3">
-          <h3 className="mb-2 font-mono text-xs font-semibold uppercase tracking-wide text-ink-muted">{group.title}</h3>
-          <div className="flex flex-col gap-2">{group.modules.map((m) => <button key={m.id} type="button" aria-label={m.title_cs} aria-pressed={m.id === active} onClick={() => {
-            if (m.id === active) { setChooserOpen(false); return; }
-            if (editing) setPending(m.id); else { setActive(m.id); setChooserOpen(false); }
-          }} className={`min-h-11 w-full rounded-md border p-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${m.id === active ? "border-signal-edge bg-signal-wash" : "border-border bg-surface hover:border-border-strong"}`}>
-            <span className="flex flex-wrap items-center justify-between gap-2"><strong>{m.title_cs}</strong><Tag>{m.editable ? "Upravitelné" : "Jen ke čtení"}</Tag></span>
-            {m.note_cs ? <span className="mt-1 block line-clamp-2 text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
-          </button>)}</div>
-        </div>)}
-      </nav>
-    </div> : null}
-    {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
-    {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => { setPending(null); setChooserOpen(false); }} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); setChooserOpen(false); }} /> : null}
-    {current?.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
-    {current && current.id !== FIELD_ORIGIN.id ? <ModuleView key={current.id} summary={modules.find((m) => m.id === current.id) as MethodModuleSummary} people={people} onDirty={onDirty} onOpen={(open) => setOpenFor(open ? current.id : null)} /> : null}
-  </div>;
-}
-
-function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void }) {
-  const [preset, setPreset] = useState(summary.in_force ?? undefined);
-  const [editing, setEditing] = useState(false);
-  const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
-  return <div className="flex min-w-0 flex-col gap-4">
-    {summary.editable ? <MethodologyVersions summary={summary} people={people} onEditing={(open) => { setEditing(open); onOpen(open); }} onDirty={onDirty} /> : null}
-    <div hidden={editing} className="flex min-w-0 flex-col gap-4">
-      <div className="rounded-md border border-border p-3">
-        <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
-        <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
-        {summary.presets.length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
-          {summary.presets.map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
-            {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
-          </button>)}
-        </div> : null}
+  const rank = (id: string) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
+  const cards = [...areas].sort((a, b) => rank(a.id) - rank(b.id));
+  const summaryOf = (id: string) => modules.find((m) => m.id === id);
+  const go = (id: string | null) => { if (editing) setPending(id ?? BACK); else setActive(id); };
+  const confirm = pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => setPending(null)} onConfirm={() => { setActive(pending === BACK ? null : pending); setPending(null); setEditing(false); }} /> : null;
+  if (!current) {
+    return <div className="flex min-w-0 flex-col gap-4">
+      <p data-mvp-note className="max-w-4xl rounded-md border border-signal-edge bg-signal-tint px-4 py-3 text-sm leading-6">{t(`${M}.mvpNote`)}</p>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-base font-semibold">{t(`${M}.catalogue`)}</h2>
+        <span className="text-xs text-ink-muted">{tv(`${M}.catalogueCount`, { n: cards.length })}</span>
       </div>
-      <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
-    </div>
+      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))]">
+        {cards.map((m) => <ModuleCard key={m.id} area={m} summary={summaryOf(m.id)} onOpen={() => go(m.id)} />)}
+      </nav>
+    </div>;
+  }
+  const summary = summaryOf(current.id);
+  return <div className="flex min-w-0 flex-col gap-4">
+    <button type="button" data-methodology-back onClick={() => go(null)} className="inline-flex min-h-8 items-center gap-1.5 self-start rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
+      <span aria-hidden="true">←</span>{t(`${M}.back`)}
+    </button>
+    {confirm}
+    <ModulePage key={current.id} area={current} summary={summary} people={people} onDirty={onDirty} />
   </div>;
 }
 
-function Steps({ detail }: { detail: MethodModuleDetail }) {
+/** An open module: its head and its parts, over one read of its versions -- the head's chips and the
+ *  versions' tabs read the same answer, and an activation's reload moves both (review of #873). */
+function ModulePage({ area, summary, people, onDirty }: { area: Area; summary: MethodModuleSummary | undefined; people: People; onDirty: (value: boolean) => void }) {
+  const versions = useModuleFacts(summary);
+  return <>
+    <header data-module-header className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0 max-w-[720px]">
+        <h2 className="font-serif text-xl font-semibold leading-7">{nameOf(area)}</h2>
+        <p className="mt-1.5 text-sm leading-6 text-ink-muted">{oneLine(area)}</p>
+        {/* Who changes it, and for a read-only module the API's own note on what it is. */}
+        <p data-module-note className="mt-1 text-xs leading-5 text-ink-faint">{area.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${area.note_cs ? ` ${area.note_cs}` : ""}`}</p>
+      </div>
+      {summary ? <ModuleChips summary={summary} res={versions.res} /> : null}
+    </header>
+    {area.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
+    {area.id !== FIELD_ORIGIN.id && summary ? <ModuleView summary={summary} people={people} onDirty={onDirty} onOpen={noop} versions={versions} /> : null}
+  </>;
+}
+
+const noop = () => {};
+
+/** A module's name as the catalogue and its head say it (prototype v54: "Sociomapa", "Práh
+ *  zobrazení"…); the API's title, which says what the module computes, else. */
+function nameOf(area: Area): string {
+  const key = `${M}.name.${area.id}`;
+  const name = t(key);
+  return name === key ? area.title_cs : name;
+}
+
+/** A module's one line, as the catalogue and the module's head say it; the API's note else. */
+function oneLine(area: Area): string {
+  const key = `${M}.oneLine.${area.id}`;
+  const line = t(key);
+  return line === key ? area.note_cs : line;
+}
+
+/** What a module's versions say about it: what is in force, the register's word on it, and whether
+ *  you may edit it. A read-only module has no versions to read; an unread answer is said, never
+ *  presumed (review of #852). */
+function useModuleFacts(summary: MethodModuleSummary | undefined): ModuleVersions {
+  const editable = summary?.editable ?? false;
+  const [res, reload] = useResource(() => (summary && editable ? methodology.versions(summary.id) : Promise.resolve(null)), [summary?.id, editable]);
+  return { res, reload, editable };
+}
+type ModuleVersions = { res: Resource<MethodVersions | null>; reload: () => void; editable: boolean };
+
+function ModuleChips({ summary, res }: { summary: MethodModuleSummary; res: Resource<MethodVersions | null> }) {
+  const editable = summary.editable;
+  const name = !editable ? summary.in_force : res.state === "ready" && res.data ? res.data.in_force.name : null;
+  return <div data-module-chips className="flex flex-wrap items-center gap-1.5">
+    {name ? <span data-in-force-chip className={`${CHIP} border-in-force bg-in-force-wash font-mono font-medium text-ink`}><span aria-hidden="true" className="size-1.5 rounded-full bg-in-force" />{tv(`${M}.inForceChip`, { name })}</span> : null}
+    {summary.id === "sociomap" ? <RegisterChip head status={res.state === "ready" ? res.data?.in_force.register_status : res.state === "loading" ? undefined : null} /> : null}
+    <span className={`${CHIP} border-border text-ink-muted`}>{tv(`${M}.stepsChip`, { steps: methodologyCount(summary.steps, "step"), groups: methodologyCount(summary.groups.length, "stageIn") })}</span>
+  </div>;
+}
+
+function ModuleCard({ area, summary, onOpen }: { area: Area; summary: MethodModuleSummary | undefined; onOpen: () => void }) {
+  const { res } = useModuleFacts(summary);
+  const versions = res.state === "ready" ? res.data : null;
+  const unread = res.state !== "loading" && res.state !== "ready";
+  const wide = area.id === "sociomap";
+  return <button type="button" data-module-card={area.id} aria-label={nameOf(area)} onClick={onOpen} style={{ borderTopColor: `var(--${accentOf(area.id)})` }}
+    className={`group flex min-w-0 flex-col overflow-hidden rounded-md border border-t-4 border-border bg-surface-raised text-left text-sm transition-transform duration-[var(--duration-confirm)] hover:-translate-y-0.5 hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring motion-reduce:transform-none ${wide ? "col-span-full" : ""}`}>
+    <span className={`block ${wide ? "h-28" : "h-24"} border-b border-border bg-surface`}><ModuleArt id={area.id} /></span>
+    <span className="flex flex-col gap-1.5 p-4">
+      <span className="flex items-baseline justify-between gap-2"><strong className="text-[15px] font-semibold">{nameOf(area)}</strong><span aria-hidden="true" style={{ color: `var(--${accentOf(area.id)})` }}>→</span></span>
+      <span data-module-line className="block text-[13px] leading-[19px] text-ink-muted">{oneLine(area)}</span>
+      <dl data-module-facts className="mt-1.5 grid grid-cols-[110px_1fr] gap-y-1.5 border-t border-border pt-2.5 text-xs">
+        {summary ? <>
+          <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono"><InForceFact summary={summary} res={res} /></dd>
+          {area.id === "sociomap" ? <><dt className="text-ink-faint">{t(`${M}.facts.forClients`)}</dt><dd><RegisterChip status={versions ? versions.in_force.register_status : unread ? null : undefined} /></dd></> : null}
+          <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: methodologyCount(summary.steps, "step"), groups: methodologyCount(summary.groups.length, "stage") })}</dd>
+        </> : null}
+        <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt>
+        <dd>{!area.editable ? t(`${M}.facts.readOnly`) : versions ? t(`${M}.facts.${versions.may_edit ? "youEdit" : "metodikEdits"}`) : unread ? t(`${M}.facts.unknown`) : "…"}</dd>
+      </dl>
+    </span>
+  </button>;
+}
+
+/**
+ * What is in force for the organization: an editable module's activation, read from its versions
+ * (summary.in_force is only the code's preset); until read, "…", and unread, "nezjištěno". A
+ * read-only module has no activations: its code preset, said as such (review of #852).
+ */
+function InForceFact({ summary, res }: { summary: MethodModuleSummary; res: Resource<MethodVersions | null> }) {
+  if (!summary.editable) return <>{summary.in_force ? `${summary.in_force} · ${t(`${M}.codeDefault`)}` : t(`${M}.facts.fromCode`)}</>;
+  if (res.state === "loading") return <>…</>;
+  if (res.state !== "ready" || !res.data) return <span data-current-unknown>{t(`${M}.facts.unknown`)}</span>;
+  const f = res.data.in_force;
+  return <span data-current-name>{f.origin === "stored" ? f.name : `${f.name} · ${t(`${M}.codeDefault`)}`}</span>;
+}
+
+/** A version the organization stored and put in force: the steps below show the code's preset,
+ *  and a parameter this version changes is shown with its value in force beside it. */
+type LiveVersion = { name: string; base: string; spec: Record<string, unknown>; shown: string | null } | null;
+function liveVersion(res: Resource<MethodVersions | null>, shown: string | null): LiveVersion {
+  if (res.state !== "ready" || !res.data || res.data.in_force.origin !== "stored") return null;
+  const found = res.data.versions.find((v) => v.version_number === res.data!.in_force.version_number);
+  return found ? { name: found.name, base: found.base_preset, spec: found.spec, shown } : null;
+}
+/** A parameter in the version in force: "same" as the preset shown, its own value, or "unknown"
+ *  -- a version built on another preset, or one without the field, is never read as matching. */
+type Live = "same" | "unknown" | MethodValue;
+function liveValue(v: MethodValue, live: LiveVersion): Live {
+  // Every value of the specification counts, one the shown preset leaves out (absent) included;
+  // a code constant and the method's own name are no version's to change.
+  if (!live || v.origin !== "specification" || v.reference === "methodology_version") return "same";
+  const value = readPath(live.spec, v.reference);
+  if (live.base !== live.shown) return "unknown";
+  if (value === undefined) return v.absent ? "same" : "unknown";
+  return JSON.stringify(value) === JSON.stringify(v.value) ? "same" : { ...v, value };
+}
+
+function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void; versions: ModuleVersions }) {
+  const [preset, setPreset] = useState(summary.in_force ?? undefined);
+  const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
+  const calc = <>
+    {/* What the steps below document: the code's preset. One preset is said in a line (what is in
+        force is in the head's chips); several are a choice, with what choosing does and does not do. */}
+    {presetsShown(summary).length === 1 ? <p data-preset className="text-xs text-ink-muted">{tv(`${M}.documents`, { preset: presetsShown(summary)[0] })}</p> : null}
+    {presetsShown(summary).length > 1 ? <div className="rounded-md border border-border p-3">
+      <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
+      <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
+      <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
+        {presetsShown(summary).map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
+          {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
+        </button>)}
+      </div>
+    </div> : null}
+    <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} live={liveVersion(versions.res, detail.preset)} />}</Loaded>
+  </>;
+  // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
+  if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} versions={{ res: versions.res as Resource<MethodVersions>, reload: versions.reload }} />;
+  return <div className="flex min-w-0 flex-col gap-4">{calc}</div>;
+}
+
+/**
+ * Výpočet (prototype v51, fidelity F5): the stages as tiles that pick one, a "S parametry" filter,
+ * and each stage's steps as rows in the order the computation runs; a row opens on its formula,
+ * its values and where they come from. A stage AIA does not compute yet is listed apart, never as a
+ * tile with nothing behind it.
+ */
+function Steps({ detail, live: running }: { detail: MethodModuleDetail; live: LiveVersion }) {
   const groups = groupSteps(detail);
   const numbers = stepNumbers(detail.groups);
+  const stages = stageNumbers(detail.groups);
   const titles = Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs]));
-  const [query, setQuery] = useState("");
-  const shown = groups.map((item) => ({ ...item, steps: item.steps.filter((step) => `${step.title_cs} ${step.note_cs} ${step.values.map((v) => `${v.label_cs} ${v.reference} ${String(v.value)}`).join(" ")} ${step.formulas.map((f) => `${f.title_cs} ${f.note_cs}`).join(" ")}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs"))) }));
+  const live = groups.filter((g) => g.steps.length);
+  const notYet = groups.filter((g) => !g.steps.length && g.group);
+  const key = (g: GroupedSteps[number]) => g.group?.id ?? "all";
+  const [stage, setStage] = useState<string | null>(null);
+  const [withValues, setWithValues] = useState(false);
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const [goTo, setGoTo] = useState<string | null>(null);
+  // "S parametry": the steps that read a value a version can change, not a code constant or the
+  // method's own name.
+  const filtered = (g: GroupedSteps[number]) => (withValues ? g.steps.filter((x) => x.values.some(isParameter)) : g.steps);
+  const shown = live.filter((g) => stage === null || key(g) === stage).map((g) => ({ ...g, steps: filtered(g) })).filter((g) => g.steps.length);
+  const allOpen = shown.length > 0 && shown.every((g) => g.steps.every((x) => open.has(x.id)));
+  const toggle = (id: string) => setOpen((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // A context link opens the step it names wherever it is, then moves to it once drawn.
+  const pick = (id: string) => { setStage(null); setWithValues(false); setOpen((o) => new Set(o).add(id)); setGoTo(id); };
+  useEffect(() => {
+    if (!goTo) return;
+    const heading = document.getElementById(`ms-${goTo}`);
+    heading?.scrollIntoView({ block: "start" });
+    // The focus follows the move: the next Tab starts from the step the link named.
+    heading?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot move, cleared once made
+    setGoTo(null);
+  }, [goTo]);
+  const tile = (id: string | null, label: string, count: number) => {
+    const on = stage === id;
+    return <button key={id ?? "all"} type="button" data-stage-tile={id ?? "all"} aria-pressed={on} onClick={() => setStage(id)}
+      className={`flex min-h-11 flex-col items-start rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash" : "border-border bg-surface-raised hover:border-border-strong"}`}>
+      <span className="font-medium">{label}</span><span className="text-xs text-ink-muted">{methodologyCount(count, "step")}</span>
+    </button>;
+  };
   return <div className="flex min-w-0 flex-col gap-3">
-    <TextInput type="search" aria-label={t(`${M}.findStep`)} placeholder={t(`${M}.findStepPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-    {shown.map(({ group, steps }, i) => {
-      const original = groups[i];
-      if (query.trim() && !steps.length && original.steps.length) return null;
-      return <section key={group?.id ?? "all"} aria-labelledby={group ? `mg-${detail.id}-${group.id}` : undefined}>
-        <details open={!!query.trim() || (i === 1 || groups.length === 1)} className="group rounded-md border border-border bg-surface-raised">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
-            <div className="min-w-0"><h3 id={group ? `mg-${detail.id}-${group.id}` : undefined} className="text-sm font-semibold">{group?.title_cs ?? t(`${M}.calculation`)}</h3>
-            {group?.note_cs ? <p className="mt-1 text-xs leading-5 text-ink-muted">{group.note_cs}</p> : null}</div>
-            <span className="shrink-0 text-xs text-ink-muted">{steps.length} {t(`${M}.steps`)} <span aria-hidden="true">⌄</span></span>
-          </summary>
-          <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
-            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
+    <section aria-labelledby={`mstages-${detail.id}`} className="rounded-md border border-border bg-surface-raised px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id={`mstages-${detail.id}`} className="text-sm font-semibold">{t(`${M}.stages`)}</h3>
+        <button type="button" data-dense onClick={() => setOpen(allOpen ? new Set() : new Set(shown.flatMap((g) => g.steps.map((x) => x.id))))}
+          className="min-h-8 rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">{t(`${M}.${allOpen ? "collapseAll" : "expandAll"}`)}</button>
+      </div>
+      <div role="group" aria-label={t(`${M}.stagesGroup`)} className="mt-2.5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(130px,1fr))]">
+        {tile(null, t(`${M}.allStages`), live.reduce((n, g) => n + g.steps.length, 0))}
+        {live.map((g) => tile(key(g), g.group ? `${stages.get(g.group.id) ? `M${stages.get(g.group.id)}\u00a0·\u00a0` : ""}${g.group.title_cs}` : t(`${M}.calculation`), g.steps.length))}
+      </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+        <span aria-hidden="true">{t(`${M}.onlySteps`)}</span>
+        <ChoiceChips look="segmented" small label={t(`${M}.onlySteps`)} value={withValues ? "values" : "all"} options={[{ key: "all", label: t(`${M}.allSteps`) }, { key: "values", label: t(`${M}.withValues`) }]} onChange={(k) => setWithValues(k === "values")} />
+        <span>{t(`${M}.stepsHelp`)}</span>
+      </div>
+    </section>
+    {shown.map((g) => (
+      <section key={key(g)} aria-labelledby={g.group ? `mg-${detail.id}-${g.group.id}` : undefined} className="rounded-md border border-border bg-surface-raised px-5 py-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
+          <div className="flex items-center gap-2.5">
+            {g.group && stages.get(g.group.id) ? <span data-stage-number className="inline-flex min-h-[22px] items-center rounded-[11px] border border-border px-2 font-mono text-xs text-ink-muted">M{stages.get(g.group.id)}</span> : null}
+            <h3 id={g.group ? `mg-${detail.id}-${g.group.id}` : undefined} className="text-sm font-semibold">{g.group?.title_cs ?? t(`${M}.calculation`)}</h3>
           </div>
-        </details>
-      </section>;
-    })}
-    {query.trim() && !shown.some((g) => g.steps.length) ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
+          <span className="text-xs text-ink-muted">{methodologyCount(g.steps.length, "step")}</span>
+        </div>
+        {g.group?.note_cs ? <p className="mt-2 break-words text-xs leading-5 text-ink-muted">{g.group.note_cs}</p> : null}
+        {g.steps.map((step) => <StepRow key={step.id} step={step} number={numbers.get(step.id)} live={running} editable={detail.editable} titles={titles} open={open.has(step.id)} onToggle={() => toggle(step.id)} onPick={pick} />)}
+      </section>
+    ))}
+    {withValues && !shown.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noValues`)}</p> : null}
+    {notYet.length ? <section data-not-computed className="rounded-md border border-dashed border-border-strong px-5 py-4">
+      <p className="text-sm font-semibold">{t(`${M}.notYet`)}</p>
+      {/* One line each; the whole note on hover and to a screen reader. */}
+      {notYet.map((g) => <section key={g.group!.id} aria-labelledby={`mg-${detail.id}-${g.group!.id}`} className="mt-2">
+        <h3 id={`mg-${detail.id}-${g.group!.id}`} className="text-sm">{g.group!.title_cs} <span aria-hidden="true" className="text-ink-faint">·</span> <span className="text-xs font-normal text-ink-faint">{t(`${M}.noSteps`)}</span></h3>
+        {g.group!.note_cs ? <p title={g.group!.note_cs} className="line-clamp-1 text-xs text-ink-muted">{g.group!.note_cs}</p> : null}
+      </section>)}
+    </section> : null}
   </div>;
 }
 
-/** Moves to a step's card: its stage opens if it was closed, then the card scrolls into view. */
-function showStep(stepId: string) {
-  const heading = document.getElementById(`ms-${stepId}`);
-  if (!heading) return;
-  const stage = heading.closest("details");
-  if (stage) stage.open = true;
-  heading.scrollIntoView({ block: "start" });
+/** A step as a row: its number, title, what it is for and its values; open, its formula, values,
+ *  where they come from and what holds it. The heading names the step, so it can be found. */
+function StepRow({ step, number, live, editable, titles, open, onToggle, onPick }: { step: MethodStepOut; number?: string; live: LiveVersion; editable: boolean; titles: Record<string, string>; open: boolean; onToggle: () => void; onPick: (id: string) => void }) {
+  const line = step.role_cs || step.note_cs.split(/(?<=\.)\s/)[0] || "";
+  return <article aria-labelledby={`ms-${step.id}`} data-step={step.id} className="border-b border-border last:border-b-0">
+    <h4 id={`ms-${step.id}`} aria-labelledby={`mst-${step.id}`} className="scroll-mt-4">
+      <button type="button" aria-expanded={open} aria-labelledby={`mst-${step.id}`} aria-describedby={line ? `msl-${step.id}` : undefined} onClick={onToggle}
+        className="flex w-full items-start gap-2.5 px-1 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
+        <span data-step-number className="w-12 shrink-0 pt-0.5 font-mono text-xs text-ink-faint">{number ?? ""}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span id={`mst-${step.id}`} className="text-sm font-medium">{step.title_cs}</span>
+          {line ? <span id={`msl-${step.id}`} className="text-xs leading-5 text-ink-muted">{line}</span> : null}
+          {step.values.length ? <span className="flex flex-wrap gap-1.5">{step.values.map((v) => {
+            // A value the version in force changes is shown as it runs, marked so (prototype v51).
+            const live2 = liveValue(v, live);
+            const now = typeof live2 === "string" ? v : live2;
+            const marked = live2 !== "same";
+            return <span key={v.reference} data-step-value data-live={marked ? (live2 === "unknown" ? "unknown" : "changed") : undefined} className={`inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border px-2 text-xs font-normal text-ink-muted ${marked ? "border-signal-edge bg-signal-tint" : "border-border"}`}>{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(now, WORDS)}{v.unit && !now.absent && now.value !== null ? ` ${v.unit}` : ""}</b>{live2 === "unknown" ? <span className="ml-1">· {t(`${M}.inForceUnknown`)}</span> : marked ? <span className="ml-1">· {t(`${M}.inForceVersion`)}</span> : null}</span>;
+          })}</span> : null}
+        </span>
+        <span aria-hidden="true" className="pt-0.5 text-ink-faint">{open ? "▾" : "▸"}</span>
+      </button>
+    </h4>
+    {open ? <div data-step-body className="flex min-w-0 flex-col gap-3 pb-4 pl-1 sm:pl-[3.625rem]"><StepBody step={step} live={live} editable={editable} titles={titles} onPick={onPick} /></div> : null}
+  </article>;
 }
 
-function StepCard({ step, number, editable, titles }: { step: MethodStepOut; number?: string; editable: boolean; titles: Record<string, string> }) {
+/** An open step's detail: its formula, note, context, symbols, values, formulas, evidence and code. */
+function StepBody({ step, live, editable, titles, onPick }: { step: MethodStepOut; live: LiveVersion; editable: boolean; titles: Record<string, string>; onPick: (id: string) => void }) {
   return (
-    <article aria-labelledby={`ms-${step.id}`} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h4 id={`ms-${step.id}`} className="scroll-mt-4 text-sm font-semibold">{step.title_cs}</h4>
-        {number ? <span data-step-number className="shrink-0 font-mono text-xs text-ink-faint">{number}</span> : null}
-      </div>
-      {step.audit ? <p data-step-origin className="-mt-2 text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
-      <div className="text-ink"><Formula latex={step.formula_latex} /></div>
-      {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
-      <StepContext step={step} titles={titles} onPick={showStep} />
+    <>
+      {step.audit ? <p data-step-origin className="text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
+      <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={step.formula_latex} /></div>
+      {step.note_cs ? <p className="max-w-3xl break-words text-sm text-ink-muted">{step.note_cs}</p> : null}
+      <StepContext step={step} titles={titles} onPick={onPick} />
+      {step.keeps_cs.length ? (
+        <div data-step-keeps className="text-sm">
+          <p className="text-xs font-medium text-ink-muted">{t(`${M}.stepKeeps`)}</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">{step.keeps_cs.map((k) => <li key={k}>{k}</li>)}</ul>
+        </div>
+      ) : null}
       {step.symbols.length ? (
         <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
           {step.symbols.map((y) => (
@@ -192,7 +389,17 @@ function StepCard({ step, number, editable, titles }: { step: MethodStepOut; num
                   {v.label_cs}
                   <details className="mt-1 text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${M}.fieldReference`)}</summary><code className="break-all">{v.reference}</code></details>
                 </th>
-                <td className="break-words py-1.5 pr-3 font-mono tabular-nums">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</td>
+                <td className="break-words py-1.5 pr-3 font-mono tabular-nums">{(() => {
+                  const now = liveValue(v, live);
+                  const code = <>{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</>;
+                  if (now === "same") return code;
+                  return <span data-live-value={now === "unknown" ? "unknown" : "changed"} className="flex flex-col">
+                    {now === "unknown"
+                      ? <span className="font-sans text-xs text-ink-muted">{tv(`${M}.inForceUnknownNamed`, { name: live!.name })}</span>
+                      : <span>{showValue(now, WORDS)}{v.unit && now.value !== null ? ` ${v.unit}` : ""} <span className="font-sans text-xs text-signal">{tv(`${M}.inForceVersionNamed`, { name: live!.name })}</span></span>}
+                    <span className="font-sans text-xs text-ink-faint">{t(`${M}.inCode`)} {code}</span>
+                  </span>;
+                })()}</td>
                 <td className="py-1.5 text-right" title={t(`${M}.originHelp.${v.origin}`)}><Tag>{t(`${M}.origin.${v.origin}`)}</Tag></td>
               </tr>
             ))}
@@ -223,7 +430,7 @@ function StepCard({ step, number, editable, titles }: { step: MethodStepOut; num
           </>
         ) : null}
       </details>
-    </article>
+    </>
   );
 }
 
@@ -234,12 +441,12 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
     <details aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="rounded-sm border border-border p-3">
       <summary className="cursor-pointer text-xs font-semibold text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</summary><div className="mt-3 flex min-w-0 flex-col gap-2">
       <p className="text-xs text-ink-muted">{t(editable ? `${M}.editableHelp` : `${M}.editableHelpLater`)}</p>
-      <div className="text-ink"><Formula latex={formula.latex} /></div>
+      <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={formula.latex} /></div>
       <p className="text-sm">
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
         <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
-      {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
+      {formula.note_cs ? <p className="break-words text-xs text-ink-muted">{formula.note_cs}</p> : null}
       {formula.kept_cs.length ? (
         <div data-kept className="text-xs">
           <p className="text-ink-muted">{t(`${M}.kept`)}:</p>

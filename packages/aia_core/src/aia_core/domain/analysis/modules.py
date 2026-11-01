@@ -98,7 +98,7 @@ ANALYSIS_MODULES: Final[tuple[AnalysisModuleSpec, ...]] = (
     AnalysisModuleSpec(
         AnalysisModuleId.HYPOTHESES,
         6,
-        "Evaluate only hypotheses explicitly supplied in context against matching evidence: "
+        "Evaluate only the hypotheses supplied in stated_hypotheses against matching evidence: "
         "supported, contradicted or undecided in prose. If none are supplied, say "
         "hypotheses cannot be assessed from this payload. Do not manufacture hypotheses, "
         "significance tests or causal explanations.",
@@ -141,6 +141,7 @@ def module_input_fingerprint(
     method_status: str,
     system_fingerprint: str,
     external_context: Sequence[str],
+    hypotheses: Sequence[str] = (),
 ) -> str:
     """Everything that makes a module's output valid. Change any of it and the module reruns.
 
@@ -148,7 +149,8 @@ def module_input_fingerprint(
     not its panel hash: a certificate re-issued for the same panel with a
     permission revoked must rerun what the old one allowed. ``method_status`` and
     ``system_fingerprint`` are there because the stamp is part of the result;
-    ``external_context`` because it is part of what the model was shown.
+    ``external_context`` and ``hypotheses`` because they are part of what the model was shown;
+    ``hypotheses`` only when stated, so a module given none keeps the key it had.
 
     The provider and model are deliberately absent: a provider switch after a
     quota failure must not force completed modules to rerun (reference
@@ -168,6 +170,7 @@ def module_input_fingerprint(
             "method_status": method_status,
             "system": system_fingerprint,
             "external_context": list(external_context),
+            **({"hypotheses": list(hypotheses)} if hypotheses else {}),
         }
     )
 

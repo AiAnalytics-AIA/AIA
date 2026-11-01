@@ -44,6 +44,8 @@ Without a limiter nothing changes.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import logging
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from typing import Any, Protocol
@@ -56,18 +58,23 @@ from aia_core.domain.ai_contracts import (
     ModelRequest,
     ModelResult,
     UsageOutcome,
+    canonical_json,
 )
 from aia_core.domain.ai_execution import (
+    REFUSED_ANSWER_ARTIFACT,
     CallJournal,
     ExecutionContext,
     ReservationView,
     recovery_inputs,
+    refused_answer,
 )
 from aia_core.domain.ai_models import ModelResolution
 from aia_core.domain.providers import Provider
 from aia_core.domain.workflow import FailureClass
+from aia_core.infrastructure.artifact_repository import ArtifactRepository
 from aia_core.infrastructure.fan_out_coordination import ModelSlotsBusy
 from aia_worker.executor import PaidCall, StepContext, StepFailed, StopExecution
+from sqlalchemy.orm import Session
 
 __all__ = [
     "AI_REQUEST_ANSWERED",
@@ -138,6 +145,9 @@ class StepCallJournal(CallJournal):
         return self._spent
 
 
+_log = logging.getLogger(__name__)
+
+
 class StepModelCaller:
     """The only way a step executor calls a model: one gateway, one attempt, one scope."""
 
@@ -151,6 +161,7 @@ class StepModelCaller:
         reservation_usd: float,
         limiter: ModelConcurrency | None = None,
         announce: bool = False,
+        refused_answers: Callable[[Session], ArtifactRepository] | None,
     ) -> None:
         if reservation_usd <= 0:
             raise ValueError("a metered request needs a positive reservation")
@@ -162,6 +173,10 @@ class StepModelCaller:
         self._limiter = limiter
         #: Write each request's "sent" and "answered" to the run's feed (AIA_AI_STEP_EVENTS).
         self._announce = announce
+        #: The repository the step stores its own artifacts with, where an answer the output
+        #: contract refused is kept (brief-analysis-schema-repair chunk 5); ``None`` only where
+        #: the product owner decided it is not kept here (analysis keeps its own).
+        self._refused_answers = refused_answers
 
     def _stop_requested(self) -> bool:
         try:
@@ -188,6 +203,37 @@ class StepModelCaller:
             is_cancelled=self._stop_requested,
         )
 
+    def _keep_refused(self, request: ModelRequest, failure: ModelCallFailed) -> None:
+        """Keep the answer the contract refused on the step's own project, for an operator.
+
+        Never changes what the step fails with: a failure to keep it is logged, without the
+        answer, and a lost lease (``StopExecution``, a ``BaseException``) still stops the step.
+        The client's deletion erases it with the project.
+        """
+        if self._refused_answers is None:
+            return
+        record = refused_answer(request, failure)
+        if record is None:
+            return
+        step = self._context.step
+        try:
+            with self._context.transaction() as (session, _):
+                self._refused_answers(session).put_json(
+                    payload=record,
+                    project_id=step.project_id,
+                    revision=step.project_revision,
+                    stage_type=step.stage_type,
+                    artifact_type=REFUSED_ANSWER_ARTIFACT,
+                    input_fingerprint=hashlib.sha256(canonical_json(record).encode()).hexdigest(),
+                    runtime_version=self._runtime_version,
+                    produced_by_job_id=step.attempt_id,
+                    metadata={"run_id": step.run_id},
+                )
+        except Exception:
+            _log.exception(
+                "refused answer not kept", extra={"fields": {"agent": record["agent_id"]}}
+            )
+
     def preflight(self, request: ModelRequest) -> ModelResolution:
         """Would ``request`` be allowed out? Raises ``ModelCallFailed``; spends nothing."""
         return self._gateway.preflight(request, self._execution_context(_NoJournal(), None))
@@ -205,6 +251,16 @@ class StepModelCaller:
         amount = self._reservation_usd if reservation_usd is None else reservation_usd
         if amount <= 0:
             raise ValueError("a metered request needs a positive reservation")
+        try:
+            return self._held(request, amount)
+        except StepFailed as failed:
+            # Kept once any model slot is released: a write is no reason to hold one.
+            if isinstance(failed.__cause__, ModelCallFailed):
+                self._keep_refused(request, failed.__cause__)
+            raise
+
+    def _held(self, request: ModelRequest, amount: float) -> ModelResult:
+        """``_invoke`` inside a model slot when there is a limiter."""
         if self._limiter is None:
             return self._invoke(request, amount)
         try:

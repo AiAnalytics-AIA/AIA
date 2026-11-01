@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0. This plan"
-  - "[ ] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
+  - "[x] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
   - "[x] 2. Structured output with thinking on (no forced tool choice) for Deep Research agents"
   - "[x] 3. Brave search adapter"
   - "[x] 4. The search key as a credential reference"
@@ -54,16 +54,20 @@ chunks:
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
-  - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
-  - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
-  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
-  - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
+  - "[x] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
+  - "[x] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition (#844 @ 170823e4)"
+  - "[x] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it (storage, setter, pin at enqueue and the retry copy built: #853 @ 0eda121e; OPEN lowering the queries' class in plan.py and web_retrieval.py: feature/deep-research-open-posture)"
+  - "[x] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[x] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
   - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet; OPEN without a card, CLASSIFIED behind a plan card (Q6, Q24)"
   - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
   - "[ ] 57a. Class A in queries only as code-extracted fields (Q22): category, market and named competitors from approved knowledge, picked by code, never the client's free text or documents"
   - "[ ] 58. Search operators (Q23): site:, filetype: and intitle: written by the model, passed to routes that support them, RetrievalGate checking every URL and hop as today"
+  - "[ ] 59. The Deep Research tool event carries the fetched host and a refusal's reason (spec lead LP-14, lead B9; W1, only as a defect or evaluation finding under the engine freeze)"
+  - "[ ] 60. Remove the study-scoped test policies: the table, the repository's propose/approve, the start's test_policy_approval pin and their tests; a run that pinned one still reads (ADR 0022 amendment 2026-10-26, Q1 (b); W1)"
+  - "[ ] 61. Remove the per-run limit setting budgets.run_limit.<preset> from the catalogue, the live-readiness list and the page; a stored or pinned value still reads (ADR 0022 amendment 2026-10-26, Q2 (b); OI-158; W1)"
+  - "[ ] 62. A study's Deep Research permission panel: on the study, what its Deep Research may do, read from what is pinned and composed (the client's posture from #53, the composed and priced routes from #52's record, the live settings approved under ADR 0022, the study's budget left), each unknown said; read only, each value linking where it is set (Nigel, 27 Oct 2026; W1, after #53)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -533,6 +537,9 @@ in parallel unless an order is stated.
 
 ### Phase 0 — decide
 
+*The owner, 2026-10-25 (DR-SIGNOFF (a), the audit page, relayed by coordinator 3): approve the proposed values on Settings → Deep
+Research; he clicks that himself. Not ticked until the approvals are recorded.*
+
 **1. Sign-off (human; no code).** The data owner approves: this design and § 4; the ADR 0017
 amendment (§ 16); Brave on a plan that grants storage and AI use (plan, terms URL and date, price,
 failed-request billing, retention, recorded here); D8 for the key (chunk 4's proposal or Secrets
@@ -701,6 +708,9 @@ captured; the snapshot and dataset retention job.
 preset: exact-value accuracy with the right unit, period and geography; primary-source rate; share
 grounded to a table cell; false acceptances (a wrong number accepted); acquisition gaps. *Proposed
 target for the owner:* zero false acceptances, at least 90 % exact accuracy at Deep.
+
+*The owner, 2026-10-25 (MVPQ-06 rest (a), the audit page, relayed by coordinator 3): the targets proposed in 25, 26 and 39 are
+adopted as written.*
 
 **26. Quality on 20 research questions.** Fictional-client questions (simple, comparison, complex),
 each run three ways (planned queries as today; agent-directed; agent-directed with the lead
@@ -1180,6 +1190,70 @@ in code calls Gemini; the arm runs when chunk 26 does.
   live before chunk 1 records § 4's extraction items and 27 activates.
 
 ## 13. Measurements and decisions log
+
+**Chunk 54, ticked with Wayback left on and unverified (the owner, 2026-10-28).** Nigel added the seven
+hosts to the second account's environment ("i added the domains"), then answered: "1a, leave wayback on".
+
+- **The probes.** One live request each on 27-28 Oct, of the shape each connector sends, from the second
+  account's cloud environment through its egress proxy. Public inputs only: a ČSÚ selection, a Eurostat
+  dataset, a public DOI, a public IČO, a catalogue record, a public URL.
+
+  | Connector | Request | Answer | Parser |
+  |---|---|---|---|
+  | DataStat (`dataset_datastat.py:41`) | `GET data.csu.gov.cz/api/dotaz/v1/data/vybery/CEN0101HT01` | 200 `application/json`, 1.1 s | shape as documented (JSON-stat 2.0 `dataset`); parser result lost in a container restart |
+  | NKOD (`dataset_nkod.py:46`) | `GET data.gov.cz/sparql?query=…` (the module's catalogue query) | 503 once, then 200 `application/sparql-results+json`, 1.1 s | not run |
+  | Eurostat (`dataset_eurostat.py:58`) | `GET ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_a?…` | 200 `application/json`, 0.8-2.2 s | accepted, 1 row |
+  | OpenAlex (`dataset_openalex.py:70`) | `GET api.openalex.org/works/doi:10.1038/nature12373?select=…` | 200 `application/json`, 0.2 s | parser result lost in a container restart |
+  | ARES (`dataset_ares.py:64`) | `GET ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/00006947` | 200 `application/json`, 0.7 s | accepted (Ministerstvo financí, právní forma 325) |
+  | Crossref (`dataset_crossref.py:53`) | `GET api.crossref.org/works/10.1038/nature12373` | 200 `application/json`, 0.1-0.4 s; `x-rate-limit-limit: 5` per 1 s, `x-concurrency-limit: 1` | accepted, no update listed |
+  | Wayback (`dataset_wayback.py:60`) | `GET web.archive.org/cdx/search/cdx?url=https://www.czso.cz/&output=json…` | no answer: the tunnel opens, then closes after 39 bytes, every attempt (the proxy's log: `ws_closed_mid_exchange`) | not run |
+
+  Anchors @ 7107c1f0.
+- **Wayback stays on, unverified.** Develop's SSM lists all seven connectors, Wayback included. The failure is
+  between the cloud environment's proxy and the archive; the develop host has no proxy and was not probed from
+  (agents may not run commands there). Wayback is rung 9 of the acquisition ladder, asked only with a permit
+  for a dead, moved or changed page (`acquisition_ladder.py:24-25`); a failed lookup ends as an acquisition
+  gap, never a finding. Its first real lookup on develop is its probe.
+- **The activation matrix.** `AIA_DEEP_RESEARCH_AGENT_DIRECTED` is a row of MP6's activation profile
+  (`aia_executors.activation`, #1050), merged before this tick.
+- **Common Crawl** is kept out of the first activation (chunk 51's entry below); its AWS side is not in
+  Terraform.
+- **Crossref's limit.** One request in flight and five a second, as its headers state; not yet checked against the ladder's per-host pacing (a hypothesis, no failure seen).
+
+**Chunk 51, ticked without Common Crawl (the owner, 2026-10-27).** Nigel: "tick #51 without Common Crawl,
+yes to #54".
+
+- **What is on.** Develop's SSM, read-only on 27 Oct, has every switch of this chunk except Common Crawl:
+  `aia_deep_research_enabled`, web search `brave`, the 7 connectors (datastat, nkod, eurostat, openalex, ares,
+  crossref, wayback), `aia_deep_research_agent_directed=true`, `aia_deep_research_lead=true`, fan-out.
+- **Approvals in force.** The approvals were in force (a priced quote answered 200 on 26 Oct; see chunk 1's
+  entry below).
+- **Common Crawl stays off.** There is no `AIA_DEEP_RESEARCH_COMMON_CRAWL*` key. Its priced us-east-1 Athena
+  route is a later switch, and chunk 54's Common Crawl clause is met by keeping it out of the first
+  activation.
+- **Not verified by an agent.** The chunk's test, a recorded run whose `GET …/deep-research/runs/{id}` names
+  Brave, a connector and the archive, was not read: run records are in AIA's database, and the container logs
+  do not name the routes a run used.
+- **Chunk 54 stays open.** Nigel approved the live probes, but the second account's container could not run
+  them: its network policy refused all seven hosts (403 on CONNECT). AIA's own connectors also refuse a proxy
+  by design (`HostScopedClient`). The probes need the hosts allowed in that environment, or a run from the
+  develop host.
+
+**Chunk 1, the owner's sign-off, 2026-10-27.** Nigel kept Deep Research on, and signed off Brave and the
+Deep Research values: "these should all be settled". He was answering the second account's PM coordinator,
+which had asked him to "Sign off Brave and the Deep Research values in Settings → Deep Research". He then
+asked for this chunk to be ticked ("open the plan PR").
+
+- **Evidence that the values are approved in AIA.** On develop, a priced Deep Research quote
+  (`POST …/deep-research/quote`) answered 200 on 2026-10-26 at 01:02 UTC. A priced route with any live
+  setting unapproved answers 409 `live_settings_unapproved` (ADR 0022). Read from the container logs.
+- **Develop's SSM settings,** read-only: Brave at USD 5.00 per 1,000 (prices as of 2026-10-14), fan-out,
+  agent-directed, lead, 7 connectors, Wikipedia off, no Common Crawl key.
+- **Not verified by an agent.** The settings page's approval history (who approved each value and when) is
+  in AIA's database, which agents cannot read (host commands are denied by IAM). Neither is the Bedrock
+  quota request.
+- **What stays open.** Chunk 51 (switching on; Common Crawl is not on) and chunk 54 (each connector probed
+  live once) stay open for the owner's word.
 
 **Chunk 1, decisions of the data owner, 2026-10-09** (in this session; the rest of chunk 1
 stays open):
@@ -1692,6 +1766,50 @@ Classification is asked in six places for Deep Research (`plan.py:163`; five `cl
 - Cost: an OPEN client's queries carry no confidentiality check, and Brave (US, logs up to 90 days)
   can see them, names included. Marking a client OPEN is the only guard.
 
+**Landed: OPEN lowers web egress** (`feature/deep-research-open-posture`, after #853's storage, setter
+and pin):
+- **In the request** (ADR 0032 decision 2). `DeepResearchRequest.posture` is `"OPEN"` or absent.
+  Absent, the stored form and the fingerprint are what they were before, so a CLASSIFIED run is
+  byte-identical. It is set in `DeepResearchRuns._frozen_request` from `_posture(retry_of)`: a retry
+  re-freezes with its original's posture, read from that run's own pinned request: never the client
+  row's now and never the run's metadata label. A run frozen before this chunk carries none, ran
+  CLASSIFIED, and retries CLASSIFIED (security review of this chunk, P2). The run's
+  `metadata.client_posture` is now read from the request, so the two cannot disagree. The plan step
+  checks the request's fingerprint, so the posture cannot be altered after enqueue, and nothing a
+  query or a model writes reaches it. `method_identity` carries it, so an OPEN run never reuses a
+  CLASSIFIED run's refused tracks, nor the reverse.
+- **The gate** (decision 3). `RetrievalGate(open_posture=)` comes from the run's own request in all
+  three constructions (plan, investigate, standing). Under OPEN, `_classify` answers Class C with the
+  reason `posture:OPEN` (`classification.OPEN_POSTURE_REASON`) for every search, index statement, URL
+  and dataset query. Residency, scope, the archive's permit, host checks and the approved settings
+  are unchanged.
+  - Searches and dataset queries record that reason, as their `class_reasons` recorded a class.
+  - Fetches, Common Crawl index statements and archive fetches keep only their class (Class C), as
+    before; their authority is the run's pinned request.
+  - Recording the reason on those three would change the frozen engine's record contracts, which
+    is not done here (security review of this chunk, P3).
+- **The plan step.** Under OPEN, a design no operator classified takes the design rule's class
+  (Class B) for its model requests instead of failing `egress_unclassified_material`, and the web
+  gate is judged at Class C. `fictional_client` is still the operator's record.
+- **CLASSIFIED or unset: unchanged.** An unclassified design parks the run whole, as before.
+- **Tests:**
+  - `test_deep_research_open_posture.py`:
+    - an OPEN client's unclassified design completes and Brave (recorded) is asked, the model
+      calls staying Class B in the usage ledger;
+    - CLASSIFIED and unset still park, with nothing sent;
+    - a client switched to OPEN after enqueue changes nothing for that run;
+    - the gate lowers a query holding the client's name and Class A text only on the pinned
+      posture.
+  - `test_client_rules.py::test_the_posture_is_in_the_engine_request_a_retry_refreezes_from`,
+    `test_a_retry_of_a_run_frozen_without_a_posture_stays_classified`.
+  - The three that need the change fail on develop @ 947686c0.
+- **Decided: an explicit Class A operator record does not refuse an OPEN run's web egress.** It leaves
+  at Class C like the rest, as ADR 0032 decision 3 has it ("the posture in place of a class"). Nigel,
+  2026-10-28 22:25 UTC, relayed by the PM coordinator: "For mvp i wanted to retire the data gates".
+  His wider remark is a separate decision and is not acted on here.
+- **Not here:** chunk 57 (Class B on Brave for CLASSIFIED clients) and the Reach panel's per-run
+  posture (chunk 62).
+
 ## Added by the master plan (2026-10-19)
 
 - **55.** `routers/deep_research.py:292-340` prices a start from the API's own environment copy; a Lead plan
@@ -1960,3 +2078,71 @@ chunk's tightened wording and Q44-Q48 live).
 - `deploy/develop/README.md` (the switches): the API also receives `AIA_DEEP_RESEARCH_ENABLED`, read
   only for the quote's statement.
 - `open-items.md`: F-DRL-2 and F-DRL-3 closed by this PR (numbered from #553's findings).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**59. Host and reason on the tool event** (spec `lead/LP-14`; W1, lane C). With `research-lead-workbench#23b`. Open contradiction 13: CLAUDE.md freezes the engine "except on a defect or evaluation finding"; this chunk lands only if it is recorded as one, else it is moved.
+
+## ADR 0022 accepted (2026-10-26): chunks 60 and 61
+
+The product owner accepted ADR 0022 with its amendment in the Decision Review, 2026-10-26 (relayed by
+the PM coordinator; `docs/architecture/adr/0022-deep-research-settings-are-approved-data.md` §
+Amendment, 2026-10-26). Two answers go against the review's recommendation and are code:
+
+**60. Remove the study test policies** (W1). Q1 (b): "Remove the test policies". Today:
+`deep_research_test_policies` (`packages/aia_core/src/aia_core/infrastructure/tables.py:2887 @
+5d2ac5ac`), `propose_test_policy` / `approve_test_policy` and the seal check
+(`infrastructure/deep_research_settings_repository.py:319-402,553,626 @ 5d2ac5ac`), the client
+deletion's `erase_client_test_policies` (`:896`), and the start's pinned `test_policy_approval`
+(`application/deep_research.py:821 @ 5d2ac5ac`); `test_deep_research_sandbox_policy.py` tests them. A
+migration drops the table once nothing reads it; a run's stored metadata that names a
+`test_policy_approval` still reads as stored, never rewritten. Test: a live start on a fictional
+study with no organization approval is refused `live_settings_unapproved`, whatever was once
+proposed for it; the repository has no test-policy entry point.
+
+**61. Remove the per-run limit setting** (W1). Q2 (b): "Remove the setting" (OI-158).
+`budgets.run_limit.standard|deep|exhaustive` (`domain/deep_research/settings.py:366-378 @ 5d2ac5ac`,
+required for live) leaves the catalogue, the live-readiness list, the page's copy
+(`apps/web/src/i18n/cs.ts:1518-1520`, `settings/settings-guide.ts:97 @ 5d2ac5ac`) and the
+test-policy check that was its one reader (`deep_research_settings_repository.py:357`, gone with 60).
+A version or pin already stored keeps reading as stored (an unknown key in a stored pin is history,
+not an error). Test: the catalogue has no `budgets.run_limit.*` key and the live-readiness list does
+not ask for one; a pin stored with it still verifies.
+
+Q3 (a), Q4 (a) and Q5 (a) change no chunk: chunk 1's sign-off is an Admin's approvals on the page,
+develop's organization first, and tier B approves the acceptance organization's live settings
+(OI-159); the register and weights stay Admin settings.
+
+## Chunk 31 confirmed for the MVP (ADR 0021, 2026-10-26)
+
+ADR 0021 Q2 (b), the product owner in the Decision Review, 2026-10-26 (relayed by the PM coordinator):
+"Build chunk 31 for the MVP", against the review's recommendation to defer it. Chunk 31 (the Sociomap
+Research Lens) keeps its wave, W3 (row E28 of `mvp-execution-contracts.md`, with 32). ADR 0021 is
+held "until all seven target kinds are reachable; chunk 31 builds it" (Q1 (b) and the verdict), so
+the Lens's acceptance includes an Interpretation start from the map on each Sociomap target kind it
+reaches (battery, object, pair), beside OI-179's fix for the result kinds.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**62. The study's permission panel** (W1). The prototypes inventory: a study-level Deep Research permission panel is
+drawn in V2; #53 built the client's posture on the server (`clients.data_posture`, pinned at enqueue) and nothing shows it
+on the study. One read-only panel on the study's Deep Research surfaces (Návrh's Design Research, Výsledky' Interpretation
+Research): the posture (OPEN / CLASSIFIED) the next run would pin, the routes composed and priced (#52's composition
+record), whether each live setting is approved (ADR 0022), the study's budget left; an unknown value said, never green.
+Each value links to where it is set (Profil → Pravidla, Settings → Deep Research). Test: a study of an OPEN client shows
+OPEN and the composed routes; an unread record reads unknown.

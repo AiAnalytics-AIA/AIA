@@ -231,3 +231,23 @@ may list a dataset as the client's source and must say it is not available to an
   client dataset named by source, reading and intended contract; eligibility computed from accepted
   contracts, never stored; none eligible before chunk 2. `design_items.py` `brief_signature` and
   `src/research/brief-materials.ts`: `materials` signed only when present, never an eligibility.
+
+## ADR 0037's and ADR 0027's answered items (2026-10-26)
+
+The product owner answered part of ADR 0037 in the Decision Review, 2026-10-26 (relayed by the PM
+coordinator); both ADRs stay Proposed, and MQ-16, MQ-18 and both verdicts are left for the methodology owner
+(0027-Q5 and Q6 the product owner answered later that day, below).
+
+- **0037-Q4 (a) "A Metodika module ('client data'), versioned, pinned per run":** chunk 0's support,
+  metric and interval rule (MQ-18) and chunk 4's benchmark rule (MQ-16) are a methodology module in the
+  ADR 0023 store, versioned and pinned by the run (chunk 9's pin), not a code constant; until its first
+  version exists, every client number refuses `client_support_rule_unapproved`.
+- **0037-Q5 (a) "Close it":** the #508 sequencing item is closed; #508 merged.
+- **MQ-17 (a) "Never"** (ADR 0027 Q2, shared): a client's survey never grounds AI respondents; no chunk
+  of this plan conditions a persona on client data, and chunk 0's "three open questions" are now two
+  (Q1, Q4).
+
+**Decided 2026-10-26** (the product owner in chat, 26 Oct 2026 ~12:20 UTC, relayed by the PM coordinator): ADR 0027's **Q5 (a)**, the contract is accepted under `APPROVE_GATE` (chunk 2
+uses it); **Q6 (b)**, chunk 3 also refuses any column the personal-data hints flag
+(`domain/client_datasets.py`) unless the person overrides it explicitly, the override recorded with the
+contract. Test (chunk 3): a hint-flagged column without an override is refused by name; with one it is kept.

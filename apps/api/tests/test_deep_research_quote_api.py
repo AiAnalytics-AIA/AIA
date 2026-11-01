@@ -203,6 +203,25 @@ def test_an_unpriced_route_is_null_never_zero(
     assert quoted["usd_by_kind"]["search"] is None
 
 
+def test_an_adaptive_route_model_is_priced_without_the_thinking_budget() -> None:
+    """The worker sends an adaptive route model no budget (sonnet-5-5-switch), so the ceiling
+    the API quotes leaves it out too; a budgeted model keeps it, as before."""
+    budget = {"deep_research_thinking_budget_tokens": 2_048}
+    assert Settings(**ROUTE, **budget).deep_research_pricing().thinking_budget_tokens == 2_048
+    assert (
+        Settings(**ROUTE, **budget, bedrock_thinking="budget")
+        .deep_research_pricing()
+        .thinking_budget_tokens
+        == 2_048
+    )
+    adaptive = Settings(**ROUTE, **budget, bedrock_thinking="adaptive")
+    assert adaptive.deep_research_pricing().thinking_budget_tokens is None
+    # Read as the worker reads it: stripped, in any case.
+    assert Settings(**ROUTE, bedrock_thinking=" Adaptive ").bedrock_thinking == "adaptive"  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="bedrock_thinking"):
+        Settings(**ROUTE, bedrock_thinking="enabled")  # type: ignore[arg-type]
+
+
 def test_the_api_settings_name_every_pricing_key() -> None:
     """Each key the ceiling is priced from reaches the application layer's settings."""
     settings = Settings(
@@ -262,3 +281,44 @@ def test_a_closed_study_is_refused_before_anything_is_frozen(
     assert refused.status_code == 403, refused.text
     assert refused.json()["code"] == "study_closed"
     assert _counts(app) == before
+
+
+def test_a_focus_is_quoted_and_started_alike_and_an_unknown_one_is_named(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """lead-orchestration LO5a.1 (Q45): the quote and the start take the same focus, by the
+    research questions' ids, and an id the design does not hold is 422 focus_unknown, named."""
+    from aia_core.domain.item_ids import list_ids, with_item_ids
+
+    plan = {"research_questions": ["Jak lidé připravují kávu?", "Proč kávu nepijí?"]}
+    made = world.design(researcher, {**DESIGN, "research_plan": plan}, source_stage="brief")
+    assert made.status_code == 201, made.text
+    revision = str(made.json()["revision_id"])
+    ids = list_ids(
+        with_item_ids({"research_plan": plan})[0]["research_plan"],
+        "research_questions",
+        "research_question_ids",
+    )
+    assert ids is not None
+    rq_b = ids[1]
+    whole = _quote(researcher, world, revision).json()["ceiling_usd"]
+    focused = _quote(researcher, world, revision, focus=[rq_b])
+    assert focused.status_code == 200, focused.text
+    assert focused.json()["ceiling_usd"] < whole
+    started = _start(researcher, world, revision, focus=[rq_b])
+    assert started.status_code == 201, started.text
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, started.json()["run_id"])
+        assert row is not None and row.metadata_json["subjects"] == 1
+        assert row.metadata_json["cost_ceiling_usd"] == pytest.approx(focused.json()["ceiling_usd"])
+    before = _counts(app)
+    for refused in (
+        _quote(researcher, world, revision, focus=[rq_b, "rq_nope"]),
+        _start(researcher, world, revision, focus=["rq_nope"]),
+    ):
+        assert refused.status_code == 422, refused.text
+        assert refused.json()["code"] == "focus_unknown"
+        assert refused.json()["details"]["unknown"] == ["rq_nope"]
+    assert _counts(app) == before
+    # An interpretation quote names a target, never a focus; a malformed id is the schema's.
+    assert _quote(researcher, world, revision, focus=["rq b"]).status_code == 422

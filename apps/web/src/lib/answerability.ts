@@ -50,6 +50,17 @@ export function confirmedFor(answer: Answerability, state: AcknowledgementState)
   return state.confirmed && state.digest === answer.digest;
 }
 
+/**
+ * Whether two readings name the same gaps whatever revision each digest names (FLD22): Kontrola reads
+ * the working revision, a start the revision it submits, and an acknowledgement given for the one
+ * carries to the other only when nothing but the digest differs (whether one is required included).
+ */
+export function sameGaps(a: Answerability | null | undefined, b: Answerability | null | undefined): boolean {
+  const gaps = (x: Answerability | null | undefined) =>
+    JSON.stringify(x ? { capable: x.capable, gaps: x.gaps, pending: x.pending ?? [], required: x.acknowledgement_required ?? null } : null);
+  return gaps(a) === gaps(b);
+}
+
 /** The acknowledgement to send, or null while the person has not given a valid one for these gaps. */
 export function acknowledgementOf(
   answer: Answerability | null | undefined,

@@ -24,7 +24,7 @@ from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
-from aia_core.infrastructure.tables import OrganizationRow
+from aia_core.infrastructure.tables import OrganizationMemberRow, OrganizationRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors import smoke
 from aia_worker.worker import Worker
@@ -133,7 +133,7 @@ def test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets(
     # "unclassified-client-knowledge", so every AI design job for it was refused
     # licence_dataset_unknown. The seed records the fictional fixture dataset; an item nobody
     # recorded a dataset for is still refused, by name.
-    from aia_core.domain.knowledge import KnowledgeKind
+    from aia_core.domain.knowledge import UNRECORDED_KNOWLEDGE_LINEAGE, KnowledgeKind
     from aia_core.domain.licence import LicenceDenied
     from aia_core.domain.licence_determinations import (
         PANEL_APPROVED_ROUTE,
@@ -141,7 +141,6 @@ def test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets(
         recorded_policy,
     )
     from aia_core.domain.research_agents import (
-        UNRECORDED_KNOWLEDGE_LINEAGE,
         ResearchAction,
         agent_request,
         context_snapshot,
@@ -227,6 +226,32 @@ def test_seed_admits_a_new_operator_to_an_existing_world(
         again = seed_develop(session, owner_email=OWNER)
         session.commit()
     assert again.owner_user_id == first.owner_user_id
+
+
+def _marked(session: Session, organization_id: str, user_id: str) -> bool:
+    row = session.scalar(
+        select(OrganizationMemberRow.methodologist).where(
+            OrganizationMemberRow.organization_id == organization_id,
+            OrganizationMemberRow.user_id == user_id,
+        )
+    )
+    return bool(row)
+
+
+def test_a_new_world_marks_its_operator_metodik_once(sessions: sessionmaker[Session]) -> None:
+    # D-14: only a marked member edits the methodology; a world the seed creates gives its
+    # operator the mark, never the smoke's owner, and a later seed never re-grants it.
+    with sessions() as session:
+        first = seed_develop(session, owner_email=OWNER)
+        session.commit()
+        assert _marked(session, first.organization_id, first.owner_user_id)
+        assert not _marked(session, first.smoke_organization_id, first.smoke_owner_user_id)
+        session.execute(OrganizationMemberRow.__table__.update().values(methodologist=False))
+        session.commit()
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+        assert not _marked(session, again.organization_id, again.owner_user_id)
 
 
 def test_seed_names_why_an_archived_seed_client_is_denied(
@@ -435,10 +460,27 @@ def test_the_ai_check_is_not_runnable_and_says_why_without_claiming_a_live_route
     assert report.failed is False
     assert lines == [
         "NOT_RUNNABLE  ai: governed model call through ModelGateway -> bedrock-eu-primary",
-        "      the smoke makes no paid model call; the AI runtime is off by default "
-        "and is checked by its own acceptance, not on each deploy (ADR 0010, "
-        "docs/architecture/bedrock-develop-activation-2026-09-26.md)",
+        "      the smoke makes no paid model call; a live probe runs only after the owner's "
+        "sign-off and a named allocation line (E05). What the runtime is configured to do "
+        "is the activation rows",
     ]
+
+
+def test_the_activation_rows_say_ready_or_not_ready_and_never_fail_the_smoke() -> None:
+    """MP6: with nothing switched on every row is said NOT_READY with its reason, one line per
+    row of the profile, and the smoke has not failed."""
+    from aia_executors.activation import PROFILE
+
+    lines: list[str] = []
+    report = smoke.Report(lines.append)
+    smoke.activation_check(report, {"AIA_ENV": "develop"})
+    assert report.failed is False
+    assert len(lines) == len(PROFILE)
+    assert all(line.startswith("NOT_READY  activation: ") for line in lines)
+    assert (
+        "NOT_READY  activation: analysis for the eight analysis modules (AC-08) -- "
+        "AIA_AI_RUNTIME_ENABLED is not true"
+    ) in lines
 
 
 def test_slice_check_passes_when_a_worker_executes_the_run(

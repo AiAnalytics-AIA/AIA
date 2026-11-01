@@ -6,6 +6,9 @@ fake clock; one test replaces urllib3's pool to see what the real wire would sen
 
 from __future__ import annotations
 
+import socket
+import threading
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -29,6 +32,8 @@ from aia_core.infrastructure.web_retrieval import (
     FetchedResponse,
     ToolCallFailed,
     WebFetcher,
+    fetch_time_left,
+    note_request_sent,
 )
 from aia_core.infrastructure.web_retrieval_live import (
     PinnedHttpsTransport,
@@ -597,3 +602,383 @@ def test_the_sitemaps_robots_txt_declares_are_known_once_it_was_read(scoped: Any
     assert transport.known_sitemaps("STATS.example.") == ("https://stats.example/sitemap.xml",)
     assert gate.known_sitemaps("news.example") is None
     assert wire.targets() == ["stats.example/robots.txt", "stats.example/a"]
+
+
+class _TricklePool(_FakePool):
+    """A server that answers its headers, then one byte every 19 s: inside the read timeout
+    each time, never finishing."""
+
+    clock: ClassVar[list[float]] = [0.0]
+    reads: ClassVar[int] = 0
+
+    def request(self, method: str, target: str, **kwargs: Any) -> Any:
+        return _TrickleResponse()
+
+
+class _TrickleResponse:
+    status = 200
+    headers: ClassVar[dict[str, str]] = {"Content-Type": "text/html"}
+
+    def read1(self, amount: int, decode_content: bool) -> bytes:
+        assert decode_content is False
+        _TricklePool.clock[0] += 19.0
+        _TricklePool.reads += 1
+        return b"x"
+
+    def read(self, amount: int, decode_content: bool) -> bytes:  # pragma: no cover
+        # http.client fills the whole amount before it returns: a trickle holds it for
+        # amount x 19 s, so the wire must not read this way.
+        raise AssertionError("read() blocks until the amount is filled; read1() is the one")
+
+    def release_conn(self) -> None:
+        pass
+
+
+def test_a_trickling_answer_is_cut_at_the_fetchs_overall_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import urllib3
+
+    _TricklePool.clock[0], _TricklePool.reads = 0.0, 0
+    monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _TricklePool)
+    wire = UrllibWire(deadline_s=60.0, clock=lambda: _TricklePool.clock[0])
+    with pytest.raises(ToolCallFailed) as failed:
+        wire.get(
+            address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10_000_000
+        )
+    assert failed.value.reason == "timeout"
+    assert failed.value.delivery is Delivery.RESPONDED
+    # Cut at the first read past 60 s, not after 10 MB at a byte per 19 s.
+    assert _TricklePool.reads == 4
+
+
+def _trickling_server(prelude: bytes, drip: bytes) -> tuple[int, threading.Event]:
+    """A local plain-HTTP server that sends ``prelude``, then ``drip`` every 0.1 s until told
+    to stop or the client goes: each piece inside the read timeout, never an end."""
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    stop = threading.Event()
+
+    def serve() -> None:
+        conn, _ = server.accept()
+        try:
+            conn.recv(65_536)
+            conn.sendall(prelude)
+            while not stop.wait(0.1):
+                conn.sendall(drip)
+        except OSError:
+            pass
+        finally:
+            conn.close()
+            server.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+    return server.getsockname()[1], stop
+
+
+def _wire_to(port: int, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The wire's pool, pointed at the local server over plain HTTP (its framing is
+    http.client's either way); every TLS argument dropped."""
+    import urllib3
+
+    monkeypatch.setattr(
+        urllib3,
+        "HTTPSConnectionPool",
+        lambda *_a, **kw: urllib3.HTTPConnectionPool(
+            "127.0.0.1", port=port, retries=False, maxsize=1, block=True
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("prelude", "drip"),
+    [
+        # Chunked: a whole body, then trailer lines http.client drains inside one read1().
+        (
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\n\r\n"
+            b"2\r\nok\r\n0\r\n",
+            b"X-Trailer: x\r\n",
+        ),
+        # Headers: one more header line inside every read timeout, the body never begun.
+        (b"HTTP/1.1 200 OK\r\n", b"X-Slow: x\r\n"),
+    ],
+    ids=["chunked-trailers", "headers"],
+)
+def test_a_trickle_the_body_loop_never_sees_is_cut_by_the_watchdog(
+    monkeypatch: pytest.MonkeyPatch, prelude: bytes, drip: bytes
+) -> None:
+    port, stop = _trickling_server(prelude, drip)
+    _wire_to(port, monkeypatch)
+    wire = UrllibWire(read_timeout_s=2.0, deadline_s=0.5)
+    started = time.monotonic()
+    try:
+        with pytest.raises(ToolCallFailed) as failed:
+            wire.get(address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=1000)
+    finally:
+        stop.set()
+    assert failed.value.reason == "timeout"
+    # The socket is shut at the deadline, not after the trickle ends (it never does).
+    assert time.monotonic() - started < 3.0
+
+
+def test_a_trickled_tls_handshake_is_cut_by_the_watchdog(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The real HTTPS pool: the server answers the ClientHello with a TLS record header that
+    # announces 16 KB, then one byte every 0.1 s -- inside the read timeout, never a handshake.
+    import urllib3
+
+    port, stop = _trickling_server(b"\x16\x03\x03\x40\x00", b"\x00")
+    real = urllib3.HTTPSConnectionPool
+    monkeypatch.setattr(
+        urllib3,
+        "HTTPSConnectionPool",
+        lambda address, **kw: real(address, **{**kw, "port": port}),
+    )
+    wire = UrllibWire(read_timeout_s=2.0, deadline_s=0.5)
+    started = time.monotonic()
+    try:
+        with pytest.raises(ToolCallFailed) as failed:
+            wire.get(
+                address="127.0.0.1", host="stats.example", target="/a", headers={}, max_bytes=1000
+            )
+    finally:
+        stop.set()
+    assert failed.value.reason == "timeout"
+    assert failed.value.delivery is Delivery.UNKNOWN  # nothing answered: no status line came
+    assert time.monotonic() - started < 3.0
+
+
+class _SlowHops:
+    """Every request takes 100 s on a shared clock and redirects to the next host."""
+
+    retrieval_mode = RetrievalMode.LIVE
+
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.left: list[float | None] = []
+
+    def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+        self.left.append(fetch_time_left())
+        self.now += 100.0
+        return _redirect(f"https://hop{len(self.left)}.example/")
+
+
+def test_one_deadline_holds_across_a_fetchs_redirects() -> None:
+    hops = _SlowHops()
+    hosts: dict[str, tuple[str, ...]] = {f"hop{i}.example": (PUBLIC,) for i in range(1, 4)}
+    resolver = Resolver(hosts | {"stats.example": (PUBLIC,)})
+    fetcher = WebFetcher(
+        transport=hops,
+        resolver=resolver,
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=lambda: hops.now,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "timeout"
+    # Each request saw what was left of the one deadline, and no third request was sent.
+    assert hops.left == [120.0, 20.0]
+    assert fetch_time_left() is None  # nothing left behind once the fetch ends
+
+
+def test_a_request_with_no_time_left_is_never_sent(monkeypatch: pytest.MonkeyPatch) -> None:
+    import urllib3
+
+    _FakePool.created.clear()
+    monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _FakePool)
+    now = [0.0]
+
+    class _Spent:
+        """The fetch's time runs out (a robots.txt read, say) before the wire is asked."""
+
+        retrieval_mode = RetrievalMode.LIVE
+
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            fetch_time_left()  # a first request (its robots.txt read) starts the clock
+            note_request_sent(answered=False)  # and was sent; its answer was lost
+            now[0] = 130.0
+            return UrllibWire().get(
+                address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
+            )
+
+    fetcher = WebFetcher(
+        transport=_Spent(),
+        resolver=Resolver({"stats.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=lambda: now[0],
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "timeout"
+    # This request was never sent (no connection opened), but the fetch's first one was and
+    # its answer was lost: the call as a whole says it may have been served.
+    assert failed.value.delivery is Delivery.UNKNOWN
+    assert _FakePool.created == []
+
+
+def test_waiting_for_a_hosts_turn_is_not_spent_from_the_deadline() -> None:
+    hops = _SlowHops()
+    hops.now = 0.0
+
+    class _Queued(_SlowHops):
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            if not self.left:
+                self.now += 500.0  # queued behind the host's other fetches, nothing sent
+            return super().get(url, address=address, max_bytes=max_bytes)
+
+    queued = _Queued()
+    fetcher = WebFetcher(
+        transport=queued,
+        resolver=Resolver({"stats.example": (PUBLIC,), "hop1.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=lambda: queued.now,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed):
+        fetcher.fetch("https://stats.example/a")
+    assert queued.left[0] == 120.0  # the clock started with the first request, not the queue
+
+
+class _DeadlineWire(Wire):
+    """A wire that does what UrllibWire does with the fetch's time, on a fake clock: each
+    request costs ``cost`` seconds, and one that runs out of time fails ``timeout``."""
+
+    cost: ClassVar[dict[tuple[str, str], float]] = {}
+
+    def get(
+        self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
+    ) -> FetchedResponse:
+        left = fetch_time_left()
+        assert left is not None and left > 0
+        spent = self.cost.get((host, target), 0.0)
+        self.clock.now += spent
+        if spent >= left:
+            self.sent.append(Sent(self.clock.now, address, host, target, dict(headers), max_bytes))
+            raise ToolCallFailed("deadline", reason="timeout", delivery=Delivery.UNKNOWN)
+        return super().get(
+            address=address, host=host, target=target, headers=headers, max_bytes=max_bytes
+        )
+
+
+def test_a_robots_read_the_fetchs_deadline_cut_is_not_held_against_the_host() -> None:
+    # A hostile page holds the fetch to 119.5 s (with its pacing), then redirects to a host
+    # that never was slow; that host's robots.txt read runs out of the fetch's time. The
+    # fetch fails timeout, and nothing is held about the other host.
+    clock = Clock()
+    allow = _robots("User-agent: *\nAllow: /\n")
+    wire = _DeadlineWire(
+        clock,
+        {
+            ("stats.example", "/robots.txt"): allow,
+            ("stats.example", "/a"): _redirect("https://news.example/x"),
+            ("news.example", "/robots.txt"): allow,
+            ("news.example", "/x"): _ok(PAGE),
+        },
+    )
+    _DeadlineWire.cost = {("stats.example", "/a"): 118.5, ("news.example", "/robots.txt"): 1.0}
+    resolver = Resolver({"stats.example": (PUBLIC,), "news.example": (OTHER,)})
+    transport = PublicHttpsTransport(
+        contact=CONTACT, resolver=resolver, wire=wire, monotonic=clock.monotonic, sleep=clock.sleep
+    )
+    fetcher = WebFetcher(
+        transport=transport,
+        resolver=resolver,
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=clock.monotonic,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "timeout"
+    assert wire.targets()[-1] == "news.example/robots.txt"  # the read the deadline cut
+    assert transport.known_refusal("https://news.example/x") is None  # nothing held
+    # A fresh fetch of that host, with a deadline of its own, reads its robots.txt again.
+    _DeadlineWire.cost = {}
+    fetcher.fetch("https://news.example/x")
+    assert wire.targets().count("news.example/robots.txt") == 2
+
+
+def test_a_first_request_never_sent_keeps_the_fetch_not_sent() -> None:
+    # A first connection refused (or a certificate refused) is a known pre-send failure:
+    # the fetch's clock started with the attempt, but nothing left.
+    class _Refused:
+        retrieval_mode = RetrievalMode.LIVE
+
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            fetch_time_left()
+            raise ToolCallFailed("refused", reason="connect_failed", delivery=Delivery.NOT_SENT)
+
+    fetcher = WebFetcher(
+        transport=_Refused(),
+        resolver=Resolver({"stats.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "connect_failed"
+    assert failed.value.delivery is Delivery.NOT_SENT
+
+
+def test_the_wire_records_a_sent_request_and_not_a_refused_connection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import urllib3
+
+    from aia_core.infrastructure import web_retrieval as retrieval
+
+    clock = retrieval._FetchClock(lambda: 0.0, 120.0)
+    token = retrieval._FETCH_CLOCK.set(clock)
+    try:
+        monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _FakePool)
+        UrllibWire().get(
+            address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
+        )
+        assert clock.sent
+
+        class _NoConnect(_FakePool):
+            def request(self, method: str, target: str, **kwargs: Any) -> Any:
+                raise urllib3.exceptions.NewConnectionError(None, "refused")  # type: ignore[arg-type]
+
+        clock.sent = False
+        monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _NoConnect)
+        with pytest.raises(ToolCallFailed) as failed:
+            UrllibWire().get(
+                address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
+            )
+        assert failed.value.delivery is Delivery.NOT_SENT
+        assert not clock.sent
+    finally:
+        retrieval._FETCH_CLOCK.reset(token)
+
+
+def test_a_fetch_whose_every_sent_request_was_answered_says_responded() -> None:
+    # The robots read and the page were answered (a redirect); the deadline ran out before
+    # the next hop. No answer is missing, so the call is RESPONDED, not UNKNOWN (which the
+    # gate would journal uncertain and so stop the track).
+    class _Answered(_SlowHops):
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            answer = super().get(url, address=address, max_bytes=max_bytes)
+            note_request_sent(answered=True)
+            self.now += 100.0
+            return answer
+
+    hops = _Answered()
+    fetcher = WebFetcher(
+        transport=hops,
+        resolver=Resolver({"stats.example": (PUBLIC,), "hop1.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=lambda: hops.now,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "timeout"
+    assert failed.value.delivery is Delivery.RESPONDED

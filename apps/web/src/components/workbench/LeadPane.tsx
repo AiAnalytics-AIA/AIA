@@ -13,18 +13,30 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
+import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { usdWords } from "@/lib/spend";
+import { commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
-import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
+import { StatusPill } from "../rehome/ui";
+import { Facts } from "../rehome/AiJobCard";
+import { RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 import { LeadSees } from "./LeadSees";
+import { errorText } from "@/lib/error-words";
+import { FILE_ACCEPT } from "@/lib/client-sources";
+import * as leadFiles from "@/lib/lead-files";
+import { fileToBase64 } from "@/research/brief";
 
 const POLL_MS = 1500;
+/** While the newest Lead turn waits on the study's budget: a budget set elsewhere (Nastavení, a
+ * colleague) releases it, and the messages it held are sent from here (F-LO-PARK-1). */
+const PARKED_POLL_MS = 10_000;
+const BUDGET_WAITS = new Set(["budget_exceeded", "reservation_exhausted"]);
 
 /**
  * What the conversation's cards need beside the turns (chunk 23): the study's research runs, where
@@ -45,11 +57,12 @@ export type LeadCardsContext = {
 };
 
 /**
- * What the person is writing and what waits to be sent, per study, for as long as the page lives:
+ * What the person is writing and what is not yet stored on the server (a post in flight, or one
+ * the server did not take), per study, for as long as the page lives:
  * the pane is unmounted when the window narrows to the classic layout, and comes back empty
  * otherwise.
  */
-type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null };
+type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null; files?: string[] };
 const kept = new Map<string, { draft: string; queued: Queued[] }>();
 
 /** An accepted self-update left a file another turn changed since; its notes did apply. The 200
@@ -107,7 +120,32 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [error, setError] = useState<string | null>(null);
   const [seesOpen, setSeesOpen] = useState(false);
   const [draft, setDraft] = useState(() => kept.get(studyId)?.draft ?? "");
-  // A message written while the Lead works keeps the stage and the element it was written about.
+  // Files given to the Lead for the next message (LO18a): each kept as the client's source at once.
+  const [attached, setAttached] = useState<leadFiles.Attached[]>([]);
+  const attachSeq = useRef(0);
+  const attach = (files: File[]) => {
+    for (const file of files.slice(0, leadFiles.room(attached))) {
+      const key = `f${++attachSeq.current}`;
+      const early = leadFiles.refusedBeforeUpload(file);
+      if (early) {
+        setAttached((a) => [...a, leadFiles.refused(key, file.name, early)]);
+        continue;
+      }
+      setAttached((a) => [...a, leadFiles.uploading(key, file.name)]);
+      void (async () => {
+        let next: leadFiles.Attached;
+        try {
+          const keptFile = await leadApi.attachFile(studyId, { filename: file.name, data_b64: await fileToBase64(file) });
+          next = leadFiles.kept(key, keptFile);
+        } catch (e) {
+          next = leadFiles.refused(key, file.name, e instanceof ApiError ? e.code : "upload_failed");
+        }
+        setAttached((a) => a.map((x) => (x.key === key ? next : x)));
+      })();
+    }
+  };
+  // A message not yet stored keeps the stage and the element it was written about; once stored
+  // it waits on the server, in every tab (ADR 0041 decision 7).
   const [queued, setQueued] = useState<Queued[]>(() => kept.get(studyId)?.queued ?? []);
   useEffect(() => {
     kept.set(studyId, { draft, queued });
@@ -131,7 +169,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       return s;
     } catch (e) {
       onSession?.(null, true);
-      setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : e instanceof Error ? e.message : String(e));
+      setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : errorText(e));
       return null;
     } finally {
       setReads((n) => n + 1);
@@ -157,6 +195,17 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     const t = setTimeout(() => void read(), POLL_MS);
     return () => clearTimeout(t);
   }, [session, reads, read]);
+  // While the newest Lead turn waits on the budget, read again slowly and when the tab comes back:
+  // once someone sets the budget, its messages wait again and are sent below (answerQueued).
+  const newestLead = session ? [...session.turns].reverse().find((t) => t.actor === "lead") : undefined;
+  const parked = newestLead?.status === "WAITING" && BUDGET_WAITS.has(newestLead.reason ?? "");
+  useEffect(() => {
+    if (!parked) return;
+    const t = setTimeout(() => void read(), PARKED_POLL_MS);
+    const back = () => void read();
+    window.addEventListener("focus", back);
+    return () => { clearTimeout(t); window.removeEventListener("focus", back); };
+  }, [parked, reads, read]);
   useEffect(() => {
     const last = session ? newestCompleted(session.turns) : null;
     if (!last || applied.current === last.turn_id) return;
@@ -183,12 +232,19 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     return true;
   }, [studyId, read]);
 
+  // The message on its way to the server, so a stage's repeated ask is not sent twice.
+  const inFlight = useRef<string | null>(null);
   const message = useCallback(async (m: Queued) => {
-    // A save that fails does not hold the message: the Lead then reads the last stored revision.
-    await beforeMessage?.().catch(() => {});
-    if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
-    setQueued((q) => [m, ...q]);
-    setHeld(true);
+    inFlight.current = m.text;
+    try {
+      // A save that fails does not hold the message: the Lead then reads the last stored revision.
+      await beforeMessage?.().catch(() => {});
+      if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus, ...(m.files?.length ? { files: m.files } : {}) })) return;
+      setQueued((q) => [m, ...q]);
+      setHeld(true);
+    } finally {
+      inFlight.current = null;
+    }
   }, [post, beforeMessage]);
 
   // The Lead greets a study it has not spoken in for eight hours (the server keeps the rule).
@@ -198,9 +254,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     void post({ kind: "greeting", stage });
   }, [me, session, canEdit, stage, post]);
 
-  // A message written while the Lead works waits, then goes.
+  // Messages go one after another, in the order written; the server queues them while the Lead works.
   useEffect(() => {
-    if (session?.busy || sending || held || !queued.length) return;
+    if (sending || held || !queued.length) return;
     const [next, ...rest] = queued;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the queue drains one message each time the Lead is free
     setQueued(rest);
@@ -209,26 +265,74 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
 
   const send = (text: string) => {
     const t = text.trim();
-    if (!t) return;
-    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus }]);
-    else void message({ text: t, stage, focus });
+    if (!t || leadFiles.holdsMessage(attached)) return;
+    const files = leadFiles.carried(attached);
+    if (sending || held) setQueued((q) => [...q, { text: t, stage, focus, files }]);
+    else void message({ text: t, stage, focus, files });
     setDraft("");
+    setAttached([]);
     onClearFocus();
   };
   // A stage's message (Návrh's "Požádat Vedoucího"): sent or queued as typed, the draft left alone.
+  // Only when the composer would take it (the workbench opens the pane, which says why when it
+  // would not), and once: the same ask on its way, waiting here or queued on the server is not
+  // asked again.
   const fromStage = (text: string) => {
     const t = text.trim();
-    if (!t) return;
-    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
+    if (!t || !canEdit || !me?.hatched || !session?.available) return;
+    if (inFlight.current === t || queued.some((m) => m.text === t)) return;
+    if ((session.turns ?? []).some((turn) => turn.actor === "person" && turn.queued && turn.text === t)) return;
+    if (sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
     else void message({ text: t, stage, focus: null });
   };
   useEffect(() => {
     registerSend?.(fromStage);
   });
 
+  // What waits for the Lead on the server, in queue order; any tab starts its turn once the Lead is
+  // free (the server starts one, however many tabs ask).
+  const waiting = (session?.turns ?? []).filter((t) => t.actor === "person" && t.queued);
+  const asked = useRef<string | null>(null);
+  // An ask that failed is said, with its reason and a retry: nothing else would ask again, and the
+  // queue would read as answered soon while no turn is coming.
+  const [drainFailed, setDrainFailed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session?.available || session.busy || sending || !waiting.length) return;
+    // Asked again whenever the newest Lead turn moves on (a budget wait lifted and the turn
+    // answered): a key of the waiting set alone would leave them waiting until a reload. Never
+    // per read, which would ask again after every answer of its own.
+    const newest = [...(session.turns ?? [])].reverse().find((t) => t.actor === "lead");
+    const key = `${waiting.map((t) => t.turn_id).join(",")}|${newest?.turn_id ?? ""}:${newest?.status ?? ""}`;
+    if (asked.current === key) return;
+    asked.current = key;
+    leadApi.answerQueued(studyId).then(
+      (started) => {
+        setDrainFailed(null);
+        // A turn started is a busy Lead even if the read below fails: the poll keeps reading.
+        if (started.turns.length) setSession((s) => (s ? { ...s, busy: true } : s));
+        return read();
+      },
+      (e: unknown) => setDrainFailed(e instanceof ApiError ? reasonWords(e.code) : String(e)),
+    );
+  }, [session, sending, waiting, studyId, read]);
+  const unqueue = async (key: string) => {
+    if (key.startsWith("local:")) {
+      const i = Number(key.slice(6));
+      setQueued((q) => q.filter((_, j) => j !== i));
+      return;
+    }
+    try {
+      await leadApi.withdraw(studyId, key);
+    } catch (e) {
+      setError(e instanceof ApiError ? reasonWords(e.code) : String(e));
+    }
+    await read();
+  };
+
   const hatch = async () => {
     try {
       setMe(await researcherLead.hatch());
+      announceHatched();
       // The session read before hatching said the Lead was not hatched: read it again.
       await read();
     } catch (e) {
@@ -278,18 +382,22 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       {seenTurn && seesOpen ? <LeadSees key={seenTurn.turn_id} studyId={studyId} turnId={seenTurn.turn_id} id="lead-sees" /> : null}
       <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null }}>
       <ViewWords.Provider value={design ?? null}>
-      <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
+      <Conversation turns={(session?.turns ?? []).filter((t) => !t.queued && !t.withdrawn)} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
           <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Zprávu se nepodařilo odeslat. Čeká ve frontě.
             <button type="button" className="chip" onClick={() => { setError(null); setHeld(false); }}>Zkusit znovu</button></div></div>
+        ) : null}
+        {drainFailed ? (
+          <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Vedoucí zatím neodpovídá na zprávy ve frontě: {drainFailed}
+            <button type="button" className="chip" onClick={() => { asked.current = null; setDrainFailed(null); void read(); }}>Zkusit znovu</button></div></div>
         ) : null}
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
       </ViewWords.Provider>
       </TypedCardFacts.Provider>
-      <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
+      <Composer draft={draft} setDraft={setDraft} onSend={send} attached={attached} onAttach={attach} onUnattach={(key) => setAttached((a) => a.filter((x) => x.key !== key))} busy={!!session?.busy || sending} queued={[...waiting.map((t) => ({ key: t.turn_id, text: t.text ?? "" })), ...queued.map((q, i) => ({ key: `local:${i}`, text: q.text }))]} onUnqueue={(key) => void unqueue(key)}
         disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );
@@ -401,9 +509,14 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
       <div className="msg msg--user" data-msg={t.turn_id}>
         {t.focus ? <div className="bubble__ref"><Icon name="at" size={12} />{t.focus.label}</div> : null}
         <div className="bubble">{t.text}</div>
+        {t.files?.length ? (
+          <ul className="filechips filechips--sent" aria-label="Soubory pro Vedoucího">
+            {t.files.map((f) => <li className="refchip filechip" key={f.source_id}><Icon name="paperclip" size={12} /><b>{f.filename}</b></li>)}
+          </ul>
+        ) : null}
         <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
       </div>
-      {typed ? <RequestCard r={typed} typed approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
+      {typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
       {/* A job found already started is shown where it started, once; this card points to it. */}
       {job && !t.request_decision?.reused ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards && !t.request_decision?.reused ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
@@ -423,7 +536,12 @@ function Prose({ text }: { text: string }) {
 /** The working copy a view chip's target is named from (F18). */
 const ViewWords = createContext<TargetWords | null>(null);
 
-const VIEW_LABEL = (v: LeadView, design: TargetWords | null) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`);
+const stageWords = (stage: string) => (isWorkbenchStage(stage) ? STAGES[stage].label : stage);
+const VIEW_LABEL = (v: LeadView, design: TargetWords | null) =>
+  v.op === "open_stage" ? `Otevřít ${stageWords(v.stage)}`
+  : v.op === "show_diff" ? `Změny: ${stageWords(v.stage)}`
+  : v.op === "select" || v.op === "filter" ? mapViewWords(v, design)
+  : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`;
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
@@ -440,7 +558,12 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
     );
   }
   if (t.status !== "COMPLETED" || !t.output) {
-    return <div className="msg"><div className="notice"><Glyph tone={t.status === "WAITING" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault"} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
+    // Parked on the study's budget: coral for whoever can raise it (anyone who can edit the study,
+    // ADR 0019), slate for a reader who cannot (the product owner, 2026-10-23, Q85). Any other wait is slate.
+    const parkedOnBudget = t.status === "WAITING" && t.reason === "budget_exceeded";
+    // An unfunded greeting is a quiet line, never a fault (F-LO-PARK-1).
+    const tone = parkedOnBudget && canEdit ? "you" : t.status === "WAITING" || t.reason === "greeting_unfunded" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault";
+    return <div className="msg"><div className="notice" data-lead-wait={t.reason ?? t.status}><Glyph tone={tone} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
   }
   const o: LeadOutput = t.output;
   const edits = o.edits ?? [];
@@ -461,7 +584,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
       </div>
       {o.request?.kind === "research_run" && cards
         ? <RunRequestCard studyId={studyId} why={o.request.why} canEdit={canEdit} prepare={cards.prepareRun} start={cards.startRun} stepHref={cards.stepHref} onStarted={(r) => cards.onRunStarted(t.turn_id, r)} />
-        : o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
+        : o.request ? <RequestCard r={o.request} ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
       {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
       {last && !busy && o.follow?.length ? (
@@ -528,19 +651,23 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
   analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
-  design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
-  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
+  design_research: { title: "Hloubkový výzkum k návrhu", action: "Spustit hloubkový výzkum" },
+  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Spustit literární rešerši" },
+  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Zopakovat hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
  *  starts here on the deployment's run settings, under the same checks as Spuštění's. */
 const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzkum" };
 
-function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean }) {
+/** `ceiling`: the turn's `ceiling_usd` (LO23), the most its agent job can cost; undefined when
+ *  the server did not say (an older API), null when it is unknown. */
+function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean; ceiling?: number | null }) {
   const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
-  const paid = r.kind === "agent_job" || typed;
+  // A Deep Research card starts on its approval (LO5a.2), as an agent job does.
+  const paid = r.kind === "agent_job" || isDeepResearchCard(r) || typed;
   const decided = state === "done" || !!approved;
   // Approved on what an earlier approval had already started for this design: nothing started.
   const reused = !!approved?.reused;
@@ -552,19 +679,28 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
         <div className="dec__body">
           {state === "done" || state === "kept" ? null : <p className="card__eyebrow">{typed ? "Váš příkaz" : "Rozhodnutí patří vám"}</p>}
-          <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
+          <div className="card__titlerow"><p className="dec__title">{w.title}</p><StatusPill tone={pill.tone}>{pill.word}</StatusPill></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
-            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            // A Deep Research card found the run a stage start (or another card) had made: no
+            // card of it is above, it may still be running, and it is not always "this design's".
+            ? [isDeepResearchCard(r)
+              ? { label: "Výsledek", value: "Tento hloubkový výzkum už běží nebo doběhl", sub: "Nic nového se nespustilo ani nezaplatilo; běh se sleduje v kroku, kde byl spuštěn." }
+              : { label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
             : r.kind === "analysis_retry"
             // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
             ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
               ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
               { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
+            : isDeepResearchCard(r)
+            ? deepResearchFacts(r, { walletOn, decided })
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid
-            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
+            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action },
+              // Before the start, the most the job can cost (LO23); unknown said in words, never 0.
+              ...(ceiling === undefined ? [] : [{ label: "Cena nejvýše", value: usdWords(ceiling), key: true }]),
+              { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
             <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
@@ -576,27 +712,41 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
   );
 }
 
-function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
+function Composer({ draft, setDraft, onSend, attached, onAttach, onUnattach, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
   draft: string; setDraft: (v: string) => void; onSend: (t: string) => void; busy: boolean;
-  queued: string[]; onUnqueue: (i: number) => void; disabled: boolean;
+  /** Files given to the Lead for this message (LO18a), and how to add and remove one. */
+  attached: leadFiles.Attached[]; onAttach: (files: File[]) => void; onUnattach: (key: string) => void;
+  queued: { key: string; text: string }[]; onUnqueue: (key: string) => void; disabled: boolean;
   /** Why the composer is shut, in its own field (composerHint); null while it is open. */
   hint: string | null;
   focus: { id: string; label: string } | null;
   picking: boolean; onPick: () => void; onClearFocus: () => void;
 }) {
   const ta = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const holding = leadFiles.holdsMessage(attached);
   return (
     <div className="composer-wrap">
       {queued.length ? (
-        <div className="queue" aria-label="Čeká na odeslání">
-          <div className="cap" style={{ padding: "2px 4px" }}>Odešle se, až Vedoucí doodpoví</div>
-          {queued.map((q, i) => (
-            <div className="queue__item" key={`${i}-${q}`}><Icon name="clock" size={13} /><span className="queue__text">{q}</span>
-              <button type="button" className="iconbtn" aria-label="Odebrat z fronty" title="Odebrat z fronty" onClick={() => onUnqueue(i)}><Icon name="close" size={13} /></button></div>
+        <div className="queue" aria-label="Čeká na Vedoucího">
+          <div className="cap" style={{ padding: "2px 4px" }}>Vedoucí na ně odpoví, až doodpoví</div>
+          {queued.map((q) => (
+            <div className="queue__item" key={q.key}><Icon name="clock" size={13} /><span className="queue__text">{q.text}</span>
+              <button type="button" className="iconbtn" aria-label="Odebrat z fronty" title="Odebrat z fronty" onClick={() => onUnqueue(q.key)}><Icon name="close" size={13} /></button></div>
           ))}
         </div>
       ) : null}
       {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn refchip__clear" aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
+      {attached.length ? (
+        <ul className="filechips" aria-label="Přiložené soubory">
+          {attached.map((a) => (
+            <li className="refchip filechip" key={a.key} data-file-state={a.state}>
+              <Icon name="paperclip" size={12} /><b>{a.name}</b><span className="filechip__words" role={a.state === "refused" ? "alert" : undefined}>{a.words}</span>
+              <button type="button" className="iconbtn refchip__clear" aria-label={`Odebrat ${a.name}`} onClick={() => onUnattach(a.key)}><Icon name="close" size={11} /></button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="composer">
         <label className="sr-only" htmlFor="composer">Napište Vedoucímu výzkumu</label>
         <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={disabled && hint ? hint : focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
@@ -605,11 +755,14 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
             if (e.nativeEvent.isComposing) return;
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(draft); }
           }} />
+        <input ref={picker} type="file" multiple hidden aria-hidden tabIndex={-1} accept={FILE_ACCEPT}
+          onChange={(e) => { onAttach(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
         <div className="composer__bar">
+          <button type="button" className="iconbtn" aria-label="Přiložit soubor (uloží se k podkladům klienta)" title="Přiložit soubor (uloží se k podkladům klienta)" disabled={disabled || leadFiles.room(attached) === 0} onClick={() => picker.current?.click()}><Icon name="paperclip" size={16} /></button>
           <button type="button" className={`iconbtn${picking ? " is-on" : ""}`} aria-pressed={picking} aria-label="Ukázat na prvek artefaktu (@)" title="Ukázat na prvek artefaktu (@)" disabled={disabled} onClick={onPick}><Icon name="at" size={16} /></button>
-          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled} onClick={() => onSend("Kde jsme a co mám udělat dál?")}>Kde jsme?</button>
-          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled} onClick={() => onSend("Projdi tento krok a navrhni konkrétní úpravy.")}>Navrhni úpravy</button>
-          <button type="button" className="composer__send" aria-label={busy ? "Zařadit do fronty" : "Odeslat"} title={busy ? "Zařadit do fronty" : "Odeslat"} disabled={disabled || !draft.trim()} onClick={() => onSend(draft)}><Icon name="send" size={16} /></button>
+          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled || holding} onClick={() => onSend("Kde jsme a co mám udělat dál?")}>Kde jsme?</button>
+          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled || holding} onClick={() => onSend("Projdi tento krok a navrhni konkrétní úpravy.")}>Navrhni úpravy</button>
+          <button type="button" className="composer__send" aria-label={busy ? "Zařadit do fronty" : "Odeslat"} title={busy ? "Zařadit do fronty" : "Odeslat"} disabled={disabled || !draft.trim() || holding} onClick={() => onSend(draft)}><Icon name="send" size={16} /></button>
         </div>
       </div>
       <div className="composer__hint">Enter odešle · Shift+Enter nový řádek · Vedoucí nic nezmění bez vás</div>

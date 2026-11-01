@@ -32,6 +32,8 @@ COMPOSE = (ROOT / "deploy" / "develop" / "docker-compose.yml").read_text(encodin
 #: as deploy/develop/README.md § the AI runtime configures them.
 HOST_ENV = {
     "AWS_REGION": "eu-central-1",
+    # The product hostname every host sets (the Caddyfile and the web need it too).
+    "AIA_PUBLIC_HOSTNAME": "aia.example.test",
     "POSTGRES_PASSWORD": "generated-secret",
     "AIA_STORAGE_BUCKET": "aia-develop-artifacts-123456789012",
     "AIA_COGNITO_USER_POOL_ID": "eu-central-1_XXXXXXXXX",
@@ -372,3 +374,112 @@ def test_an_invocation_target_reaches_the_worker_alone_and_unset_changes_nothing
     called = settings.invocations()
     assert called[settings.model_id].target == arn
     assert called["eu.test.lead-model:1"].target == lead_arn
+
+
+#: Claude Sonnet 5.5 on the route as the SSM writes of sonnet-5-5-switch would carry it: the
+#: id, prices and limits the infra session read from develop's Bedrock account on 2026-10-25
+#: (eu-central-1, Standard geo, USD per Mtok), and the profile the model family needs.
+SONNET_5_5_ENV = {
+    **HOST_ENV,
+    "AIA_BEDROCK_MODEL_ID": "eu.anthropic.claude-sonnet-5-5",
+    "AIA_BEDROCK_INPUT_USD_PER_MTOK": "2.20",
+    "AIA_BEDROCK_OUTPUT_USD_PER_MTOK": "11.00",
+    "AIA_BEDROCK_CACHE_READ_USD_PER_MTOK": "0.11",
+    "AIA_BEDROCK_CACHE_WRITE_USD_PER_MTOK": "2.75",
+    "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "128000",
+    # The product owner's choice for the first switch (2026-10-25), not the model's 1M.
+    "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
+    "AIA_BEDROCK_STRUCTURED_OUTPUT": "auto_tool",
+    "AIA_BEDROCK_THINKING": "adaptive",
+    "AIA_BEDROCK_ACCEPTS_SAMPLING": "false",
+    "AIA_AI_FIELDWORK_EFFORT": "low",
+}
+
+
+def test_the_route_models_profile_reaches_the_worker_and_unset_changes_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aia_core.domain.ai_models import DEFAULT_REQUEST_PROFILE, Effort, ThinkingMode
+
+    unset = AIRuntimeSettings.from_env(_container("worker", HOST_ENV))
+    assert unset is not None and unset.request_profile == DEFAULT_REQUEST_PROFILE
+
+    worker = _container("worker", SONNET_5_5_ENV)
+    for key in (
+        "AIA_BEDROCK_STRUCTURED_OUTPUT",
+        "AIA_BEDROCK_THINKING",
+        "AIA_BEDROCK_ACCEPTS_SAMPLING",
+        "AIA_AI_FIELDWORK_EFFORT",
+    ):
+        assert worker[key] == SONNET_5_5_ENV[key]
+    settings = AIRuntimeSettings.from_env(worker)
+    assert settings is not None and settings.model_id == "eu.anthropic.claude-sonnet-5-5"
+    assert settings.request_profile.thinking is ThinkingMode.ADAPTIVE
+    assert not settings.request_profile.accepts_sampling
+    policy = settings.model_document()["policies"][0]
+    assert policy["efforts"] == {"SIMULATION": Effort.LOW.value}
+    assert settings.cache_write_usd_per_mtok == 2.75
+
+    # The API prices a Deep Research ceiling as the worker sends it: no budget to this model.
+    api = _api_settings(
+        _container("api", {**SONNET_5_5_ENV, "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": "2048"}),
+        monkeypatch,
+    )
+    assert api.bedrock_thinking == "adaptive"
+    assert api.deep_research_pricing().thinking_budget_tokens is None
+    assert api.deep_research_pricing().cache_write_usd_per_mtok == 2.75
+
+
+# docs/'s pinned image's api.js under its fixed cache tag (deploy/develop/docs/docker-compose.yml).
+PINNED_API_INTEGRITY = "sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G"
+
+
+def test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The Document Server is not on AIA's network: it reaches the API on the public hostname
+    (report-editor-hosting decision 4). The develop host hands the API that origin, and the
+    editor's routes are still off until the editor's URL and secret are set from SSM. The api.js
+    integrity (RPT8e) is versioned in the Compose file beside the pinned image's fixed cache tag
+    (report-editor-hosting 4b), and SSM may override it."""
+    dotenv = HOST_ENV
+    off = _api_settings(_container("api", dotenv), monkeypatch)
+    assert off.onlyoffice_callback_base == "https://aia.example.test"
+    assert not off.report_editor_on
+    editor = {
+        "AIA_ONLYOFFICE_URL": "https://docs.example.test",
+        "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
+    }
+    on = _api_settings(_container("api", {**dotenv, **editor}), monkeypatch)
+    assert on.report_editor_on
+    assert on.onlyoffice_api_integrity == PINNED_API_INTEGRITY
+    integrity = "sha384-" + "A" * 64
+    overridden = _api_settings(
+        _container("api", {**dotenv, **editor, "AIA_ONLYOFFICE_API_INTEGRITY": integrity}),
+        monkeypatch,
+    )
+    assert overridden.onlyoffice_api_integrity == integrity
+    assert "AIA_ONLYOFFICE_CALLBACK_BASE" not in _container("worker", dotenv)
+
+
+def test_every_key_the_activation_profile_reads_reaches_the_worker() -> None:
+    """MP6: a row reads the worker's environment; a key the Compose file does not pass to the
+    worker would read NOT_READY on every deploy, whatever Parameter Store holds."""
+    from aia_executors.activation import PROFILE
+
+    worker = _service_environment("worker")
+    missing = [key for row in PROFILE for key in row.reads if key not in worker]
+    assert missing == []
+
+
+def test_the_develop_hosts_route_reads_not_ready_until_it_is_widened() -> None:
+    """MP6, §2.2: develop's configuration as Parameter Store first held it (Class C only)
+    starts the worker, and the smoke says the route is not ready, by name; widened, ready."""
+    from aia_executors.activation import judge
+
+    rows = {row.key: r for row, r in judge(_container("worker", HOST_ENV))}
+    assert rows["ai_runtime"].ready
+    assert not rows["route_classes"].ready
+    assert "not approved for CLASS_A_CLIENT_CONFIDENTIAL" in rows["route_classes"].reason
+    widened = {row.key: r for row, r in judge(_container("worker", WIDENED_ENV))}
+    assert widened["route_classes"].ready

@@ -1,34 +1,37 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
+  - "[x] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
   - "[x] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
   - "[x] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[x] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
-  - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's five-step shortening ladder, spare bytes to the verbatim conversation, every omission named"
+  - "[ ] LC4. Budgets enforced, in tokens (ADR 0041 A1): the Lead's budget a fraction (0.5 until the benchmark) of its model's usable window, counted in tokens; the eleven layers' floors, ceilings and two-pass allocation as shares in today's order; the stable prefix cached; the reservation from the counted tokens; the design layer's five-step shortening ladder, spare to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (an exact study_lead_turn_answers relation, a withdrawal row, queue position kept through an edit), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
+  - "[x] LC5a. (opened as a draft during the feature freeze at Nigel's word, 2026-10-22) The server's queue: a message posted while a turn runs is stored at once, bounded (8 KB, 5 queued), answered by the next turn while layer 9 fits, the rest deferred and named; study_lead_turn_answers; withdraw; the web's queue retired"
+  - "[ ] LC5b. Edit a queued message as a replacement keeping its place, and requeue what an inactive turn answered (with LC10's replaces_turn_id and active path)"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
-  - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, the coverage floor and the uncovered-terms index, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
+  - "[ ] LC7. Grounded hierarchical compaction, started on tokens (ADR 0041 A4): research_lead_compact after the reply once the recent conversation would pass 60 % of its share, block summaries with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, the coverage floor and the uncovered-terms index, every summarised turn retrievable, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
   - "[ ] LC7a. Kept facts (Držená fakta): proposed by the compaction step, each with a quote located verbatim in its named turn, never compacted, superseded only by name, 40 x 300 characters"
   - "[ ] LC8. Summaries and kept facts corrected, pinned or retired in place by the researcher; a person's revision later roll-ups build on"
-  - "[ ] LC9. Retrieval at enqueue: the turns behind a matching summary sentence first, then covered turns, knowledge bodies and notes ranked by the project-memory matcher, recorded in the manifest"
+  - "[ ] LC9. Retrieval at enqueue (ADR 0041 A2): the turns behind a matching summary sentence first, then covered turns, older runs and older decisions, knowledge bodies and notes ranked by the project-memory matcher (word search; embeddings after the MVP, LC17), recorded in the manifest"
   - "[ ] LC10. Regenerate, edit-and-resend and retry as replacement turns: parent_turn_id, replaces_turn_id, superseded_turn refusals"
   - "[ ] LC11. Pins: a turn, knowledge item, note or artifact element pinned to the conversation, its own layer, refused when made if it cannot fit"
   - "[ ] LC12. Feedback: pomohlo / nepomohlo with a closed reason per Lead turn, private, an evaluation export by prompt version, an ADR 0030 signal by id"
-  - "[ ] LC13. The long-conversation journey and the recall test: 60 recorded turns, every kept fact in turn 61's context and every digest decision in it or reachable through the manifest's ledger range, a summarised subject's turns retrieved verbatim, the manifest naming omissions, a queued message from a second tab, a regenerate, zero unintended paid jobs"
+  - "[ ] LC13. The long-conversation journey and the recall test (no model), and the benchmark (ADR 0041 A5): 12 fictional studies, about 600 code-scored questions, the pass marks, the cheapest passing share and table chosen; each paid run by hand, its cost stated first, at most USD 50, on Nigel's word"
   - "[ ] LC14. After the MVP: one's own conversations listed on Můj Vedoucí and a lexical search over one's own turns"
   - "[ ] LC15. After the MVP: export of one's own conversation as Markdown, each turn's class shown, audited"
   - "[ ] LC16. After the MVP: branch navigation over replaced turns, and Začít od čistého stolu"
-  - "[ ] LC17. After the MVP, own ADR: semantic retrieval (an EU embedding route, pgvector), or a Lead-requested recall on ADR 0040's continuation pattern"
+  - "[ ] LC17. After the MVP, own ADR (the owner, 2026-10-26: word search for the MVP, embeddings after): semantic retrieval over an EU embedding route (pgvector), taken only if the benchmark's lookup scores ask for it"
   - "[ ] LC18. After the MVP: personal prompt templates in the / list beside the command registry"
   - "[x] LC19. Day dividers in every time-only feed: Dnes, Včera, the weekday and date within the past week, else the date; the viewer's local day; an unknown moment shows none"
+  - "[ ] LC20. Per-turn context choices (TurnPost.context), each omission named in the manifest: 'Aktuální krok' always sent, 'Moje poznámky' on by default, client knowledge chosen per message (spec lead LP-19; W2)"
 ---
 # The Lead's conversation and context
 
 The chat-centric capabilities the product owner asked for on 2026-10-20 (22:25 UTC): session memory,
 context management, and the message operations of a mature chat product, built inside ADR 0026's
 closed output and the governed gateway. Architecture:
-[ADR 0041](../../docs/architecture/adr/0041-lead-conversation-and-context.md) (Proposed). Evidence
+[ADR 0041](../../docs/architecture/adr/0041-lead-conversation-and-context.md) (Accepted with Amendment 1, 2026-10-26). Evidence
 and the gap table: [`evidence/lead-chat-capabilities.md`](../evidence/lead-chat-capabilities.md).
 
 **Owner: S1** (the Lead's lane, as `lead-orchestration`). Every chunk is open. Written during the
@@ -70,6 +73,43 @@ Waves are `mvp-execution-contracts.md`'s; the row these chunks join is the docs 
 - **After the MVP:** LC14-LC18.
 
 ## Chunks
+
+*The owner, 2026-10-25 (ADR-0041 (b), the audit page, relayed by coordinator 3): accept with amendments (Sonnet 5.5's capabilities,
+enough context for all documents and actions, a benchmark); the amendment is being drafted, and LC0
+stays open until it is written in.*
+
+**ADR 0041 Amendment 1, accepted (the owner, 2026-10-26, the AIA Decision Review page, relayed by
+coordinator 3 at 12:40 UTC).** REV-0041-ACCEPT (a): A1-A5 as proposed. REV-0041-FRACTION (a): half
+(0.5) of the model's usable window, until the benchmark picks. REV-0041-BENCH-CAP (a): USD 50 per
+paid benchmark run. REV-0041-EMBED (a): word search for the MVP, embeddings after. The five
+decisions, as this plan carries them:
+
+- **A1. A budget in tokens, from the model.** The Lead's budget is a fraction of its model's usable
+  window, counted in tokens: `context_window_tokens` from the Lead's catalog entry
+  (`domain/ai_models.py:641 @ a45aad6f`), less the output reservation and the frame. Today it is a
+  fixed `CONTEXT_MAX_BYTES` = 96 KB (`domain/research_lead.py:196 @ a45aad6f`), and the hold treats
+  one byte as one token (`domain/research_lead.py:1489-1501`, `aia_executors/research_lead.py:173-180
+  @ a45aad6f`), so raising the bytes would over-reserve money on every turn. The eleven layers keep
+  their order and become shares of the token budget (LC4). The stable prefix (frame, the Lead's
+  files, the study file, the index) is cached so a turn pays mostly for what is new.
+- **A2. Always in, and looked up.** Always in: the Lead's own files, the study file, the index of
+  every chosen client document (`lead-client-knowledge#LK1`), the design, the newest results, the
+  decision digest (LC3) and the recent turns. Looked up on demand: document pages (A3), older turns,
+  older runs and older decisions (LC9).
+- **A3. One bounded search-and-read round.** At most 2 searches and 3 page reads a turn, over the
+  study's chosen knowledge only; code runs them, never a free tool loop; every quote cites its page;
+  at most three model calls a turn. This is ADR 0042's shape (`lead-client-knowledge#LK1`, `#LK3`).
+- **A4. Summaries start on tokens.** LC7 runs once the recent conversation would pass 60 % of its
+  share, not after a count of turns; every summarised turn stays retrievable (LC9).
+- **A5. A benchmark sets every number** (LC13): 12 fictional studies (150-300 turns, 5-15 documents,
+  runs and decision ledgers each), about 600 questions with code-scored answers. Pass marks:
+  decisions recalled 98 %, facts 90 %, document lookups 85 %, results 95 %, and 100 % on an honest
+  "nevím", client isolation and numbers only from the ledger. The cheapest configuration that
+  passes every mark wins. A paid run is started by hand on develop's Lead route, charged to a
+  fictional study, its count and cost stated before it starts, at most USD 50, and only on Nigel's
+  word for that stated cost. It repeats when the model, the prompt or the share table changes.
+
+LC0 stayed open until the amendment's text was in ADR 0041; it was written in on 2026-10-27, and LC0 is ticked.
 
 **LC0. ADR 0041 accepted.** The coordinator relayed the owner's answers from the PM status page
 (2026-10-20 22:39-22:42 UTC): Q25 (a) the digest plus a model summary, "ensure we are using an
@@ -227,7 +267,16 @@ Tests:
   lookup yet (LO20), and a kept client note is not a ledger row today.
 - The share is the full 8 KB until LC4 allocates layer 10.
 
-**LC4. Budgets enforced.** ADR 0041 decision 2's floors, ceilings and two-pass allocation (floors,
+**LC4. Budgets enforced, in tokens** (ADR 0041 A1, the owner 2026-10-26). The budget is
+`LEAD_WINDOW_SHARE` (0.5 until the benchmark sets it) of the Lead model's usable window in tokens;
+every floor and ceiling below is a share of it, and the bytes stated here are their 96 KB
+equivalents at today's model. A layer's size is counted with the model's own tokenizer where the
+route reports it and bounded by bytes where not, never one byte as one token in the hold: the
+reservation is the counted input plus the output reservation. The stable prefix is sent as the
+route's cached prefix where it offers one. Tests (added): doubling the window doubles every
+ceiling and leaves the order unchanged; the hold for a turn equals its counted tokens, not its
+bytes; a model with no stated window refuses by name, never a default.
+ADR 0041 decision 2's floors, ceilings and two-pass allocation (floors,
 then the remainder in the declared priority order, each layer's over-policy applied to its
 allocation); the design layer's
 five-step shortening ladder (ADR 0041 decision 2: all verbatim; focused stage verbatim; focused
@@ -272,12 +321,107 @@ Tests:
   goes inactive, the other message is queued again, and the replacement turn answers both;
 - a greeting still waits.
 
+*Split (2026-10-22):* LC5's edit-as-replacement and requeue rest on `replaces_turn_id` and the
+active-path predicate, which LC10 introduces; building them twice is waste. **LC5a** is the
+queue: storage, bounds, packing, answer rows, deferral, withdrawal and the web. **LC5b** is the
+replacement and requeue, with LC10. LC5's tests on edits and inactive turns move to LC5b.
+LC5a decisions:
+- **What starts the next turn.** ADR 0041 decision 7 says a follow-on turn is enqueued "at once"
+  for deferred messages. Two Lead turns of one researcher cannot run at once: the second would
+  be frozen without the first's answer. So the next turn is started when the conversation is
+  free: by the next post, or by `POST …/lead/turns/queued`, which the pane calls as soon as it
+  reads the conversation free with messages still queued (any tab; the researcher's Lead row
+  lock makes a second call a no-op). A worker-side follow-on, started when the step finishes,
+  is LC5c if a closed tab must not delay a deferred message.
+- **Legacy turns.** The migration backfills one answer row per existing Lead message turn for
+  the person message at the sequence just before it, which is how `post` stored them. No
+  stored message reads as queued after the migration.
+- **The view.** One message: `view.message`, as today, so a single message's context is
+  unchanged. Several: `view.messages`, each `{turn_id, stage, text, focus}` in queue order and
+  never concatenated, with `view.message` null. Deferred ones are named in `view.queued_deferred`
+  by turn id. A note in the view says so (`MESSAGES_NOTE`): the fixed prefix is every
+  agent's, and the task wording is the editable prompt's. The harness stays
+  `aia-research-lead-4`, because a single message's context is byte-identical.
+
+*As built (LC5a):*
+- **Migration `7db4e0f96181`:**
+  - `study_lead_turn_answers` (append-only, with a `before_update` guard);
+  - `study_lead_turns.parent_turn_id`;
+  - the kind `withdrawal`, which is the person's, has no text and names its message;
+  - the backfill of legacy answers;
+  - a downgrade refused while a withdrawal is stored.
+
+  Checked on PostgreSQL 16: upgrade with a backfill of two legacy pairs (a typed command left
+  out), `alembic check` with no drift, downgrade base and upgrade head, and the refusal.
+- **`StudyLeadRepository`:** `queued()` (derived, in queue order), `answers`, `withdrawn` and
+  `record_answers`. `make layer_check` holds the answers table to the repository as it does the
+  turns.
+- **`ResearchLead`:**
+  - `post` stores a message while a turn runs; `LeadBusy` stays for a greeting.
+  - `answer_queued` starts the next turn once the conversation is free; `withdraw`.
+  - `_start_turn` freezes and queues a turn with `take_queued` (domain) and writes its answer
+    rows.
+  - A turn parked on the budget and superseded by a message has its messages answered by the
+    new turn, with the new one, in order: they are no longer only history.
+- **Bounds:** `MESSAGE_MAX_BYTES` 8 KB (422 `message_too_long`), `QUEUE_MAX` 5 (409
+  `lead_queue_full`) and `MESSAGES_MAX_BYTES` 12 KiB (layer 9).
+- **API:** `POST …/lead/turns/queued` (201 with the turn, 200 with none) and
+  `POST …/turns/{id}/withdraw` (409 `lead_message_not_queued`, 404 for anyone else's). A turn
+  answers `queued`, `withdrawn` and `answers`.
+- **The web:**
+  - The pane posts at once; the server queues.
+  - Its local list holds only a post in flight or one the server did not take.
+  - The composer's queue shows what waits on the server, and withdraws it.
+  - The conversation leaves out what waits or was withdrawn.
+  - A free Lead with messages waiting is asked once per set (any tab).
+- **Tests:**
+  - application, on SQLite and PostgreSQL: two tabs answered by one turn; a withdrawal; bytes
+    and count; five 8 KB messages chained; small ones packed;
+  - API: the queue end to end;
+  - domain: `take_queued` and the classification of each message;
+  - web: `LeadPane.test.tsx`.
+
+*Review of LC5a (independent, before the PR).*
+
+Fixed, each with a test:
+- **The pane's ask key.** It now includes the newest Lead turn's id and status. Keyed on the
+  waiting set alone, a message waiting behind a turn parked on the budget was never asked about
+  again after the budget was lifted and the turn answered.
+- **A waiting message's focus is checked again** against the copy its turn is frozen with. One
+  another tab removed is left out; the message is still sent (the race of Codex on #624).
+- **Only a busy Lead's queue fills up.** A free Lead answers what waits together with the new
+  message.
+- **Smaller fixes:**
+  - a superseded turn's messages are read by id, not from the newest 50 rows;
+  - `withdraw` needs an open study;
+  - the downgrade also refuses while an answer row exists that the backfill would not write
+    again (checked on PostgreSQL).
+
+Left, as findings:
+- **F5.** A batch answered by a turn that then failed or parked for a reason other than the
+  budget is answered by that turn and never sent again: up to five messages, where one was
+  before (`application/research_lead.py`, `_start_turn`). Smallest fix: LC10's retry, which
+  regenerates a failed turn; until then the researcher sends again. Test: LC10's.
+- **F6.** `state(limit=100)` counts withdrawal rows within its limit, so it can return fewer than
+  100 turns. Harmless at today's sizes.
+- **F7.** A queued person turn no longer stores `design_revision_id`. Nothing reads it on a
+  person turn; the Lead turn that answers it names its revision.
+- **F8.** `POST …/lead/turns` takes no idempotency key (`apps/api/src/aia_api/routers/lead.py:574
+  @ ddda4d21`; it predates LC5a), so a retry after a lost response stores the message twice, and
+  with the queue both copies wait to be answered. Hypothesis until reproduced (the coordinator's
+  review of #817). Smallest fix: a client-chosen key on the post, unique per researcher and
+  study, answering the stored turn on a repeat. Test: the same key posted twice stores one turn.
+
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in
 `GET …/lead`; a quiet line under each Lead turn; compaction and lookup costs as their own lines.
 Tests: a turn with a repair shows both calls' sum; an unknown cost reads *neznámá*, never 0.
 
-**LC7. Grounded hierarchical compaction** (ADR 0041 decision 4). The `research_lead_compact` step
-after `research_lead_turn`, once a block of eight uncovered turns is complete. A block summary ends
+**LC7. Grounded hierarchical compaction** (ADR 0041 decision 4, started on tokens by A4). The
+`research_lead_compact` step after `research_lead_turn`, once the uncovered recent turns would pass
+60 % of layer 9's share (LC4); the block it summarises is the oldest uncovered turns down to half
+the share, never the two newest active exchanges (LC10). Every summarised turn stays retrievable
+verbatim (LC9). Test (added): a conversation of short turns compacts later than one of long turns,
+by tokens, not by count. A block summary ends
 every sentence with the turn ids it rests on. When block summaries exceed their share of layer 10,
 the oldest roll up into an episode summary that references them, three levels at most. Each summary
 is a `research_lead_summary` artifact recording its level, range, child ids, input hash, pin, class
@@ -337,11 +481,13 @@ audited, and later roll-ups build on it. Tests:
 - a retired fact is not in it;
 - numbers in a correction follow the same rule.
 
-**LC9. Retrieval at enqueue.** The order is fixed:
+**LC9. Retrieval at enqueue** (ADR 0041 A2: older turns, runs and decisions are looked up, not
+always in). Word search with the project-memory matcher for the MVP (the owner, 2026-10-26,
+REV-0041-EMBED (a)); search by meaning is LC17. The order is fixed:
 0. turns whose uncovered terms (LC7's index) the message, focus or a pin matches, verbatim;
 1. the turns referenced by a summary sentence the message matches, verbatim;
 2. then, with the project-memory matcher (`domain/project_memory.py`): the other covered turns,
-   knowledge bodies and notes.
+   the study's older runs and older ledger decisions, knowledge bodies and notes.
 
 Everything retrieved is recorded in the manifest with its reason. Tests:
 - a message naming a summarised subject brings back that sentence's turns verbatim;
@@ -383,7 +529,21 @@ is refused; the export holds no text; a sealed Lead's feedback is unreadable.
 
 The recall numbers go in the PR.
 
-**LC14-LC18** are after the MVP and get their own chunk text when admitted.
+*The benchmark (ADR 0041 A5, the owner 2026-10-26).* Beside the no-model journey above, LC13 builds
+`tools/lead_benchmark/`: 12 fictional studies (150-300 turns, 5-15 documents, runs and decision
+ledgers each, fictional throughout), about 600 questions whose answers code scores, and a runner
+that states each configuration's request count and ceiling before it starts. The marks: decisions
+98 %, facts 90 %, document lookups 85 %, results 95 %; 100 % on an honest "nevím", on client
+isolation and on numbers only from the ledger. It compares up to six configurations (share and
+layer table) and reports the cheapest that passes every mark; that sets `LEAD_WINDOW_SHARE` and the
+shares (LC4). A recorded run (no model) is the CI test; a paid run is by hand on develop's Lead
+route, charged to a fictional study, at most USD 50, its stated cost approved by Nigel each time
+(REV-0041-BENCH-CAP (a)). Its scores and cost go in the PR that changes a number.
+
+**LC14-LC18** are after the MVP and get their own chunk text when admitted. LC17 is decided in shape
+(the owner, 2026-10-26, REV-0041-EMBED (a)): word search for the MVP; an EU embedding route, with
+its own ADR and data-class review, only if the benchmark's lookup score (85 %) is missed with word
+search.
 
 **LC19. Day dividers** (the product owner, relayed 2026-10-21). The rule:
 - A divider stands before the first entry of each calendar day in a feed whose entries show only
@@ -431,7 +591,13 @@ The recall numbers go in the PR.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
-- `docs/architecture/adr/README.md`: add ADR 0041 (Proposed).
+- *Applied 2026-10-27:* `docs/architecture/adr/0041-lead-conversation-and-context.md`: Amendment 1 (the
+  owner, 2026-10-26), A1-A5 as written under "ADR 0041 Amendment 1, accepted" above, with the four
+  answers (fraction 0.5, USD 50 per paid benchmark run, word search for the MVP); status Accepted with
+  Amendment 1. LC0 is ticked.
+- `docs/architecture/adr/0042-*.md`: written as A3 (see `lead-client-knowledge.md` Doc follow-up).
+
+- *Applied:* `docs/architecture/adr/README.md`: ADR 0041's row, now Accepted with Amendment 1.
 - `CLAUDE.md` § The map, `domain/research_lead.py`: "the layer table (`LeadLayer`) and
   `ContextManifest`" once LC1 lands; `apps/web/src/components/workbench/` LeadPane: "Co Vedoucí vidí"
   once LC2 lands.
@@ -444,3 +610,14 @@ The recall numbers go in the PR.
 - The UI standard (`docs/design/aia-design-system-brief.md` § 6, Implementation constraints):
   the LC19 rule as written above, under a heading "Day dividers in a time-only feed", naming
   `lib/day-label.ts` as the one implementation.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**LC20. Per-turn context** (spec `lead/LP-19`, lead B8; W2, lane C). After LC1 and LC2. Decided by default (planning, 26 Oct 2026, open to Nigel's override; OQ11): "Aktuální krok" always goes to the Lead; "Moje poznámky" is on by default; client knowledge is chosen per message. Test: a turn sent without its notes records the omission by name in its manifest.

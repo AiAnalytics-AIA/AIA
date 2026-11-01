@@ -27,7 +27,7 @@ describe("AnalysisInspect", () => {
   it("waits for the page's analysis, then opens a finding down to its measure on Výsledky", () => {
     render(<AnalysisInspect target={{ kind: "finding", id: "executive:0" }} />);
     expect(screen.getByText("Analýza běhu se načítá.")).toBeTruthy();
-    act(() => setShownAnalysis({ runId: "RUN-1", analysis: ANALYSIS, spec: SPEC }));
+    act(() => setShownAnalysis({ analysis: ANALYSIS, spec: SPEC }));
     expect(screen.getByText("vede").tagName).toBe("STRONG");
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toBe("#measure-q2");
@@ -37,15 +37,20 @@ describe("AnalysisInspect", () => {
   });
 
   it("opens a claim with the sentences that cite it", () => {
-    setShownAnalysis({ runId: "RUN-1", analysis: ANALYSIS, spec: SPEC });
+    setShownAnalysis({ analysis: ANALYSIS, spec: SPEC });
     render(<AnalysisInspect target={{ kind: "claim", id: "executive:C1" }} />);
     expect(document.querySelector('[data-inspect="claim"]')).toBeTruthy();
     expect(screen.getByText("Zjištění 1")).toBeTruthy();
     expect(screen.getByText("vede").tagName).toBe("STRONG");
+    // No run id or evidence ref on the stage (ANL10): the number reads in words alone.
+    const body = document.querySelector('[data-inspect="claim"]')!;
+    expect(body.textContent).not.toContain("RUN-1");
+    expect(body.textContent).not.toContain("q2.pct.2");
+    expect(body.querySelector("code")).toBeNull();
   });
 
   it("says what is missing, and refuses a target that is not Analýza's", () => {
-    setShownAnalysis({ runId: "RUN-1", analysis: ANALYSIS, spec: SPEC });
+    setShownAnalysis({ analysis: ANALYSIS, spec: SPEC });
     render(<AnalysisInspect target={{ kind: "finding", id: "executive:4" }} />);
     expect(screen.getByText("Toto zjištění v uloženém běhu není.")).toBeTruthy();
     cleanup();

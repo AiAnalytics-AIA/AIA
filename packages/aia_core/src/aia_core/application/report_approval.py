@@ -6,7 +6,8 @@ This module decides only *which* artifacts are a run's reports: the internal rep
 REPORT step stored, the report with literature or the client report stored for it, each
 found through the Study's run and checked to name that run. Approval is a person's sign-off
 on the stored document; what the client report may contain was decided when it was composed, and
-the client deliverable's gate (RD0) is read before the client report's approval.
+the client deliverable's checks (RD0) are read at the client report's approval and recorded
+with it, as warnings, never a refusal.
 
 Approving a version (research-integrity-report D2) also freezes it -- it can no longer be
 deleted or superseded in place -- and, for a report the worker renders whose approved export is
@@ -21,20 +22,55 @@ offered: ``report_variants.variant_pdf``).
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Final
+from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
-from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, require_client_gate
-from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
-from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
+from aia_core.application.client_report import (
+    CLIENT_REPORT_ARTIFACT_TYPE,
+    client_gate_findings,
+    of_current_composition,
+)
+from aia_core.application.contextual_report import (
+    CONTEXT_REPORT_ARTIFACT_TYPE,
+    CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+)
+from aia_core.application.report import (
+    INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
+)
+from aia_core.application.report_document import document_of
+from aia_core.application.report_editor_saves import content_held
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.domain.deep_research.documents import DocumentRefused
+from aia_core.domain.report.client_gate import edited_client_gate
+from aia_core.domain.report.document_model import read_document_payload
+from aia_core.domain.report.editor import (
+    EDIT_ARTIFACT_TYPES,
+    SeenEdit,
+    UnsavedEdits,
+    unsaved_edits,
+)
+from aia_core.domain.report.saved_changes import (
+    SavedChanges,
+    Uncomparable,
+    read_changes_payload,
+    written_texts,
+)
+from aia_core.domain.report.sentence_check import sentence_findings
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
+from aia_core.infrastructure.report_docx.census import census
+from aia_core.infrastructure.report_editor_repository import (
+    EditorVersion,
+    ReportEditorRepository,
+)
 from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 #: Each approvable report by its stored type, as the approval names it (report-delivery RD3, G66):
 #: the client report is the one deliverable that leaves the organization.
@@ -45,6 +81,20 @@ REPORT_KINDS: Final[Mapping[str, str]] = MappingProxyType(
         CLIENT_REPORT_ARTIFACT_TYPE: "client",
     }
 )
+#: A version a researcher saved in the editor (artifact-report RPT8c), by kind: approved as
+#: exactly that version, of whichever line, and frozen as any approved report is. An edited client
+#: report is still the client's (RPT13): approved as one, never internal_only.
+EDITED_REPORT_KINDS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        EDIT_ARTIFACT_TYPES["internal"]: "internal",
+        EDIT_ARTIFACT_TYPES["context"]: "with_review",
+        EDIT_ARTIFACT_TYPES["client"]: "client",
+    }
+)
+#: Every report a person approves, composed or edited.
+APPROVABLE_KINDS: Final[Mapping[str, str]] = MappingProxyType(
+    {**REPORT_KINDS, **EDITED_REPORT_KINDS}
+)
 #: The kinds a client receives: never internal_only.
 CLIENT_REPORT_KINDS: Final = frozenset({"client"})
 REPORT_ARTIFACT_TYPES = frozenset(REPORT_KINDS)
@@ -52,6 +102,38 @@ REPORT_ARTIFACT_TYPES = frozenset(REPORT_KINDS)
 
 class ReportNotApprovable(Exception):
     """The artifact is not a valid stored report of this run."""
+
+
+class ReportVersionStale(Exception):
+    """A version asked to be approved as its line's newest is no longer the newest: a save
+    stored the next koncept while the person read the question (artifact-report RPT8d)."""
+
+    def __init__(self, artifact_id: str, newest_artifact_id: str, koncept: int) -> None:
+        super().__init__(f"{artifact_id} is not its line's newest version ({newest_artifact_id})")
+        self.newest_artifact_id = newest_artifact_id
+        self.koncept = koncept
+
+
+class ReportEditsUnsaved(Exception):
+    """An edited version asked to be approved as its line's newest does not hold an edit made in
+    the editor (artifact-report RPT8f): the approving page's edit has not reached AIA, or an edit
+    AIA received is later than the version's last change. The server decides, under the line's
+    lock, so no edit made before the approval left is approved without being in the version."""
+
+    def __init__(self, artifact_id: str, reason: UnsavedEdits) -> None:
+        super().__init__(f"{artifact_id} does not hold every edit made ({reason.value})")
+        self.reason = reason
+
+
+class ClientEditApproved(Exception):
+    """The run's composed client report asked to be approved while a version a person saved over
+    it in the editor is approved (RPT13): the client receives that version, and approving the
+    draft beside it would leave two approved client deliverables of one line."""
+
+    def __init__(self, artifact_id: str, approved_artifact_id: str, koncept: int) -> None:
+        super().__init__(f"{artifact_id}: its edited version {approved_artifact_id} is approved")
+        self.approved_artifact_id = approved_artifact_id
+        self.koncept = koncept
 
 
 def approve_report(
@@ -62,32 +144,76 @@ def approve_report(
     run_id: str,
     artifact_id: str,
     note: str = "",
+    newest_of_line: bool = False,
+    seen_edit: SeenEdit | None = None,
 ) -> Artifact:
     """Approve ``artifact_id`` as ``run_id``'s report, freeze it and, where its draft's own PDF
     is ready, ask for its approved PDF. A report already approved records no second decision
     and asks for nothing again (a person asks for a PDF on the report itself); one approved
-    before approving froze is frozen now, so no approved version stays deletable."""
+    before approving froze is frozen now, so no approved version stays deletable. A composed
+    client report whose line holds an approved edited version is :class:`ClientEditApproved`:
+    that version is the client's.
+
+    ``newest_of_line``: approve a version of a report-editor line only while it is that line's
+    newest (the editor shows the newest), under the line's lock a save also takes, so a save
+    and this approval take their turn; :class:`ReportVersionStale` otherwise. Under the same lock,
+    and for every edited version whatever the caller asks (RPT8f: the server decides),
+    :class:`ReportEditsUnsaved` while an edit of the line's open session, or ``seen_edit`` (the
+    approving page's last edit start), is not held by it (``unsaved_edits``)."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
-    ResearchRuns(session, scope).get(run_id)
+    run = ResearchRuns(session, scope).get(run_id)
+    # Approve once: the run's row is held before the report's review is read, so a second
+    # approval at the same time waits and reads it approved (two would record two decisions).
+    # Taken before any line lock, never after, as a map snapshot's approval takes it.
+    WorkflowRepository(session, scope).lock_run(run_id)
     artifacts = research_artifacts(session, scope, store)
     artifact = artifacts.get(artifact_id)
     if (
-        artifact.artifact_type not in REPORT_ARTIFACT_TYPES
+        artifact.artifact_type not in APPROVABLE_KINDS
         or artifact.status is not ArtifactStatus.VALID
         or artifact.metadata.get("run_id") != run_id
     ):
         raise ReportNotApprovable(artifact_id)
+    if newest_of_line or (
+        artifact.artifact_type in EDITED_REPORT_KINDS and not artifact.is_approved
+    ):
+        _check_line(session, scope, artifact, seen_edit, newest=newest_of_line)
     if artifact.is_approved:
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
         return artifact if artifact.is_frozen else artifacts.freeze(artifact_id)
+    if APPROVABLE_KINDS[artifact.artifact_type] in CLIENT_REPORT_KINDS and not (
+        of_current_composition(artifact)
+    ):
+        # A client draft of an earlier composition, composed or saved in the editor, is never
+        # approved: a -7 draft printed a -5 respondent map a client may not see (MQ-01 (b)).
+        raise ReportNotApprovable(artifact_id)
     if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
-        # The client deliverable's gate (RD0, MVPQ-09): it blocks, never a flag a reviewer
-        # approves past.
-        require_client_gate(artifacts, artifact)
+        _refuse_beside_approved_edit(session, scope, run_id, artifact_id)
+    # The client deliverable's checks (RD0, MVPQ-09): warnings since 2026-10-22, never a refusal
+    # (the product owner, "Warnings for all of it"); what they find is recorded with the approval,
+    # so who approved past which warning is on record.
+    warnings = _warnings(session, scope, artifacts, artifact)
+    # An older version of an editor line is approved as itself (exact-version approval), with the
+    # newer koncept on record beside it, so approving it on purpose shows (the PM, 2026-10-24).
+    newer = _newer_koncept(session, scope, artifact)
+    if newer is not None:
+        warnings = [*(warnings or []), newer]
+    # The client report is the run's work, composed by code, whoever's download stored it (RD8):
+    # its producer is the person who started the run, as the internal report's is; so is an edited
+    # client version's koncept 1.
+    starter = (
+        frozenset({str(run["triggered_by"])})
+        if APPROVABLE_KINDS[artifact.artifact_type] == "client" and run.get("triggered_by")
+        else frozenset()
+    )
+    if artifact.artifact_type in EDITED_REPORT_KINDS:
+        authors = _line_authors(session, scope, artifacts, artifact) | starter
+    else:
+        authors = starter
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
-    artifacts.approve(artifact_id, note=note)
+    artifacts.approve(artifact_id, note=note, co_producers=authors, warnings=warnings)
     approved = artifacts.freeze(artifact_id)
     if approval_asks_pdf(scope, approved, pdf_ready=ready):
         request_pdf(
@@ -99,3 +225,142 @@ def approve_report(
             deep_research_run_id=approved.metadata.get("deep_research_run_id"),
         )
     return approved
+
+
+def _refuse_beside_approved_edit(
+    session: Session, scope: StudyContext, run_id: str, artifact_id: str
+) -> None:
+    """:class:`ClientEditApproved` when a version saved over the composed client report
+    ``artifact_id`` (its line) is approved; read under the run's lock an approval takes."""
+    edits = ReportEditorRepository(session, scope).approved_edits(
+        run_id=run_id, variant="client", deep_research_run_id=None
+    )
+    approved = [v for v in edits if v.line_id == artifact_id]
+    if approved:
+        raise ClientEditApproved(artifact_id, approved[-1].artifact_id, approved[-1].koncept)
+
+
+def _check_line(
+    session: Session,
+    scope: StudyContext,
+    artifact: Artifact,
+    seen: SeenEdit | None,
+    *,
+    newest: bool,
+) -> None:
+    """Under the line's lock: with ``newest``, the version is its line's newest, else
+    :class:`ReportVersionStale`; and it holds every edit the line's open session reported, else
+    :class:`ReportEditsUnsaved`."""
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact.artifact_id)
+    if version is None:
+        raise ReportNotApprovable(artifact.artifact_id)
+    repo.lock_line(version.line_id)  # as store_save does, before the versions are read
+    last = repo.versions(version.line_id)[-1]
+    if newest and last.artifact_id != artifact.artifact_id:
+        raise ReportVersionStale(artifact.artifact_id, last.artifact_id, last.koncept)
+    marks = repo.edit_marks(version.line_id, also=seen.document_key if seen else None)
+    reason = unsaved_edits(content_held(version, artifact), marks, seen)
+    if reason is not None:
+        raise ReportEditsUnsaved(artifact.artifact_id, reason)
+
+
+def _newer_koncept(
+    session: Session, scope: StudyContext, artifact: Artifact
+) -> dict[str, Any] | None:
+    """``superseded_version`` when ``artifact`` is a version of an editor line a later save
+    stands over, naming that koncept; ``None`` otherwise."""
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact.artifact_id)
+    last = repo.versions(version.line_id)[-1] if version is not None else None
+    if version is None or last is None or last.koncept == version.koncept:
+        return None
+    return {
+        "code": "superseded_version",
+        "where": last.artifact_id,
+        "message": f"schválen koncept {version.koncept}, novější je koncept {last.koncept}",
+        "koncept": last.koncept,
+    }
+
+
+def _line_authors(
+    session: Session, scope: StudyContext, artifacts: ArtifactRepository, artifact: Artifact
+) -> frozenset[str]:
+    """Everyone whose work an edited version is: the person who produced its line's composed
+    report (koncept 1, which names no author: a report with literature is prepared by a
+    person) and everyone who saved the line up to it, not only the one person its artifact
+    records as producer (a save's first author). Where self-approval is off, none of them may
+    approve it; where it is on, one who does is recorded as self-approving."""
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact.artifact_id)
+    if version is None:
+        raise ReportNotApprovable(artifact.artifact_id)
+    composed = artifacts.get(version.line_id).produced_by_user_id
+    saved = {
+        author
+        for earlier in repo.versions(version.line_id)
+        if earlier.koncept <= version.koncept
+        for author in earlier.authors
+    }
+    return frozenset(saved | ({composed} if composed else set()))
+
+
+#: The document model each composed report kind stores beside its DOCX (RD5a).
+_DOCUMENTS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        INTERNAL_REPORT_ARTIFACT_TYPE: INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
+        CONTEXT_REPORT_ARTIFACT_TYPE: CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    }
+)
+
+
+def _warnings(
+    session: Session, scope: StudyContext, artifacts: ArtifactRepository, artifact: Artifact
+) -> list[dict[str, Any]] | None:
+    """What the checks on the version find, recorded with its approval: the client
+    deliverable's (RD0) and the sentence check (RD7) on a client report, an edited one's as
+    :func:`edited_client_warnings` reads them; the sentence check on a report composed beside its
+    document. ``None`` -- nothing checked, never "nothing found" -- for a version with no stored
+    document: an internal report-editor version, or one stored before RD5a."""
+    if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
+        return [f.to_json() for f in client_gate_findings(artifacts, artifact)]
+    if artifact.artifact_type == EDIT_ARTIFACT_TYPES["client"]:
+        return edited_client_warnings(session, scope, artifacts, artifact)
+    kind = _DOCUMENTS.get(artifact.artifact_type)
+    model = document_of(artifacts, artifact, kind) if kind else None
+    if model is None:
+        return None
+    document = read_document_payload(artifacts.read(model.artifact_id))
+    return [f.to_json() for f in sentence_findings(document)]
+
+
+def edited_client_warnings(
+    session: Session, scope: StudyContext, artifacts: ArtifactRepository, artifact: Artifact
+) -> list[dict[str, Any]]:
+    """The client deliverable's checks on a saved editor version of a client report (RPT13; B2
+    (a), the product owner, 2026-10-26): its line's composed draft's, read from that draft's
+    stored document, then what the save changed in what code wrote (``edited_client_gate``). A
+    version whose changes were not stored is judged on nothing it changed: unknown, never passed.
+    Raises the store's errors for a stored form that does not verify."""
+    version = ReportEditorRepository(session, scope).version(artifact.artifact_id)
+    if version is None:
+        raise ReportNotApprovable(artifact.artifact_id)
+    base = [f.to_json() for f in client_gate_findings(artifacts, artifacts.get(version.line_id))]
+    if version.changes_artifact_id is None:
+        changes = SavedChanges((), Uncomparable.NO_BASELINE)
+    else:
+        changes = read_changes_payload(json.loads(artifacts.read(version.changes_artifact_id)))
+    found = edited_client_gate(changes, _written(artifacts, version))
+    return [*base, *(f.to_json() for f in found)]
+
+
+def _written(
+    artifacts: ArtifactRepository, version: EditorVersion
+) -> dict[str, frozenset[str]] | None:
+    """Per tag, the texts code wrote in ``version``'s line's composed draft (koncept 1, the
+    baseline its changes were compared with), so a copied control is told from a retyped one;
+    ``None`` when the draft does not read as a DOCX: then no added text counts as a copy."""
+    try:
+        return written_texts(census(artifacts.read(version.line_id)))
+    except DocumentRefused:
+        return None

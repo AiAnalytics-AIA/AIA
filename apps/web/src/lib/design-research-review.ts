@@ -33,7 +33,7 @@ export type ReviewItem = {
 
 export type ProposalReading = {
   items: ReviewItem[];
-  /** The design moved past this proposal by its own accept: the server refuses another (design_moved). */
+  /** This run's items are already in the design: the server refuses another accept, which changes the same block (items_changed). */
   spent: boolean;
   admissible: boolean;
 };
@@ -54,10 +54,11 @@ export function acceptedFrom(project: Obj | null, runId: string): Set<string> {
 }
 
 /**
- * The proposal as the review shows it, against the design the person has. An accept writes a new Design
- * Revision, so the proposal, researched from the one before, is spent: the server refuses another accept
- * from it (`stale_proposal`, `design_moved`), and the review offers none. A newer revision made any other
- * way is the server's to say, when the person accepts.
+ * The proposal as the review shows it, against the design the person has. An accept writes this run's
+ * items into the design's `design_research` block, so the proposal is spent: another accept from it
+ * changes the same block and the server refuses it (`stale_proposal`, `items_changed`), and the review
+ * offers none. A newer revision made any other way stales nothing unless it changed what the items change
+ * (WCE5); that is the server's to say, when the person accepts.
  */
 export function readProposal(proposal: DesignProposal, project: Obj | null): ProposalReading {
   const taken = acceptedFrom(project, proposal.run_id);

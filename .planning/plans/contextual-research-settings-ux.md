@@ -119,3 +119,9 @@ fresh document-to-content without browser cache, 84.3ms first methodology
 tab, 48ms module opening, 31.3ms next block and 32.9ms pending feedback.
 One earlier cold run was 410.5ms and remains a performance-variance concern;
 repeat monitoring should use separate cold and warm measurements.
+
+## Disposition (MP3, 2026-10-26)
+
+**Kept open as it is** (Nigel, 26 Oct: "Keep it open as it is", the product owner in the Decision
+Review, 2026-10-26, relayed by the PM coordinator; against the proposed CLOSE (verify)). Its open
+chunk stays as written; it is outside the development plan and gates nothing.

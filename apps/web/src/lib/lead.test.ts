@@ -5,10 +5,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, commandRequest, deepResearchFacts, deepResearchStage, isDeepResearchCard, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
+import type { ResearchAgentJob } from "./api";
 import { itemTargets } from "@/research/plan-narrative";
 import type { PlanState } from "@/research/plan";
 
@@ -75,7 +76,7 @@ describe("describeEdit / editStage", () => {
     expect(describeEdit(content(), { op: "set_text", field: "goal", value: "Nový cíl", why: "" })).toEqual({ where: "Cíl", before: "Zjistit, proč klienti odcházejí", after: "Nový cíl" });
     expect(editStage(e)).toBe("questionnaire");
     expect(editStage({ op: "set_text", field: "plan.problem_summary", value: "", why: "" })).toBe("design");
-    expect(editStage({ op: "set_n", value: 500, why: "" })).toBe("dimensions");
+    expect(editStage({ op: "set_n", value: 500, why: "" })).toBe("sample");
   });
 });
 
@@ -88,6 +89,7 @@ describe("focusSelector", () => {
     expect(focusSelector("plan:sets")).toBe('[id="plan-sets"]');
     expect(focusSelector("plan:variants")).toBe('[id="plan-variants"]');
     expect(focusSelector("plan:questions")).toBe('[id="plan-questions"]');
+    expect(focusSelector("plan:hypotheses")).toBe('[id="plan-hypotheses"]');
     expect(focusSelector("section:sec_1")).toBe('[data-aia="section:sec_1"], [id="qblock_sec_1"]');
     expect(focusSelector('odd"one')).toBe('[data-aia="odd\\"one"], [id="odd\\"one"]');
   });
@@ -102,6 +104,14 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+
+  it("names Návrh's hypotheses section, its own since artifact-design DSN12", async () => {
+    const { targetOfElement, targetLabel } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<section id="plan-hypotheses"><h2>Hypotézy</h2><button id="add">Přidat</button></section>`).window;
+    expect(targetOfElement(document.getElementById("add"))).toEqual({ id: "plan:hypotheses", label: "Návrh: hypotézy" });
+    expect(targetLabel("plan:hypotheses")).toBe("Návrh: hypotézy");
   });
 
   it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
@@ -204,6 +214,32 @@ describe("targetLabel for every artifact's kinds", () => {
     expect(targetLabel("measure:q3")).toBe("Měření q3");
     expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
     expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
+  });
+});
+
+describe("changesToShow", () => {
+  const job = (run_id: string, action: string, proposal_state: string, created_at: string) => ({ run_id, action, proposal_state, created_at }) as unknown as ResearchAgentJob;
+  const jobs = [
+    job("RUN-old", "build_questionnaire", "pending", "2026-10-22T08:00:00Z"),
+    job("RUN-new", "optimize_questionnaire", "pending", "2026-10-22T09:00:00Z"),
+    job("RUN-done", "optimize_questionnaire", "accepted", "2026-10-22T10:00:00Z"),
+    job("RUN-plan", "analyze_brief", "pending", "2026-10-22T11:00:00Z"),
+  ];
+  it("shows the Lead's waiting edits first, then the stage's newest proposal still waiting, else nothing", () => {
+    expect(changesToShow("questionnaire", ["questionnaire"], jobs)).toEqual({ kind: "edits" });
+    expect(changesToShow("questionnaire", ["design"], jobs)).toEqual({ kind: "proposal", job: jobs[1] });
+    expect(changesToShow("design", [], jobs)).toEqual({ kind: "proposal", job: jobs[3] });
+    expect(changesToShow("dimensions", ["design"], jobs)).toBeNull();
+  });
+});
+
+describe("mapViewWords", () => {
+  it("says what the map's picture becomes, never a filter's code", () => {
+    expect(mapViewWords({ op: "filter", name: "view", value: "relief" })).toBe("Mapa: reliéf");
+    expect(mapViewWords({ op: "filter", name: "view", value: "top" })).toBe("Mapa: shora");
+    expect(mapViewWords({ op: "filter", name: "hide_weak", value: "on" })).toBe("Mapa: skrýt slabé vztahy");
+    expect(mapViewWords({ op: "filter", name: "mode", value: "respondents" })).toBe("Mapa respondentů");
+    expect(mapViewWords({ op: "select", target: "pair:set1/fio~air" })).toBe("Vybrat: Dvojice set1/fio~air");
   });
 });
 
@@ -340,6 +376,17 @@ describe("commandRequest", () => {
 describe("leadReasonWords", () => {
   it("says who fixes a refusal of the AI route, which a researcher cannot (LO12a)", () => {
     expect(leadReasonWords("egress_route_not_approved_for_class")).toMatch(/^Tuto studii nelze poslat modelu: .* Opraví to provozovatel AIA, ne výzkumník: nastaví parametr aia_ai_route_approved_for/);
+    // LO12b: the three refusals the route's own terms decide, each with who fixes it.
+    for (const [code, param] of [
+      ["egress_retention_unspecified", "aia_ai_route_retention_days"],
+      ["egress_residency_violation", "aia_ai_route_eu_processing_approved"],
+      ["egress_training_exclusion_missing", "aia_ai_route_excluded_from_training"],
+    ]) {
+      const words = leadReasonWords(code);
+      expect(words).toMatch(/^Tuto studii nelze poslat modelu: /);
+      expect(words).not.toContain(code);
+      expect(words).toContain(`nastaví parametr ${param}`);
+    }
     expect(leadReasonWords("budget_exceeded")).not.toContain("provozovatel");
   });
 
@@ -356,5 +403,47 @@ describe("leadReasonWords", () => {
   it("names an unknown code rather than guessing", () => {
     expect(leadReasonWords("something_new")).toBe("Vedoucí se zastavil (something_new).");
     expect(leadReasonWords(null)).toBe("Vedoucí se zastavil.");
+  });
+});
+
+describe("Deep Research cards (LO5a.2)", () => {
+  it("are the three Deep Research kinds, started on approval, never a run or an agent job", () => {
+    expect(isDeepResearchCard({ kind: "design_research", why: "w" })).toBe(true);
+    expect(isDeepResearchCard({ kind: "interpretation_research", why: "w" })).toBe(true);
+    expect(isDeepResearchCard({ kind: "deep_research_retry", why: "w", run_id: "DRR-1" })).toBe(true);
+    expect(isDeepResearchCard({ kind: "research_run", why: "w" })).toBe(false);
+    expect(isDeepResearchCard({ kind: "agent_job", action: "build_questionnaire", why: "w" })).toBe(false);
+  });
+
+  it("are followed where their run's panel is, by the purpose the server answered", () => {
+    // The design checkpoint's panel is on Dotazník, not Návrh (review of #1006).
+    expect(deepResearchStage({ kind: "design_research", why: "w" }, "DESIGN_RESEARCH")).toBe("questionnaire");
+    expect(deepResearchStage({ kind: "interpretation_research", why: "w" }, "INTERPRETATION_RESEARCH")).toBe("report");
+    const retry = { kind: "deep_research_retry" as const, why: "w", run_id: "DRR-1" };
+    expect(deepResearchStage(retry, "DESIGN_RESEARCH")).toBe("questionnaire");
+    expect(deepResearchStage(retry, "INTERPRETATION_RESEARCH")).toBe("report");
+    // No purpose answered: a design or Interpretation card by its kind, a retry stays put.
+    expect(deepResearchStage({ kind: "design_research", why: "w" }, undefined)).toBe("questionnaire");
+    expect(deepResearchStage(retry, null)).toBeNull();
+  });
+
+  it("say an unnamed preset and target are the defaults, never guessed, and the wallet only when it is on", () => {
+    const facts = deepResearchFacts({ kind: "interpretation_research", why: "w" }, { walletOn: false, decided: false });
+    expect(facts.map((f) => f.label)).toEqual(["Co se stane", "Rozsah", "Výsledek", "Platba"]);
+    expect(facts[1].value).toBe("Výchozí rozsah kroku");
+    expect(facts[2].value).toBe("Výchozí výsledek, který Vedoucí viděl");
+    expect(facts[3].sub).not.toMatch(/Peněžen/);
+    expect(deepResearchFacts({ kind: "interpretation_research", why: "w", target: "t1" }, { walletOn: true, decided: false })[3].sub).toMatch(/Peněženky/);
+    // Decided: the payment's caveat is gone; a retry names its run and no preset.
+    const retry = deepResearchFacts({ kind: "deep_research_retry", why: "w", run_id: "DRR-1" }, { walletOn: true, decided: true });
+    expect(retry.map((f) => f.label)).toEqual(["Co se stane", "Platba"]);
+    expect(retry[0].value).toContain("DRR-1");
+    expect(retry[1].sub).toBeUndefined();
+  });
+
+  it("put every refusal a card's start can answer in words", () => {
+    for (const code of ["live_settings_unapproved", "outside_wallet", "ceiling_unknown", "deep_research_start_unavailable", "deep_research_not_found", "research_input", "focus_unknown", "run_not_retryable", "lineage_changed", "artifact_corrupt"]) {
+      expect(leadReasonWords(code)).not.toContain(`(${code})`);
+    }
   });
 });

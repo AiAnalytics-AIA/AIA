@@ -77,6 +77,7 @@ __all__ = [
     "PROMPT_ID",
     "PROMPT_SHA256",
     "PROMPT_VERSION",
+    "RESPONDENT_TEMPERATURE",
     "ROSTER_VERSION",
     "SCALE_LABEL_WORDING",
     "SYSTEM_PROMPT",
@@ -105,6 +106,8 @@ AGENT_ID: Final = "aia.research.respondent"
 AGENT_VERSION: Final = "1"
 PROMPT_ID: Final = "aia.respondent.block"
 PROMPT_VERSION: Final = "2"
+#: What a respondent's request asks of a model that takes a sampling setting.
+RESPONDENT_TEMPERATURE: Final = 0.0
 CONTRACT_VERSION: Final = "aia-respondent-contract-1"
 GENERATOR: Final = "aia-ai-respondent-1"
 ROSTER_VERSION: Final = "aia-fictional-roster-1"
@@ -652,9 +655,16 @@ def build_request(
     max_output_tokens: int,
     response: ResponseProcessSpec = AIA_RESPONSE_V1,
     scale_labels_in_prompt: bool = False,
+    sampling: bool = True,
 ) -> ModelRequest:
     """One respondent's request for one block. Scope is never in it; class and lineage are.
     A style is put into the profile's words from ``response``'s threshold.
+
+    ``sampling``: the model takes a sampling setting, and is asked at temperature 0 (its most
+    likely probabilities; the answer is drawn by code). False for a model whose profile refuses
+    sampling (``RequestProfile.accepts_sampling``), which is sent none and samples at its own
+    default: a different respondent behaviour, so the respondent system's model binding names
+    the profile (``RequestProfile.tag``).
 
     ``scale_labels_in_prompt`` (``AIA_AI_SCALE_LABELS_IN_PROMPT``, off by default): a scale's
     labels, a question's as a set's, in :func:`scale_label_wording`'s provisional words. Off,
@@ -679,7 +689,7 @@ def build_request(
         data_lineage=lineage,
         system=SYSTEM_PROMPT,
         messages=(Message(role="user", content=content),),
-        temperature=0.0,
+        temperature=RESPONDENT_TEMPERATURE if sampling else None,
     )
 
 

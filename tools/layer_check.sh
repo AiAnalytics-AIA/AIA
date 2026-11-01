@@ -450,21 +450,21 @@ forbid "the API, worker and executors never touch the design source table" \
 # calling researcher in every query. The table used anywhere else could read another
 # researcher's turns, or another Study's.
 forbid "the Lead turn table is touched only by its repository" \
-  'StudyLeadTurnRow|study_lead_turns' \
+  'StudyLeadTurnRow|study_lead_turns|StudyLeadTurnAnswerRow|study_lead_turn_answers' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_lead_repository.py"
 forbid "the API, worker and executors never touch the Lead turn table" \
-  'StudyLeadTurnRow|study_lead_turns' \
+  'StudyLeadTurnRow|study_lead_turns|StudyLeadTurnAnswerRow|study_lead_turn_answers' \
   apps
 # Each researcher's own Lead, its file history and its notes (product owner, 2026-10-19): the
 # repository works only on the calling researcher's Lead, and loads a client note only into
 # its own client's Study, by the query. Elsewhere the rows could cross either line.
 forbid "the researcher Lead tables are touched only by their repository" \
-  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  'ResearcherLead(Memory|Revision|Hatch)?Row|researcher_lead_(memories|revisions|hatches)|researcher_leads\b' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/researcher_lead_repository.py"
 forbid "the API, worker and executors never touch the researcher Lead tables" \
-  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  'ResearcherLead(Memory|Revision|Hatch)?Row|researcher_lead_(memories|revisions|hatches)|researcher_leads\b' \
   apps
 # The approval ledger is append-only and holds every decision between a person and the AI (ADR
 # 0019): its two repositories write it under the scope's three columns and the permission each
@@ -494,6 +494,17 @@ forbid "only the 18.6.6 migration logs a write as migrated" \
   "$CORE/infrastructure/tables.py"
 forbid "the API, worker and executors never log a write as migrated" \
   'OpSource\.MIGRATION' \
+  apps
+# The working copy has one persistence point, StudyWorkspaceRepository.save, and every call names
+# its author (by: WriteBy, required; working-copy-edit-ops WCE2f). The one other way a revision is
+# written, the 18.6.6 migration's import, is reached from the migration alone, which logs it as
+# migrated: no writer can add revisions that skip the log or the lock.
+forbid "only the 18.6.6 migration imports a working copy" \
+  'import_migrated\(' \
+  "$CORE" \
+  "$CORE/infrastructure/study_workspace_repository.py" "$CORE/application/workspace_migration.py"
+forbid "the API, worker and executors never import a working copy" \
+  'import_migrated\(' \
   apps
 # The working copy's operation log (ADR 0029 decision 3, working-copy-edit-ops WCE2): insert-once,
 # every query under the Study's three scope columns. Its repository is the only reader and writer,
@@ -658,10 +669,15 @@ forbid "the worker never imports recorded web retrieval" \
 # The workbench composition (local and test only; nothing imports it and no deployment names it,
 # above) composes Deep Research over the recorded composition for its browser journeys
 # (research-lead-workbench 12a); it names the composition and builds no recorded double itself.
-forbid "among the executors, only the recorded and workbench compositions build recorded web retrieval" \
+# The acceptance harness's worker (local and test only, named by no deployment) composes it the
+# same way, over the harness's recordings (mvp-acceptance-harness chunk 4).
+forbid "among the executors, only the recorded, workbench and acceptance compositions build recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$EXECUTORS" \
-  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py"
+  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py" "$EXECUTORS/acceptance_recorded.py"
+forbid "the acceptance composition builds no recorded web double of its own" \
+  "$RECORDED_WEB" \
+  "$EXECUTORS/acceptance_recorded.py"
 forbid "the workbench composition builds no recorded web double of its own" \
   "$RECORDED_WEB" \
   "$EXECUTORS/workbench.py"
@@ -866,14 +882,40 @@ forbid "the worker never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$WORKER"
 
+# --- Spend: a confirmation is issued, never constructed -------------------
+#
+# A start whose cost ceiling reaches the study's confirmation threshold needs a
+# person's yes (ADR 0028 decision 3, lead-orchestration LO2). That yes is a
+# SpendConfirmation, which only confirm_spend issues, to a scope holding
+# APPROVE_BUDGET, through a module-private issuer. A confirmation built anywhere
+# else would let a plan step, an executor or a model's argument confirm its own
+# spend. Exempt: application/spend_confirmation.py is the issuer. The worker and
+# the executors also never name confirm_spend, however it is reached: the import
+# contract in the root pyproject.toml sees direct imports only, and another module
+# that imports it binds the name too.
+forbid "spend confirmations are issued only by confirm_spend" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER)' \
+  "$CORE" \
+  "$CORE/application/spend_confirmation.py"
+
+forbid "the API never builds a spend confirmation" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER)' \
+  "$API"
+forbid "the worker never builds a spend confirmation" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER|\bconfirm_spend\b)' \
+  "$WORKER"
+forbid "no executor builds a spend confirmation" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER|\bconfirm_spend\b)' \
+  "$EXECUTORS"
+
 # --- Evidence: admission and certificates are issued, never constructed ------
 #
 # The same capability pattern as scope. An AdmittedClaim is the only form in
 # which a number may sit in an analysis result, and only admit_numeric_claims
 # can mint one, after field policy, joint structure, support, interval and tier
 # have all passed. A JointStatus is the only way the claim gate learns what the
-# population's joint structure supports, and only load_joint_status can issue
-# one, after checking the certificate against the loaded panel's hash. If any
+# population's joint structure supports, and only evaluate_joint_certificate can
+# issue one, after checking the certificate against the loaded panel's hash. If any
 # other module can build either, a prompt is the enforcement mechanism again.
 # See .planning/plans/done/evidence-governance-foundation.md.
 forbid "claims are admitted only by the evidence admission gate" \
@@ -885,15 +927,12 @@ forbid "the API never admits its own claims" \
   '^[^#]*\bAdmittedClaim\(' \
   "$API"
 
-# companions.py is exempt by name, and only for now: it defines a *second*
-# JointStatus -- the population loader's own certificate evaluator -- which is a
-# duplicate of the evidence one, not a bypass of it. Which of the two is the single
-# authority is an open decision (.planning/open-items.md OI-24); this exemption goes
-# when that decision lands, not before.
-forbid "a joint status is issued only by its loader" \
+# One certificate evaluator for the population loader and the claim gate (OI-24, evidence-integrity
+# 5b): the population's, which alone issues a JointStatus.
+forbid "a joint status is issued only by its evaluator" \
   '^[^#]*\bJointStatus\(' \
   "$CORE" \
-  "$CORE/domain/evidence/joint_status.py" "$CORE/domain/population/companions.py"
+  "$CORE/domain/population/companions.py"
 
 # Field policy and the joint certificate are authority: what a claim may rest on.
 # An app that built its own -- a permissive book for a questionnaire, a certificate
@@ -902,7 +941,7 @@ forbid "a joint status is issued only by its loader" \
 # through the analysis inputs in aia_core, never from the API, the worker or an
 # executor (.planning/plans/evidence-backed-analysis.md).
 forbid "the API, worker and executors never build field policy or a joint status" \
-  '\b(FieldPolicyBook|FieldPolicy|FieldEligibility)\(|\b(load_joint_status|instrument_policy|instrument_policy_book|from_dictionary_rows|from_policy_document)\(' \
+  '\b(FieldPolicyBook|FieldPolicy|FieldEligibility)\(|\b(evaluate_joint_certificate|instrument_policy|instrument_policy_book|from_dictionary_rows|from_population_policy|from_policy_document)\(' \
   apps
 
 # --- Population: one resolver, one loader ----------------------------------

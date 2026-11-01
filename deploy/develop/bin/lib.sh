@@ -148,3 +148,18 @@ deployed_sha() {
 postgres_running() {
   [ "$("${COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -c '^postgres$')" = "1" ]
 }
+
+# The deployment's state as one line, `aia-status {json}` (plan ops-status-report): runs and
+# steps by status with their reason codes, model calls, open holds, Deep Research approvals;
+# codes, counts and ids only. Printed where the CloudWatch agent ships it, so it can be read
+# without a shell or the database. Bounded and optional: it never fails its caller.
+status_report() {
+  log "status report"
+  # Named, so a run timeout cut short is removed too: killing `compose run` leaves its container.
+  local name="aia-status-report-$$"
+  if ! timeout --kill-after=30 120 "${COMPOSE[@]}" run --rm --no-deps -T --name "$name" worker \
+      python -m aia_executors.status_report; then
+    docker rm -f "$name" >/dev/null 2>&1 || true
+    log "WARNING: the status report did not finish (above); nothing else is affected"
+  fi
+}

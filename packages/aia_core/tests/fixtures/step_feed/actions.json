@@ -1,0 +1,18 @@
+{
+  "_": "What a step's feed carries that the web words (lib/step-activity.ts): RecoveryAction (domain/workflow.py) as STEP_RECOVERY / STEP_DEFERRED payload.action, and a budget lift's STEP_RESUMED amounts.",
+  "actions": [
+    "RETRY",
+    "PARK_PROVIDER",
+    "PARK_CAPACITY",
+    "PARK_BUDGET",
+    "PARK_GATE",
+    "RECOVERY_REQUIRED",
+    "FAIL",
+    "CANCEL",
+    "DEFER"
+  ],
+  "budget_lift_keys": [
+    "budget_before_usd",
+    "budget_after_usd"
+  ]
+}

@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ActivitySpend, PersonSpend, ResearcherSpend } from "./api";
-import { isSpendReport, overall, parts, personLabel, reservedLine, studyCount, totalLine, usd } from "./researcher-spend";
+import { activityBar, isSpendReport, nearLimit, overall, parts, personLabel, reservedLine, shareOf, studyCount, totalLine, usd, nearLimitTally, nearLimitWords } from "./researcher-spend";
 
 const fig = (total: number, uncertain = 0, reserved = 0) => ({
   model_usd: total, outside_ledger_usd: 0, total_usd: total, reserved_usd: reserved, uncertain_calls: uncertain,
@@ -14,13 +14,13 @@ const nbsp = (s: string) => s.replace(/[  ]/g, " ");
 describe("amounts", () => {
   it("prints Czech USD and keeps a sub-cent spend visible", () => {
     expect(nbsp(usd(1234.5))).toBe("1 234,50 USD");
-    expect(usd(0)).toBe("0,00 USD");
-    expect(usd(0.003)).toBe("< 0,01 USD");
+    expect(usd(0)).toBe("0,00 USD");
+    expect(usd(0.003)).toBe("< 0,01 USD");
     expect(usd(Number.NaN)).toBe("neznámá");
   });
 
   it("says a total with an unknown bill is not exact, and an all-unknown one is unknown, not 0", () => {
-    expect(totalLine(fig(0.4))).toEqual({ text: "0,40 USD", exact: true, note: null });
+    expect(totalLine(fig(0.4))).toEqual({ text: "0,40 USD", exact: true, note: null });
     const uncertain = totalLine(fig(0.4, 2));
     expect(uncertain.exact).toBe(false);
     expect(uncertain.note).toMatch(/^2 nejistá volání/);
@@ -31,7 +31,7 @@ describe("amounts", () => {
   });
 
   it("names open holds apart and nothing when none are open", () => {
-    expect(reservedLine(fig(0, 0, 2))).toBe("2,00 USD drženo v běžící práci");
+    expect(reservedLine(fig(0, 0, 2))).toBe("2,00 USD drženo v běžící práci");
     expect(reservedLine(fig(3))).toBeNull();
   });
 });
@@ -41,7 +41,7 @@ describe("people and parts", () => {
     expect(personLabel({ user_id: "USR-1", display_name: "Jana", email: "j@x" })).toBe("Jana");
     expect(personLabel({ user_id: "USR-1", display_name: " ", email: "j@x" })).toBe("j@x");
     expect(personLabel({ user_id: "USR-1", display_name: null, email: null })).toBe("USR-1");
-    expect(personLabel({ user_id: null, display_name: null, email: null })).toBe("Nepřiřazeno");
+    expect(personLabel({ user_id: null, display_name: null, email: null })).toBe("Neznámý");
   });
 
   it("leaves out only an activity that is a known zero, in the API's order", () => {
@@ -53,9 +53,9 @@ describe("people and parts", () => {
       { activity: "other", ...fig(0) },
     ];
     expect(parts(acts).map((p) => [p.activity, p.label, p.line.text])).toEqual([
-      ["lead", "Vedoucí výzkumu", "0,10 USD"],
+      ["lead", "Vedoucí výzkumu", "0,10 USD"],
       ["analysis_report", "Analýza a zpráva", "neznámá"],
-      ["deep_research", "Deep Research", "0,00 USD"],
+      ["deep_research", "Deep Research", "0,00 USD"],
     ]);
   });
 
@@ -85,5 +85,56 @@ describe("the report", () => {
     expect(isSpendReport({})).toBe(false);
     expect(isSpendReport({ people: [], everyone: "yes", period: "this_month" })).toBe(false);
     expect(isSpendReport(null)).toBe(false);
+  });
+});
+
+describe("the redesign's figures (settings-redesign 4)", () => {
+  const fig = (total: number, uncertain = 0) => ({ model_usd: total, outside_ledger_usd: 0, total_usd: total, reserved_usd: 0, uncertain_calls: uncertain });
+
+  it("gives a person's share of what the organization spent, and none when nothing is known", () => {
+    expect(shareOf(fig(25), fig(100))).toBe("25 %");
+    expect(shareOf(fig(1), fig(3))).toBe("33 %");
+    expect(shareOf(fig(0), fig(0))).toBeNull();
+    // An uncertain total is not a share anyone can trust.
+    expect(shareOf(fig(10, 1), fig(100))).toBeNull();
+  });
+
+  it("splits a person's spend by activity for the bar, in the API's order, leaving out what is nothing", () => {
+    const by = [
+      { ...fig(30), activity: "lead" as const },
+      { ...fig(0), activity: "fieldwork" as const },
+      { ...fig(10), activity: "deep_research" as const },
+    ];
+    expect(activityBar(by)).toEqual([
+      { activity: "lead", label: "Vedoucí výzkumu", percent: 75 },
+      { activity: "deep_research", label: "Deep Research", percent: 25 },
+    ]);
+    expect(activityBar([])).toEqual([]);
+  });
+
+  it("counts a study near its limit at 90 % of its budget, an unknown budget or spend never counted", () => {
+    expect(nearLimit({ budget_usd: 100, spent_usd: 90 })).toBe(true);
+    expect(nearLimit({ budget_usd: 100, spent_usd: 89.99 })).toBe(false);
+    expect(nearLimit({ budget_usd: null, spent_usd: 90 })).toBe(false);
+    expect(nearLimit({ budget_usd: 100, spent_usd: null })).toBe(false);
+    // A zero budget that has nothing spent is not near anything; one with spend is.
+    expect(nearLimit({ budget_usd: 0, spent_usd: 0 })).toBe(false);
+    expect(nearLimit({ budget_usd: 0, spent_usd: 1 })).toBe(true);
+  });
+});
+
+describe("nearLimitTally / nearLimitWords", () => {
+  it("never reads 0 when a study's costs are unknown", () => {
+    const ok = (budget_usd: number | null, spent_usd: number | null) => ({ ok: true as const, data: { budget_usd, spent_usd } });
+    expect(nearLimitWords(nearLimitTally([ok(100, 10), ok(100, 50)]))).toBe("0");
+    expect(nearLimitWords(nearLimitTally([ok(100, 10), { ok: false }]))).toBe("neznámo");
+    expect(nearLimitWords(nearLimitTally([ok(100, 95), ok(null, null)]))).toBe("≥ 1");
+    expect(nearLimitTally([ok(100, 95), { ok: false }, ok(null, null)])).toEqual({ near: 1, unknown: 2 });
+  });
+
+  it("counts a study at exactly 90 % as near, and leaves a closed study out, as the tile's \"≥ 90 %\" says", () => {
+    const row = (spent_usd: number, status: string) => ({ ok: true as const, data: { budget_usd: 100, spent_usd, status } });
+    expect(nearLimitTally([row(90, "ACTIVE"), row(89.99, "ACTIVE")])).toEqual({ near: 1, unknown: 0 });
+    expect(nearLimitTally([row(95, "DELIVERED"), row(95, "ARCHIVED"), row(95, "CANCELLED"), row(95, "DRAFT")])).toEqual({ near: 1, unknown: 0 });
   });
 });

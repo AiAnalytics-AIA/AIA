@@ -1,13 +1,30 @@
-"""The client deliverable's gate (report-delivery RD0; the product owner, MVPQ-09, 2026-10-20).
+"""The client deliverable's checks (report-delivery RD0; the product owner, MVPQ-09, 2026-10-20).
 
 Read at approval over the stored document model the client DOCX was rendered from (RD5a), so
-the version a person approves is the version judged. Each refusal names its block:
+the version a person approves is the version judged. Since 2026-10-22 each is a warning, never a
+refusal (the product owner: "Warnings for all of it"): shown in the approval dialog and recorded
+with the approval, so who approved past which warning is on record. Each names its block:
 
 * ``drill_down_content``: nothing that reads one respondent -- a verbatim quote, or a claim at
   the individual level (the drill-down stays the researcher's, never in a client export; F2);
 * ``unadmitted_number``: every ref the document prints is one its ledger holds, on the client
   surface (the renderer's validation refused anything else before the DOCX was written; this
-  reads the stored version, whatever wrote it).
+  reads the stored version, whatever wrote it);
+* ``ledger_not_client_facing``: the document's numbers were admitted for another surface. The
+  block checks still run over it, so a warning about the whole never hides one about a block.
+
+A version a researcher saved in the report editor (artifact-report RPT13; B2 (a), the product
+owner, 2026-10-26) has no document model: it is judged as its line's composed draft was, plus what
+the save changed in what code wrote (``saved_changes``), by :func:`edited_client_gate`:
+
+* a number code wrote that was retyped (``changed``), a number typed outside every number code
+  wrote (``typed``), or text under a tag that is not a text code wrote under it (``added``: a
+  control copied and then retyped) is ``unadmitted_number``: no admitted claim prints it;
+* a number removed, or a copy of a text code wrote under its own tag, prints nothing new: no
+  finding. A copy is told by the texts the line's composed draft holds under each tag; where those
+  are unknown, every ``added`` is flagged (a warning: it errs toward a typed number);
+* what the save could not be compared with is ``gate_unrecorded``, and so is the text a person
+  wrote: nothing reads hand-written prose for one respondent's words, so it is never passed.
 
 ``internal_source_cited`` waits for a chapter that cites a client source (RD11): no client
 report cites one yet, so there is nothing to read. It is not a legal-rights review either way.
@@ -15,25 +32,30 @@ report cites one yet, so there is nothing to read. It is not a legal-rights revi
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
 from aia_core.domain.evidence.claims import ClaimLevel, ClaimSurface
 from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT
+from aia_core.domain.report.saved_changes import ChangeKind, SavedChanges
+
+#: How much of the paragraph a typed number sits in a finding quotes.
+_EXCERPT = 60
 
 
 class GateCode(StrEnum):
     DRILL_DOWN = "drill_down_content"
     UNADMITTED_NUMBER = "unadmitted_number"
+    LEDGER_NOT_CLIENT_FACING = "ledger_not_client_facing"
     #: The version has no stored document to judge: unknown, never passed.
     UNRECORDED = "gate_unrecorded"
 
 
 @dataclass(frozen=True, slots=True)
-class GateRefusal:
-    """One reason the deliverable may not be approved, and the block it is in."""
+class GateFinding:
+    """One thing the deliverable's checks found, and the block it is in: a warning."""
 
     code: GateCode
     where: str
@@ -43,48 +65,114 @@ class GateRefusal:
         return {"code": self.code.value, "where": self.where, "message": self.message}
 
 
-def client_gate(document: Mapping[str, Any]) -> tuple[GateRefusal, ...]:
-    """Every refusal of a stored client document model (``document_model.document_payload``);
-    empty when it passes."""
+def client_gate(document: Mapping[str, Any]) -> tuple[GateFinding, ...]:
+    """Every finding on a stored client document model (``document_model.document_payload``);
+    empty when nothing was found."""
     if document.get("contract") != DOCUMENT_MODEL_CONTRACT:
         # An older stored form names no claim's level: not judged, so not passed.
         return (
-            GateRefusal(
+            GateFinding(
                 GateCode.UNRECORDED,
                 "report",
-                "dokument verze je ve starší podobě, brána ho nemůže posoudit; stáhněte ji znovu",
+                "dokument verze je ve starší podobě, nelze ho ověřit; stáhněte ji znovu",
             ),
         )
     ledger = document["ledger"]
+    findings: list[GateFinding] = []
     if ledger["surface"] != ClaimSurface.CLIENT_FACING.value:
-        return (
-            GateRefusal(
-                GateCode.UNADMITTED_NUMBER,
+        findings.append(
+            GateFinding(
+                GateCode.LEDGER_NOT_CLIENT_FACING,
                 "evidence",
                 f"čísla jsou připuštěna pro {ledger['surface']}, ne pro klienta",
-            ),
+            )
         )
     entries: Mapping[str, Any] = ledger["refs"]
-    refusals: list[GateRefusal] = []
     for section in document["sections"]:
         for block in section["blocks"]:
             where = block["id"]
             if block["type"] == "quote":
-                refusals.append(
-                    GateRefusal(GateCode.DRILL_DOWN, where, "doslovná odpověď jednoho respondenta")
+                findings.append(
+                    GateFinding(GateCode.DRILL_DOWN, where, "doslovná odpověď jednoho respondenta")
                 )
             for ref in block["refs"]:
                 entry = entries.get(ref)
                 if entry is None:
-                    refusals.append(
-                        GateRefusal(
+                    findings.append(
+                        GateFinding(
                             GateCode.UNADMITTED_NUMBER, where, f"tiskne nepřipuštěné číslo {ref}"
                         )
                     )
                 elif not entry["suppressed"] and entry["level"] == ClaimLevel.INDIVIDUAL.value:
-                    refusals.append(
-                        GateRefusal(
+                    findings.append(
+                        GateFinding(
                             GateCode.DRILL_DOWN, where, f"číslo {ref} čte jednoho respondenta"
                         )
                     )
-    return tuple(refusals)
+    return tuple(findings)
+
+
+def edited_client_gate(
+    changes: SavedChanges, written: Mapping[str, Collection[str]] | None
+) -> tuple[GateFinding, ...]:
+    """What a saved editor version of a client report adds to its line's composed draft's
+    findings (RPT13): its changed, added and typed numbers, and the text nothing judged.
+    ``written``: per tag, the texts code wrote under it in the line's composed draft
+    (``saved_changes.written_texts``); ``None`` when they could not be read, and then no
+    ``added`` text counts as a copy."""
+    findings: list[GateFinding] = []
+    if not changes.comparable:
+        findings.append(
+            GateFinding(
+                GateCode.UNRECORDED,
+                "numbers",
+                "čísla verze nelze porovnat s tím, co napsal kód; nelze je ověřit",
+            )
+        )
+    for change in changes.changes:
+        if change.kind is ChangeKind.CHANGED:
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    change.tag or "numbers",
+                    f"číslo přepsané ručně: {change.was} → {change.now}",
+                )
+            )
+        elif change.kind is ChangeKind.ADDED and not _copy(change.tag, change.now, written):
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    change.tag or "numbers",
+                    f"číslo přidané ručně: {change.now}",
+                )
+            )
+        elif change.kind is ChangeKind.TYPED:
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    "text",
+                    f"číslo {change.now} napsané ručně mimo připuštěná čísla"
+                    f" („{_excerpt(change.paragraph or '')}“)",
+                )
+            )
+    findings.append(
+        GateFinding(
+            GateCode.UNRECORDED,
+            "text",
+            "text upravený v editoru AIA neověří; zkontrolujte, že necituje jednoho respondenta",
+        )
+    )
+    return tuple(findings)
+
+
+def _copy(tag: str | None, text: str | None, written: Mapping[str, Collection[str]] | None) -> bool:
+    """Whether ``text`` under ``tag`` is a text code wrote under that tag: a copy prints an
+    admitted number again. Unknown (``written`` ``None``) is never a copy."""
+    if written is None or tag is None or text is None:
+        return False
+    return text in written.get(tag, ())
+
+
+def _excerpt(paragraph: str) -> str:
+    """The paragraph's start, marked "…" only where it was cut."""
+    return paragraph if len(paragraph) <= _EXCERPT else f"{paragraph[:_EXCERPT]}…"

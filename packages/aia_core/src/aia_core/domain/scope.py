@@ -898,11 +898,22 @@ class OrganizationContext:
     organization_role: OrganizationRole
     grant: ScopeGrant
     request_id: str | None = None
+    # The Metodik mark (D-14): read from the membership by the resolver, never from a request.
+    methodologist: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.grant, ScopeGrant):
             raise ScopeDenied(
                 "organization context requires an issued grant", reason="forged_scope"
+            )
+
+    def require_methodologist(self) -> None:
+        """Raise unless this member holds the Metodik mark (D-14): only a marked member stores
+        and puts in force a methodology version; an OWNER or ADMIN without it reads."""
+        if not self.methodologist:
+            raise ScopeDenied(
+                "storing or activating a methodology requires the Metodik mark",
+                reason="methodologist_required",
             )
 
     @property

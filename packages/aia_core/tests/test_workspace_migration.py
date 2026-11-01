@@ -30,6 +30,7 @@ from aia_core.application.workspace_migration import (
     MigrationRefused,
     migrate_unit_workspaces,
 )
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.scope import StudyStatus
 from aia_core.domain.workspace import LEGACY_SOURCE, SAVE_REASON, ContentState
@@ -61,6 +62,7 @@ from aia_core.infrastructure.tables import (
     UserRow,
 )
 from aia_core.infrastructure.unit_project_store import UnitAttachmentFiles, UnitProjectStore
+from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
 
 REPO = Path(__file__).resolve().parents[3]
 PRJ = "PRJ-0a1b2c3d4e5f60"
@@ -566,8 +568,24 @@ def test_a_study_gets_every_revision_and_file_and_keeps_who_it_belongs_to(
     )
     assert lineage["files"] == {k: v.artifact_id for k, v in ids.items()}
 
+    # Every migrated revision is logged, in the same transaction, as a write whose author 18.6.6 did
+    # not record; each against the one before it (working-copy-edit-ops WCE2f).
+    logged = WorkspaceEditRepository(session, lead).rows()
+    assert {r.by for r in logged} == {WriteBy(ActorKind.PERSON, None, OpSource.MIGRATION)}
+    assert {(r.base_revision, r.result_revision) for r in logged} == {
+        (None, 1),
+        (1, 2),
+        (2, 3),
+        (3, 4),
+    }
+
     # And it is AIA's content now: the next save is an ordinary one.
-    saved = workspaces.save(lead, content={**loaded.content, "goal": "Po migraci"}, base_revision=4)
+    saved = workspaces.save(
+        lead,
+        content={**loaded.content, "goal": "Po migraci"},
+        base_revision=4,
+        by=WriteBy(ActorKind.PERSON, lead.actor_id, OpSource.UI),
+    )
     assert (saved.revision, saved.state) == (5, ContentState.MIGRATED)
 
 

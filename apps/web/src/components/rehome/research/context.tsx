@@ -14,6 +14,10 @@ import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "./frame";
 import type { AdviceAction } from "./ResearchAssistance";
 
+/** What a money question says: what the action buys, its ceiling (null: unknown, never zero), the
+ *  study's confirmation threshold when it is the reason for asking, and the act on the button. */
+export type SpendAsk = { summary: string; ceilingUsd: number | null; thresholdUsd?: number | null; act: string };
+
 export type RunJob = (
   endpoint: ResearchJobKey,
   payload: Record<string, unknown>,
@@ -36,6 +40,11 @@ export type ResearchContextValue = {
   toast: (message: string) => void;
   /** confirm() and prompt(), with the classic words, as the rebuilt interface's dialog. */
   confirm: (message: string) => Promise<boolean>;
+  /**
+   * A question about money (design system v3, I-Penize): SpendDialog with the action's ceiling,
+   * the study's budget and what remains at the highest price, read as it asks. Never AskDialog.
+   */
+  confirmSpend: (question: SpendAsk) => Promise<boolean>;
   prompt: (message: string, initial?: string) => Promise<string | null>;
   /**
    * The one predicate every stage reads for its own AI starts ("Navrhnout", the brief's analysis):

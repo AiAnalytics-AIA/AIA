@@ -23,6 +23,7 @@ from aia_core.domain.ai_respondent import (
     AGENT_ID,
     MAX_BLOCK_ITEMS,
     PROMPT_SHA256,
+    RESPONDENT_TEMPERATURE,
     SCALE_LABEL_WORDING,
     RespondentOutputInvalid,
     UnsupportedFact,
@@ -252,6 +253,35 @@ def test_the_request_carries_class_lineage_prompt_and_no_scope() -> None:
     for forbidden in ("organization", "client_id", "study_id"):
         assert forbidden not in canonical_json({"s": request.system, "m": text})
     assert len(PROMPT_SHA256) == 64
+
+
+def test_a_model_that_takes_no_sampling_is_asked_without_a_temperature() -> None:
+    """A request differs only by its temperature: none for a profile that refuses sampling
+    (sonnet-5-5-switch), the model then sampling at its own default."""
+    personas = fictional_roster(2, seed=3)
+    plan = plan_respondent(_spec(), personas[0])
+    klass, lineage = classify_material(personas, client_declared_fictional=True)
+    items = {i.item_id: i for i in plan_items(_spec())}
+
+    def request(**sampling: bool) -> Any:
+        return build_request(
+            plan,
+            plan.blocks[1],
+            {"q1": 3},
+            items_by_id=items,
+            policy_version="p1",
+            data_class=klass,
+            lineage=lineage,
+            max_output_tokens=900,
+            **sampling,
+        )
+
+    sampled, unsampled = request(), request(sampling=False)
+    assert sampled.temperature == RESPONDENT_TEMPERATURE == 0.0
+    assert unsampled.temperature is None
+    # The contract class is rebuilt per request; everything else sent is the same.
+    assert (unsampled.system, unsampled.messages) == (sampled.system, sampled.messages)
+    assert unsampled.agent.max_output_tokens == sampled.agent.max_output_tokens
 
 
 def test_the_dataset_is_ai_runtime_synthetic_and_valid_for_its_spec() -> None:

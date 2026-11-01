@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 
 import { AnalysisInspect } from "@/components/rehome/research/AnalysisInspect";
+import { MapInspect } from "@/components/rehome/research/MapInspect";
 import type { InspectorEntry } from "@/lib/inspector-stack";
 import { focusSelector } from "@/lib/lead";
 import type { TargetKind } from "@/lib/workbench-artifacts";
@@ -17,6 +18,9 @@ const BODIES: Partial<Record<TargetKind, InspectBody>> = {
   // Analýza (artifact-analysis ANL3): a finding with the numbers it cites, a claim with where it is cited.
   finding: (target) => <AnalysisInspect target={{ kind: "finding", id: target.id }} />,
   claim: (target) => <AnalysisInspect target={{ kind: "claim", id: target.id }} />,
+  // Sociomapa (artifact-sociomap SOC4): an object or a relation of a map on the stage, from the stored map.
+  object: (target) => <MapInspect target={`object:${target.id}`} />,
+  pair: (target) => <MapInspect target={`pair:${target.id}`} />,
 };
 
 /** Show the opened item on the page: scrolled to and focused, as the Lead's focus does. */

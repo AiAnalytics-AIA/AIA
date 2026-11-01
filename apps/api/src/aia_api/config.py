@@ -9,6 +9,7 @@ production; :mod:`aia_core.domain.deployment` says what each allows).
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlparse
@@ -30,6 +31,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The deployment environment is the domain's, so the API and the worker read one list.
 Environment = DeploymentEnvironment
+#: An integrity attribute's SHA-384 form: the prefix, then 64 base64 characters (48 bytes).
+_SRI_SHA384 = re.compile(r"sha384-[A-Za-z0-9+/]{64}")
 
 
 class Settings(BaseSettings):
@@ -97,10 +100,24 @@ class Settings(BaseSettings):
     # is shown its accepted findings as external context, never evidence (evidence-integrity 7;
     # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT). Off by default; a retry keeps what its original pinned.
     ai_analysis_external_context: bool = False
+    # A Deep Research run enqueued now freezes each DOCUMENT or SOURCE knowledge item's file text
+    # from its source's reading, with the reading's SHA-256 and its "Interní dokument" mark
+    # (client-knowledge-lifecycle K8b; AIA_DEEP_RESEARCH_DOCUMENT_TEXT). A dataset's rows are never
+    # read. Off by default: off, the frozen request is the one it always was.
+    deep_research_document_text: bool = False
     # The experimental Sociomapping (AIA's H-Model candidate) and its internal draft report,
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
     sociomapping_experimental_enabled: bool = False
+    # Add the run QC step to a research run's graph when the run starts (AIA_RUN_QC_ENABLED,
+    # run-qc-and-checkpoint RQC2): the unit's qc.kontrola over the stored answers, as warnings.
+    # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
+    run_qc_enabled: bool = False
+    # Compile the object map's numba kernels in the background from start
+    # (AIA_SOCIOMAP_WARMUP_ENABLED): a container starts with an empty kernel cache, and without it
+    # the first Metodika comparison pays the ~40 s compile (warmup.py). Off by default and in test;
+    # on for develop by Compose. One child process per uvicorn process, one core for about a minute.
+    sociomap_warmup_enabled: bool = False
     # Whether a start refuses a run that cannot answer every research question its design
     # states unless a person chooses to continue with limitations (AIA_RESEARCH_ANSWERABILITY_GATE,
     # plan research-integrity-report chunk 1, ADR 0025). Readiness and the run's record say so
@@ -115,6 +132,17 @@ class Settings(BaseSettings):
     # session routes answer 404, and Zpráva keeps its read-only pane.
     onlyoffice_url: str = ""
     onlyoffice_jwt_secret: SecretStr = SecretStr("")
+    # AIA's own public origin as the Document Server reaches it (AIA_ONLYOFFICE_CALLBACK_BASE,
+    # e.g. https://<hostname>; artifact-report RPT8c): the document it fetches and the callback
+    # it posts each save to are built on it. The public hostname, never the internal network
+    # (report-editor-hosting decision 4: the Document Server is not on AIA's network and its
+    # request filter refuses private addresses). Unset, the editor's routes answer 404.
+    onlyoffice_callback_base: str = ""
+    # The Subresource Integrity of the Document Server's api.js (AIA_ONLYOFFICE_API_INTEGRITY,
+    # ``sha384-<base64>``; artifact-report RPT8e): the page loads that script into AIA's own origin,
+    # so it runs only with the hash of the pinned image's own api.js. Unset, Zpráva does not open in
+    # the editor, whatever else is set: a swapped or compromised Document Server runs nothing here.
+    onlyoffice_api_integrity: str = ""
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
     # start, so a retry keeps the original's; the worker composes the panel path behind the same
@@ -177,6 +205,14 @@ class Settings(BaseSettings):
     # by default, off in test, absent from the develop Compose file.
     study_wallet_enabled: bool = False
 
+    # The Lead pane's pre-flight read of the AI route (lead-orchestration LO12b,
+    # ``AIA_AI_ROUTE_PREFLIGHT_ENABLED``): on, GET /studies/{id}/lead reads the newest worker
+    # start's recorded route (one indexed row) and says which refusal a turn would meet
+    # (``worker_ready_source: composition``), and a turn parked on the route's own terms counts
+    # as the worker not ready. Off: the conversation's newest turn alone, as before. Off by
+    # default, off in test, absent from the develop Compose file.
+    ai_route_preflight_enabled: bool = False
+
     # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
     # from the same keys the worker composes it from. Each kind of model request reserves
     # what its own window and output limit can cost (domain/deep_research/request_limits.py),
@@ -195,6 +231,9 @@ class Settings(BaseSettings):
     bedrock_context_window_tokens: int | None = None
     ai_research_max_output_tokens: int | None = None
     deep_research_thinking_budget_tokens: int | None = None
+    # The route model's thinking (``AIA_BEDROCK_THINKING``, sonnet-5-5-switch): an adaptive one
+    # takes no budget, so the worker sends none and the ceiling is priced without it.
+    bedrock_thinking: Literal["", "budget", "adaptive"] = ""
     deep_research_wikipedia_enabled: bool = False
     # The search route by name (``AIA_DEEP_RESEARCH_WEB_SEARCH``, chunk 23d): off, wikipedia or
     # brave; empty, the Wikipedia switch decides, as the worker reads it. Brave is priced per
@@ -228,12 +267,19 @@ class Settings(BaseSettings):
     # Where a 500 is reported (aia_core.infrastructure.error_tracking): GlitchTip's DSN for
     # the API project. Empty, the reporter is off and nothing is installed.
     error_tracking_dsn: str = ""
+    # Settings → Stav systému reads GlitchTip's issues, alerts and uptime (settings-backends SB4)
+    # with a read-only API token (SSM aia_glitchtip_api_token; org, project and event read).
+    # Empty: the card says it is not configured. Never logged or returned. The API reaches
+    # GlitchTip on the internal network; people open it at the dashboard URL.
+    glitchtip_api_token: SecretStr = SecretStr("")
+    glitchtip_api_url: str = "http://glitchtip:8000"
+    glitchtip_dashboard_url: str = ""
 
     # Request body ceiling. Dataset uploads go through a dedicated upload path with
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
 
-    @field_validator("onlyoffice_url")
+    @field_validator("onlyoffice_url", "onlyoffice_callback_base")
     @classmethod
     def _check_onlyoffice_url(cls, value: str) -> str:
         """An origin only: https and a host, nothing else -- a ticket's URL is built on it, and
@@ -250,7 +296,8 @@ class Settings(BaseSettings):
             or parsed.fragment
         ):
             raise ValueError(
-                "AIA_ONLYOFFICE_URL must be an https origin, e.g. https://docs.example"
+                "AIA_ONLYOFFICE_URL and AIA_ONLYOFFICE_CALLBACK_BASE must be https origins, "
+                "e.g. https://docs.example"
             )
         return origin
 
@@ -261,10 +308,31 @@ class Settings(BaseSettings):
             raise ValueError("AIA_ONLYOFFICE_JWT_SECRET must be at least 32 characters")
         return value
 
+    @field_validator("onlyoffice_api_integrity")
+    @classmethod
+    def _check_onlyoffice_integrity(cls, value: str) -> str:
+        """One SHA-384 digest as an integrity attribute takes it, or nothing."""
+        if value and not _SRI_SHA384.fullmatch(value):
+            raise ValueError(
+                "AIA_ONLYOFFICE_API_INTEGRITY must be sha384- and the digest's 64 base64 characters"
+            )
+        return value
+
     @property
     def docs_editor_on(self) -> bool:
         """The report editor is configured: its origin and its secret are both set."""
         return bool(self.onlyoffice_url and self.onlyoffice_jwt_secret.get_secret_value())
+
+    @property
+    def report_editor_on(self) -> bool:
+        """Zpráva opens in the editor: the editor is configured and the Document Server has
+        AIA's public origin to fetch from and call back to (RPT8c), and the page has the integrity
+        its api.js must match (RPT8e)."""
+        return (
+            self.docs_editor_on
+            and bool(self.onlyoffice_callback_base)
+            and bool(self.onlyoffice_api_integrity)
+        )
 
     @field_validator("build_sha", mode="before")
     @classmethod
@@ -301,6 +369,12 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("bedrock_thinking", mode="before")
+    @classmethod
+    def _read_thinking_as_the_worker_does(cls, value: object) -> object:
+        """The worker reads ``AIA_BEDROCK_THINKING`` stripped and in any case; so does this."""
+        return value.strip().lower() if isinstance(value, str) else value
+
     @field_validator("data_class_gates", mode="before")
     @classmethod
     def _parse_class_gates(cls, value: object) -> object:
@@ -326,7 +400,11 @@ class Settings(BaseSettings):
             cache_write_usd_per_mtok=self.bedrock_cache_write_usd_per_mtok,
             context_window_tokens=self.bedrock_context_window_tokens,
             max_output_tokens=self.ai_research_max_output_tokens,
-            thinking_budget_tokens=self.deep_research_thinking_budget_tokens,
+            thinking_budget_tokens=(
+                None
+                if self.bedrock_thinking == "adaptive"
+                else self.deep_research_thinking_budget_tokens
+            ),
             web_search=self.deep_research_web_search,
             wikipedia_enabled=self.deep_research_wikipedia_enabled,
             brave_usd_per_1000=self.deep_research_brave_usd_per_1000,

@@ -27,7 +27,6 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import PurePosixPath
 from typing import Final
-from xml.sax.saxutils import escape
 
 from ..domain.questionnaire_import import (
     ImportedQuestionnaire,
@@ -35,6 +34,7 @@ from ..domain.questionnaire_import import (
     import_rows,
 )
 from .document_text import refuse_dtd
+from .xlsx_writer import Cell, workbook
 
 __all__ = [
     "TEMPLATE_FILENAME",
@@ -196,7 +196,6 @@ def import_questionnaire(data: bytes, filename: str) -> ImportedQuestionnaire:
 # The template
 # --------------------------------------------------------------------------- #
 
-Cell = str | int | bool | None
 
 TEMPLATE_HEADER: Final[tuple[str, ...]] = (
     "id",
@@ -269,114 +268,16 @@ TEMPLATE_GUIDE: Final[tuple[tuple[str, str], ...]] = (
     ("Import", "AIA validuje strukturu a načte ji do stejného editoru jako ruční/AI cestu."),
 )
 
-_XML: Final = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-_MAIN: Final = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-_OFFICE_REL: Final = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-_PACKAGE: Final = "http://schemas.openxmlformats.org/package/2006"
-_SHEETML: Final = "application/vnd.openxmlformats-officedocument.spreadsheetml"
-
-
-def _column(i: int) -> str:
-    name = ""
-    i += 1
-    while i:
-        i, rem = divmod(i - 1, 26)
-        name = chr(65 + rem) + name
-    return name
-
-
-def _cell(ref: str, value: Cell, *, bold: bool) -> str:
-    style = ' s="1"' if bold else ""
-    if value is None:
-        return ""
-    if isinstance(value, bool):
-        return f'<c r="{ref}" t="b"{style}><v>{int(value)}</v></c>'
-    if isinstance(value, int):
-        return f'<c r="{ref}"{style}><v>{value}</v></c>'
-    text = escape(value)
-    return f'<c r="{ref}" t="inlineStr"{style}><is><t xml:space="preserve">{text}</t></is></c>'
-
-
-def _sheet(rows: list[tuple[Cell, ...]], widths: list[int]) -> str:
-    last = f"{_column(max(len(r) for r in rows) - 1)}{len(rows)}"
-    cols = "".join(
-        f'<col min="{i + 1}" max="{i + 1}" width="{w}" customWidth="1"/>'
-        for i, w in enumerate(widths)
-    )
-    body = "".join(
-        f'<row r="{n}">'
-        + "".join(_cell(f"{_column(i)}{n}", v, bold=n == 1) for i, v in enumerate(row))
-        + "</row>"
-        for n, row in enumerate(rows, start=1)
-    )
-    return (
-        f'{_XML}<worksheet xmlns="{_MAIN}"><dimension ref="A1:{last}"/>'
-        f'<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" '
-        f'activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
-        f"<cols>{cols}</cols><sheetData>{body}</sheetData></worksheet>"
-    )
-
 
 def template_xlsx() -> bytes:
     """AIA's questionnaire template: sheets DOTAZNIK and NAVOD. Deterministic bytes."""
-    parts = {
-        "[Content_Types].xml": (
-            f'{_XML}<Types xmlns="{_PACKAGE}/content-types">'
-            '<Default Extension="rels" '
-            'ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-            '<Default Extension="xml" ContentType="application/xml"/>'
-            f'<Override PartName="/xl/workbook.xml" ContentType="{_SHEETML}.sheet.main+xml"/>'
-            '<Override PartName="/xl/worksheets/sheet1.xml" '
-            f'ContentType="{_SHEETML}.worksheet+xml"/>'
-            '<Override PartName="/xl/worksheets/sheet2.xml" '
-            f'ContentType="{_SHEETML}.worksheet+xml"/>'
-            f'<Override PartName="/xl/styles.xml" ContentType="{_SHEETML}.styles+xml"/>'
-            "</Types>"
-        ),
-        "_rels/.rels": (
-            f'{_XML}<Relationships xmlns="{_PACKAGE}/relationships">'
-            f'<Relationship Id="rId1" Type="{_OFFICE_REL}/officeDocument" '
-            'Target="xl/workbook.xml"/></Relationships>'
-        ),
-        "xl/workbook.xml": (
-            f'{_XML}<workbook xmlns="{_MAIN}" xmlns:r="{_OFFICE_REL}"><sheets>'
-            '<sheet name="DOTAZNIK" sheetId="1" r:id="rId1"/>'
-            '<sheet name="NAVOD" sheetId="2" r:id="rId2"/></sheets></workbook>'
-        ),
-        "xl/_rels/workbook.xml.rels": (
-            f'{_XML}<Relationships xmlns="{_PACKAGE}/relationships">'
-            f'<Relationship Id="rId1" Type="{_OFFICE_REL}/worksheet" '
-            'Target="worksheets/sheet1.xml"/>'
-            f'<Relationship Id="rId2" Type="{_OFFICE_REL}/worksheet" '
-            'Target="worksheets/sheet2.xml"/>'
-            f'<Relationship Id="rId3" Type="{_OFFICE_REL}/styles" Target="styles.xml"/>'
-            "</Relationships>"
-        ),
-        "xl/styles.xml": (
-            f'{_XML}<styleSheet xmlns="{_MAIN}">'
-            '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>'
-            '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
-            '<fills count="2"><fill><patternFill patternType="none"/></fill>'
-            '<fill><patternFill patternType="gray125"/></fill></fills>'
-            '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border>'
-            "</borders>"
-            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>'
-            "</cellStyleXfs>"
-            '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-            '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
-            "</cellXfs>"
-            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
-            "</styleSheet>"
-        ),
-        "xl/worksheets/sheet1.xml": _sheet(
-            [TEMPLATE_HEADER, *TEMPLATE_EXAMPLES], [12, 52, 16, 40, 10, 10, 18, 18, 14, 48]
-        ),
-        "xl/worksheets/sheet2.xml": _sheet(list(TEMPLATE_GUIDE), [24, 90]),
-    }
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for name, body in parts.items():
-            info = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            z.writestr(info, body.encode("utf-8"))
-    return buf.getvalue()
+    return workbook(
+        [
+            (
+                "DOTAZNIK",
+                [TEMPLATE_HEADER, *TEMPLATE_EXAMPLES],
+                [12, 52, 16, 40, 10, 10, 18, 18, 14, 48],
+            ),
+            ("NAVOD", list(TEMPLATE_GUIDE), [24, 90]),
+        ]
+    )

@@ -15,12 +15,14 @@ bug upstream cannot write one client's spend onto another's ledger.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session
 
+from aia_core.domain.ai_activity import AnsweredCall
 from aia_core.domain.ai_contracts import (
     AIUsageEvent,
     CallPurpose,
@@ -44,10 +46,17 @@ from aia_core.domain.scope import (
 )
 from aia_core.domain.workflow import FailureClass, as_utc
 
-from .tables import AIUsageEventRow, BudgetReservationRow, WorkflowRunRow, utcnow
+from .tables import AIUsageEventRow, BudgetReservationRow, ClientRow, WorkflowRunRow, utcnow
 from .workflow_repository import charged_to_for_run
 
-__all__ = ["AIUsageRepository", "LedgerConflict", "UncertainCall"]
+__all__ = [
+    "AIUsageRepository",
+    "LedgerConflict",
+    "UncertainCall",
+    "client_usage_rows",
+    "last_answered_calls",
+    "organization_usage_rows",
+]
 
 
 class LedgerConflict(ValueError):
@@ -417,3 +426,83 @@ class AIUsageRepository:
             query = query.where(AIUsageEventRow.run_id == run_id)
         # SUM over no rows is genuinely zero spend, not an unknown (OI-4).
         return float(self._session.scalar(query) or 0.0)
+
+
+def client_usage_rows(session: Session, *, client_id: str) -> int:
+    """How many usage-ledger rows and budget holds a client has: what a deletion keeps, so
+    spend still reconciles (MVPQ-07)."""
+    usage = session.scalar(
+        select(func.count())
+        .select_from(AIUsageEventRow)
+        .where(AIUsageEventRow.client_id == client_id)
+    )
+    holds = session.scalar(
+        select(func.count())
+        .select_from(BudgetReservationRow)
+        .where(BudgetReservationRow.client_id == client_id)
+    )
+    return int(usage or 0) + int(holds or 0)
+
+
+def organization_usage_rows(session: Session, *, organization_id: str) -> tuple[int, int]:
+    """The organization's usage-ledger rows and budget holds: what deletions keep."""
+    usage = session.scalar(
+        select(func.count())
+        .select_from(AIUsageEventRow)
+        .where(AIUsageEventRow.organization_id == organization_id)
+    )
+    holds = session.scalar(
+        select(func.count())
+        .select_from(BudgetReservationRow)
+        .join(ClientRow, ClientRow.client_id == BudgetReservationRow.client_id)
+        .where(ClientRow.organization_id == organization_id)
+    )
+    return int(usage or 0), int(holds or 0)
+
+
+def last_answered_calls(
+    session: Session, *, organization_id: str, agent_ids: Iterable[str]
+) -> list[AnsweredCall]:
+    """Each of ``agent_ids``' newest answered (``SUCCEEDED``) call in the organization.
+
+    The second read across studies besides the work queue (OI-75 (a), the product owner,
+    2026-10-25): an aggregate for Settings → AI běh. It selects no client, study, run, person,
+    text or cost, only what answered and when. One lookup per agent, each the newest entry of
+    ``ix_usage_org_answered``: a grouped maximum over the organization's rows would read its
+    whole ledger on every open (measured: a parallel scan of 600,000 rows, 42 ms and growing
+    with every call), where the agents are few and known. An agent's capability is its own (a
+    Deep Research role's is fixed), so its newest row is its activity's.
+    """
+    calls: list[AnsweredCall] = []
+    for agent_id in agent_ids:
+        row = session.execute(
+            select(
+                AIUsageEventRow.capability,
+                AIUsageEventRow.occurred_at,
+                AIUsageEventRow.model,
+                AIUsageEventRow.served_model,
+                AIUsageEventRow.runtime_version,
+            )
+            .where(
+                AIUsageEventRow.organization_id == organization_id,
+                AIUsageEventRow.agent_id == agent_id,
+                AIUsageEventRow.outcome == "SUCCEEDED",
+            )
+            # Two calls answered at the same instant: the one with the greater id, every time.
+            .order_by(AIUsageEventRow.occurred_at.desc(), AIUsageEventRow.event_id.desc())
+            .limit(1)
+        ).first()
+        if row is None:
+            continue
+        capability, occurred_at, model, served_model, runtime_version = row
+        calls.append(
+            AnsweredCall(
+                agent_id=agent_id,
+                capability=capability,
+                occurred_at=as_utc(occurred_at) or occurred_at,
+                model=model,
+                served_model=served_model or "",
+                runtime_version=runtime_version,
+            )
+        )
+    return calls

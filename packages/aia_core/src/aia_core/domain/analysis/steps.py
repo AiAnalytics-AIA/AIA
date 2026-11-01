@@ -19,6 +19,7 @@ Pure: no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Final
 
 from ..evidence import ClaimSurface
@@ -75,10 +76,11 @@ def analysis_step_definitions() -> tuple[StepDefinition, ...]:
 
 
 def analysis_step_inputs(
-    surface: ClaimSurface, *, analysis_round: int = 0
+    surface: ClaimSurface, *, analysis_round: int = 0, retried: Sequence[str] = ()
 ) -> dict[str, dict[str, Any]]:
     """What each analysis step is told: its module, the surface it writes for, and on an
-    analysis retry the round a person asked for (absent in a run's own analysis)."""
+    analysis retry the round a person asked for (absent in a run's own analysis) and whether
+    this module is one they asked again (``analysis_retried``, evidence-integrity 9a)."""
     if analysis_round < 0:
         raise ValueError("an analysis round is 0 or more")
     return {
@@ -86,6 +88,7 @@ def analysis_step_inputs(
             "analysis_module": spec.module_id.value,
             "analysis_surface": surface.value,
             **({"analysis_round": analysis_round} if analysis_round else {}),
+            **({"analysis_retried": True} if spec.module_id.value in retried else {}),
         }
         for spec in ANALYSIS_MODULES
     }

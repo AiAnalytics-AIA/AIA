@@ -117,6 +117,7 @@ def test_a_caller_reserves_what_one_request_names() -> None:
         runtime_version="t",
         provider=Provider.AWS_BEDROCK,
         reservation_usd=2.0,
+        refused_answers=None,
     )
     request = _request(AgentRole.VERIFIER, 10)
     with pytest.raises(_Sent):

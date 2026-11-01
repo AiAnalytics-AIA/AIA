@@ -45,9 +45,11 @@ export function Button({
   );
 }
 
+// Done is ink with a ✓, never green: green is "in force" alone (the product owner, 2026-10-23, Q83).
+const DONE = new Set(["COMPLETED", "SUCCEEDED"]);
 const TONES: Record<string, string> = {
-  COMPLETED: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  SUCCEEDED: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  COMPLETED: "bg-white text-zinc-900 border-zinc-400",
+  SUCCEEDED: "bg-white text-zinc-900 border-zinc-400",
   RUNNING: "bg-blue-50 text-blue-800 border-blue-200",
   EXECUTING: "bg-blue-50 text-blue-800 border-blue-200",
   RUNNABLE: "bg-blue-50 text-blue-800 border-blue-200",
@@ -66,7 +68,7 @@ export function Status({ value }: { value: string }) {
   const tone = TONES[value] ?? "bg-zinc-100 text-zinc-700 border-zinc-200";
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-xs ${tone}`}>
-      {value}
+      {DONE.has(value) ? <><span aria-hidden="true">✓</span>{" "}</> : null}{value}
     </span>
   );
 }

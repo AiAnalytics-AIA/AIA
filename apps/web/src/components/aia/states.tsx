@@ -34,6 +34,12 @@ export function Loaded<T>({ res, retry, children }: { res: Resource<T>; retry: (
       <section role="alert" className="max-w-xl rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
         <h2 className="font-semibold text-status-fault">{t("aia.loadFailed")}</h2>
         <p className="mt-1 text-sm text-ink">{res.message}</p>
+        {res.technical ? (
+          <details className="mt-2 text-xs text-ink-muted">
+            <summary className="cursor-pointer">{t("errors.technical")}</summary>
+            <p className="mt-1 break-all font-mono">{res.technical}</p>
+          </details>
+        ) : null}
         <Button className="mt-3" onClick={retry}>{t("aia.retry")}</Button>
       </section>
     );

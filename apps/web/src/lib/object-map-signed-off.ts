@@ -193,21 +193,17 @@ export type ObjectDetail = {
   label: string;
   primary: boolean;
   height: number | null; // the mean rating on the declared 0-1 scale, as stored
-  connectedness: number | null; // 0-100
-  alignment: number | null; // null when it says nothing (see below)
   relations: { j: number; id: string; label: string; r: number }[]; // the 5 strongest reliable, by |r|; j its index
   basis: number | null; // a secondary object only: its strongest reliable |r| to a PRIMARY object
 };
 
 /** What the panel's object detail (`objectDetail66`) shows of one mapped object, from the stored map.
- *  The alignment is left out as the panel leaves it out: with each respondent's own mean removed and
- *  every object PRIMARY, the mean signed relation is near zero for every object by construction. */
+ *  No alignment or connectedness: neither is part of aia-sociomap-5, nor shown for its map, a map
+ *  stored with them included (the methodology owner, 2026-10-28, MQ-05 (i)). */
 export function objectDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, k: number): ObjectDetail {
   const label = new Map(battery.objects.map((o) => [o.id, o.label]));
   const ids = map.object_ids, id = ids[k];
   const primary = (j: number) => map.roles[ids[j]] === "primary";
-  const score = map.scores?.objects.find((o) => o.id === id);
-  const degenerate = map.spec.ratings?.person_normalization === "person_mean_centring" && ids.every((_, j) => primary(j));
   const reliable = ids.flatMap((other, j) => {
     const r = map.relations.r[k][j];
     return j !== k && r !== null && map.relations.status[k][j] === "reliable" ? [{ j, id: other, label: label.get(other) ?? other, r }] : [];
@@ -218,8 +214,6 @@ export function objectDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, k
     label: label.get(id) ?? id,
     primary: primary(k),
     height: map.heights.values[k],
-    connectedness: score?.connectedness == null ? null : 100 * score.connectedness,
-    alignment: degenerate ? null : score?.alignment ?? null,
     relations: [...reliable].sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 5),
     basis: primary(k) || !toPrimary.length ? null : Math.max(...toPrimary),
   };
@@ -238,13 +232,31 @@ export type RelationDetail = {
   clearFrom: number; // the declared |r~| from which a relation reads "zřetelný"; a map stored before it: 0.3
 };
 
+/** A stored pair's verdict: reliable / weak, or why it is unknown -- too few people rated both, or
+ *  one of them was rated alike by all (unknown at or above the status floor). */
+function pairVerdict(map: ObjectMapArtifact, i: number, j: number): RelationDetail["verdict"] {
+  const rel = map.relations;
+  if (rel.r[i][j] === null) return (rel.n[i][j] ?? 0) < rel.n_min ? "fewRatings" : "noSpread";
+  return rel.status[i][j] === "reliable" ? "reliable" : "weak";
+}
+
+export type PairLine = { j: number; id: string; label: string; r: number | null; n: number | null; verdict: RelationDetail["verdict"] };
+
+/** Every other mapped object's stored relation to object ``k``, whatever its status: by |r|, the
+ *  unknown ones last. The object detail's "Všechny vztahy" (the map reads only the reliable ones). */
+export function allRelations(battery: BatteryWithMaps, map: ObjectMapArtifact, k: number): PairLine[] {
+  const label = new Map(battery.objects.map((o) => [o.id, o.label]));
+  return map.object_ids
+    .flatMap((id, j) => (j === k ? [] : [{ j, id, label: label.get(id) ?? id, r: map.relations.r[k][j], n: map.relations.n[k][j], verdict: pairVerdict(map, k, j) }]))
+    .sort((a, b) => (a.r === null ? 1 : 0) - (b.r === null ? 1 : 0) || Math.abs(b.r ?? 0) - Math.abs(a.r ?? 0) || a.label.localeCompare(b.label));
+}
+
 /** The panel's selected-relation block (`relationHtml66`) from the stored pair. The stored map keeps
  *  no p-value and no noise level: those two lines are not shown. */
 export function relationDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, i: number, j: number): RelationDetail {
   const label = new Map(battery.objects.map((o) => [o.id, o.label]));
   const rel = map.relations, r = rel.r[i][j], n = rel.n[i][j];
-  // Unknown below the status floor; at or above it, unknown only because a column had no spread.
-  const verdict = r === null ? ((n ?? 0) < rel.n_min ? "fewRatings" : "noSpread") : rel.status[i][j] === "reliable" ? "reliable" : "weak";
+  const verdict = pairVerdict(map, i, j);
   return {
     a: label.get(map.object_ids[i]) ?? map.object_ids[i],
     b: label.get(map.object_ids[j]) ?? map.object_ids[j],
@@ -261,22 +273,19 @@ export function relationDetail(battery: BatteryWithMaps, map: ObjectMapArtifact,
 export type RespondentDetail = {
   id: string;
   faded: boolean;
-  explained: number | null; // % of the differences in the respondent's ratings the map explains
   segment: number | null; // null: the set shows no segments; -1: not clearly in one
 };
 
 /** The panel's respondent detail (`personDetail66`) of one placed respondent, from the stored map.
- *  The share explained is rounded as the panel's payload rounds the misfit (4 decimals). */
+ *  The misfit is stored but never shown (the methodology owner, 2026-10-28, MQ-05 (ii)). */
 export function respondentDetail(map: ObjectMapArtifact, id: string): RespondentDetail | null {
   const r = storedRespondents(map);
   const k = (map.respondent_ids ?? []).indexOf(id);
   if (!r || k < 0) return null;
-  const misfit = r.misfit[k];
   const seg = r.segments?.decision === "SEGMENTS" ? r.segments : null;
   return {
     id,
     faded: r.placement[k] === "FADED",
-    explained: misfit === null ? null : Math.round(100 * (1 - Number(misfit.toFixed(4)))),
     segment: seg ? (seg.coloured?.[k] && (seg.label?.[k] ?? -1) >= 0 ? seg.label![k] : -1) : null,
   };
 }

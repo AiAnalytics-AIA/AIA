@@ -49,6 +49,7 @@ __all__ = [
     "DeepResearchPrices",
     "RoutePrice",
     "RunCostCeiling",
+    "analysis_ceiling_usd",
     "deep_research_cost_ceiling",
     "price_bounds",
     "run_cost_ceiling",
@@ -81,6 +82,18 @@ class RunCostCeiling:
 
 def _unknown(why: CeilingUnknown, *, requests: int = 0, calls: int = 0) -> RunCostCeiling:
     return RunCostCeiling(requests, None, calls, None, None, why)
+
+
+def analysis_ceiling_usd(
+    modules: int, *, reservation_usd: float | None, calls_per_module: int
+) -> float | None:
+    """The most asking ``modules`` analysis modules can cost: each a draft and its repairs
+    (``calls_per_module``) at the analysis reservation. ``None`` when the reservation is not
+    configured or not positive: unknown, never zero. What a run's ceiling counts for its
+    analysis and what an analysis retry answers before it starts (lead-orchestration LO23)."""
+    if reservation_usd is None or not reservation_usd > 0:
+        return None
+    return modules * calls_per_module * reservation_usd
 
 
 def run_cost_ceiling(
@@ -120,11 +133,16 @@ def run_cost_ceiling(
     if analysis_enabled:
         modules = len(ANALYSIS_MODULES) if analysis_modules is None else analysis_modules
         calls = modules * analysis_calls_per_module
-        if analysis_reservation_usd is None or not analysis_reservation_usd > 0:
+        priced = analysis_ceiling_usd(
+            modules,
+            reservation_usd=analysis_reservation_usd,
+            calls_per_module=analysis_calls_per_module,
+        )
+        if priced is None:
             return _unknown(
                 CeilingUnknown.ANALYSIS_RESERVATION_MISSING, requests=requests, calls=calls
             )
-        analysis_usd = calls * analysis_reservation_usd
+        analysis_usd = priced
 
     return RunCostCeiling(
         fieldwork_requests=requests,

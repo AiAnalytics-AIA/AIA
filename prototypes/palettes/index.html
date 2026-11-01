@@ -1,0 +1,208 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AIA Palettes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a chooser page. One neutral frame; each palette is shown on the same AIA study screen, light beside dark. */
+:root{--bg:#f4f4f5;--fg:#18181b;--muted:#52525b;--line:#e4e4e7;--card:#ffffff;--sel:#18181b;--onsel:#ffffff;
+--sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0b0d;--fg:#f4f4f5;--muted:#a1a1aa;--line:#27272a;--card:#141416;--sel:#f4f4f5;--onsel:#0b0b0d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b0b0d;--fg:#f4f4f5;--muted:#a1a1aa;--line:#27272a;--card:#141416;--sel:#f4f4f5;--onsel:#0b0b0d;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/20px var(--sans);font-variant-numeric:tabular-nums}
+.wrap{max-width:1680px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:22px;line-height:28px;font-weight:600;margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:72ch;margin:6px 0 0}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:20px 0 16px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
+.seg button{font:500 13px/20px var(--sans);color:var(--fg);background:none;border:0;border-right:1px solid var(--line);padding:6px 14px;cursor:pointer;min-height:32px}
+.seg button:last-child{border-right:0}
+.seg button[aria-checked="true"]{background:var(--sel);color:var(--onsel)}
+.seg button:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
+.rec{font-size:12px;color:var(--muted)}
+.idea{margin:0 0 16px;max-width:90ch}
+.idea b{font-weight:600}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.pair{grid-template-columns:1fr}}
+.cap{font-size:12px;color:var(--muted);margin:0 0 6px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:20px}
+.sw{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;line-height:16px;min-width:0}
+.sw i{display:flex;height:28px;border-radius:4px;margin-bottom:6px;border:1px solid rgba(127,127,127,.18)}
+.sw i span{flex:1}
+.sw code{font:11px/14px var(--mono);color:var(--muted)}
+.checks{margin-top:16px;font-size:12px;color:var(--muted)}
+
+/* ---------- the mock: an AIA study screen, painted only with the palette's tokens (--x) ---------- */
+.m{--r6:6px;--r8:8px;--r10:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--x-surface);color:var(--x-ink);font:13px/18px var(--sans);display:grid;grid-template-columns:48px 1fr;min-height:640px}
+.m *{box-sizing:border-box}
+.rail{background:var(--x-shell);border-right:1px solid var(--x-border);display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0}
+.rail .logo{width:26px;height:26px;border-radius:6px;background:var(--x-shell-ink);margin-bottom:10px;opacity:.9}
+.rail .it{width:30px;height:30px;border-radius:6px;display:grid;place-items:center;color:var(--x-shell-muted)}
+.rail .it.on{background:var(--x-surface-raised);color:var(--x-shell-ink);box-shadow:inset 0 0 0 1px var(--x-border)}
+.rail svg{width:16px;height:16px}
+.main{display:flex;flex-direction:column;min-width:0}
+.top{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--x-border);background:var(--x-surface-raised)}
+.mono{width:24px;height:24px;border-radius:6px;background:var(--x-signal-wash);color:var(--x-signal);display:grid;place-items:center;font-size:10px;font-weight:600}
+.crumb{font-size:11px;line-height:14px;color:var(--x-ink-faint)}
+.ttl{font-weight:600;font-size:13px}
+.grow{flex:1}
+.meter{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--x-ink-muted)}
+.meter .tr{width:80px;height:6px;background:var(--x-surface-sunken);border-radius:3px;overflow:hidden;display:flex}
+.meter .tr i:first-child{width:22%;background:var(--x-ink)} .meter .tr i:last-child{width:6%;background:var(--x-signal)}
+.nav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-bottom:1px solid var(--x-border);background:var(--x-surface-raised)}
+.nav a{display:flex;flex-direction:column;gap:2px;padding:7px 10px;border-top:2px solid var(--x-border);color:var(--x-ink);text-decoration:none;min-width:0}
+.nav a b{font-weight:500;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav a span{font-size:11px;color:var(--x-ink-muted);display:flex;gap:5px;align-items:center;white-space:nowrap}
+.nav a.done{border-top-color:var(--x-ink)} .nav a.you{border-top-color:var(--x-status-you)} .nav a.you span{color:var(--x-status-you-ink);font-weight:600}
+.nav a.run{border-top-color:var(--x-signal)} .nav a.cur{background:var(--x-signal-wash);box-shadow:inset 0 -2px 0 var(--x-signal)}
+.split{display:grid;grid-template-columns:minmax(250px,42%) 1fr;flex:1;min-height:0}
+.lead{border-right:1px solid var(--x-border);background:var(--x-surface);display:flex;flex-direction:column;gap:10px;padding:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--x-ink-faint)}
+.who b{color:var(--x-ink);font-weight:600}
+.lav{width:22px;height:22px;border-radius:50%;background:var(--x-ai-wash);border:1px solid var(--x-ai-edge);display:grid;place-items:center}
+.lav i{width:7px;height:7px;border-radius:50%;background:var(--x-ai)}
+.msg{background:var(--x-surface-raised);border:1px solid var(--x-border);border-radius:10px;padding:8px 10px}
+.me{align-self:flex-end;max-width:85%;background:var(--x-signal-wash);border:1px solid var(--x-signal-edge);border-radius:10px;padding:7px 10px}
+.card{background:var(--x-surface-raised);border:1px solid var(--x-ai-edge);border-radius:10px;overflow:hidden}
+.card .h{display:flex;gap:8px;align-items:center;padding:8px 10px}
+.card .ey{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--x-ai-ink)}
+.card dl{display:grid;grid-template-columns:84px 1fr;margin:0;border-top:1px solid var(--x-border)}
+.card dt{padding:6px 10px;color:var(--x-ink-faint);font-size:11px;border-bottom:1px solid var(--x-border)}
+.card dd{margin:0;padding:6px 10px 6px 0;border-bottom:1px solid var(--x-border);font-size:12px}
+.card .acts{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;justify-content:flex-end}
+.compose{margin-top:auto;border:1px solid var(--x-border-strong);border-radius:12px;background:var(--x-surface-raised);padding:8px 10px;color:var(--x-ink-faint);font-size:12px}
+.art{padding:12px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ah{display:flex;align-items:center;gap:8px}
+.ah h2{margin:0;font-size:16px;line-height:22px;font-weight:600}
+.saved{font-size:11px;color:var(--x-ink-faint)}
+.btn{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border-radius:6px;font:500 12px/16px var(--sans);border:1px solid var(--x-border-strong);background:var(--x-surface-raised);color:var(--x-ink);white-space:nowrap}
+.btn.p{background:var(--x-primary);border-color:var(--x-primary);color:var(--x-on-primary)}
+.btn.q{border-color:transparent;background:transparent;color:var(--x-ink-muted)}
+.btn.ai{background:var(--x-ai);border-color:var(--x-ai);color:var(--x-on-ai)}
+.btn .amt{font-weight:600;border-left:1px solid currentColor;padding-left:7px;opacity:.95}
+.sec{background:var(--x-surface-raised);border:1px solid var(--x-border);border-radius:8px}
+.sec .sh{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--x-border)}
+.sec .sh h3{margin:0;font-size:13px;font-weight:600}
+.sec .sh .n{font:11px var(--mono);color:var(--x-ink-faint)}
+.sec .sb{padding:10px 12px}
+.note{border:1px solid var(--x-status-you);background:var(--x-status-you-wash);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--x-ink)}
+.note b{color:var(--x-status-you-ink)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-weight:500;color:var(--x-ink-muted);background:var(--x-surface-sunken);padding:6px 8px;border-bottom:1px solid var(--x-border)}
+.tbl td{padding:6px 8px;border-bottom:1px solid var(--x-border)}
+.tbl td.r,.tbl th.r{text-align:right}
+.tbl tr.sel td{background:var(--x-signal-tint)}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid var(--x-border);background:var(--x-surface-raised);color:var(--x-ink-muted);white-space:nowrap}
+.g{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.g.done{background:var(--x-ink)} .g.you{background:var(--x-status-you)} .g.run{border:2px solid var(--x-signal)} .g.world{background:var(--x-status-world)}
+.g.fault{background:var(--x-status-fault)} .g.inert{border:1.5px solid var(--x-border-strong)} .g.force{background:var(--x-in-force)}
+.pill.you{background:var(--x-status-you-wash);border-color:var(--x-status-you);color:var(--x-status-you-ink)}
+.pill.fault{background:var(--x-status-fault-wash);border-color:var(--x-status-fault);color:var(--x-status-fault)}
+.pill.force{background:var(--x-in-force-wash);border-color:var(--x-in-force);color:var(--x-ink)}
+.pill.run{background:var(--x-signal-wash);border-color:var(--x-signal-edge);color:var(--x-signal)}
+.pill.world{background:var(--x-status-world-wash);color:var(--x-ink)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lnk{color:var(--x-signal);text-decoration:underline;text-underline-offset:2px}
+.chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid var(--x-border);background:var(--x-surface-raised);color:var(--x-ink-muted)}
+.chip.on{background:var(--x-signal-wash);border-color:var(--x-signal-edge);color:var(--x-signal)}
+</style>
+
+<div class="wrap">
+  <h1>Nová paleta AIA</h1>
+  <p class="lede">Tři směry pro novou paletu, každý na stejné obrazovce studie: lišta, navigátor kroků, konverzace s Vedoucím, karta placené úlohy, sekce, tabulka a všech sedm stavů. Vlevo světlý motiv, vpravo tmavý. Význam barev zůstává: akcent jen na výběru a hlavní akci, oranžová jen pro to, co čeká na vás, zelená jen pro verzi v platnosti, žádná jantarová.</p>
+  <div class="bar">
+    <span class="seg" role="radiogroup" aria-label="Paleta" id="pick"></span>
+    <span class="rec">Doporučuji <b>Petrol</b>: klidná, vědecká, odlišná od běžných nástrojů a nejlépe nese hustá data.</span>
+  </div>
+  <p class="idea" id="idea"></p>
+  <div class="pair">
+    <div><p class="cap">Světlý motiv</p><div class="m" id="mL"></div></div>
+    <div><p class="cap">Tmavý motiv</p><div class="m" id="mD"></div></div>
+  </div>
+  <div class="swatches" id="sw"></div>
+  <p class="checks" id="checks"></p>
+</div>
+
+<template id="screen">
+  <nav class="rail" aria-hidden="true">
+    <span class="logo"></span>
+    <span class="it on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7"/></svg></span>
+    <span class="it"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg></span>
+    <span class="it"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14a6 6 0 1 0-6-6M8 4.5V8l2.5 1.5"/></svg></span>
+    <span class="it"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2"/></svg></span>
+  </nav>
+  <div class="main">
+    <header class="top"><span class="mono">ZH</span><div><div class="crumb">Klienti / Pivovar Zlatá Hora</div><div class="ttl">Vnímání značek ležáků 2026</div></div><span class="grow"></span><span class="meter">Rozpočet studie <span class="tr"><i></i><i></i></span>11,20 / 50,00 USD</span><span class="btn q">Přehled</span></header>
+    <nav class="nav"><a class="done"><b>Zadání</b><span><i class="g done"></i>Hotovo</span></a><a class="you cur"><b>Návrh</b><span><i class="g you"></i>Čeká na vás</span></a><a><b>Dotazník</b><span><i class="g inert"></i>Nezačato</span></a><a class="done"><b>Cílová skupina</b><span><i class="g done"></i>Hotovo</span></a><a class="run"><b>Sběr dat</b><span><i class="g run"></i>Běží</span></a><a><b>Zpráva</b><span><i class="g inert"></i>Nezačato</span></a></nav>
+    <div class="split">
+      <aside class="lead">
+        <div class="who"><span class="lav"><i></i></span><b>Ada</b>9:12 · četla revizi 7</div>
+        <div class="msg">Zadání je skoro úplné. Chybí rozhodnutí, které má výzkum podpořit.</div>
+        <div class="me">Analyzuj zadání</div>
+        <div class="card"><div class="h"><div class="grow"><div class="ey">Váš příkaz · návrhová úloha</div><b>Analýza zadání</b></div><span class="pill you"><i class="g you"></i>Čeká na vás</span></div>
+          <dl><dt>Cena nejvýše</dt><dd><b>0,40 USD</b> · zbývá 38,80 USD</dd></dl>
+          <div class="acts"><span class="btn q">Teď ne</span><span class="btn ai">Spustit úlohu<b class="amt">0,40 USD</b></span></div></div>
+        <div class="compose">Napište Vedoucímu…</div>
+      </aside>
+      <main class="art">
+        <div class="ah"><h2>Návrh</h2><span class="saved">Uloženo</span><span class="grow"></span><span class="btn">Uložit verzi</span><span class="btn p">Dotazník</span></div>
+        <div class="note"><b>Čeká na vás.</b> Vedoucí navrhl 3 změny výzkumných otázek. <span class="lnk">Projít změny</span></div>
+        <section class="sec"><div class="sh"><span class="n">01</span><h3>Výzkumné otázky</h3><span class="grow"></span><span class="chip on">Hlavní</span><span class="chip">Vedlejší</span></div>
+          <div class="sb"><table class="tbl"><thead><tr><th>Otázka</th><th>Měřeno</th><th class="r">n</th><th>Stav</th></tr></thead><tbody>
+            <tr><td>Kdo pije Zlatou Horu 12°?</td><td>Q2, S1</td><td class="r">1 600</td><td><span class="pill force"><i class="g force"></i>V platnosti</span></td></tr>
+            <tr class="sel"><td>Ztrácí značka u mladších?</td><td>Q4</td><td class="r">412</td><td><span class="pill run"><i class="g run"></i>Běží</span></td></tr>
+            <tr><td>Snese cena +3 Kč?</td><td>—</td><td class="r">?</td><td><span class="pill fault"><i class="g fault"></i>Chyba</span></td></tr>
+            <tr><td>Kde nakupují?</td><td>Q3</td><td class="r">1 600</td><td><span class="pill world"><i class="g world"></i>Čeká na rozpočet</span></td></tr>
+          </tbody></table></div></section>
+        <div class="row"><span class="pill"><i class="g done"></i>Hotovo</span><span class="pill you"><i class="g you"></i>Čeká na vás</span><span class="pill run"><i class="g run"></i>Běží</span><span class="pill world"><i class="g world"></i>Čeká na rozpočet</span><span class="pill fault"><i class="g fault"></i>Chyba</span><span class="pill"><i class="g inert"></i>Nezačato</span><span class="pill force"><i class="g force"></i>V platnosti</span></div>
+        <div class="row"><span class="btn p">Hlavní akce</span><span class="btn">Vedlejší</span><span class="btn q">Tichá</span><span class="btn ai">Placená AI · 0,40 USD</span><span class="lnk">Odkaz</span></div>
+      </main>
+    </div>
+  </div>
+</template>
+
+<script>
+const P = {"petrol": {"name": "Petrol", "idea": "Cool, scientific and calm: true neutral greys, a deep petrol-teal accent used only on small marks, an iris AI hue, and the warm orange reserved for what needs you.", "light": {"surface": "#f6f7f8", "surface-raised": "#ffffff", "surface-sunken": "#eef0f2", "surface-overlay": "#ffffff", "border": "#e2e5e8", "border-strong": "#858d95", "ink": "#13171b", "ink-muted": "#48515a", "ink-faint": "#5f6871", "primary": "#0f6577", "primary-hover": "#0b5160", "on-primary": "#ffffff", "signal": "#0f6577", "signal-wash": "#e1eff2", "signal-tint": "#f1f7f8", "signal-edge": "#b0d4db", "ai": "#6650d8", "ai-ink": "#5a43c4", "ai-wash": "#f1effc", "ai-edge": "#d3ccf6", "on-ai": "#ffffff", "status-you": "#f07a2a", "on-status-you": "#1c0f05", "status-you-ink": "#a33a05", "status-you-wash": "#fdeee2", "status-world": "#5d6872", "status-world-wash": "#eceff2", "status-fault": "#c22b2f", "status-fault-wash": "#fcebeb", "in-force": "#1d7a4e", "in-force-wash": "#e2f3ea", "shell": "#eef0f2", "shell-ink": "#13171b", "shell-muted": "#5f6871"}, "dark": {"surface": "#0e1113", "surface-raised": "#15191c", "surface-sunken": "#0a0c0e", "surface-overlay": "#1b2024", "border": "#262c31", "border-strong": "#626d76", "ink": "#e8ecee", "ink-muted": "#aab3ba", "ink-faint": "#8a949c", "primary": "#4fb2c3", "primary-hover": "#6dc2d0", "on-primary": "#061316", "signal": "#4fb2c3", "signal-wash": "#12272c", "signal-tint": "#0f1c20", "signal-edge": "#24474f", "ai": "#a397f7", "ai-ink": "#b9affa", "ai-wash": "#221f39", "ai-edge": "#3d3769", "on-ai": "#120e26", "status-you": "#ff9a57", "on-status-you": "#1c0f05", "status-you-ink": "#ffb07a", "status-you-wash": "#3a2416", "status-world": "#9aa7b2", "status-world-wash": "#1d2328", "status-fault": "#ff6f6c", "status-fault-wash": "#3a1a1c", "in-force": "#4cc38a", "in-force-wash": "#12301f", "shell": "#0a0d0f", "shell-ink": "#e8ecee", "shell-muted": "#8a949c"}}, "graphite": {"name": "Graphite", "idea": "Neutral and quiet, the way the best keyboard-first tools look: zinc greys, near-black primary buttons, cobalt only for selection, links and focus, violet only for AI.", "light": {"surface": "#fafafa", "surface-raised": "#ffffff", "surface-sunken": "#f3f3f4", "surface-overlay": "#ffffff", "border": "#e4e4e7", "border-strong": "#8a8a94", "ink": "#18181b", "ink-muted": "#4e4e56", "ink-faint": "#63636c", "primary": "#18181b", "primary-hover": "#33333a", "on-primary": "#ffffff", "signal": "#2457d6", "signal-wash": "#ebf1ff", "signal-tint": "#f5f8ff", "signal-edge": "#c3d4fb", "ai": "#6b46e5", "ai-ink": "#5b37d0", "ai-wash": "#f3f0ff", "ai-edge": "#d8cefb", "on-ai": "#ffffff", "status-you": "#f2711c", "on-status-you": "#1b0e04", "status-you-ink": "#a43b06", "status-you-wash": "#fff0e5", "status-world": "#606069", "status-world-wash": "#efeff1", "status-fault": "#d02a2a", "status-fault-wash": "#fdecec", "in-force": "#16794a", "in-force-wash": "#e3f4ea", "shell": "#f3f3f4", "shell-ink": "#18181b", "shell-muted": "#63636c"}, "dark": {"surface": "#09090b", "surface-raised": "#121214", "surface-sunken": "#050506", "surface-overlay": "#18181b", "border": "#24242a", "border-strong": "#62626d", "ink": "#f4f4f5", "ink-muted": "#a8a8b1", "ink-faint": "#888892", "primary": "#f4f4f5", "primary-hover": "#d4d4d8", "on-primary": "#09090b", "signal": "#7aa2ff", "signal-wash": "#121c33", "signal-tint": "#0d1424", "signal-edge": "#26375e", "ai": "#a68bff", "ai-ink": "#b9a5ff", "ai-wash": "#1f1838", "ai-edge": "#3a2e66", "on-ai": "#140d2b", "status-you": "#ff9550", "on-status-you": "#1b0e04", "status-you-ink": "#ffad7a", "status-you-wash": "#3b2414", "status-world": "#a0a0aa", "status-world-wash": "#1c1c20", "status-fault": "#ff6b6b", "status-fault-wash": "#3a1919", "in-force": "#45c486", "in-force-wash": "#11301f", "shell": "#09090b", "shell-ink": "#f4f4f5", "shell-muted": "#888892"}}, "stone": {"name": "Stone & Ink", "idea": "Warm and editorial, like a researcher's notebook: stone neutrals, a deep ink-blue accent, plum for AI, the reports and the app reading as one paper.", "light": {"surface": "#f6f5f2", "surface-raised": "#fffefc", "surface-sunken": "#eeece7", "surface-overlay": "#fffefc", "border": "#e3e0d9", "border-strong": "#8b857a", "ink": "#1c1a16", "ink-muted": "#4f4a42", "ink-faint": "#666057", "primary": "#284a96", "primary-hover": "#1f3c7c", "on-primary": "#ffffff", "signal": "#284a96", "signal-wash": "#e8edf8", "signal-tint": "#f4f6fb", "signal-edge": "#c2cee9", "ai": "#8a3f8c", "ai-ink": "#7a347c", "ai-wash": "#f7eef7", "ai-edge": "#e2c8e3", "on-ai": "#ffffff", "status-you": "#e8702a", "on-status-you": "#1c0f05", "status-you-ink": "#9e3c08", "status-you-wash": "#fbeee3", "status-world": "#6a645b", "status-world-wash": "#efede8", "status-fault": "#bf2c2c", "status-fault-wash": "#fbeceb", "in-force": "#2b7a4b", "in-force-wash": "#e5f2e8", "shell": "#efede8", "shell-ink": "#1c1a16", "shell-muted": "#666057"}, "dark": {"surface": "#12110f", "surface-raised": "#1a1916", "surface-sunken": "#0d0c0b", "surface-overlay": "#211f1c", "border": "#2c2a26", "border-strong": "#6b665d", "ink": "#efece6", "ink-muted": "#b8b2a8", "ink-faint": "#968f85", "primary": "#8fa9ec", "primary-hover": "#a9bdf1", "on-primary": "#0c1328", "signal": "#8fa9ec", "signal-wash": "#1a2133", "signal-tint": "#141925", "signal-edge": "#2f3c5e", "ai": "#d394d4", "ai-ink": "#dfaadf", "ai-wash": "#2e1c2e", "ai-edge": "#553755", "on-ai": "#1d0c1d", "status-you": "#ff9a57", "on-status-you": "#1c0f05", "status-you-ink": "#ffb07a", "status-you-wash": "#3a2416", "status-world": "#a8a196", "status-world-wash": "#22201c", "status-fault": "#ff7369", "status-fault-wash": "#3a1b19", "in-force": "#5cc58d", "in-force-wash": "#15301f", "shell": "#0d0c0b", "shell-ink": "#efece6", "shell-muted": "#968f85"}}};
+const ORDER = ["petrol", "graphite", "stone"];
+const SW = [["surface","Podklad"],["surface-raised","Karta"],["surface-sunken","Jamka"],["border","Linka"],["ink","Text"],["ink-muted","Text 2"],["primary","Hlavní akce"],["signal","Výběr, odkaz"],["signal-wash","Vybráno"],["ai","AI"],["status-you","Čeká na vás"],["status-world","Čeká na svět"],["status-fault","Chyba"],["in-force","V platnosti"]];
+let cur = "petrol";
+try { const s = localStorage.getItem("aia-palette"); if (s && P[s]) cur = s; } catch (e) {}
+const pick = document.getElementById("pick");
+for (const k of ORDER) {
+  const b = document.createElement("button");
+  b.type = "button"; b.setAttribute("role", "radio"); b.textContent = P[k].name; b.dataset.k = k;
+  b.addEventListener("click", () => { cur = k; try { localStorage.setItem("aia-palette", k); } catch (e) {} render(); });
+  b.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const i = (ORDER.indexOf(cur) + (e.key === "ArrowRight" ? 1 : ORDER.length - 1)) % ORDER.length;
+    cur = ORDER[i]; render(); pick.querySelector(`[data-k="${cur}"]`).focus();
+  });
+  pick.appendChild(b);
+}
+const tpl = document.getElementById("screen");
+for (const id of ["mL", "mD"]) document.getElementById(id).appendChild(tpl.content.cloneNode(true));
+function apply(el, vars) { for (const [n, v] of Object.entries(vars)) el.style.setProperty("--x-" + n, v); }
+function lum(h){h=h.replace("#","");const c=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+function cr(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+function render() {
+  const p = P[cur];
+  for (const b of pick.children) { const on = b.dataset.k === cur; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; }
+  document.getElementById("idea").innerHTML = "<b>" + p.name + ".</b> " + p.idea;
+  apply(document.getElementById("mL"), p.light); apply(document.getElementById("mD"), p.dark);
+  const sw = document.getElementById("sw"); sw.innerHTML = "";
+  for (const [k, label] of SW) {
+    const d = document.createElement("div"); d.className = "sw";
+    d.innerHTML = `<i><span style="background:${p.light[k]}"></span><span style="background:${p.dark[k]}"></span></i>${label}<br><code>${p.light[k]} · ${p.dark[k]}</code>`;
+    sw.appendChild(d);
+  }
+  const t = (th) => [
+    ["Text na podkladu", cr(p[th].ink, p[th].surface)], ["Text 2 na kartě", cr(p[th]["ink-muted"], p[th]["surface-raised"])],
+    ["Popisek na jamce", cr(p[th]["ink-faint"], p[th]["surface-sunken"])], ["Hlavní akce", cr(p[th]["on-primary"], p[th].primary)],
+    ["Odkaz na kartě", cr(p[th].signal, p[th]["surface-raised"])], ["AI tlačítko", cr(p[th]["on-ai"], p[th].ai)],
+  ].map(([n, v]) => `${n} ${v.toFixed(1)}:1`).join(" · ");
+  document.getElementById("checks").textContent = "Kontrast (WCAG): světlý — " + t("light") + ". Tmavý — " + t("dark") + ". Každý text drží aspoň 4,5:1.";
+}
+render();
+</script>
+
+</body></html>

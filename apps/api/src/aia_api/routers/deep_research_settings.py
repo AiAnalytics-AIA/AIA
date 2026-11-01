@@ -11,6 +11,9 @@ Organization-level, like members and system prompts: every route takes an
   not in force until approved.
 * ``PUT  /deep-research/settings/{key}/approval`` -- approve a version, or with
   ``version_number: null`` return to the proposed default (an administrator).
+* ``POST /deep-research/settings/{key}/versions/{n}/withdrawal`` -- take back a pending
+  proposal (its proposer: WITHDRAWN) or turn it down (another administrator: DECLINED), with a
+  reason; append-only, audited, and the version is never approved afterwards.
 
 An approval changes only runs enqueued afterwards (chunk 43 pins them). Switches, secrets and
 the model route are not here: they stay in the deployment, and no setting can switch a rail
@@ -20,7 +23,7 @@ off. This module only reads and writes the settings store; it starts nothing.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from aia_core.domain.deep_research.settings import (
     CATALOGUE_VERSION,
@@ -62,6 +65,8 @@ _STATUS: dict[str, int] = {
     "self_approval_not_allowed": 403,
     "concurrent_edit": 409,
     "approved_value_invalid": 409,
+    "version_declined": 409,
+    "version_not_pending": 409,
 }
 
 
@@ -115,6 +120,16 @@ class SettingsOverview(BaseModel):
     settings: list[SettingSummary]
 
 
+class DeclineResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    #: WITHDRAWN: its proposer took it back; DECLINED: another administrator turned it down.
+    kind: Literal["WITHDRAWN", "DECLINED"]
+    by: str
+    reason: str
+    at: datetime
+
+
 class VersionResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -125,6 +140,12 @@ class VersionResponse(BaseModel):
     note: str
     created_by: str
     created_at: datetime
+    state: Literal["IN_FORCE", "APPROVED_BEFORE", "PENDING", "WITHDRAWN", "DECLINED"]
+    decline: DeclineResponse | None = None
+    #: Whether the caller may approve this version now: an administrator, not withdrawn or
+    #: declined, and not their own proposal while independent review is required (the same rule
+    #: the approval checks). What the page offers, never a grant.
+    may_approve: bool = False
 
 
 class ApprovalResponse(BaseModel):
@@ -152,6 +173,12 @@ class ProposeRequest(BaseModel):
     #: Where the value comes from (a terms page, a quota letter): an https URL, or empty.
     source_url: str = Field(default="", max_length=500)
     note: str = Field(default="", max_length=255)
+
+
+class WithdrawRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=255)
 
 
 class ApproveRequest(BaseModel):
@@ -192,8 +219,11 @@ def _from_overview(o: SettingOverview) -> SettingSummary:
     return _summary(o.definition, o.effective, o.version_count, o.latest_number)
 
 
-def _version(v: StoredSettingVersion) -> VersionResponse:
+def _version(
+    v: StoredSettingVersion, reader: DeepResearchSettingsReader | None = None
+) -> VersionResponse:
     return VersionResponse(
+        may_approve=reader.may_approve(v) if reader is not None else False,
         version_number=v.version_number,
         value=_wire(v.value),
         value_sha256=v.value_sha256,
@@ -201,6 +231,17 @@ def _version(v: StoredSettingVersion) -> VersionResponse:
         note=v.note,
         created_by=v.created_by,
         created_at=v.created_at,
+        state=v.state,
+        decline=(
+            DeclineResponse(
+                kind=v.decline.kind,
+                by=v.decline.by,
+                reason=v.decline.reason,
+                at=v.decline.at,
+            )
+            if v.decline
+            else None
+        ),
     )
 
 
@@ -266,7 +307,7 @@ def read_setting(key: SettingKey, org: OrganizationDep, session: SessionDep) -> 
         item = _one(reader, key)
         return SettingDetail(
             **_from_overview(item).model_dump(),
-            versions=[_version(v) for v in reader.versions(key)],
+            versions=[_version(v, reader) for v in reader.versions(key)],
             history=[_approval(a) for a in reader.history(key)],
         )
     except SettingRefused as exc:
@@ -288,7 +329,7 @@ def propose(
         )
     except (ScopeDenied, SettingRefused) as exc:
         raise _refused(exc) from exc
-    return _version(stored)
+    return _version(stored, DeepResearchSettingsReader(session, org))
 
 
 @router.put(
@@ -305,5 +346,29 @@ def approve(
             key, body.version_number, reason=body.reason
         )
         return _from_overview(_one(DeepResearchSettingsReader(session, org), key))
+    except (ScopeDenied, SettingRefused) as exc:
+        raise _refused(exc) from exc
+
+
+@router.post(
+    "/{key}/versions/{version_number}/withdrawal",
+    response_model=VersionResponse,
+    summary="Withdraw or decline a pending proposal",
+)
+def withdraw(
+    key: SettingKey,
+    version_number: Annotated[int, Path(ge=1)],
+    body: WithdrawRequest,
+    org: OrganizationDep,
+    session: SessionDep,
+) -> VersionResponse:
+    """Its proposer withdraws it; another administrator declines it. The version is kept,
+    immutable, and is never put in force afterwards: propose the value again to approve it."""
+    try:
+        return _version(
+            DeepResearchSettingsRepository(session, org).decline(
+                key, version_number, reason=body.reason
+            )
+        )
     except (ScopeDenied, SettingRefused) as exc:
         raise _refused(exc) from exc

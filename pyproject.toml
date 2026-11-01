@@ -56,8 +56,10 @@ ignore = ["N818"]
 "packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py" = ["TID251"]  # urllib3 + socket.getaddrinfo: public web reads, resolved then pinned
 "packages/aia_core/src/aia_core/infrastructure/web_retrieval_brave.py" = ["TID251"]  # urllib3: the Brave search API
 "packages/aia_core/src/aia_core/infrastructure/common_crawl.py" = ["TID251"]  # urllib3: Athena's JSON POST
+"packages/aia_core/src/aia_core/infrastructure/editor_fetch.py" = ["TID251"]  # urllib3: a saved report, from the editor's own origin under /cache/files/ only
 "packages/aia_core/src/aia_core/infrastructure/http_transport.py" = ["TID251"]  # ssl: certificate_refused reads SSLCertVerificationError
 "apps/api/src/aia_api/identity/cognito.py" = ["TID251"]  # urllib.request: the Cognito JWKS fetch
+"packages/aia_core/src/aia_core/infrastructure/glitchtip_status.py" = ["TID251"]  # urllib.request: GlitchTip's read-only API, internal network, no proxy
 "apps/worker/src/aia_worker/settings.py" = ["TID251"]  # socket.gethostname for the worker id; no egress
 
 [tool.mypy]
@@ -129,6 +131,8 @@ source_modules = [
     "aia_core.application.report_variants",
     "aia_core.application.report_approval",
     "aia_core.application.report_export",
+    "aia_core.application.report_editor",
+    "aia_core.application.report_editor_saves",
     "aia_core.application.client_report",
     "aia_core.application.contextual_report",
     "aia_core.application.sociomapping_report",
@@ -137,6 +141,7 @@ source_modules = [
     "aia_core.infrastructure.report_pdf",
     "aia_executors.report",
     "aia_executors.sociomapping_report",
+    "aia_executors.status_report",
 ]
 forbidden_modules = [
     "aia_core.infrastructure.study_lead_repository",
@@ -187,6 +192,19 @@ ignore_imports = [
     # rules as the workbench composition): the transport's request and response types, no adapter.
     "aia_executors.workbench -> aia_core.infrastructure.model_adapters.transport",
 ]
+
+# The confirming start is a person's (ADR 0028 decision 3, "What enforces it"; lead-orchestration
+# LO2): only confirm_spend issues a SpendConfirmation, to a scope holding APPROVE_BUDGET. Nothing
+# the worker runs imports it, so no step (LO3's plan step included) can confirm its own spend.
+# Direct imports only: an executor reaches application.research (research_artifacts), which names
+# the confirmation's type; holding the type confirms nothing. tools/layer_check.sh forbids building
+# one anywhere else.
+[[tool.importlinter.contracts]]
+name = "nothing the worker runs reaches the confirming start (ADR 0028)"
+type = "forbidden"
+source_modules = ["aia_worker", "aia_executors"]
+forbidden_modules = ["aia_core.application.spend_confirmation"]
+allow_indirect_imports = true
 
 # Live network wires are imported by the compositions that build a route and by
 # nothing else: deep_research_live and deep_research_runtime (web search, Common

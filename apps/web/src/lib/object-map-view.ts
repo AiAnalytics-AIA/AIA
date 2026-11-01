@@ -28,7 +28,7 @@ export type ObjectMapArtifact = {
   // `estimator` and the respondent sections: the signed-off methodology's (aia-sociomap-5 and the
   // versions edited from it), read by object-map-signed-off.ts.
   spec: { methodology_version: string; relation: { basis: string; n_min: number; confidence: number; effect_floor?: number; estimator?: string; noise_rule?: { enabled: boolean }; clear_effect?: number };
-    ratings?: { person_normalization?: string }; terrain: { sigma: number; sigma_basis: string; method?: string } | null; respondent_map?: SignedOffRespondentSpec;
+    ratings?: { person_normalization?: string }; terrain: { sigma: number; sigma_basis: string; method?: string; relative_height_floor?: number } | null; respondent_map?: SignedOffRespondentSpec;
     // aia-sociomap-5: the declared taste-segment rules the segment texts quote.
     segments?: { min_respondents?: number; min_ratings?: number; colour_membership?: number } };
   respondent_ids?: string[];
@@ -54,8 +54,6 @@ export type ObjectMapArtifact = {
   // `relative`: each PRIMARY object's hill height under the framed envelope (aia-sociomap-5).
   heights: { metric: string; values: (number | null)[]; support_n: number[]; relative?: (number | null)[] };
   support: { respondents: number; placed: number; not_placed: number; effective_n: number | null; donors: number; weighting: string };
-  // Each object's alignment and connectedness over the PRIMARY objects' known pairs.
-  scores?: { objects: { id: string; alignment: number | null; connectedness: number | null }[] };
   terrain:
     | { status: "not_computed"; reason: string }
     | {
@@ -68,6 +66,10 @@ export type ObjectMapArtifact = {
         governing: (number | null)[][];
         // aia-sociomap-5: the same envelope of the PRIMARY hills at their 0-1 means, for the Absolutni view.
         absolute_height?: (number | null)[][];
+        // Under either inverse-distance terrain, the other one of the same hills (the map's terrain switch).
+        alternate_method?: string;
+        alternate_height?: (number | null)[][];
+        alternate_absolute_height?: (number | null)[][];
       };
   // aia-sociomap-5, a MAPPED map only: the split-half check (null without a score, when the
   // no-reliable-pair rule decides) and the uncertainty radius in units of the map's RMS

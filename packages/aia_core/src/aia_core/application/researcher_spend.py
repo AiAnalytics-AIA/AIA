@@ -8,25 +8,57 @@ clients and orders the result. Read-only: nothing here writes.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from ..domain.scope import OrganizationContext
+from ..domain.scope import OrganizationContext, Permission, StudyContext
 from ..domain.spend_attribution import (
+    ActivitySpend,
     PersonSpend,
     SpendPeriod,
     period_bounds,
     researcher_spend,
+    runs_spend,
 )
 from ..infrastructure.researcher_spend_repository import (
     Person,
     ResearcherSpendRepository,
     StudyName,
+    run_spend_facts,
 )
 
-__all__ = ["NamedPersonSpend", "ResearcherSpendReport", "researcher_spend_report"]
+__all__ = [
+    "NamedPersonSpend",
+    "ResearcherSpendReport",
+    "researcher_spend_report",
+    "run_spend_of",
+    "run_spends",
+]
+
+
+def run_spends(
+    session: Session, scope: StudyContext, run_ids: Collection[str]
+) -> dict[str, ActivitySpend]:
+    """What each run of this Study (a research run, an agent job, a Deep Research run) has spent,
+    holds open and could not settle, from the usage ledger and its holds, by the rules a person's
+    spend is read (``artifact-fieldwork`` FLD4), in one read for all of them. The caller found the
+    runs through this Study; the query is in the Study and organization too."""
+    scope.require(Permission.VIEW_COSTS)
+    usage, holds = run_spend_facts(
+        session,
+        organization_id=scope.organization_id,
+        study_id=scope.study_id,
+        run_ids=run_ids,
+    )
+    return runs_spend(run_ids, usage, holds)
+
+
+def run_spend_of(session: Session, scope: StudyContext, run_id: str) -> ActivitySpend:
+    """One run's spend, as :func:`run_spends` reads it."""
+    return run_spends(session, scope, [run_id])[run_id]
 
 
 @dataclass(frozen=True, slots=True)

@@ -18,6 +18,14 @@ takes which class *by rule*:
 * :attr:`MaterialRule.CLIENT_SOURCE`, **A**: a client's uploaded source or dataset.
 * :attr:`MaterialRule.INTERNAL_DOCUMENT`, **C**: a client source a person marked
   "Interní dokument" (an internal AIA document holding nothing of the client's).
+* :attr:`MaterialRule.LEAD_HATCH`, **C**: what a researcher writes when hatching their Lead (its
+  name, the traits, how it should work, about them): words about their own working style, the
+  files they become (the product owner, 2026-10-25; lead-identity LI1).
+
+A model's answer its output contract refused, kept for an operator's diagnosis, follows a rule of
+its own, :data:`REFUSED_ANSWER_SOURCE`: it takes **the class its request was sent as**, never a
+fixed one, since an answer is written from its context and may repeat any of it (the product
+owner, 2026-10-28, W1Q2). It is no :class:`MaterialRule`: those give fixed classes.
 
 A researcher's message "takes the study's class" (:data:`STUDY_CLASS`), and so does their
 instruction to a design job: the same kind of text, typed to an AI in the same study.
@@ -46,6 +54,7 @@ from .residency import DataClass
 __all__ = [
     "DESIGN_CLASS",
     "OPERATOR_SOURCE",
+    "REFUSED_ANSWER_SOURCE",
     "RULE_CLASSES",
     "STUDY_CLASS",
     "MaterialRule",
@@ -68,6 +77,7 @@ class MaterialRule(StrEnum):
     KNOWLEDGE = "rule:knowledge"
     CLIENT_SOURCE = "rule:client_source"
     INTERNAL_DOCUMENT = "rule:internal_document"
+    LEAD_HATCH = "rule:lead_hatch"
 
 
 #: A study's class: its design is derived client information (the owner, 2026-10-19).
@@ -87,8 +97,12 @@ RULE_CLASSES: Final[Mapping[MaterialRule, DataClass]] = MappingProxyType(
         MaterialRule.KNOWLEDGE: DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
         MaterialRule.CLIENT_SOURCE: DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
         MaterialRule.INTERNAL_DOCUMENT: DataClass.CLASS_C_INTERNAL,
+        MaterialRule.LEAD_HATCH: DataClass.CLASS_C_INTERNAL,
     }
 )
+
+#: The class source of a kept refused answer: the class its request was sent as (W1Q2).
+REFUSED_ANSWER_SOURCE: Final = "rule:refused_answer"
 
 #: The source a provenance records when an operator's classification was stricter than the rule.
 OPERATOR_SOURCE: Final = "operator"

@@ -39,6 +39,8 @@ DESIGN = {
     "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
     "n": 40,
     "sections": [
+        # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+        {"type": "questions", "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}]},
         {
             "type": "object_battery",
             "title": "Nápoje",
@@ -46,7 +48,7 @@ DESIGN = {
             "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
             "object_question": "Jak hodnotíte {object}?",
             "scale": [1, 10],
-        }
+        },
     ],
 }
 

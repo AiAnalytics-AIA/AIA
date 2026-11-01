@@ -14,6 +14,10 @@ chunks:
   - "[x] SOC11. Plain Czech on the stage: no artifact, run, method or spec id outside Technické údaje"
   - "[x] SOC12. No amber notice frame on the stage: amber means only a person is waited on"
   - "[x] SOC13. The map's overlays: one bar with popovers, a view rail bottom right, the legend as a chip, the side sheet beside the map, fading while the map moves, keys"
+  - "[x] SOC11b. A copy pass on the stage: Stress-1, PROGRESS D6, Top vztahy, a dead key (reopens SOC11; spec szz S1; W2)"
+  - "[x] SOC14. One sentence that the map's taste segments are descriptive (spec szz S2; W2)"
+  - "[ ] SOC15. Evidence grades on the map: the report's glyph on every map node and the legend beside the map (Nigel, 27 Oct 2026; W2, with artifact-results#RES13)"
+  - "[x] SOC-S2. Beside -5 taste segments shown, the panel's legend, its exported PNG and the report's respondent figure say \"Segmenty jen popisují, jak se respondenti na této mapě liší.\" (the methodology owner 2026-10-29, S-2 (a))"
 ---
 # Artifact: Sociomapa (Sociomap)
 
@@ -131,6 +135,31 @@ Depends on `research-lead-workbench#14`, `#16`.
   `object:<battery>/<object>` (its one element, selected or not), and the detail card's selected
   relation `pair:<battery>/<a>~<b>`. Tests: `ObjectMapPanel.test.tsx` › "the Lead's names on the map". The
   frame itself waits for `research-lead-workbench#15`.
+- Delivered (2026-10-26): the Lead's map views on the `-5` panel (`research-lead-workbench` 14, "For Sociomapa
+  (2)"). `SociomapStage` routes them, since it knows every map it draws (the signed-off panel with its
+  terrain, each with the objects it places): once its artifact is read it listens for `LEAD_MAP_VIEW` and
+  takes the view sent before (`takeLeadMapView`); each is checked with `readMapOp` against all its maps and
+  handed to the map that owns it (`routeToMap`), to every map for a stage-wide filter (view, mode; stand-in
+  review P2, #939), or refused once by the stage in words (`sociomap-lead-note`, reset with the run on
+  screen): an element no map here places, a view no map here receives (a stage that draws no signed-off
+  map, a stage-wide filter included; stand-in review P2 on 7a8172ca), the respondent map when no map stores
+  one (said once, not once per map), and `labels` / `hide_weak`, which the panel has no control for (SOC3
+  finding). `ObjectMapPanel` applies what is routed to its battery,
+  once, as it arrives, to the picture only:
+  - `select` on `object:` or `pair:` opens that element's detail on the object map;
+  - `filter` `view` sets the camera (top: 2D, relief: 3D), `mode` the map (objects / respondents),
+    `battery` brings that battery's map into view;
+  - what this map cannot do (the respondent map it does not store) is said in its own live region
+    (`object-map-lead-note`); nothing changes;
+  - a view from above that arrives before the canvas is measured is drawn when it is, at the measured
+    size, whatever it measures; the rest apply at once.
+  `LEAD_REVEAL` on a `pair:` target opens the relation's detail on the object map, so its id is there to be
+  shown; the respondent map is left as the person has it.
+  Tests: `ObjectMapPanel.test.tsx` › "the Lead's map views" (each failing on develop) and `ExecutionSteps.test.tsx` › "the Lead's map views" (the stage's routing; the P2 case fails on 34846ff3);
+  `sociomap_journey.mjs` sends the workbench's event at 1440 and 390 px. The server half (the views live
+  in `LeadOutput`) is the integration session's, after this.
+  - The refusal is read out but not drawn: whether the panel shows it is the methodology owner's call
+    (the panel's visual decisions are his).
 
 **SOC3. Legend and filter bar.** Test: with weak links hidden the bar says what did not change.
 - Delivered on the `-5` panel: the filter bar (`lib/sociomap-display.ts` `displayChanges`: what the
@@ -156,6 +185,24 @@ Depends on `research-lead-workbench#14`, `#16`.
   `ObjectMapPanel.test.tsx` › "opens a relation from the object's card, a focusable button named by what it shows, and
   closes it again". The card lists the object's 5 strongest reliable relations, as the panel does; a drawn link beyond
   those still opens only on the canvas.
+- Delivered (2026-10-26, spec `szz/S3`): the item inspector draws a map's object and relation
+  (`MapInspect.tsx`, registered for the `object` and `pair` kinds in `ItemInspectBody.tsx`), so the Lead's
+  "Detail dvojice" (`inspect` on a `pair:` target) and any opened map item read the stored pair through the
+  panel's own cards (`RelationBlock`, `ObjectCard`, in an `.omw` wrapper, no second copy of their words): r
+  with its interval, N and the verdict, an undefined r "Vztah nelze určit" with its reason, never 0; an
+  object: its rating, connectedness and strongest reliable relations, each opening its pair in the drawer.
+  The maps are the ones `SociomapStage` draws (`setShownMaps`, from the same reading that decides which
+  maps take the Lead's views), "Mapa se ještě načítá." until the stage has read them, and none once it
+  leaves, so the drawer never opens another run's map. Each shown map carries the register's approval of its
+  method, so the drawer, read on its own, says "Jen pro výzkumníky studie" or "Metodika schválena pro
+  zprávy" as `MapExplained` does (stand-in review P2, #979). A stage whose artifact could not be read says so
+  in the drawer ("Mapu tohoto běhu se nepodařilo načíst."), and the object card's relations there are buttons
+  that open the pair, not unpressed toggles. The Lead's "Vybrat"
+  is #939's listener. Tests: `MapInspect.test.tsx` (the plan's test: "reads a pair with an undefined r as
+  unknown, never as 0"); `ExecutionSteps.test.tsx` › "lets the item inspector open a relation of the map it
+  draws, until it leaves". Still open: a respondent's detail in the inspector (no `respondent:` target yet,
+  SOC6), and a person's way into the drawer from the map itself (inside the panel's drawing, the
+  methodology owner's).
 
 **SOC5. Interpretation.** Test: an interpretation is labelled "Výklad · od Vedoucího" and absent from
 the map's numbers. Depends on `lead-orchestration#LO9b`, `report-delivery#RD6`,
@@ -263,7 +310,9 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
     project memory's classic layout at 1366 × 768 (under the sticky header), and that a canvas is no taller than
     1.5 × its width. Each short screen failed on the CSS guess; the memory case fails without the header subtracted
     (752 > 640 px). `sociomap-display.test.ts` holds `stageHeight`.
-- **Open, SOC2 (blocked on research-lead-workbench#15): the Sociomapa stage opens on Výsledky's other cards.** The
+- **Fixed by #773 (merged as `d71b1738`), was SOC2's: the Sociomapa stage opened on Výsledky's other cards.** A view
+  named by the address now opens scrolled to its tabs (`ResultsWorkspace.tsx:36-48 @ 382b418a`;
+  `ResultsWorkspace.test.tsx` "opens a view named by the address scrolled to its tabs…"). As recorded: The
   stage is Výsledky's maps view (`workbench-stages.ts`, view `maps`), and `ResultsWorkspace` puts "Kdo odpovídal",
   "Kompletní zpráva studie" and the results tabs above the maps panel. The map starts 2,174 px into a 755 px pane at
   1440 px. SOC2's frame shows the map alone; until then a person scrolls three screens to the map. The Výsledky screen
@@ -306,3 +355,100 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
   `tmp/ui-workbench/sociomap-journey/390-older-method.png`. Smallest fix: print the hint only when some battery draws a map (`!olderMethodOnly(b)` for one). Test: the
   `ExecutionSteps.test.tsx` older-method case expects no `mapToolNotInAia`. Left for SOC2, which hosts the
   panel and writes no second notice; ExecutionSteps is Výsledky's.
+- **Open, not this plan's code: two of `sociomap_journey.mjs`'s checks fail on develop @ `ce25a1b8`.**
+  1. "no run or method id outside Technické údaje": the stage renders the experimental Sociomapping view
+     (`ExecutionSteps.tsx:1664 @ ce25a1b8`), whose provenance row (`SociomappingView.tsx:318 @ ce25a1b8`,
+     `ART-… · SHA256 … · RUN-…`) and report line (`SociomappingView.tsx:383 @ ce25a1b8`) print the run id
+     outside `map-tech`. Reproduction: `node tools/ui_workbench/sociomap_journey.mjs` after `--prepare` on a
+     fresh workbench. Smallest fix: on the stage, those two lines go inside a Technické údaje disclosure.
+     The test that catches it is this journey check. Owner: the map-first stage (SOC9-SOC11).
+  2. "nothing written but the stage opened": opening Výsledky now POSTs `…/report/editor` twice
+     (`lib/api.ts:1428 @ ce25a1b8`, the report editor). The same reproduction. Smallest fix: open the editor
+     session on the person's action, not on the page's load; the same journey check catches it. Owner: the
+     report editor.
+  Both fail with develop's own journey on the same workbench; neither is changed here.
+- **Open, Sociomapa's to fix: `ux_journey.mjs`'s classic 3D-camera check fails on every run since #598.**
+  1. `tools/ui_workbench/ux_journey.mjs:91-101 @ ddecb4e4` clicks "3D terén", opens "Ovládání 3D pohledu" and
+     "Otočit vpravo" on `object-map-3d`: the older map's controls (`ObjectMapView`). A new run pins
+     `aia-sociomap-5` (#598), drawn by `ObjectMapPanel`, which has none of them: its camera is the view rail's
+     2D / 3D and a drag on the canvas, its state `data-camera` on `object-map-canvas`.
+  2. Reproduction: `node tools/ui_workbench/ux_journey.mjs` after `make ui-fixtures` + `make ui-research` on a
+     fresh workbench (reported by the Výsledky session, 2026-10-26).
+  3. Consequence: the journey stops at the map, so its later checks (keyboard, reload, the mobile menu) are
+     not run on develop.
+  4. Smallest fix: on the `-5` map, press the rail's "3D", drag the canvas, read `object-map-canvas`'s
+     `data-camera`, switch tabs and back, and expect the same camera.
+  5. Test: the journey itself.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**SOC11b. Copy pass** (spec `szz/S1`; reopens SOC11; W2, lane F).
+- Delivered (2026-10-26): no Stress-1 on the stage (the older view's badge says the fit in words only;
+  `fitMeaning` explains it without the statistic's name); no "PROGRESS D6" in the internal note; "Top vztahy"
+  is "Nejsilnější vztahy na mapě"; "potvrzené v kroku 3" is "kterou sada uvádí v Dotazníku"; the Q5-Q7 and
+  audit-author wording of the provisional note is plain. `registerComputed` is not dead (the ⓘ box builds the
+  key, `ObjectMapPanel.tsx` `Registers`): its "Deterministický výsledek" reads "Spočtený výsledek". Tests:
+  `ObjectMapPanel.test.tsx` › "speaks to a researcher, not in the workshop's jargon";
+  `ObjectMapView.test.tsx` › "labels the fit in words…". Not here: Settings → Metodika keeps Stress-1 (the
+  methodologist's); Zpráva's map caption (`ReportDocumentView.tsx:655`) is Zpráva's.
+
+**SOC14. Segments are descriptive** (spec `szz/S2`; W2, lane F). Beside SOC6.
+- Delivered (2026-10-26): under the found segments, below the map (`MapExplained`), "Skupiny jen popisují, jak se
+  respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.", matching
+  readiness's `segments_unavailable`. A map without segments says nothing of them. Test: `MapExplained.test.tsx` ›
+  "the taste segments, as what they are". The same sentence in the `-5` panel's own segment legend
+  (`ObjectMapPanel.tsx` `segmentLines`, also drawn into the PNG export's legend card) is the methodology owner's
+  call, inside the panel's drawing: put to him, not built.
+
+**Notes.**
+- SOC4 carries `szz/S3`; SOC5 `szz/S4` (with `artifact-report#RPT10`, `lead-orchestration#LO5a.3`); SOC8 `szz/S6`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**SOC15. Grades on the map** (W2, lane F). RES13's component on each node, and its legend in the map's legend. Test: a
+modelled run's nodes carry the modelled glyph.
+
+## SOC-S2: "segments only describe" in the `-5` legend (2026-10-29)
+
+The methodology owner (2026-10-29, S-2 (a), `.planning/mvp-methodology-packet.md` part 2): add
+"segments only describe" to the panel's own segment legend and to the exported PNG.
+
+- **Panel.** `segmentLines` (`apps/web/src/components/rehome/research/ObjectMapPanel.tsx`) writes the
+  segment legend's foot, which the legend (`SegmentNote`) and the exported PNG's legend card
+  (`drawLegendCard`, `lib/object-map-panel.ts`) both draw; with segments found (`SEGMENTS`) it was empty
+  and is now the sentence. No sentence where no segment is shown: a borderline split's hint is not
+  segments (the panel says nobody is coloured), and naming its groups "Segmenty" would contradict it.
+- **Report and snapshot.** The respondent figure (`infrastructure/report_docx/signed_off_map_figure.py`
+  `render_respondents`, drawn by the internal report and by `signed_off_snapshots`) prints it under its
+  segment legend when segments are found. The report's prose about the figure (`report_maps.py`
+  `_respondent_reading`) is not changed: S-2 names the legend and the PNG. The map snapshots (RD4) draw the object map only (`top`,
+  `3d`), so no snapshot has a segment legend; the client report draws no respondent map (#1109).
+- **Wording.** The packet names the point, not its Czech; the sentence is MapExplained's own
+  (`segDescriptive`, "Skupiny jen popisují, jak se respondenti na této mapě liší"), with "Segmenty"
+  as the legend names them, so the stage now shows both words. Written twice (`cs.ts`
+  `segmentsDescribe`, `signed_off_map_figure.py` `CZECH.segments_describe`). **For the methodology owner
+  to confirm**; a change of wording changes those two and, if wanted, `segDescriptive`.
+- The 18.6.6 panel's legends stay pinned as recorded (`lib/fixtures/object-map-draw-golden.json`,
+  not edited); the test expects them followed by AIA's sentence.
+
+Tests (each failed on `44d5bc72`): `ObjectMapPanel.test.tsx` "says what the panel says about the
+segments of hudba / distinct / borderline …" and "saves the respondent map with its density legend and
+segments …"; `test_report_signed_off_map_figure.py::test_the_respondent_map_draws_every_placed_respondent_in_its_segment_colour` (the segments
+shown) and `::test_the_respondent_map_says_why_it_shows_no_segments` (hinted or none: not said).
+
+**Doc follow-up.** none (no module, route or key moved).

@@ -48,7 +48,7 @@ function Origin({ tables, pop }: { tables: FieldPolicyTables; pop: Population })
   const pick = (next: Selection) => setSel(sel && next && sel.kind === next.kind && sel.id === next.id ? null : next);
   const on = (kind: NonNullable<Selection>["kind"], id: string) => sel?.kind === kind && sel.id === id;
   const rowClass = (active: boolean) =>
-    `grid w-full items-center gap-4 border-t border-border px-4 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring ${active ? "bg-signal-wash shadow-[inset_3px_0_0_var(--color-signal)]" : "hover:bg-surface-sunken"}`;
+    `grid w-full items-center gap-4 border-t border-border px-4 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring ${active ? "bg-signal-wash shadow-[inset_3px_0_0_var(--signal)]" : "hover:bg-surface-sunken"}`;
   const selLabel = sel ? (sel.kind === "origin" ? tv(`${F}.byOrigin`, { name: originName(sel.id) }) : sel.kind === "rule" ? tv(`${F}.byRule`, { name: ruleName(sel.id) }) : tv(`${F}.byGrade`, { grade: sel.id })) : null;
 
   return <div className="flex min-w-0 flex-col gap-4">

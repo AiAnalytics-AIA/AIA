@@ -16,6 +16,7 @@
 // relief, the projection, label placement and the screen size of the stored uncertainty radius.
 
 import { panelObjects, panelRespondents } from "./object-map-signed-off";
+import { PEDESTAL, drawSmoothTerrain } from "./object-map-smooth";
 import { type BatteryWithMaps, type Frame, type ObjectMapArtifact, mapLinks } from "./object-map-view";
 
 /** The panel's frame: the stored grid spans +-62 frame units (`terrain66`, `FRAME_SPAN66`). */
@@ -24,6 +25,22 @@ export const FRAME_SPAN = 62;
 const RELIEF = 26;
 /** On Relativni the lowest object keeps a hill 15 % of the top's (`REL_FLOOR66`). */
 export const REL_FLOOR = 0.15;
+
+/** The lowest relative height the map's own spec declares (`terrain.relative_height_floor`), or
+ *  null when it declares none (unknown, never a guess). Every map stored so far declares 0.15; the
+ *  methodology owner set the floor to 0 (2026-10-28, MQ-08), for maps computed once that is pinned. */
+export function relativeFloor(map: ObjectMapArtifact): number | null {
+  return map.spec.terrain?.relative_height_floor ?? null;
+}
+
+/** Which words say the relative scale's floor: the floor in whole per cent, "from 0 to 1" when that
+ *  rounds to 0 (MQ-08), or neither when the map declares none. One rule for the legend and the text
+ *  under the map. */
+export function floorWords(floor: number | null): { kind: "floor"; percent: number } | { kind: "full" | "unknown" } {
+  if (floor === null) return { kind: "unknown" };
+  const percent = Math.round(100 * floor);
+  return percent > 0 ? { kind: "floor", percent } : { kind: "full" };
+}
 /** The panel's map background (`draw66`). */
 const BACKGROUND = "#07090c";
 /** Relation colours: warm = move together, cool = opposite (`drawObjects66`). */
@@ -61,7 +78,9 @@ export type Normalizer = { t: (x: number) => number; lo: number; hi: number; kin
 /**
  * The panel's height normalisation (`normalizer66`, its Relativni and Absolutni branches):
  * Relativni stretches the shown values from the lowest (at the 15 % floor) to the highest;
- * Absolutni reads them on the declared scale's bounds.
+ * Absolutni reads them on the declared scale's bounds. Kept as the panel's (its golden draw pins
+ * it): the product reads only `lo`, `hi` and `kind`; the nodes and terrain read the stored relative
+ * heights, at the floor the map declares (`relativeFloor`).
  */
 export function normalizer(values: number[], mode: Norm, bounds?: [number, number] | null): Normalizer {
   const v = values.filter(Number.isFinite);
@@ -179,6 +198,31 @@ export function absoluteGrid(map: ObjectMapArtifact): PanelGrid | null {
   return panelGrid(terrain.parameters.grid_resolution, terrain.absolute_height);
 }
 
+/** The two inverse-distance terrains a `-5` map stores, one as its own, the other beside it. */
+export const IDW_TERRAINS = ["framed_relative_idw", "framed_relative_idw_falloff"] as const;
+export type IdwTerrain = (typeof IDW_TERRAINS)[number];
+
+/** The inverse-distance terrains this map stored: its switch offers these and no other. */
+export function storedTerrains(map: ObjectMapArtifact): IdwTerrain[] {
+  const terrain = map.terrain;
+  if (terrain.status !== "computed") return [];
+  return IDW_TERRAINS.filter((m) => m === terrain.method || (m === terrain.alternate_method && !!terrain.alternate_height));
+}
+
+/**
+ * The map's terrain switch: the inverse-distance terrain `method` as stored (Relativni, or
+ * Absolutni on the 0-1 scale), whether it is the map's own or the one stored beside it.
+ * Null when the map stored none under that method: a terrain it lacks is never drawn as 0.
+ */
+export function terrainGrid(map: ObjectMapArtifact, method: IdwTerrain, absolute: boolean): PanelGrid | null {
+  const terrain = map.terrain;
+  if (terrain.status !== "computed") return null;
+  const height = method === terrain.method ? (absolute ? terrain.absolute_height : terrain.height)
+    : method === terrain.alternate_method ? (absolute ? terrain.alternate_absolute_height : terrain.alternate_height)
+    : undefined;
+  return height ? panelGrid(terrain.parameters.grid_resolution, height) : null;
+}
+
 /** The drawn elevation under a frame point, bilinear between the grid's samples (`terrainAt66`). */
 export function terrainAt(grid: PanelGrid, x: number, y: number): number {
   const { N, span } = grid;
@@ -255,10 +299,11 @@ export function panelNodes(battery: BatteryWithMaps, map: ObjectMapArtifact, fra
 /**
  * Each node's colour position t: on Relativni the stored relative height, on Absolutni the
  * stored 0-1 mean on the declared scale. An object without one takes the panel's `?? 0`
- * through its normaliser (the floor on Relativni, 0 on Absolutni).
+ * through its normaliser (the map's declared floor on Relativni, the panel's 15 % where it
+ * declares none; 0 on Absolutni). A colour only: no number is shown for it.
  */
-export function nodeTones(nodes: PanelNode[], norm: Norm): number[] {
-  return nodes.map((n) => (norm === "absolute" ? clamp(n.value ?? 0, 0, 1) : n.relative ?? REL_FLOOR));
+export function nodeTones(nodes: PanelNode[], norm: Norm, floor: number | null): number[] {
+  return nodes.map((n) => (norm === "absolute" ? clamp(n.value ?? 0, 0, 1) : n.relative ?? floor ?? REL_FLOOR));
 }
 
 /** The node radius factor for a set of M objects: unchanged up to 30, half size at 120 (`node_scale`). */
@@ -273,7 +318,7 @@ const lineClearance = (selected: boolean) => nodeRadius(selected) + 4.5;
 
 // ---------------------------------------------------------------- relations
 
-/** Which relations the map draws: the panel's default "Top vztahy" (5 strongest), the selected object's, or all. */
+/** Which relations the map draws: the panel's default "Nejsilnější vztahy" (its Top: 5 strongest), the selected object's, or all. */
 export type RelationMode = "top" | "selected" | "all";
 export type PanelPair = { i: number; j: number; r: number; v: number };
 
@@ -395,6 +440,8 @@ export type MapScene = {
   // Present on the respondent map: its dots, and the clicked one (-1: none). The objects then draw
   // as the panel's markers and no relation is drawn.
   respondents?: { dots: PanelDot[]; selected: number };
+  // The smooth terrain (object-map-smooth.ts), drawn in WebGL at this device-pixel ratio; absent: blocky.
+  smooth?: { ratio: number };
 };
 
 /** What a click can land on: an object (on either map), a respondent's dot, or a drawn relation
@@ -427,8 +474,18 @@ export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): D
   ctx.fillRect(0, 0, W, H);
   // The panel never resets the line width between frames; from its second frame on the slab is
   // stroked at the triangles' hairline, which is what a reader sees.
+  if (!(scene.smooth && drawSmoothTerrain(ctx, grid, camera, W, H, scene.smooth.ratio))) drawBlockyTerrain(ctx, P, camera, grid);
+  drawContours(ctx, P, grid);
+  const result = scene.respondents ? drawRespondents(ctx, P, scene, scene.respondents) : drawObjects(ctx, P, scene);
+  if (scene.statements) drawStatements(ctx, P, scene, result.labels);
+  return result;
+}
+
+function drawBlockyTerrain(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCamera, grid: PanelGrid): void {
+  // The panel never resets the line width between frames; from its second frame on the slab is
+  // stroked at the triangles' hairline, which is what a reader sees.
   ctx.lineWidth = 0.28;
-  drawSlab(ctx, P, camera, grid.span);
+  drawSlab(ctx, P, camera, grid);
   ctx.lineWidth = 0.28;
   for (const tr of terrainTriangles(grid, P)) {
     ctx.beginPath();
@@ -443,28 +500,46 @@ export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): D
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  drawContours(ctx, P, grid);
-  const result = scene.respondents ? drawRespondents(ctx, P, scene, scene.respondents) : drawObjects(ctx, P, scene);
-  if (scene.statements) drawStatements(ctx, P, scene, result.labels);
-  return result;
 }
 
-function drawSlab(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCamera, s: number): void {
+/**
+ * The terrain's sides (the owner, 2026-10-23, as the Sociomapy app's Pedestal, without its layer
+ * bands): one wall per edge segment of the grid, from the terrain's edge height down to a flat base
+ * just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base. From
+ * above there are none; the canvas has no depth buffer, so only the walls facing the camera are drawn.
+ */
+function drawSlab(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCamera, grid: PanelGrid): void {
   if (camera.pitch < TOP_PITCH) return;
-  const top = [P.project(-s, -s, 0), P.project(s, -s, 0), P.project(s, s, 0), P.project(-s, s, 0)];
-  const bot = [P.project(-s, -s, -3), P.project(s, -s, -3), P.project(s, s, -3), P.project(-s, s, -3)];
-  for (let i = 0; i < 4; i++) {
-    const j = (i + 1) % 4;
+  const { N, xs, ht, span: s } = grid, bottom = -PEDESTAL.depth;
+  ctx.beginPath();
+  [P.project(-s, -s, bottom), P.project(s, -s, bottom), P.project(s, s, bottom), P.project(-s, s, bottom)].forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+  ctx.closePath();
+  ctx.fillStyle = PEDESTAL.base;
+  ctx.fill();
+  const rim: [number, number][] = [];
+  for (let x = 0; x < N; x++) rim.push([0, x]);
+  for (let y = 0; y < N; y++) rim.push([y, N]);
+  for (let x = N; x > 0; x--) rim.push([N, x]);
+  for (let y = N; y > 0; y--) rim.push([y, 0]);
+  const rgb = (c: string) => (c.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+  const shade = (c: number[], f: number) => `rgb(${c.map((v) => Math.round(Math.min(255, v * f))).join(",")})`;
+  for (let i = 0; i < rim.length; i++) {
+    const [ay, ax] = rim[i], [by, bx] = rim[(i + 1) % rim.length], ha = ht[ay][ax], hb = ht[by][bx];
+    const ta = P.project(xs[ax], xs[ay], ha * RELIEF), tb = P.project(xs[bx], xs[by], hb * RELIEF);
+    const ba = P.project(xs[ax], xs[ay], bottom), bb = P.project(xs[bx], xs[by], bottom);
+    if ((tb.x - ta.x) * (ba.y - ta.y) - (tb.y - ta.y) * (ba.x - ta.x) >= 0) continue;
+    const ca = rgb(blend66(color66(ha), 0.78 + 0.28 * ha)), cb = rgb(blend66(color66(hb), 0.78 + 0.28 * hb)), c = ca.map((v, k) => (v + cb[k]) / 2);
+    const gradient = ctx.createLinearGradient((ta.x + tb.x) / 2, (ta.y + tb.y) / 2, (ba.x + bb.x) / 2, (ba.y + bb.y) / 2);
+    gradient.addColorStop(0, shade(c, 1));
+    gradient.addColorStop(1, shade(c, 1 - PEDESTAL.bottomDarken));
     ctx.beginPath();
-    ctx.moveTo(top[i].x, top[i].y);
-    ctx.lineTo(top[j].x, top[j].y);
-    ctx.lineTo(bot[j].x, bot[j].y);
-    ctx.lineTo(bot[i].x, bot[i].y);
+    ctx.moveTo(ta.x, ta.y);
+    ctx.lineTo(tb.x, tb.y);
+    ctx.lineTo(bb.x, bb.y);
+    ctx.lineTo(ba.x, ba.y);
     ctx.closePath();
-    ctx.fillStyle = i % 2 ? "#06151a" : "#071c22";
+    ctx.fillStyle = gradient;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,.05)";
-    ctx.stroke();
   }
 }
 

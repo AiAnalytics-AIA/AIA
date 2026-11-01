@@ -2,20 +2,20 @@
 status: in-progress
 chunks:
   - "[x] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
-  - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
+  - "[x] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[x] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
-  - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
+  - "[x] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
-  - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
+  - "[x] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
   - "[x] 9. The `acceptance` marker registered (`pyproject.toml` runs `--strict-markers`) and the tree collected by CI"
   - "[ ] 10. Browser evidence kept distinct from HTTP evidence: real browser journeys (hand edits, pointing, proposals, keyboard and focus, stale states, all eleven stages, map view-only operations) are their own line in the record and never counted as HTTP"
   - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
   - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
   - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
   - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
-  - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
+  - "[x] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
   - "[ ] 16. The per-number provenance walk for AC-15: every ledger ref of both reports resolves to its model binding, prompt pin, population version and weight role (G65)"
   - "[ ] 18. Performance budgets as a release gate: page and API latency budgets per journey (D-48; the numbers are open)"
 ---
@@ -348,6 +348,81 @@ For the docs PR (CLAUDE.md §1; this PR edits no shared file):
     (`test_mvp_acceptance.py::_error`).
 - `.planning/open-items.md`: F-2, F-4, F-5 and F-6 above, numbered there.
 
+## Chunk 2: the study's fixed inputs (2026-10-28)
+
+Branch `feature/acceptance-inputs`, from `develop` @ `7107c1f0`. Permission: the product owner's
+words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
+
+`tests/acceptance/inputs/`, every file pinned by SHA-256 in `inputs/index.json`, all fictional
+(e-mails on `example.test`, the page on `.example`, a library and town that do not exist):
+
+| Key | File | What |
+| --- | --- | --- |
+| `brief` | `brief.json` | Zadání: the brief sentence of `mvp-acceptance.md` §1 as the goal, decision use, briefing, the audience (age 18-65, `vek` filter) and n 300, as fields over the research template |
+| `concepts` | `concepts.json` | `service_a` ... `service_e`, five fictitious service concepts as one tracked set; chunk 4's recorded design workers answer from them |
+| `client_document` | `annual-summary.md` | The library's fictional annual summary, a Markdown client source |
+| `client_dataset` | `visits.csv` | 48 rows of visits by branch and month, with one personal column (`E-mail kontaktní osoby`) the data contract must drop |
+| `web_page` | `web-page.html` | The one public page, at `https://knihovna-kvitkov.example/sluzby-knihoven`, for tier A's recorded retrieval (chunk 4) |
+| `past_study` | `past-study.json` | One past fictional study of the same client (a question block and a tracked set), whose design is reused |
+
+**The web page is fictional (option (a)).** AIA takes no link as a client source yet, so the page
+enters only through Deep Research; tier A serves a committed snapshot at a reserved `.example`
+address. Tier B's live public page is chosen and recorded in its runbook (chunk 7). Not taken:
+(b) a snapshot of a real public page, which brings a CC BY-SA attribution and goes stale.
+
+Tests (`tests/acceptance/test_acceptance_inputs.py`, marked `acceptance`, listed under no criterion):
+the pins hold and nothing unpinned is kept; the inputs name no real address or site; the brief and
+concepts are section 1's; over HTTP on the stack, the brief saves as a study's working copy and
+reads back, the past study's design submits as a Design Revision and a new study of the same client
+reuses it, the annual summary reads `READ`, and the dataset reads with exactly one column flagged
+personal, that one as `EMAIL`. Run locally on PostgreSQL 16: `tests/acceptance` 17 passed.
+
+## Chunk 4: the recorded doubles, completed (2026-10-28)
+
+Branch `feature/acceptance-recorded-doubles`, stacked on chunk 2's (`feature/acceptance-inputs`,
+#1058) for its public page. Permission as chunk 2's.
+
+W0 left three contracts off the shared wire. They are on it now, behind the real gateway and the
+real retrieval gate. The respondents, the analysis modules, the Lead and the eight design workers
+were recorded already (W0; #570).
+
+- **The client's own extraction** (`aia_knowledge_source_proposals`):
+  `recorded_models.source_proposals_answer`. It makes one FACT per carried segment, at most
+  three, each quoting the segment's first sentence literally, so the step's own `ground` keeps
+  every one.
+- **The five Deep Research agents** (`aia_deep_research_<role>`): `recorded_models.
+  deep_research_answer`, answered from a recorded script given to the wire
+  (`RecordedModels(deep_research=)`, the workbench's `agents.json` format). Without a script the
+  wire refuses them by name, as it refuses any unrecorded contract. The workbench's
+  `ScriptedDeepResearchModel` now answers through the same function: one scripted provider, as
+  this plan asks. It keeps its own zero usage and headers.
+- **Recorded retrieval in the harness's worker.** `acceptance_recorded` composes Deep Research
+  only over `AIA_ACCEPTANCE_RECORDINGS`, a directory holding `web.json` and `agents.json`. It
+  goes through `compose_registry(deep_research_retrieval=)` into
+  `deep_research_runtime(retrieval=)`, which refuses a live route named beside it. Deep Research
+  on without the recordings is still refused. `make layer_check` admits `acceptance_recorded`
+  beside the workbench as a composer of `deep_research_recorded`, and forbids it a recorded double
+  of its own.
+- **The recordings**, `tests/acceptance/recordings/`. `web.json` serves the study's one public
+  page (chunk 2's `inputs/web-page.html`, byte for byte, at its `.example` URL) for one query.
+  `agents.json` holds two quotes literally on that page.
+
+Proven over HTTP on the stack (`tests/acceptance/test_recorded_doubles.py`):
+
+- **The annual summary's proposals** complete. Every proposal is kept, and the client is charged
+  exactly batches x the recording's usage.
+- **A QUICK Design Research run** on the brief completes. Its sealed bundle is
+  `RECORDED_FIXTURE` only. Its one snapshot is the page, retrieved `RECORDED`. Its accepted quotes
+  are the script's. Its cost is a whole number of recorded agent calls.
+
+The design is Class B by rule and the recorded routes carry Class C alone, so that worker runs
+`AIA_DATA_CLASS_GATES=advisory`, as develop does (ADR 0008, Amendment 2026-10-21). An operator's
+exact-bytes classification is the deployed path, and the test cannot compute it without importing
+what it drives.
+
+Measured locally on PostgreSQL 16: `tests/acceptance` 20 passed in 51 s; the Design Research run
+takes about 15 s.
+
 ## Chunk 8: parity reports and never blocks
 
 **Decision.** The owner decided on 2026-10-19 that parity runs and reports but never blocks
@@ -369,6 +444,52 @@ report is read. The record's parity line and the PR summary are the only places 
 
 **Test.** A CI-script test feeds `parity_status.py --report-only` a JUnit file with a failing parity test
 and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exits 1.
+
+**Delivered (2026-10-28)**, branch `feature/parity-reports-never-blocks`, from `develop` @
+`7107c1f0`; permission: the product owner's words of 2026-10-28 00:43Z, relayed by the PM
+coordinator (CLAUDE.md §5).
+
+- `tools/parity_report_only.py <label> <command…>` (stdlib) runs each comparison suite: the
+  `parity` job's, the `golden-fixtures` job's contract parity (population and evidence) and the
+  `oracle-parity` job's. It judges the outcome by the suite's own JUnit. Exactly one outcome
+  becomes a `::warning::`, a step-summary line and exit 0: pytest exited 1 and the JUnit shows
+  test bodies that failed and no error.
+- Everything else is the step's own, because then nothing was compared. That covers an error (a
+  broken fixture, and the `AIA_REQUIRE_REFERENCE_REPO` / `AIA_REQUIRE_LEGACY_ORACLE` ratchets,
+  which `pytest.fail` in their fixtures), a JUnit that is missing or unreadable, and exits 2-5.
+  No `|| true`.
+- **The golden fixtures' pin check stays blocking.** `test_golden_fixtures.py` checks the pins,
+  the manifest, and that each vendored copy is byte-identical to its original. It now runs in a
+  step of its own outside the wrapper. That is integrity, not parity: a fixture edited to make a
+  test pass fails there (CLAUDE.md §2).
+- `tools/parity_status.py --report-only` prints each capability's FAIL ("capability FAIL
+  reported, not blocking") and opens the step summary's markdown with the same note. It exits 0
+  for parity FAILs. An acceptance criterion's FAIL and a malformed matrix still fail. Without the
+  flag, a person's local run exits 1 as before. CI's Parity status step passes the flag.
+- `dispatch-develop` no longer needs `parity` or `oracle-parity`, and reads each direct need's
+  `result` by name instead of `success()`. `success()` also looks through `parity-status` to the
+  comparison jobs it needs, so a broken comparison suite would otherwise still hold a deploy back.
+  It still needs `golden-fixtures`, for the pin check, and `parity-status`, which blocks on an
+  acceptance FAIL.
+- Unchanged: `test_parity_matrix.py`, the vendored F1-F9 in the backend job, and every non-parity
+  test. They stay blocking.
+- Tests:
+  - `test_parity_reports_never_blocks.py`: the wrapper's outcomes (failures only, any error, an
+    unreadable JUnit, exits 0-5), each comparison job going through it with JUnit and no escape,
+    the pin check outside it, `--report-only` on Parity status, and the deploy's needs and
+    condition.
+  - `test_parity_status_tool.py`: `--report-only` with a parity FAIL (exit 0, the FAIL printed and
+    in the JSON and markdown; exit 1 without the flag), with an acceptance FAIL (exit 1), and with
+    a malformed matrix (refused).
+
+**Left for chunk 6.** "A parity FAIL also appears as one line in the acceptance record" lands with
+the record, which does not exist yet. Until then the Parity status report and the step summary are
+where a parity FAIL shows.
+
+**Branch protection is a person's.** A required status check on `Parity against legacy prototype`
+or `Parity against the running 18.6.6 unit` now passes on a comparison that differed. It still
+fails on a suite that could not run. Whether those checks stay required is a repository setting
+for an administrator.
 
 ## Added by the master plan (2026-10-19)
 
@@ -424,6 +545,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 **New chunks.** 16 (W3), 18 (W4; D-48 in, its budget values open in the baseline).
 
+*The owner, 2026-10-25 (PERF-BUDGETS (b), the audit page, relayed by coordinator 3): planning proposes per-journey numbers in chunk
+18's PR, and the owner approves them there.*
+
 **Existing chunks, changed.**
 
 - **3 (G75).** `parity_status.py` computes MVP-ACCEPT-2's verdict from the acceptance step's own
@@ -444,3 +568,185 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   (ADR 0019; G73). AC-14 reads "typed settings refuse a malformed value by name; each run records its
   composition digest" (D-09, `lead-orchestration#LO12c`). The three 18.6.6 ledgers are refreshed and
   the L-04 / L-29 contradiction removed.
+
+## Chunk 14: the wording reconciled (2026-10-28)
+
+Branch `chore/acceptance-wording-matrix`, from `develop` @ `fa0723ec`; permission: the product owner's
+words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
+
+**The owner's decision, W0Q5 (Nigel Blount, 2026-10-28, "Keep USD 0.01").** AC-15 keeps USD 0.01
+as the gap allowed between AIA's usage ledger and the develop-tagged AWS cost record. Until now
+that comparison had no tolerance written down; `develop-spend-attribution` raised it as a
+hypothesis ("within USD 0.01 may be unreachable"). The decision is now in AC-15's statement and
+its tier-B projection, in both files, and the document's Decisions column cites it.
+
+**The document is the matrix's wording again.** `mvp-acceptance.md` §3 says "the authoritative
+wording is in `parity-matrix.json`; this is the same list", but it no longer was. Every
+criterion's row except AC-07 and AC-15, and every §3.1 tier cell but three, were shortened
+paraphrases. Nothing contradicted the matrix, but each paraphrase dropped something:
+- AC-02: "(text edits, structural edits per stage)";
+- AC-08: "on every client-facing number";
+- AC-09: "never generated persona prose";
+- AC-11 and AC-04: the allocation's lines in tier B.
+
+§3 and §3.1 are now the matrix's `statement`, `tier_a` and `tier_b` word for word. The Decisions
+column stays. The document's one sentence the matrix lacked, AC-14's "AIA has no edition file:
+18.6.6's was replaced by typed configuration", moved into the matrix's statement.
+`test_parity_matrix.py::test_the_acceptance_document_words_each_criterion_as_the_matrix_does`
+holds the two together, and `test_ac15_holds_the_aws_record_to_the_owner_s_usd_0_01` holds the
+decision. Both failed on `develop` and pass here.
+
+AC-01 and AC-14 (W0, G73, D-09 (b)), the L-04 / L-29 contradiction (W0), and AC-02, AC-11, AC-13
+and AC-15's separate lines (#503) were already reconciled and are unchanged in substance.
+
+**Left, in a PR of its own, as the W0 note says:** refreshing the three 18.6.6 ledgers
+(`legacy-route-ledger.json`, `legacy-ui-functions.json`, `interface-screens.json`), whose LEGACY /
+NOT_STARTED rows include built work. That is an audit of 157 routes, 89 functions and 28 screens
+with their tests. It is a different kind of work from wording, and not in this PR.
+
+## Chunk 5: AC-12 wired (2026-10-28)
+
+Branch `feature/acceptance-wiring`, from `develop` @ `b52ee648`; the product owner's words in the
+session, "go ahead with harness chunk 5". Chunk 5 stays open: a criterion lands when its work does.
+
+**AC-12, two tests in `test_mvp_acceptance.py`, listed under AC-12 in `parity-matrix.json`.**
+- `test_ac12_a_past_study_is_found_and_its_design_reused_with_its_citation_and_labels`: the
+  committed past study (`inputs/past-study.json`) is submitted and run once on the recorded wire.
+  Project memory finds it by words of its design that its name does not hold. Its Design Revision
+  starts a new study of the same client, whose citation names the source study and revision and
+  carries the labels its run gave it (`run_ids` the run, `never_run` false, `synthetic` true:
+  fictional AI respondents). `GET …/design/source` reads the same citation back, and the new
+  study's sections are the source's.
+- `test_ac12_another_client_s_studies_cannot_be_found_or_reused`: two clients of one organization,
+  each with a study the same words find. Each client's search finds its own and not the other's,
+  and a reuse naming the other client's study gets the same 404 an absent study gets.
+
+`Stack.wait_for_run` (conftest) replaces the two copies of the run-polling loop the harness and
+the doubles' tests each kept.
+
+**The rest of chunk 5's first batch, as it stands on `b52ee648`:**
+- **AC-14: not runnable.** Its statement needs each run's composition digest served with the run
+  (`lead-orchestration#LO12c`, open). Listing only the start refusal would make AC-14 read PASS
+  on half its statement, so it lists no test until LO12c lands.
+- **AC-06:** RQC0's checkpoint is built (`run-qc-and-checkpoint#RQC0`); a tier-A kill test is
+  next.
+- **AC-07:** WCE7c's impact read is built; whether a run after an edit reuses every other
+  stage's artifacts by fingerprint across Design Revisions is to be established before wiring.
+
+### Findings
+
+**F-8. A client slug already taken answers 500, not a refusal by name.**
+1. *Claim.* `POST /clients` with a slug the organization already holds is an unhandled error.
+2. *Anchor.* `apps/api/src/aia_api/routers/scope.py:371-385 @ b52ee648` catches `ValueError`
+   only; the unique slug constraint's error reaches the handler as a 500.
+3. *Reproduction.* Over the acceptance stack: two `POST /clients` with the same slug, as the same
+   researcher: the first 201, the second 500 `internal_error` (found when AC-12's first draft
+   reused one slug for two clients).
+4. *Consequence.* A person who names a client as an existing one is told "an unexpected error
+   occurred" instead of that the name is taken; the error tracker records a defect for it.
+5. *Smallest fix.* Map the slug's unique violation to 409 `client_slug_taken` in
+   `ScopeRepository.create_client`, answered by the route as a refusal by name.
+6. *Test.* An API test: the second create answers 409 naming the slug, and nothing is written.
+
+## Chunk 5: AC-06 wired (2026-10-28)
+
+Branch `feature/acceptance-ac06`, on `feature/acceptance-wiring` (#1090); the same words.
+
+**AC-06, two tests in `test_mvp_acceptance.py`, listed under AC-06.**
+- `test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work`: the past study runs with the
+  fieldwork checkpoint on (`AIA_AI_FIELDWORK_CHECKPOINT`); the recorded wire answers twenty calls
+  and holds the next, so the worker, killed (`SIGKILL`) once respondents are reported and the
+  next call is held, dies inside a call. (A first draft slowed every answer by 60 ms instead: one
+  run in three killed between calls, which the worker correctly recovers on its own, so the run
+  never stopped for a person.) A second worker finds the lapsed lease: the fieldwork step stops `RECOVERY_REQUIRED`,
+  `paid_call_uncertain`, the run's spend counts one uncertain call, and nothing sends it again.
+  The person cancels and retries; the retry answers every respondent, replaying at least the
+  respondents reported before the kill and sending only the rest (`sent + replayed = of`).
+- `test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset`: the recorded wire answers
+  `research_questions` with no supported finding, so the report refuses
+  (`report_inputs_refused`) and the run ends FAILED at its report. The module is offered for a
+  retry; the analysis retry's fieldwork step is the original's dataset by artifact id, and its
+  feed reports no respondent asked.
+
+**Two knobs on the recorded wire**, read only by `aia_executors.acceptance_recorded` (local and
+test): `AIA_ACCEPTANCE_RECORDED_STALL_AFTER` (a count of calls) and
+`AIA_ACCEPTANCE_RECORDED_NO_FINDINGS` (analysis module ids); a value outside either is refused by name at start
+(`test_acceptance_recorded.py`). The conftest's `Process.kill` is the harness's SIGKILL.
+
+### AC-07 is not runnable: F-9
+
+**F-9. A run after an edit pays for every stage again, whatever the impact read says.**
+1. *Claim.* After a report-only edit, `GET …/research/impact` answers FIELDWORK, AGGREGATION and
+   ANALYSIS `CURRENT` and only REPORT and DELIVERY `CHANGED`. A run started on the edited Design
+   Revision still asks every respondent again and recomputes aggregation, the Sociomap and all
+   eight analysis modules; of its artifacts only the preflight's is reused.
+2. *Anchor.* A fieldwork dataset is fingerprinted with its attempt id, "never reused over another
+   attempt's" (`apps/executors/src/aia_executors/research.py:564-566 @ b52ee648`), so no later
+   run can reuse it, and everything downstream reads the new dataset.
+3. *Reproduction.* Over the acceptance stack (a probe, not committed): the past study run once;
+   the working copy saved with `report_style` changed; the impact read as above; the edited copy
+   submitted as revision 2 and run. Run 2's last `fieldwork_progress` is `sent 200, replayed 0`,
+   and 13 of its 14 step artifacts differ from run 1's (all but `research_preflight`).
+4. *Consequence.* AC-07 ("exactly the stages the impact preview names reopen, every other stage's
+   artifacts reused by fingerprint") cannot pass. The impact read tells a person that fieldwork is
+   current, but the run they then start pays for all of it again.
+5. *Smallest fix: a product decision first, not a patch.* Either a run on a revision whose
+   fieldwork stage is `CURRENT` starts from the first reopened stage over the earlier run's frozen
+   dataset (the analysis retry's `FrozenDataset` path generalized: `working-copy-edit-ops#WCE7d2`
+   and `#WCE17` are the nearest chunks), or AC-07 is reworded to the analysis-only retry, which
+   AC-06 already proves.
+6. *Test.* The AC-07 tier-A test: a report-only edit after recorded fieldwork; the next run's
+   fieldwork replays every respondent (`sent 0`) and its fieldwork, aggregate, Sociomap and
+   analysis artifacts are run 1's by id.
+
+**Decision (Nigel Blount, about 21:40 UTC 2026-10-28, relayed by the PM coordinator): "AC-07:
+(a) Build reuse".** A run whose fieldwork is `CURRENT` starts at the first reopened stage, over the
+earlier run's frozen dataset, with no respondent paid twice. It is planned under
+`working-copy-edit-ops` (nearest WCE7d2 / WCE17) and built by the E06 session. AC-07 lists no
+test, and stays NOT_RUNNABLE, until that reuse lands; the test in point 6 then wires it.
+
+### The rest of the criteria, audited (2026-10-28, on `9c1883b2`)
+
+Nothing else is runnable yet; a criterion is wired only when every clause of its tier-A projection
+is observable over HTTP. Read from the code, each blocker:
+
+| Criterion | Blocked by |
+|---|---|
+| AC-02 | browser line (chunk 10); approved plans (`lead-orchestration#LO3`, `#LO4`); no HTTP read of approval-ledger rows |
+| AC-03 | tracked assumptions (`assumptions-and-open-answer-coding`, 0 of 10) |
+| AC-04 | wired below; was **only** the ledger read: the spend-limit confirmation's `SPEND` row is written (`infrastructure/workflow_repository.py:2481-2520 @ 9c1883b2`) but no route reads approval-ledger rows (`grep -rn approval_decisions apps/api/src/aia_api/routers` finds none) |
+| AC-05 | no worker composition joins the recorded wire and the population double (`compose_registry` takes both, `registry.py:171-178`; no factory passes them); a removed weight cannot be staged over HTTP; the weight identity is not served (F-5) |
+| AC-08 | open-answer coding (AOC) |
+| AC-09 | `segment-maps-and-drilldown` (0 of 13); the drag is the browser line |
+| AC-10 | a web page's intake (`client-knowledge-lifecycle#K2e`); data contracts (`client-data-in-analysis`, 1 of 15); the AC-05 composition |
+| AC-11 | a CLASSIFIED client's run refused whole (`deep-research-web-search#53`; the pinned posture is read by nothing, `domain/client_rules.py:7-8`) |
+| AC-13 | the "Interní dokument" check (RD0b), map snapshot approval (RD4), and refusing an unapproved or stale download (both download a draft today) |
+| AC-15 | the per-number provenance walk (chunk 16) and per-call usage over HTTP (F-5) |
+
+Two pieces would unblock more than one: a read of a run's approval-ledger rows (AC-04 at once,
+AC-02 later), and a local/test worker composition of the recorded wire over the population double
+(AC-05 and AC-10, with their other gaps).
+
+## Chunk 5: AC-04 wired (2026-10-28)
+
+Branch `feature/acceptance-ac04`, on `feature/acceptance-ac06` and `feature/run-approvals-read`.
+The owner's decision, "Add the approvals read" (Nigel Blount, about 21:46 UTC, relayed by the PM
+coordinator), and his words in this session, "go ahead with the approvals read and AC-04".
+
+`GET /studies/{id}/research/runs/{run_id}/approvals` (its own PR) reads a run's approval-ledger
+rows. On it, three tests list under AC-04:
+- `test_ac04_the_ceiling_is_shown_and_a_start_at_the_limit_is_confirmed_in_the_ledger`: the
+  ceiling on readiness before the start; at the study's spend limit a start without the yes is
+  409 `cost_confirmation_required` and creates no run; with it the run starts, the yes is the
+  run's `spend` / `confirm` row by the researcher, and the finished run spent within the ceiling
+  with nothing left held.
+- `test_ac04_an_exhausted_budget_parks_the_run_and_spends_nothing`: a budget below one call's
+  hold parks the fieldwork in `AWAITING_BUDGET`, nothing spent or held, no respondent asked.
+- `test_ac04_concurrent_starts_are_held_to_the_study_budget`: two runs of one study on two
+  workers at once; both stop for budget, and what they hold and spend together, read once both
+  wait, never passes it. A total sampled while they run would read two runs at two moments and
+  can count a settled hold beside the one its release allowed (Codex, #1101); spent money only
+  grows, so the total at rest bounds every earlier moment. The harness reads nothing but HTTP.
+
+The wallet clause of AC-04's statement ("held to the wallet when an approved plan starts it") is
+not in its tier-A projection; approved plans are `lead-orchestration#LO3`/`#LO4`.

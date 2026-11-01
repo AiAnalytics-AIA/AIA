@@ -128,7 +128,12 @@ describe("Dotazník's block and set fields", () => {
 
   it("edits a set's goal in place and lets it be cleared", async () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    const set = document.getElementById("qset_sec_b") ?? (await screen.findByText("SADA 1")).closest("article")!;
+    // The set's card by its id once it is drawn ("S1" also names it in the outline).
+    const set = await waitFor(() => {
+      const card = document.getElementById("qset_sec_b");
+      if (!card) throw new Error("the set is not drawn yet");
+      return card;
+    });
     fireEvent.click(await within(set as HTMLElement).findByRole("button", { name: /^Upravit: Co chceme z porovnání zjistit\?/ }));
     const goal = screen.getByRole("textbox", { name: "Co chceme z porovnání zjistit?" });
     fireEvent.change(goal, { target: { value: "Který kanál oslovuje nejvíc" } });

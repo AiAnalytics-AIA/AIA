@@ -30,6 +30,7 @@ export function GET() {
     },
     workbench: runtimeSwitch(process.env.AIA_WEB_RESEARCH_WORKBENCH) === true,
     stableItemIds: runtimeSwitch(process.env.AIA_WEB_STABLE_ITEM_IDS) === true,
+    editOps: runtimeSwitch(process.env.AIA_WEB_EDIT_OPS) === true,
     routing: runtimeSwitch(process.env.AIA_ROUTING_ENABLED) === true,
     build,
     errorTracking: {

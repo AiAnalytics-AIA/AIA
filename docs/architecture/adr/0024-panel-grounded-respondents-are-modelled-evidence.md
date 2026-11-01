@@ -1,6 +1,7 @@
 # ADR 0024 — Panel-grounded AI respondents are modelled evidence: their own origin, admitted only as modelled, client-facing only once validated
 
-**Status:** Proposed — develop (2026-10-12). Plan:
+**Status:** Accepted — 2026-10-26 (the product owner, Decision Review), with the
+[amendment of 2026-10-26](#amendment-2026-10-26) below. Proposed — develop (2026-10-12). Plan:
 [panel-grounded-respondents](../../../.planning/plans/panel-grounded-respondents.md), chunk 1.
 **Builds on** [ADR 0016](0016-research-execution-and-model-transmission.md) (research runs, the
 `ai_runtime` source, decision 5's licence gate), the evidence gates (`domain/evidence/`), and
@@ -8,6 +9,11 @@ the population contract ([population.md](../population.md)). **Answers, for one 
 part of decision ANL-1 (`.planning/overview.md`) that asks *whether any instrument evidence may
 ever be client-facing, and on what origin*. **Leaves open** D6 (the Sociomap) and ANL-1 for every
 other origin.
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
 **Date:** 2026-10-12
 
 ## Context
@@ -132,6 +138,17 @@ exists. It is a recorded exception to this section, not a change of its rule:
 
 Revoking it is removing that record; the chunk-7 validation, once earned, supersedes it.
 
+**Amendment, 2026-10-22: the client report's checks warn.** Since 2026-10-22 (the product owner:
+"lets get rid of these strict gates", "Relax RD0 too", "Warnings for all of it"; report-delivery
+RD0, #879), the client report's checks (`drill_down_content`, `unadmitted_number`,
+`ledger_not_client_facing`, `gate_unrecorded`, and the Interní dokument check once RD11 cites a
+client source) warn in the approval dialog, are named by where they are, and are recorded on the
+approval's ledger row (`approval_decisions.warnings`); none refuses
+(`packages/aia_core/src/aia_core/domain/report/client_gate.py:32-36 @ 5d5ed250`;
+`application/report_approval.py:151-170 @ 5d5ed250`; `infrastructure/tables.py:2010 @ 5d5ed250`).
+What composition admits is unchanged (only `CLIENT_FACING` claims); the researcher approves past
+what the checks name, on record.
+
 ### 5. Support counts donors, not respondents
 
 - Grounded respondents are drawn from synthetic rows that share survey donors. Support is the
@@ -196,3 +213,52 @@ footnote, along with the validation's date and fingerprint.
 - **The client-report lift** (§4 amendment): to be retired once a validation on the current
   respondent system is recorded.
 - **ANL-1 for every other origin**, and D6, remain as they are.
+
+## Amendment, 2026-10-26
+
+The product owner's answers in the Decision Review, 2026-10-26 (relayed by the PM coordinator),
+verdict REV-ADR-0024-VERDICT: **(b) "Accept with the amendment described"**: fix three drifted
+statements, and have the methodology owner confirm P1-P8 before the confirmation run. Each
+sub-question as answered:
+
+- **0024-Q1 (a): "Confirm P1-P8 as written before the preregistration is pinned".** The validation
+  thresholds of §4 are P1-P8 as `panel-grounded-respondents` chunk 7a fixed them on 2026-10-13. The
+  methodology owner (A. Bahbouh) confirms them, by name, before chunk 7h pins a preregistration;
+  until he has, 7h does not run. *Open* below reads accordingly. His confirmation is not yet asked on
+  his own question page; it is listed for him with this amendment.
+- **0024-Q2 (a): "When the first PASS on the current respondent system is recorded, as the ADR
+  says".** The client-report lift (§4 amendment of 2026-10-13) is retired by the first recorded PASS
+  on the current respondent system, and its note leaves client reports of runs on that system.
+- **0024-Q3 (a): "Before production".** Legal's confirmation of OI-61 is obtained before the first
+  production release (ADR 0031); until then the basis stays the data owner's determination of
+  2026-10-12.
+- **0024-Q4 (a): "Accept".** Any change to the respondent system, a model upgrade included, makes
+  client claims internal again until revalidated; no carry-over for "equivalent" models.
+- **0024-Q5 (a): "Amend at acceptance".** The three drifted statements are corrected:
+  - the switch is `AIA_AI_POPULATION_PERSONAS_ENABLED`, not `AIA_AI_PANEL_PERSONAS_ENABLED` (*Consequences*;
+    `apps/api/src/aia_api/config.py:137-140 @ 5d2ac5ac`);
+  - `evaluate_tier` is retired (`methodology-tab` V1c2: the A/B/C tier gate is gone; no
+    `evaluate_tier` in `packages/aia_core/src @ 5d2ac5ac`), so §4's "The tier gate still applies on
+    top" no longer holds: segment breakdowns are bounded by support and the surface alone;
+  - the Sociomap is not `INTERNAL_ONLY` "while D6 is open" (§6): a map's status is the Sociomap
+    register's for its exact method and fingerprint, which approves `aia-sociomap-3` (D6, 2026-10-13)
+    and `aia-sociomap-5` (`packages/aia_core/src/aia_core/domain/sociomap_register.py:54,70 @
+    5d2ac5ac`); any other method is `INTERNAL_ONLY` whatever the origin.
+- **0024-Q6 (a): "Fix: the print grade follows the row's origin".** OI-103: a `MODELLED_AI_PANEL`
+  row prints *modelováno* and never *měřeno*, whatever its basis or the composer's `field_grades`
+  (`packages/aia_core/src/aia_core/domain/report/evidence.py:59-65 @ 5d2ac5ac`, `grade_of`), fixed
+  before the first client report is delivered: `report-delivery#RD13` (W2).
+
+## Amendment, 2026-10-29
+
+The methodology owner's answer to 0024-Q1, relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. It supersedes the 2026-10-26 amendment's
+Q1 (a), "confirm P1-P8 as written"; the ADR stays Accepted.
+
+- **0024-Q1 (b): change the thresholds before confirming.** TVD is scored on drawn answers, and
+  drawing alone produces TVD even with perfect probabilities: P6 (≤ 12.5 pp, cells of ≥ 50 donors)
+  can fail on chance alone, and P1 to P3 partly measure noise. **The fix:** score P1 to P3 and P6 on
+  the weighted mean of the predicted probabilities, keeping the drawn-answer TVD as a record; or
+  subtract a simulated draw-noise floor. Which of the two, and the new P1 to P3 and P6 thresholds, are
+  still to be agreed with him.
+- **Deadline:** before a preregistration is pinned. `panel-grounded-respondents` 7h (the confirmation
+  run) does not run until the thresholds are changed and confirmed.

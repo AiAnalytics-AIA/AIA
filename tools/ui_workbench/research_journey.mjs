@@ -109,7 +109,9 @@ const startButton = page.getByRole("button", { name: TEXT.start });
 await startButton.waitFor({ timeout: 120000 });
 await page.waitForFunction((label) => [...document.querySelectorAll("button")].some((b) => b.textContent?.includes(label) && !b.disabled), TEXT.start, { timeout: 60000 })
   .catch(() => fail("the Run stage's start button stayed disabled (readiness not met?)"));
-ok("Run: design submitted, readiness passed");
+// Kontrola reads, never submits (FLD22): the visit wrote no Design Revision; the start makes it.
+if (writes.some((w) => w.endsWith("/design/revisions"))) fail("a visit to Kontrola submitted a design revision");
+ok("Run: readiness passed on the working copy, nothing submitted by the visit");
 await shot("1-run");
 // The research workbench (AIA_WEB_RESEARCH_WORKBENCH=true) puts the Lead beside the stage; with the switch
 // off the classic layout serves, and the Lead's card is not checked.
@@ -128,12 +130,17 @@ await startButton.click();
 const runId = (await (await started).json().catch(() => ({}))).run_id;
 if (!runId) fail("the start did not answer with its run");
 await page.waitForURL(/\/progress/, { timeout: 60000 });
-ok("Run: started, now on Progress");
+if (writes.filter((w) => w.endsWith("/design/revisions")).length !== 1) fail(`the start submitted ${writes.filter((w) => w.endsWith("/design/revisions")).length} design revisions, not one`);
+ok("Run: started, the design submitted by the start, now on Progress");
 // The run is also a card in the Lead's conversation (artifact-fieldwork FLD8, #550).
 const card = page.locator(`.conv [data-card="run"][data-aia="run.${runId}"]`);
 if (workbench) {
   await card.waitFor({ timeout: 60000 }).catch(() => fail(`the Lead's conversation shows no card for run ${runId}`));
   ok("Progress: the run is a card in the Lead's conversation");
+  // Sběr dat is one stage with two views (FLD9): the start opened its Průběh.
+  const selected = await page.getByRole("tablist", { name: "Pohled" }).getByRole("tab", { name: "Průběh" }).getAttribute("aria-selected");
+  if (selected !== "true") fail("after the start, Sběr dat's Pohled does not show Průběh selected");
+  ok("Progress: Sběr dat's Pohled shows Průběh");
 }
 
 // 2. Progress: labelled fictional; polls until the worker has finished the chain.
@@ -174,10 +181,11 @@ const originCode = await page.locator('[data-aia="receipt:respondents"] [data-or
 if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
 ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 // Náklady (artifact-fieldwork FLD4b): the run's spend read from the API; fictional fieldwork spent nothing.
-const spent = (await page.locator('[data-run-spend] [data-spend="spent"] dd').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+// Money is written with a no-break space before the currency (Intl's cs-CZ): read as a plain space.
+const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.replace(/\s/g, " ").trim();
 if (spent !== "0,00 USD") fail(`Náklady shows spent ${spent ?? "nothing"}, not 0,00 USD`);
 // The ceiling this start recorded (FLD4d): a new run always records one, never "nezaznamenán".
-const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] dd').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
 if (!ceilingRow || ceilingRow.startsWith("nezaznamenán")) fail(`Náklady shows the run's ceiling as ${ceilingRow ?? "nothing"}`);
 ok(`Progress: Náklady reads the run's spend (0,00 USD on fictional fieldwork) and its recorded ceiling (${ceilingRow})`);
 await shot("2-progress");
@@ -226,10 +234,17 @@ ok(`Progress at 1100, 768 and 390: the steps, Kdo odpovídal${workbench ? ", the
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Results do not say the data are fictional"));
-await page.getByRole("tab", { name: "Data", exact: true }).click();
+// In the workbench each view is a stage of its own, opened by its hash (artifact-results RES9); classic has tabs.
+const view = (hash, tab) => workbench ? page.evaluate((h) => { location.hash = h; }, hash) : page.getByRole("tab", { name: tab, exact: true }).click();
+await view("data", "Data");
 await page.locator("table").first().waitFor({ state: "attached", timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
-await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
-await page.getByText(TEXT.internal).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
+await view("maps", "Sociomapy");
+// The workbench's #maps is the Sociomapa stage (artifact-sociomap SOC9): each map says its method's status.
+// The map's own chip, matched whole: the experimental card's longer sentence also names it.
+const mapStatus = workbench
+  ? page.getByText("Metodika schválena pro zprávy", { exact: true }).or(page.getByText("Jen pro výzkumníky studie", { exact: true }))
+  : page.getByText(TEXT.internal);
+await mapStatus.first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
 ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");
 
@@ -240,6 +255,11 @@ const KNOWN = [
   /^(PUT|POST) \/api\/v1\/studies\/[^/]+\/workspace\/content$/,
   /^PUT \/api\/v1\/studies\/[^/]+\/workspace\/stage$/, // the stage a person is on, kept per visit
   /^POST \/api\/v1\/studies\/[^/]+\/design\/revisions$/,
+  // Zpráva opening its draft in the report editor, on a workbench started with it on
+  // (AIA_WORKBENCH_REPORT_EDITOR=true): a session for the draft, nothing paid (artifact-report RPT8d).
+  /^POST \/api\/v1\/studies\/[^/]+\/research\/runs\/[^/]+\/report\/editor$/,
+  // and the one-time ticket its script is loaded through (RPT8e)
+  /^POST \/api\/v1\/session\/docs-ticket$/,
 ];
 const starts = writes.filter((w) => /^POST \/api\/v1\/studies\/[^/]+\/research\/runs$/.test(w));
 const unknown = writes.filter((w) => !starts.includes(w) && !KNOWN.some((k) => k.test(w)));

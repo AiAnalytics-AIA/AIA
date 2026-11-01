@@ -1,8 +1,8 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] 1. Terraform: an application inference profile, tagged Environment=develop, for every live model the acceptance run uses (main, the Lead's, the light model)"
-  - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
+  - "[x] 1. Terraform: an application inference profile, tagged Environment=develop, for every live model the acceptance run uses (main, the Lead's, the light model)"
+  - "[x] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
   - "[x] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
@@ -67,6 +67,9 @@ cost record.
   documentation, unverified here) and rounds its own way, and the ledger prices from AIA's
   catalogue. If the live check differs by more than a cent for reasons of rounding or lag, chunk 3
   reports the difference and the owner sets the tolerance. Do not loosen the criterion to pass it.
+  **The owner kept the tolerance at USD 0.01 on 2026-10-28** ("Keep USD 0.01", W0Q5): AC-15 now
+  states it for the AWS comparison too (#1061). The risk stands as written: a live difference above
+  a cent is reported, never absorbed, and goes back to the owner.
 - Changing the profiles changes the model route; the licence determination names
   `bedrock-eu-primary` (OI-61). Confirm the application profile is the same route in the
   determination's terms before chunk 1 merges.
@@ -328,3 +331,146 @@ the card is on the tab.
 - `AGENTS.md` (SQLAlchemy): a `select` of more than ten columns types its rows as a variadic tuple,
   so `for (a, b, …) in rows` fails `mypy --strict` ("Variadic tuple unpacking requires a star
   target"); read such rows through `row._mapping[Column]` instead.
+
+## Chunk 1 delivered (2026-10-27, infra session)
+
+**What exists now.** Two application inference profiles, created by `terraform apply` from this
+branch (`infra/develop/main.tf`, `aws_bedrock_inference_profile.route` and `.lead`), each copying
+its model's EU system profile and tagged by the provider's `default_tags` (`Environment=develop`,
+`Project=aia`, `ManagedBy=terraform`, `Repository`):
+
+| Model id (identity, unchanged) | Application profile (invocation target) | Routes to |
+|---|---|---|
+| `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` (route) | `arn:aws:bedrock:eu-central-1:311141567391:application-inference-profile/xz0r7v8bizok` (`aia-develop-route`) | `anthropic.claude-sonnet-4-5-20250929-v1:0` in the same six EU regions |
+| `eu.anthropic.claude-sonnet-5-5` (the Lead's) | `arn:aws:bedrock:eu-central-1:311141567391:application-inference-profile/hnpij62nm89g` (`aia-develop-lead`) | `anthropic.claude-sonnet-5-5` in the same six EU regions |
+
+`terraform output bedrock_application_profile_arns` prints the pair. The six regions
+(eu-central-1, eu-north-1, eu-south-1, eu-south-2, eu-west-1, eu-west-3) are those of each system
+profile and of `bedrock_destination_regions`, read with `get-inference-profile` after creation:
+the same route in the licence determination's terms (OI-61 names `bedrock-eu-primary`, a route
+id AIA configures; the destinations, the model and the residency are unchanged).
+
+**The models in use**, from SSM `/aia/develop/` on 2026-10-27, not from memory:
+`aia_bedrock_model_id` and `aia_ai_research_lead_model_id` above. **The light model has no
+profile**: it has no worker keys (`LightModelSettings` is *Proposed*), so nothing can call it; its
+Deep Research settings (`models.light.*`) were approved in the app on 2026-10-14 but compose
+nothing. Its profile comes with its keys.
+
+**Nothing a call does has changed.** The worker still sends to the system profiles:
+`AIA_BEDROCK_INVOCATION_TARGET` and `AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET` stay unset, because
+the instance role is not yet granted the new ARNs (chunk 2, an IAM change: this session's identity
+is denied every `iam:Put*`). Setting a target before that grant would refuse every call.
+
+**Why this matters, measured.** The `Environment` cost-allocation tag is `Active` (since
+2026-09-25). Cost Explorer for 2026-10-01 to 2026-10-27, filtered on `Environment=develop`: EC2
+compute USD 31.48, EC2 other 10.96, ECR 1.15, S3 0.01, and **no Bedrock line**; the untagged
+`Claude Sonnet 4.5 (Amazon Bedrock Edition)` service holds USD 33.15 for the same window. Every
+model dollar so far is outside the tagged record, which chunks 2-3 change.
+
+**The model swap.** Bedrock never returns a profile's `model_source`, so an imported profile reads
+without it and the provider would replace it on every plan. It is in `ignore_changes`; a
+`postcondition` holds each profile's `models` to the configured id's foundation model instead. A
+plan with another `bedrock_lead_model_id` fails: "The lead profile routes to another model than
+bedrock_lead_model_id: terraform apply -replace='aws_bedrock_inference_profile.lead[0]'" (run
+against develop's state, 2026-10-27). **`sonnet-5-5-switch` chunk 3** changes `bedrock_model_id`,
+so its apply needs `-replace='aws_bedrock_inference_profile.route'`, and the route's new ARN then
+replaces any invocation target set before.
+
+### Findings (chunk 1)
+
+- **F-SA1-1. A description Bedrock refuses passes `terraform plan`.** The first apply failed 400
+  `ValidationException` on `description` (pattern `([0-9a-zA-Z:.][ _-]?)+`: no comma,
+  apostrophe or parentheses); nothing was created. Fixed in the description and named in a comment
+  beside it.
+- **F-SA1-2. Both profiles were imported, not created by the apply's record.** The second apply
+  created both (`CreateInferenceProfile` 200), then the provider's read by ARN failed: a GET with an
+  ARN in the path answered `404 <UnknownOperationException/>` through this session's egress proxy,
+  while the same read by the short id answered 200. That is the session's proxy, not Bedrock: the
+  host has no proxy, and the worker's Converse URL for such an ARN is the one botocore serialises
+  (`test_the_url_is_the_one_botocore_serialises_for_the_same_arn`, 5a). Recovered with
+  `terraform import … xz0r7v8bizok` and `… hnpij62nm89g`; `terraform plan` on develop's state then
+  answers "No changes". An operator's machine without the proxy reads them normally.
+
+**Until this branch merges, applying `infra/develop` from `develop` would destroy both profiles**
+(they are in state, not in `develop`'s code). Nobody should apply from `develop` before the merge.
+
+### What chunk 2 needs (a person: IAM is denied to agents here)
+
+1. In `data.aws_iam_policy_document.instance`, `InvokeTheOneApprovedModel` also names
+   `aws_bedrock_inference_profile.route.arn` and each `.lead[*].arn` (the foundation-model ARNs in
+   the destination regions stay: Bedrock checks both), then `terraform apply` by a person.
+2. SSM `aia_bedrock_invocation_target` and `aia_ai_research_lead_invocation_target` = the ARNs
+   above, a new `aia_ai_policy_version`, `bin/write-env.sh`, restart the worker, and one Lead turn
+   and one fieldwork call read back in `ai_usage_events`.
+3. Chunk 3's reconciliation counts only calls made after step 2; AWS's tagged cost lags (stated in
+   chunk 4).
+
+## Chunk 2 configured (2026-10-28, the product owner in the console; checked by the infra session)
+
+**Done by Nigel in the AWS console**, from the steps prepared for Claude in Chrome:
+
+- **The IAM grant.** The inline policy `aia-develop-instance` on role `aia-develop-instance` now has
+  the two application profile ARNs in `InvokeTheOneApprovedModel`: 16 resources, with the system
+  profiles and the foundation models in the six regions kept. This is exactly the policy that
+  `develop`'s Terraform renders (#1046, `988d0e62`).
+- **The two targets, set in SSM (`String`).**
+  - `aia_bedrock_invocation_target` = `…:application-inference-profile/xz0r7v8bizok`, at 11:42:21 UTC.
+  - `aia_ai_research_lead_invocation_target` = `…:application-inference-profile/hnpij62nm89g`, at
+    **11:42:45 UTC on 2026-10-28**. This is chunk 3's window start.
+- **The cost-allocation tag**, chunk 2's billing half, has been `Active` since 2026-09-25
+  (`ce list-cost-allocation-tags`).
+
+**Checked read-only by the infra session (2026-10-28):**
+
+- **SSM.** `get-parameter-history`: version 1 of each parameter, with the values and times above.
+- **IAM.** `iam simulate-principal-policy` for the role gives `bedrock:InvokeModel` **allowed** on
+  both profiles. On 2026-10-27 it gave `implicitDeny` on `xz0r7v8bizok`.
+- **Terraform.** A `terraform plan` of `develop` @ `be69a343` against develop's state shows **no
+  resource change**. Its one difference is the stored output `bedrock_model_arns_granted`, which an
+  apply would bring up to date. So the console edit equals the code, and no apply reverts it.
+
+**No new `aia_ai_policy_version`.** The "What chunk 2 needs" list above said one was needed. It
+isn't: a target changes only the Converse URL's `modelId`. The identity, prices and route stay as
+they are (`domain/model_invocation.py`; 5a).
+
+**Ticked on the proof, not on the configuration.** The worker reads the targets from `.env`, which
+`bin/write-env.sh` writes on every deploy (`deploy-develop.yml:203`) or by hand. The chunk was ticked
+once CloudTrail showed the worker's `Converse` calls naming the profile ARNs (below).
+
+### Chunk 2 in effect (2026-10-28, 12:08 UTC)
+
+The targets reached the worker without a deploy. At 12:08:24 UTC Nigel ran `bin/write-env.sh` and
+recreated the worker on `aia-worker:be69a343`, as the coordinator relayed:
+- the worker came up with no restart and no `AIRuntimeConfigError`;
+- `printenv` shows both targets.
+
+**The proof**, from CloudTrail `Converse` events by `assumed-role/aia-develop-instance`. None of the
+three carries an `errorCode`:
+
+| Time (UTC) | `requestParameters.modelId` | Tokens in / out | Landed in |
+|---|---|---|---|
+| 12:13:40 | `…:application-inference-profile/hnpij62nm89g` (the Lead) | 23,946 / 575 | eu-west-1 |
+| 12:14:25 | `…:application-inference-profile/xz0r7v8bizok` (the route) | 6,723 / 1,951 | eu-south-2 |
+| 12:14:40 | `…:application-inference-profile/xz0r7v8bizok` (the route) | 8,530 / 1,891 | eu-south-2 |
+
+Before the targets were set, the same field held the `eu.` profile id. Both regions above are
+among the six destinations. **The first tagged call, at 12:13:40 UTC, is chunk 3's window start
+for model spend.**
+
+**The steps behind those calls**, from the worker log:
+- `research_lead_turn` (12:13:36) `SUCCEEDED`.
+- `research_agent` (12:13:54) `FAILED`. Its two route calls were a first answer and its one schema
+  repair; the repair's input grew by about the refused answer. Bedrock answered both, under the
+  4,096 cap. So the job failed in AIA's check of the model's answer, after the provider had
+  answered. The profile changes only the URL, and the adapter parses a reply and records the model
+  by its identity, never by the target (`bedrock.py:298, 378` @ `be69a343`).
+- The last three design jobs before the switch (2026-10-21) succeeded, so one failure says nothing
+  about the route. The attempt's `error_json` is on the host, which this session cannot read.
+
+**Not read from here:** the two `ai_usage_events` rows, since this session cannot query the host's
+database. The Lead step's `SUCCEEDED` and CloudTrail's error-free calls stand in for them.
+
+### For chunk 3
+
+Chunk 3 must read the `Environment=develop` cost, never the account's Bedrock total, because the
+account's Bedrock spend is not AIA's alone.

@@ -18,10 +18,10 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, exists, or_, select
+from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
-from ..domain.scope import OrganizationContext
+from ..domain.scope import OrganizationContext, StudyStatus
 from ..domain.spend_attribution import HoldFact, UsageFact, activity_of
 from ..domain.workflow import ReservationStatus
 from .tables import (
@@ -39,6 +39,7 @@ from .tables import (
 __all__ = [
     "Person",
     "ResearcherSpendRepository",
+    "StudyBudget",
     "StudyName",
     "hold_facts",
     "run_spend_facts",
@@ -61,6 +62,19 @@ class StudyName:
     study_id: str
     name: str
     client_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class StudyBudget:
+    """A study's budget position now: its budget, what it has spent and what is held open."""
+
+    study_id: str
+    study_name: str
+    client_id: str
+    client_name: str
+    budget_usd: float
+    spent_usd: float
+    held_usd: float
 
 
 class ResearcherSpendRepository:
@@ -131,6 +145,56 @@ class ResearcherSpendRepository:
             for user in sorted(wanted)
         ]
 
+    def study_budgets(self) -> list[StudyBudget]:
+        """Every open study of the organization with a budget set, its spend and its open
+        holds; an OWNER or ADMIN only (a budget near its limit is the organization's view).
+        A delivered, archived or cancelled study takes no new work, so it is not listed."""
+        self._scope.require_administer()
+        open_statuses = [s.value for s in StudyStatus if s.accepts_work]
+        held = (
+            select(
+                BudgetReservationRow.study_id.label("study_id"),
+                func.sum(BudgetReservationRow.amount_usd).label("held"),
+            )
+            .where(BudgetReservationRow.status == ReservationStatus.RESERVED.value)
+            .group_by(BudgetReservationRow.study_id)
+            .subquery()
+        )
+        rows = self._session.execute(
+            select(
+                StudyRow.study_id,
+                StudyRow.name,
+                StudyRow.client_id,
+                ClientRow.name,
+                StudyRow.budget_usd,
+                StudyRow.spent_usd,
+                held.c.held,
+            )
+            .join(ClientRow, ClientRow.client_id == StudyRow.client_id)
+            .outerjoin(held, held.c.study_id == StudyRow.study_id)
+            .where(
+                StudyRow.organization_id == self._scope.organization_id,
+                ClientRow.organization_id == self._scope.organization_id,
+                StudyRow.status.in_(open_statuses),
+                StudyRow.budget_usd > 0,
+            )
+        ).all()
+        budgets: list[StudyBudget] = []
+        for row in rows:
+            m = row._mapping
+            budgets.append(
+                StudyBudget(
+                    study_id=str(m[StudyRow.study_id]),
+                    study_name=str(m[StudyRow.name]),
+                    client_id=str(m[StudyRow.client_id]),
+                    client_name=str(m[ClientRow.name]),
+                    budget_usd=float(m[StudyRow.budget_usd]),
+                    spent_usd=float(m[StudyRow.spent_usd]),
+                    held_usd=float(m["held"] or 0.0),
+                )
+            )
+        return budgets
+
     def study_names(self, study_ids: Collection[str]) -> dict[str, StudyName]:
         """The organization's studies among ``study_ids``, by id."""
         if not study_ids:
@@ -169,13 +233,15 @@ def usage_facts(session: Session, *where: ColumnElement[bool]) -> list[UsageFact
             AIUsageEventRow.occurred_at,
             WorkflowRunRow.workflow_type,
             StepRunRow.stage_type,
+            AIUsageEventRow.run_id.label("run_id"),
         )
         .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == AIUsageEventRow.run_id)
         .outerjoin(StepRunRow, StepRunRow.step_id == AIUsageEventRow.step_id)
         .where(*where)
     ).all()
     facts: list[UsageFact] = []
-    for call, outcome, cost, person, client, study, at, workflow, stage in rows:
+    for row in rows:
+        call, outcome, cost, person, client, study, at, workflow, stage = row[:9]
         occurred = as_utc(at)
         assert occurred is not None  # non-nullable column
         facts.append(
@@ -188,6 +254,7 @@ def usage_facts(session: Session, *where: ColumnElement[bool]) -> list[UsageFact
                 study_id=study,
                 activity=activity_of(workflow, stage),
                 occurred_at=occurred,
+                run_id=row.run_id,
             )
         )
     return facts
@@ -212,6 +279,7 @@ def hold_facts(session: Session, *where: ColumnElement[bool]) -> list[HoldFact]:
             in_ledger.label("in_ledger"),
             WorkflowRunRow.workflow_type,
             StepRunRow.stage_type,
+            BudgetReservationRow.run_id,
         )
         .join(ClientRow, ClientRow.client_id == BudgetReservationRow.client_id)
         .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == BudgetReservationRow.run_id)
@@ -234,28 +302,31 @@ def hold_facts(session: Session, *where: ColumnElement[bool]) -> list[HoldFact]:
                 activity=activity_of(m[WorkflowRunRow.workflow_type], m[StepRunRow.stage_type]),
                 in_ledger=bool(m["in_ledger"]),
                 settled_at=as_utc(settled_at) if settled_at is not None else None,
+                run_id=m[BudgetReservationRow.run_id],
             )
         )
     return facts
 
 
 def run_spend_facts(
-    session: Session, *, organization_id: str, study_id: str, run_id: str
+    session: Session, *, organization_id: str, study_id: str, run_ids: Collection[str]
 ) -> tuple[list[UsageFact], list[HoldFact]]:
-    """Every usage row and hold of one run, whoever it is booked to: a run's spend is the
-    study's, which every member who can open the study reads (ADR 0019). The caller has found
-    the run through the study; the organization and study are in the query as well."""
+    """Every usage row and hold of ``run_ids``, each naming its run, whoever it is booked to: a
+    run's spend is the study's, which every member who can open the study reads (ADR 0019). The
+    caller has found the runs through the study; the organization and study are in the query as
+    well. One read for a page of runs (``runs_spend`` folds each)."""
+    runs = sorted(run_ids)
     return (
         usage_facts(
             session,
             AIUsageEventRow.organization_id == organization_id,
             AIUsageEventRow.study_id == study_id,
-            AIUsageEventRow.run_id == run_id,
+            AIUsageEventRow.run_id.in_(runs),
         ),
         hold_facts(
             session,
             ClientRow.organization_id == organization_id,
             BudgetReservationRow.study_id == study_id,
-            BudgetReservationRow.run_id == run_id,
+            BudgetReservationRow.run_id.in_(runs),
         ),
     )

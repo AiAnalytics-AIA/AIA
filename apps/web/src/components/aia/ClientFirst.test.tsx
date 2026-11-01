@@ -25,6 +25,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => path,
   useRouter: () => ({ push, replace }),
   useSearchParams: () => new URLSearchParams(window.location.search),
+  // Called only by the study's layout, one level below which is the stage (research-lead-workbench 34).
+  useSelectedLayoutSegment: () => /\/research\/[^/]+\/([^/?#]+)/.exec(path)?.[1] ?? null,
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
@@ -207,7 +209,6 @@ describe("a client's workspace", () => {
     expect(tabs.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
       ["Přehled", "/app/clients/CLI-a"],
       ["Výzkumy", "/app/clients/CLI-a/research"],
-      ["Simulace", "/app/clients/CLI-a/simulations"],
       ["Znalosti", "/app/clients/CLI-a/knowledge"],
       ["Data", "/app/clients/CLI-a/data"],
       ["Profil", "/app/clients/CLI-a/profile"],
@@ -221,7 +222,8 @@ describe("a client's workspace", () => {
     for (const name of ["Zdroje", "Znalosti", "Dimenze", "Audience"]) expect(screen.getByText(name, { selector: "dt" })).toBeTruthy();
     expect(screen.getByText("Značka působí spolehlivě")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Nový výzkum" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Nová simulace" })).toBeTruthy();
+    // Simulace is hidden for the MVP (K12): no tab, no new simulation; an existing one still opens.
+    expect(screen.queryByRole("button", { name: "Nová simulace" })).toBeNull();
   });
 
   it("counts on its tabs what is open and what waits on a person, and says it in words", async () => {
@@ -230,7 +232,7 @@ describe("a client's workspace", () => {
     render(inClient("CLI-a", <ClientOverview />));
     const tabs = within(await screen.findByRole("navigation", { name: "Oblasti klienta" }));
     expect(tabs.getByRole("link", { name: "Výzkumy, otevřených: 3" })).toBeTruthy();
-    expect(tabs.getByRole("link", { name: "Simulace, otevřených: 1" })).toBeTruthy();
+    expect(tabs.queryByRole("link", { name: /Simulace/ })).toBeNull();
     expect(tabs.getByRole("link", { name: "Znalosti, čeká na schválení: 2" })).toBeTruthy();
     // Nothing counted, nothing drawn: no "0" badge on Data, none on Přehled or Profil.
     expect(tabs.getByRole("link", { name: "Data" })).toBeTruthy();
@@ -262,13 +264,16 @@ describe("a client's workspace", () => {
     window.history.pushState({}, "", "/app/clients/CLI-a/knowledge?add=1");
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
-    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("section")!;
+    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("form")!;
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge"));
     window.history.pushState({}, "", "/");
     // What is added re-reads the client, so the tabs' counts follow.
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Výroční zpráva 2026" } });
+    // A form: Enter (submit) saves it, as the button does; a second submit while it saves sends nothing.
+    fireEvent.submit(form);
     fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
     await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a").filter((c) => c.url.endsWith("/CLI-a"))).toHaveLength(2));
+    expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")).toHaveLength(1);
   });
 
   it("does not offer to add knowledge to a person who may not", async () => {
@@ -283,7 +288,7 @@ describe("a client's workspace", () => {
   const PROFILE = {
     short_code: "KA", industry: "Bankovnictví", market: "Česko", description: "",
     contacts: [{ contact_id: "CON-1", client_id: "CLI-a", name: "Jana Nová", role: "Marketing", email: "jana@klient.test", receives_reports: true }],
-    history: [{ action: "CLIENT_CONTACT_ADDED", actor_id: "USR-1", at: "2026-10-12T10:00:00Z", fields: [], contact_name: "Jana Nová" }],
+    history: [{ action: "CLIENT_CONTACT_ADDED", actor_name: "Jana", at: "2026-10-12T10:00:00Z", fields: [], contact_name: "Jana Nová", changes: [] }],
   };
   const profileApi = (extra: Record<string, (body: unknown) => unknown> = {}) =>
     api({
@@ -304,7 +309,9 @@ describe("a client's workspace", () => {
     profileApi();
     render(inClient("CLI-a", <ProfileArea />));
     const record = (await screen.findByRole("heading", { name: "Klient" })).closest("section")!;
-    expect(within(record).getByText("Klient A")).toBeTruthy();
+    // The name is the page's title; the record does not repeat it.
+    expect(within(record).queryByText("Klient A")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Klient A" })).toBeTruthy();
     expect(within(record).getByText("Aktivní")).toBeTruthy();
     const tab = within(screen.getByRole("navigation", { name: "Oblasti klienta" })).getByRole("link", { name: "Profil" });
     expect(tab.getAttribute("aria-current")).toBe("page");
@@ -324,12 +331,33 @@ describe("a client's workspace", () => {
     await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a/profile")).toHaveLength(2));
   });
 
+  it("says the budget and rule changes in the history in words, never as a key (CPR3)", async () => {
+    path = "/app/clients/CLI-a/profile";
+    const change = (action: string) => ({ action, actor_name: "Jana", at: "2026-10-12T10:00:00Z", fields: [], contact_name: null, changes: [] });
+    profileApi({
+      "GET /api/v1/clients/CLI-a/profile": () => ({
+        ...PROFILE,
+        history: ["CLIENT_BUDGET_CHANGED", "CLIENT_RULES_CHANGED", "SELF_APPROVAL_CONFIGURED"].map(change),
+      }),
+    });
+    render(inClient("CLI-a", <ProfileArea />));
+    const history = (await screen.findByRole("heading", { name: "Historie profilu" })).closest("section")!;
+    expect(await within(history).findByText("Změněn rozpočet klienta")).toBeTruthy();
+    expect(within(history).getByText("Změněna pravidla klienta")).toBeTruthy();
+    expect(within(history).getByText("Změněno samoschválení")).toBeTruthy();
+    expect(history.textContent).not.toContain("aia.profile");
+  });
+
   it("adds and removes a contact, and adds a competitor as the client's knowledge", async () => {
     path = "/app/clients/CLI-a/profile";
     profileApi();
     render(inClient("CLI-a", <ProfileArea />));
     const contacts = (await screen.findByRole("heading", { name: "Kontakty" })).closest("section")!;
     expect(within(contacts).getByText("jana@klient.test")).toBeTruthy();
+    // Esc leaves the form unsent, as Zrušit does.
+    fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
+    fireEvent.keyDown(within(contacts).getByRole("textbox", { name: "Jméno" }), { key: "Escape" });
+    expect(within(contacts).queryByRole("textbox", { name: "Jméno" })).toBeNull();
     fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
     fireEvent.change(within(contacts).getByRole("textbox", { name: "Jméno" }), { target: { value: "Petr" } });
     fireEvent.click(within(contacts).getByRole("checkbox", { name: "Dostává výsledky" }));
@@ -338,6 +366,10 @@ describe("a client's workspace", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/contacts")[0].body).toEqual({ name: "Petr", role: "", email: "", receives_reports: true });
     fireEvent.click(within(contacts).getByRole("button", { name: "Odebrat kontakt Jana Nová" }));
     await waitFor(() => expect(called("DELETE", "/api/v1/clients/CLI-a/contacts/CON-1")).toHaveLength(1));
+    // A removed contact can be put back for 8 s: the same fields, written again.
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/contacts")).toHaveLength(2));
+    expect(called("POST", "/api/v1/clients/CLI-a/contacts")[1].body).toEqual({ name: "Jana Nová", role: "Marketing", email: "jana@klient.test", receives_reports: true });
 
     const entities = screen.getByRole("heading", { name: "Značky a konkurenti" }).closest("section")!;
     expect(await within(entities).findByText("Konkurent B")).toBeTruthy();
@@ -445,6 +477,16 @@ describe("a client's workspace", () => {
     expect(names()).toEqual(["Cena účtů", "Vnímání značky"]);
   });
 
+  it("hides Simulace for the MVP, but a simulation already made is still listed at its address (K12)", async () => {
+    path = "/app/clients/CLI-a/simulations";
+    api();
+    render(inClient("CLI-a", <StudyList kind="SIMULATION" />));
+    const table = await screen.findByRole("table", { name: "Simulace" });
+    expect(within(table).getByText("Cenové scénáře")).toBeTruthy();
+    expect(within(screen.getByRole("navigation", { name: "Oblasti klienta" })).queryByRole("link", { name: /Simulace/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Nová simulace" })).toBeNull();
+  });
+
   it("leaves out what a study brought when the API does not say", async () => {
     path = "/app/clients/CLI-a/simulations";
     api();
@@ -480,6 +522,12 @@ describe("a client's workspace", () => {
     const changes = screen.getByRole("heading", { name: "Poslední změny znalostí" }).closest("section")!;
     expect(within(changes).getByText("napsal člověk · revize 3")).toBeTruthy();
     expect(within(changes).getByText("ze studie · revize 1")).toBeTruthy();
+    // Each thing once: a study in review is not listed again under Aktivní práce, and the
+    // knowledge is opened from Kontext klienta, not again under its changes.
+    const active = screen.getByRole("heading", { name: "Aktivní práce" }).closest("section")!;
+    expect(within(active).queryByText("Firemní klienti")).toBeNull();
+    expect(within(changes).queryByRole("link")).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Otevřít znalosti" })).toHaveLength(1);
 
     const context = screen.getByRole("heading", { name: "Kontext klienta" }).closest("section")!;
     expect(within(context).getByRole("link", { name: "Neměněno déle než rok: 2" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=old");
@@ -527,14 +575,14 @@ describe("a client's workspace", () => {
   });
 
   it("keeps the new-study dialog open on a blank name, and names what its button starts", async () => {
-    path = "/app/clients/CLI-a/simulations";
+    path = "/app/clients/CLI-a/research";
     api();
-    render(inClient("CLI-a", <StudyList kind="SIMULATION" />));
-    fireEvent.click(await screen.findByRole("button", { name: "Nová simulace" }));
+    render(inClient("CLI-a", <StudyList kind="RESEARCH" />));
+    fireEvent.click(await screen.findByRole("button", { name: "Nový výzkum" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("heading", { name: "Nová simulace" })).toBeTruthy();
-    expect(within(dialog).getByRole("textbox", { name: "Název" }).getAttribute("placeholder")).toBe("Např. Cenové scénáře 2027");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Založit simulaci" }));
+    expect(within(dialog).getByRole("heading", { name: "Nový výzkum" })).toBeTruthy();
+    expect(within(dialog).getByRole("textbox", { name: "Název" }).getAttribute("placeholder")).toBe("Např. Vnímání značky 2026");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit výzkum" }));
     const alert = await within(dialog).findByRole("alert");
     expect(alert.textContent).toBe("Pole nesmí zůstat prázdné. Bez něj nic nevznikne.");
     expect((dialog as HTMLDialogElement).open).toBe(true);
@@ -565,7 +613,7 @@ describe("a client's workspace", () => {
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
     fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
-    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("section")!;
+    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("form")!;
     fireEvent.change(within(form).getByRole("combobox"), { target: { value: "SOURCE" } });
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Starbucks výroční zpráva" } });
     fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));

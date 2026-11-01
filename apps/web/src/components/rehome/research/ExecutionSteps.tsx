@@ -8,14 +8,19 @@
 // came from -- and when it came from the fictional dataset, that it is fiction.
 
 import Link from "next/link";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { appRoutes } from "@/lib/app-routes";
+import { usdWords } from "@/lib/spend";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
-import { findingAnchor } from "@/lib/analysis-coverage";
-import { stageOf } from "@/lib/workbench-stages";
-import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
+import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
+import { stageHref, stageOf } from "@/lib/workbench-stages";
+import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
+import { LEAD_REVEAL } from "@/lib/lead";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import {
   ApiError,
   api,
@@ -25,6 +30,7 @@ import {
   type QuestionOutlook,
   type PersonaSourceOption,
   type Readiness,
+  type ReadinessBody,
   type Answerability,
   type AnswerabilityAcknowledgement,
   type ResearchTrace,
@@ -35,19 +41,18 @@ import {
   deepResearch,
   type ResearchRun,
   type ResearchRunSummary,
-  type ResearchStep,
   type PopulationVersion,
   type Study,
   population,
   research,
 } from "@/lib/api";
-import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
+import { summarize, clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { FOCUS, TOUCH, TOUCH_LINK } from "@/components/ui/parts";
-import { activityOf } from "@/lib/step-activity";
+import { activityOf, lastReported } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
@@ -66,6 +71,7 @@ import {
   traceMeasures,
   reportHolds,
   resultOriginKind,
+  runOriginKinds,
   stepOriginKind,
   type OriginKind,
   waitingDetail,
@@ -93,21 +99,21 @@ import {
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
-import { readBudget, withBudget } from "@/lib/budget-line";
+import { readBudget } from "@/lib/budget-line";
 import { spendRows } from "@/lib/run-spend";
-import { reportStatus, reportStatusWords } from "@/lib/report-status";
-import type { Tone } from "@/lib/tone";
+import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { AnalysisExternal } from "./AnalysisExternal";
 import { FindingInspectButton, setShownAnalysis, useOpenAnalysisItem, type OpenAnalysisItem } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
-import { projectVariants, selectedVariant } from "@/research/plan";
-import { chosenDimensions, dimensionLabels } from "@/research/persona";
+import { loadSampleReadiness } from "@/components/workbench/useSampleReadiness";
+import { dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
-import { ActionDock, Switch } from "../step";
-import { AiButton, Button, Chip } from "../ui";
+import { Glyph, type GlyphTone } from "../../workbench/Glyph";
+import { ActionDock, FrameNavigation } from "../step";
+import { AiButton, Button, StaleMark, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
@@ -116,7 +122,7 @@ import { useResource } from "@/components/aia/useResource";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
-import { StepActivityPanel } from "./StepActivityPanel";
+import { QuotaFillTable, StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { SociomapStage, useOnSociomapStage } from "./SociomapStage";
@@ -128,7 +134,8 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, sameGaps, unanswerableAsked } from "@/lib/answerability";
+import { errorText } from "@/lib/error-words";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -154,7 +161,7 @@ function retiredMethodRefusal(e: unknown): NewRunStart | null {
   const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
   return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
 }
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
 /** A link back to the stage where something is set: the input standard's touch target (I11) and
@@ -264,156 +271,6 @@ function RespondentsReceipt({ run, pointable = false }: { run: ResearchRun; poin
 
 // ---------------------------------------------------------------- Run --------
 
-/**
- * What starting this run can cost at most, beside what the study has left, and the study's limit
- * above which Start asks first (plan 5b.2). The ceiling is the server's; the page only shows it,
- * and an unknown one is said to be unknown, never drawn as zero.
- */
-function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; canEdit: boolean; onLimitSaved: () => void }) {
-  const frame = useFrame();
-  const [study, setStudy] = useState<Study | null | undefined>(undefined);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let live = true;
-    api.study(frame.studyId).then(
-      (s) => live && setStudy(s),
-      () => live && setStudy(null),
-    );
-    return () => {
-      live = false;
-    };
-  }, [frame.studyId, readiness]);
-  // An API that does not send a figure has not given one: read it as absent, never as zero.
-  const ceiling = num(readiness.cost_ceiling_usd);
-  const limit = num(readiness.spend_confirm_usd);
-  // The switch is on while a limit is stored, or while the person is typing one; the switch
-  // and the amount follow the stored limit when it changes. They are adjusted during render,
-  // never in an effect: an effect runs after the commit, so a switch turned on (or an amount
-  // typed) before it ran was overwritten by the mount's "no limit".
-  const [asking, setAsking] = useState(limit !== null);
-  const [amount, setAmount] = useState(limit === null ? "" : String(limit));
-  const [shownLimit, setShownLimit] = useState(limit);
-  if (limit !== shownLimit) {
-    setShownLimit(limit);
-    setAsking(limit !== null);
-    setAmount(limit === null ? "" : String(limit));
-  }
-
-  const save = async (limit: number | null) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await research.setSpendConfirm(frame.studyId, limit);
-      onLimitSaved();
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-  const typed = amount.trim() === "" ? Number.NaN : Number(amount);
-  const remaining = num(study?.remaining_usd);
-  const budget = num(study?.budget_usd);
-  const commit = () => {
-    if (Number.isFinite(typed) && typed >= 0 && typed !== limit) void save(typed);
-  };
-  return (
-    <Card title={t("research.exec.cost.title")} region>
-      {ceiling !== null ? (
-        <>
-          <p className="text-sm font-medium">{tv("research.exec.cost.ceiling", { ceiling: ceiling.toFixed(2) })}</p>
-          <p className="text-xs text-ink-muted">
-            {tv("research.exec.cost.basis", { requests: readiness.fieldwork_requests, calls: readiness.analysis_calls })}
-          </p>
-          <p className="text-xs text-ink-muted">{t("research.exec.cost.bound")}</p>
-          <CostBar ceiling={ceiling} limit={limit} asks={readiness.confirmation_required} />
-        </>
-      ) : (
-        <div className="text-sm"><CodedWords coded={codeWords("research.exec.cost.unknown", readiness.cost_ceiling_unknown ?? "sample_size_missing")} /></div>
-      )}
-      {study === undefined ? null : remaining !== null && budget !== null ? (
-        <p className="mt-2 text-sm">{tv("research.exec.cost.remaining", { remaining: remaining.toFixed(2), budget: budget.toFixed(2) })}</p>
-      ) : (
-        <p className="mt-2 text-sm text-ink-muted">{t("research.exec.cost.budgetUnknown")}</p>
-      )}
-      <p className="mt-2 text-sm">
-        {limit === null ? t("research.exec.cost.limitNone") : tv("research.exec.cost.limitSet", { limit: limit.toFixed(2) })}
-      </p>
-      {readiness.confirmation_required ? <p className="text-sm font-medium text-status-you-ink">{t("research.exec.cost.willAsk")}</p> : null}
-      {limit !== null && ceiling === null ? (
-        <p role="alert" className="text-sm text-status-fault">{t("research.exec.cost.unknownBlocks")}</p>
-      ) : null}
-      {canEdit ? (
-        // The limit is saved when the amount is left or Enter is pressed; switching it off clears it.
-        <form
-          aria-label={t("research.exec.cost.limit")}
-          className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            commit();
-          }}
-        >
-          <Switch
-            checked={asking}
-            disabled={saving}
-            label={t("research.exec.cost.switch")}
-            onChange={(on) => {
-              setAsking(on);
-              if (!on && limit !== null) void save(null);
-              if (!on) setAmount("");
-            }}
-          />
-          {asking ? (
-            <span className="inline-flex items-center gap-2">
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                aria-label={t("research.exec.cost.limitAmount")}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onBlur={commit}
-                className="min-h-9 w-28 rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-              />
-              <span className="text-sm text-ink-muted">USD</span>
-            </span>
-          ) : null}
-          {saving ? <span className="text-xs text-ink-muted">{t("research.exec.cost.saving")}</span> : null}
-        </form>
-      ) : null}
-      {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
-    </Card>
-  );
-}
-
-/** The run's ceiling against the study's limit: amber when Start will ask first; the limit as a mark. */
-function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | null; asks: boolean }) {
-  const scale = Math.max(ceiling, limit ?? 0) * 1.4 || 1;
-  const pct = (x: number) => `${Math.min(100, (x / scale) * 100)}%`;
-  return (
-    <div className="mt-3">
-      <div aria-hidden="true" className="relative h-2.5 rounded-sm bg-surface-sunken">
-        <div className={`h-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} style={{ width: pct(ceiling) }} />
-        {limit !== null ? <i className="absolute -top-1 block h-[18px] w-0.5 bg-ink" style={{ left: pct(limit) }} /> : null}
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <i aria-hidden="true" className={`block size-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} />
-          {t("research.exec.cost.legendCeiling")}
-        </span>
-        {limit !== null ? (
-          <span className="inline-flex items-center gap-1.5">
-            <i aria-hidden="true" className="block h-2.5 w-0.5 bg-ink" />
-            {t("research.exec.cost.legendLimit")}
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 /** Where each readiness check (domain research_design.assess_readiness, support_forecast) is
  *  fixed. A check not named here -- the questionnaire's, a compile problem, research-question
  *  coverage -- is fixed on Dotazník. */
@@ -429,39 +286,145 @@ export function fixStep(checkId: string): StepKey {
   return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
 }
 
-/** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
-function Receipt({ revision, readiness }: { revision: number; readiness: Readiness }) {
-  const { state, stepHref } = useResearch();
-  const p = state.project;
-  const variant = projectVariants(state).find((v) => v.id === selectedVariant(p));
-  const clip = (x: unknown) => {
-    const v = String(x || "").trim();
-    return v.length > 140 ? `${v.slice(0, 139)}…` : v;
-  };
-  const rows: [StepKey, string][] = [
-    ["brief", clip(p.goal) || "—"],
-    ["plan", clip(variant?.title || state.analysis?.problem_summary) || "—"],
-    ["questionnaire", tv("research.exec.counts", { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects, n: readiness.n ?? "—" })],
-    ["audience", clip(p.audience?.description || p.audience?.dataset_name) || "—"],
-    ["persona", tv("research.exec.receiptDims", { d: chosenDimensions(p).length, n: readiness.n ?? "—" })],
-  ];
+// The checks n fixes: in the workbench n is set on Vzorek (#945); the classic layout keeps it on persona.
+const FIXED_BY_N: ReadonlySet<string> = new Set(["sample_size", "support_forecast", "sociomap_support"]);
+
+/** Where a readiness check is fixed, as a link: Vzorek for the checks n fixes inside the workbench. */
+export function checkHref(checkId: string, stepHref: (step: StepKey) => string, workbench: boolean): string {
+  return workbench && FIXED_BY_N.has(checkId) ? stageHref("sample", stepHref) : stepHref(fixStep(checkId));
+}
+
+/**
+ * Who answers, in words (FLD23; Fieldwork.dc.html's caption): the chosen source, whether it is the
+ * default, and what that means. The fictional roster's words claim nothing about its cost: AI
+ * respondents cost money whoever they are, and "Cena nejvýše" says how much.
+ */
+function sourceNote(options: readonly PersonaSourceOption[], chosen: string | null): ReactNode {
+  const P = "research.exec.what.source";
+  const o = options.find((x) => x.source === chosen && x.offered);
+  const words = !o ? t(`${P}.none`) : o.source === "panel" ? t(`${P}.panel`) : o.source === "fictional_roster" ? t(`${P}.fictional`) : tv(`${P}.unknown`, { source: o.source });
   return (
-    <Card title={tv("research.exec.revision", { revision })}>
-      <p className="text-[13px] text-ink-muted">{t("research.exec.revisionHelp")}</p>
-      <h3 className="mt-3 text-[13px] font-semibold">{t("research.exec.receiptTitle")}</h3>
-      <dl className="@container mt-1.5 divide-y divide-border rounded-control border border-border">
-        {rows.map(([k, v]) => (
-          // On a narrow card: the stage above what it holds, the link beside both.
-          <div key={k} className="grid grid-cols-[1fr_auto] gap-x-3 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr_auto] @sm:items-baseline">
-            <dt className="text-ink-muted">{t(`aia.stages.${k}`)}</dt>
-            <dd className="row-start-2 min-w-0 @sm:row-start-auto">{v}</dd>
-            <dd className="col-start-2 row-span-2 row-start-1 self-center @sm:col-start-auto @sm:row-span-1 @sm:row-start-auto @sm:self-auto">
-              <Link href={stepHref(k)} className={STAGE_LINK}>{t("research.exec.edit")}</Link>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </Card>
+    <>
+      {o?.default ? `${t(`${P}.default`)} ${words}` : words}
+      {/* A source this deployment does not offer is shown disabled, with its reason. */}
+      {options.filter((x) => !x.offered).map((x) => (
+        <span key={x.source} className="block">
+          {sourceLabel(x.source)}: <span><CodedWords inline coded={codeWords("research.exec.respondents.reason", x.reason ?? "")} /></span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** A persona source's name; one AIA does not know is named by its code, never a missing key's text. */
+function sourceLabel(source: string): string {
+  return source === "panel" || source === "fictional_roster" ? t(`research.exec.respondents.${source}`) : source;
+}
+
+/**
+ * "Co spustíte" (FLD23, spec sber F3; Fieldwork.dc.html's Kontrola): the design, who answers, the
+ * population, the most the run can cost and the study's budget in one list, then what holds the start
+ * back or warns, and Start. Every figure is the server's; an unknown one says so, never 0.
+ */
+function WhatRuns({ revision, working, readiness, startable, population, sources, action, note, children }: {
+  revision: number;
+  working: boolean;
+  readiness: ReadinessBody;
+  /** Whether Start can start now: ready, priced where a threshold asks, and not held back otherwise. */
+  startable: boolean;
+  /** The population's label as the registry names it, or null when it was not read; and whether the
+   *  run's respondents are drawn from it (a panel run) or it is only recorded (any other source). */
+  population: { label: string | null; read: boolean };
+  /** Who answers, as a choice; null when the run's source offers none. */
+  sources: ReactNode;
+  action: ReactNode;
+  /** Why the start is held back, or what it will ask; null: the warnings, if any, are said instead. */
+  note: string | null;
+  /** What applies before a start: the answerability gate, the client's populations. */
+  children?: ReactNode;
+}) {
+  const { state, stepHref } = useResearch();
+  const frame = useFrame();
+  const [study, setStudy] = useState<Study | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    api.study(frame.studyId).then(
+      (s) => live && setStudy(s),
+      () => live && setStudy(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId]);
+  const P = "research.exec.what";
+  const ceiling = num(readiness.cost_ceiling_usd);
+  const limit = num(readiness.spend_confirm_usd);
+  const remaining = num(study?.remaining_usd);
+  const budget = num(study?.budget_usd);
+  const audience = String(state.project.audience?.description ?? "").trim();
+  const warnings = readiness.checks.filter((c) => c.status === "WARN");
+  const settings = `${appRoutes.settings()}#studies`;
+  return (
+    <section aria-labelledby="what-runs" data-what-runs className="rounded-card border border-border bg-surface-raised p-5">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 id="what-runs" className="grow text-base font-semibold">{t(`${P}.title`)}</h2>
+        <StatusPill tone={startable ? "done" : readiness.ready ? "you" : "fault"}>{t(startable ? `${P}.ready` : `${P}.notReady`)}</StatusPill>
+      </div>
+      {/* Label beside value from a wide card, the value under its label on a narrow one. */}
+      <div className="@container">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm @md:grid-cols-[180px_1fr]">
+          <dt className="pt-2 text-ink-muted">{t(`${P}.design`)}</dt>
+          <dd className="pb-2 @md:pt-2">
+            {tv(working ? "research.exec.workingRevision" : "research.exec.revision", { revision })}
+            {" · "}
+            {tv(`${P}.counts`, { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects })}
+            {" · "}
+            {/* Inside the sentence, so a text link (WCAG 2.5.8's inline exception), not a touch target. */}
+            <Link href={stepHref("questionnaire")} className={`text-signal underline ${FOCUS}`}>{t("aia.stages.questionnaire")}</Link>
+          </dd>
+          {sources ? <>
+            <dt className="pt-2 text-ink-muted">{t(`${P}.who`)}</dt>
+            <dd className="pb-2 @md:pt-2">{sources}</dd>
+          </> : null}
+          <dt className="pt-2 text-ink-muted">{t(`${P}.population`)}</dt>
+          <dd className="pb-2 @md:pt-2">
+            {[
+              population.read ? (population.label ?? t(`${P}.populationUnknown`)) : tv(`${P}.populationRecorded`, { label: population.label ?? t(`${P}.populationUnknown`) }),
+              population.read ? audience || null : null,
+              readiness.n ? tv(`${P}.n`, { n: readiness.n }) : t(`${P}.nUnknown`),
+            ].filter(Boolean).join(" · ")}
+          </dd>
+          <dt className="pt-2 text-ink-muted">{t(`${P}.ceiling`)}</dt>
+          <dd className="pb-2 @md:pt-2" data-what-ceiling>
+            {ceiling !== null ? (
+              <>
+                <span className="text-lg font-semibold tabular-nums">{usdWords(ceiling)}</span>
+                <span className="block text-xs text-ink-muted">
+                  {t(`${P}.bound`)}
+                  {limit !== null ? <>{" · "}<Link href={settings} className={`underline ${FOCUS}`}>{tv(readiness.confirmation_required ? `${P}.overLimit` : `${P}.underLimit`, { limit: usdWords(limit) })}</Link></> : null}
+                </span>
+              </>
+            ) : (
+              <span className="block"><CodedWords coded={codeWords("research.exec.cost.unknown", readiness.cost_ceiling_unknown ?? "sample_size_missing")} /></span>
+            )}
+            {limit !== null && ceiling === null ? <span role="alert" className="mt-1 block text-status-fault">{t(`${P}.unknownBlocks`)}</span> : null}
+          </dd>
+          <dt className="pt-2 text-ink-muted">{t(`${P}.budget`)}</dt>
+          <dd className="pb-2 @md:pt-2" data-what-budget>
+            {study === undefined ? null : remaining !== null && budget !== null
+              ? tv(`${P}.remaining`, { remaining: usdWords(remaining), budget: usdWords(budget) })
+              : <span className="text-ink-muted">{t("research.exec.cost.budgetUnknown")}</span>}
+          </dd>
+        </dl>
+      </div>
+      {children}
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4">
+        <p className="grow basis-60 text-xs text-ink-muted" data-what-note>
+          {note ?? (warnings.length ? tv(`${P}.warnings`, { count: warnings.length, first: warnings.slice(0, 2).map((w) => w.message.replace(/[.\s]+$/, "")).join("; ") }) : null)}
+        </p>
+        {action}
+      </div>
+    </section>
   );
 }
 
@@ -517,7 +480,68 @@ function quarantineWords(code: string): string {
 }
 
 /** A readiness check's tone: only a check that passed is good; a status this client does not know is not. */
-const checkTone = (status: string): Tone => (status === "PASS" ? "done" : status === "WARN" ? "you" : status === "FAIL" ? "fault" : "neutral");
+const CHECK_GLYPH: Readonly<Record<string, GlyphTone>> = { PASS: "done", WARN: "you", FAIL: "fault" };
+
+/**
+ * "Všechny kontroly (n)" (FLD24, spec sber F4; Fieldwork.dc.html): every readiness check folded under one
+ * summary, counted by status, open by default while one stops the run, and opened then whenever one starts
+ * to; each check that does not pass links to where it is fixed. A status AIA does not know is counted
+ * apart and shown in words with its code, never as passed. The research-question trace and the question
+ * outlook sit inside it (Vzorek shows the outlook too).
+ */
+function AllChecks({ checks, rules, fix, children }: {
+  checks: readonly { id: string; status: string; message: string }[];
+  rules: string;
+  fix: (checkId: string) => string;
+  children?: ReactNode;
+}) {
+  const P = "research.exec.checks";
+  const count = (status: string) => checks.filter((c) => c.status === status).length;
+  const unknown = checks.filter((c) => !Object.hasOwn(CHECK_GLYPH, c.status)).length;
+  const failing = count("FAIL") > 0;
+  const [open, setOpen] = useState(failing);
+  const [wasFailing, setWasFailing] = useState(failing);
+  if (failing !== wasFailing) {
+    // A check that starts to stop the run opens the list; one that stops failing leaves it as the person left it.
+    setWasFailing(failing);
+    if (failing) setOpen(true);
+  }
+  const summary = [
+    tv(`${P}.pass`, { n: count("PASS") }),
+    tv(`${P}.warn`, { n: count("WARN") }),
+    tv(`${P}.fail`, { n: count("FAIL") }),
+    ...(unknown ? [tv(`${P}.unknown`, { n: unknown })] : []),
+  ].join(" · ");
+  return (
+    <details data-all-checks open={open} onToggle={(e) => setOpen(e.currentTarget.open)} className="rounded-card border border-border bg-surface-raised">
+      <summary className={`flex min-h-11 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 ${FOCUS}`}>
+        <h2 className="grow text-base font-semibold">{tv(`${P}.title`, { n: checks.length })}</h2>
+        <span className="text-xs text-ink-muted">{summary}</span>
+      </summary>
+      <div className="flex flex-col gap-4 border-t border-border px-5 py-4">
+        <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
+          {[...checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => {
+            const known = Object.hasOwn(CHECK_GLYPH, c.status);
+            return (
+              <li key={c.id} className="flex items-start gap-2 text-sm">
+                <span className="mt-1 inline-flex"><Glyph tone={known ? CHECK_GLYPH[c.status] : "inert"} /></span>
+                {known ? (
+                  <span className="sr-only">{t(`research.exec.checkStatus.${c.status}`)}</span>
+                ) : (
+                  <span data-tone="neutral" className="text-xs text-ink-muted"><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></span>
+                )}
+                <span className="flex-1">{c.message}</span>
+                {c.status !== "PASS" ? <Link href={fix(c.id)} className={STAGE_LINK}>{t(`${P}.fix`)}</Link> : null}
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-xs text-ink-muted">{tv("research.exec.rules", { rules })}</p>
+        {children}
+      </div>
+    </details>
+  );
+}
 
 function ResearchTraceCard({ trace, outlook, answer, design }: {
   trace: ResearchTrace;
@@ -544,7 +568,7 @@ function ResearchTraceCard({ trace, outlook, answer, design }: {
           const measures = traceMeasures(q, outlook);
           return (
             <li key={`${i}-${q.text}`} className="flex items-start gap-2 text-sm">
-              <Chip tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</Chip>
+              <StatusPill tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</StatusPill>
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{q.text}</p>
                 {q.comparison ? (
@@ -558,7 +582,7 @@ function ResearchTraceCard({ trace, outlook, answer, design }: {
                   <ul className="mt-1 flex flex-col gap-1">
                     {measures.map((m) => (
                       <li key={m.key} className="flex items-start gap-2 text-[13px]">
-                        <Chip tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</Chip>
+                        <StatusPill tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</StatusPill>
                         <span className="min-w-0 flex-1">{m.code ? <CodedWords inline coded={{ words: m.text, code: m.code }} /> : m.text}</span>
                       </li>
                     ))}
@@ -596,7 +620,7 @@ function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
     const fix = outlookFixStep(item.reasons);
     return (
       <li key={item.question_id} className="flex items-start gap-2 text-sm">
-        <Chip tone={verdictTone(item.verdict)}>{t(`research.exec.outlook.verdict.${item.verdict}`)}</Chip>
+        <StatusPill tone={verdictTone(item.verdict)}>{t(`research.exec.outlook.verdict.${item.verdict}`)}</StatusPill>
         <div className="min-w-0 flex-1">
           <p>{item.text}</p>
           {item.reasons.length ? (
@@ -641,14 +665,17 @@ const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
-  const { store, stepHref, confirm } = useResearch();
+  const { store, stepHref, confirmSpend, state: { revision: workingRevision } } = useResearch();
+  const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
     | { kind: "loading" }
     | { kind: "failed"; message: string }
     | { kind: "none" }
-    | { kind: "ready"; revision: number; readiness: Readiness }
+    // `working`: read on the working revision the person sees (FLD22), nothing submitted; a person who
+    // may not edit reads the newest Design Revision's.
+    | { kind: "ready"; revision: number; working: boolean; readiness: ReadinessBody & { design_revision_id?: string } }
   >({ kind: "loading" });
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
@@ -685,10 +712,17 @@ export function RunStep() {
   // A run the start found instead of creating, when the acknowledgement given was not recorded.
   const [found, setFound] = useState<string | null>(null);
 
+  // The population a run records by default (LIVE), named as the registry names it; null: unread.
+  const [livePopulation, setLivePopulation] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     population.registry().then(
-      (r) => live && setChildren(clientChildren(r, frame.clientId)),
+      (r) => {
+        if (!live) return;
+        setChildren(clientChildren(r, frame.clientId));
+        // A registry read without its lists names no population: unknown, never a guess.
+        setLivePopulation(Array.isArray(r.versions) && Array.isArray(r.populations) ? (summarize(r).live?.label ?? null) : null);
+      },
       () => live && setChildren([]),
     );
     return () => {
@@ -696,46 +730,77 @@ export function RunStep() {
     };
   }, [frame.clientId]);
 
+  // Kontrola reads, never submits (FLD22, spec sber F2): an editor reads readiness on the working
+  // revision on screen (a change still waiting is saved first, a refused save never read), so a visit
+  // moves no design head; the revision a run executes is submitted only inside Start. Read again when
+  // the working revision moves (a Lead's accepted edit), the answer on screen kept meanwhile.
+  const readOn = useCallback(async (personaSource?: string, child?: string | null) => {
+    if (frame.canEdit) {
+      // A study whose working content was never saved, or a copy the template completed on load, is
+      // saved as shown (a save, never a Design Revision), so the checks read what is on screen, as
+      // Start would save it; a template-supplied n read as missing would hold Start back.
+      const s = store.get();
+      // A refused save is said by the read below, in its words.
+      if ((s.revision === null || s.completed) && s.save.kind !== "conflict") {
+        await store.flush("run").catch((e: unknown) => {
+          if (store.get().save.kind !== "conflict") throw e;
+        });
+      }
+      const read = await loadSampleReadiness(store, frame.studyId, true, {
+        readiness: (studyId, revision) => research.workingReadiness(studyId, revision, personaSource, child ?? undefined),
+      });
+      if (read.kind === "failed") throw new Error(read.message);
+      return read.kind === "ready" ? { kind: "ready" as const, revision: read.revision, working: true, readiness: read.readiness } : { kind: "none" as const };
+    }
+    const latest = (await research.revisions(frame.studyId))[0];
+    if (!latest) return { kind: "none" as const };
+    const readiness = await research.readiness(frame.studyId, latest.revision_id, personaSource, child ?? undefined);
+    return { kind: "ready" as const, revision: latest.revision, working: false, readiness };
+  }, [frame.studyId, frame.canEdit, store]);
+  // Only the newest read is shown: an older one (the working revision moved, then the person chose
+  // another source) answering last never puts the old choice back on screen.
+  const reads = useRef(0);
+  const readLatest = useCallback(async (personaSource?: string, child?: string | null) => {
+    const n = ++reads.current;
+    try {
+      const p = await readOn(personaSource, child);
+      return n === reads.current ? p : null;
+    } catch (e) {
+      if (n === reads.current) throw e;
+      return null;
+    }
+  }, [readOn]);
+  const choice = useRef<{ source?: string; child: string | null }>({ child: null });
   useEffect(() => {
     let live = true;
-    (async () => {
-      let revisionId: string;
-      let revision: number;
-      if (frame.canEdit) {
-        // The design the person sees, once per visit -- but only as AIA holds it: a
-        // change still waiting for its save is saved first, and a copy whose save was
-        // refused (someone saved a newer one) never becomes a revision a run executes.
-        let r: DesignRevision;
-        try {
-          r = await submitWorkingDesign(store, frame.studyId, "run");
-        } catch (e) {
-          throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
-        }
-        revisionId = r.revision_id;
-        revision = r.revision;
-      } else {
-        const latest = (await research.revisions(frame.studyId))[0];
-        if (!latest) return live && setPrepared({ kind: "none" });
-        revisionId = latest.revision_id;
-        revision = latest.revision;
-      }
-      const readiness = await research.readiness(frame.studyId, revisionId);
-      if (live) setPrepared({ kind: "ready", revision, readiness });
-    })().catch((e: unknown) => live && setPrepared({ kind: "failed", message: message(e) }));
+    readLatest(choice.current.source, choice.current.child).then(
+      (p) => live && p && setPrepared(p),
+      (e: unknown) => live && setPrepared({ kind: "failed", message: message(e) }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [readLatest, workingRevision]);
+  useEffect(() => {
+    let live = true;
     research.runs(frame.studyId).then((r) => live && setRuns(r), () => {});
     return () => {
       live = false;
     };
-  }, [frame.studyId, frame.canEdit, store]);
+  }, [frame.studyId]);
 
-  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined, child = childId) => {
-    if (prepared.kind !== "ready") return;
+  /** Reads Kontrola again; the read's error in words when it failed, also said on the page. */
+  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined, child = childId): Promise<string | null> => {
+    if (prepared.kind !== "ready") return null;
+    // The child the run starts over too: readiness forecasts the population the start draws from.
+    choice.current = { source: personaSource ?? undefined, child };
     try {
-      // The child the run starts over too: readiness forecasts the population the start draws from.
-      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource, child ?? undefined);
-      setPrepared({ ...prepared, readiness });
+      const p = await readLatest(personaSource ?? undefined, child);
+      if (p?.kind === "ready") setPrepared(p);
+      return null;
     } catch (e) {
       setStartError(message(e));
+      return message(e);
     }
   };
   // The checks differ by source (the support forecast, the audience): read them again under it.
@@ -751,25 +816,67 @@ export function RunStep() {
     setChoosing(false);
   };
 
-  // The question carries what remains of the study's budget, read as it asks (6d).
-  const ask = async (ceiling: number, limit: number) =>
-    confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: ceiling.toFixed(2), limit: limit.toFixed(2) }), ceiling));
+  // SpendDialog, with what remains of the study's budget read as it asks (6d; design system v3, I-Penize).
+  const ask = (ceiling: number, limit: number) =>
+    confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: ceiling, thresholdUsd: limit, act: t("input.spend.research.startRun") });
+
+  /**
+   * The revision a run executes, submitted now and read as the server will hold it (FLD22): the
+   * working copy as saved, then its own readiness, whose answerability names that revision; and the
+   * acknowledgement to send, the person's for the gaps they were shown, carried to the same gaps
+   * under the submitted revision's digest. When the submitted revision is not ready, or asks for an
+   * acknowledgement the person did not give for those very gaps, nothing starts: Kontrola is read
+   * again and the person decides again.
+   */
+  const submitted = async (): Promise<{ readiness: Readiness; acknowledged?: AnswerabilityAcknowledgement } | null> => {
+    if (prepared.kind !== "ready") return null;
+    const shown = prepared.readiness.answerability;
+    if (!prepared.working) {
+      const readiness = prepared.readiness as Readiness;
+      return { readiness, acknowledged: acknowledgementOf(readiness.answerability, ack) ?? undefined };
+    }
+    let r: DesignRevision;
+    try {
+      r = await submitWorkingDesign(store, frame.studyId, "run");
+    } catch (e) {
+      throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
+    }
+    const readiness = await research.readiness(frame.studyId, r.revision_id, prepared.readiness.persona_source ?? undefined, childId ?? undefined);
+    const acknowledged = hasGaps(readiness.answerability) && shown && sameGaps(shown, readiness.answerability) && confirmedFor(shown, ack)
+      ? acknowledgementOf(readiness.answerability, { ...ack, digest: readiness.answerability.digest }) ?? undefined
+      : undefined;
+    if (!readiness.ready || (needsAcknowledgement(readiness.answerability) && !acknowledged)) {
+      throw new Error((await rereadReadiness()) ?? t("research.exec.changedOnStart"));
+    }
+    return { readiness, acknowledged };
+  };
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
-    const { readiness } = prepared;
-    const ceiling = num(readiness.cost_ceiling_usd);
-    const limit = num(readiness.spend_confirm_usd);
+    // The gaps are acknowledged, and the spend confirmed, on what the person sees, before anything is
+    // submitted: declining writes no Design Revision.
+    if (needsAcknowledgement(prepared.readiness.answerability) && !acknowledgementOf(prepared.readiness.answerability, ack)) return;
+    const ceiling = num(prepared.readiness.cost_ceiling_usd);
+    const limit = num(prepared.readiness.spend_confirm_usd);
     let yes: number | undefined;
-    if (readiness.confirmation_required && ceiling !== null && limit !== null) {
+    if (prepared.readiness.confirmation_required && ceiling !== null && limit !== null) {
       if (!(await ask(ceiling, limit))) return;
       yes = ceiling;
     }
-    const acknowledged = acknowledgementOf(readiness.answerability, ack) ?? undefined;
-    if (needsAcknowledgement(readiness.answerability) && !acknowledged) return;
     setStarting(true);
     setStartError(null);
     setFound(null);
+    let readiness: Readiness;
+    let acknowledged: AnswerabilityAcknowledgement | undefined;
+    try {
+      const s = await submitted();
+      if (!s) return setStarting(false);
+      ({ readiness, acknowledged } = s);
+    } catch (e) {
+      setStartError(message(e));
+      setStarting(false);
+      return;
+    }
     try {
       let started: ResearchRun;
       try {
@@ -782,13 +889,14 @@ export function RunStep() {
           setAck({ ...ack, confirmed: false });
           // The gaps shown are the ones the server just refused, whatever the re-read does: a
           // failed re-read never leaves older gaps, or none, on screen as the server's (review 3).
-          setPrepared({ ...prepared, readiness: { ...readiness, answerability: refused } });
+          setPrepared({ ...prepared, readiness: { ...prepared.readiness, answerability: refused } });
           await rereadReadiness();
           throw new Error(t("research.exec.answerability.refused"));
         }
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
-        if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
+        // Asked again only for a figure the person was not shown (the submitted revision's own).
+        if (!asked || asked.ceiling === yes || !(await ask(asked.ceiling, asked.limit))) throw e;
         started = await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
       }
       // A start over a revision that already has a run returns that run (created: false):
@@ -832,95 +940,90 @@ export function RunStep() {
       {prepared.kind === "none" ? <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card> : null}
       {prepared.kind === "ready" ? (
         <>
-          {/* What stops the run first, then what runs (research-lane-redesign). */}
-          <Card title={prepared.readiness.ready ? t("research.exec.ready") : t("research.exec.notReady")}>
-            <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
-              {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
-                <li key={c.id} className="flex items-start gap-2 text-sm">
-                  <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
-                  <span className="flex-1">{c.message}</span>
-                  {c.status !== "PASS" ? (
-                    <Link href={stepHref(fixStep(c.id))} className={STAGE_LINK}>
-                      {t("research.exec.fix")}
-                    </Link>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
-          </Card>
-          {found ? (
-            <p role="alert" className="text-sm">
-              {t("research.exec.answerability.existing")}{" "}
-              <a className="underline" href={`${stepHref("progress")}?run=${encodeURIComponent(found)}`}>{t("research.exec.toProgress")}</a>
-            </p>
-          ) : null}
-          {hasGaps(prepared.readiness.answerability) ? (
-            <AnswerabilityGate
-              answer={prepared.readiness.answerability}
-              value={ack}
-              onChange={setAck}
-              outlook={prepared.readiness.question_outlook ?? []}
-              stepHref={stepHref}
-              disabled={!frame.canEdit || starting}
-              runnable={prepared.readiness.ready}
-            />
-          ) : null}
-          {prepared.readiness.research_trace ? (
-            <ResearchTraceCard
-              trace={prepared.readiness.research_trace}
-              outlook={prepared.readiness.question_outlook ?? []}
-              answer={prepared.readiness.answerability ?? null}
-              design={design}
-            />
-          ) : null}
-          <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
-          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
-          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={() => void rereadReadiness()} />
-          {prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
-            <RespondentChoice
-              options={prepared.readiness.persona_sources}
-              value={prepared.readiness.persona_source ?? null}
-              onChange={(source) => void chooseSource(source)}
-              disabled={!frame.canEdit || starting || choosing}
-            />
-          ) : null}
-          {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
+          {/* What runs, who answers, what it costs, and Start (FLD23); then every check (FLD24 folds them). */}
+          <WhatRuns
+            revision={prepared.revision}
+            working={prepared.working}
+            readiness={prepared.readiness}
+            startable={prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
+            // A chosen child's id is never printed: one the registry no longer lists reads unknown.
+            population={{
+              label: childId ? (children.find((c) => c.version_id === childId)?.label ?? null) : livePopulation,
+              read: prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_source === "panel",
+            }}
+            sources={prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
+              <>
+                <ChoiceChips look="segmented" saves label={t("research.exec.what.who")}
+                  disabled={!frame.canEdit || starting || choosing}
+                  value={(prepared.readiness.persona_source ?? null) as string | null}
+                  options={prepared.readiness.persona_sources.map((o) => ({ key: o.source, label: sourceLabel(o.source), disabled: !o.offered }))}
+                  onChange={(source) => void chooseSource(source)} />
+                <span className="mt-1 block text-xs text-ink-muted" data-source-note>
+                  {sourceNote(prepared.readiness.persona_sources, prepared.readiness.persona_source ?? null)}
+                </span>
+              </>
+            ) : null}
+            note={
+              !frame.canEdit
+                ? t(frame.closed ? "research.exec.closed" : "research.exec.readOnly")
+                : !prepared.readiness.ready
+                  ? t("research.exec.dockNotReady")
+                  : blocked
+                    ? t("research.exec.dockBlocked")
+                    : unacknowledged
+                      ? t("research.exec.answerability.dock")
+                      : null
+            }
+            action={
+              <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
+                {starting ? t("research.exec.starting") : limited ? t("research.exec.answerability.startLimited") : t("research.exec.start")}
+              </AiButton>
+            }
+          >
+            {found ? (
+              <p role="alert" className="text-sm">
+                {t("research.exec.answerability.existing")}{" "}
+                <a className="underline" href={`${stepHref("progress")}?run=${encodeURIComponent(found)}`}>{t("research.exec.toProgress")}</a>
+              </p>
+            ) : null}
+            {hasGaps(prepared.readiness.answerability) ? (
+              <AnswerabilityGate
+                answer={prepared.readiness.answerability}
+                value={ack}
+                onChange={setAck}
+                outlook={prepared.readiness.question_outlook ?? []}
+                stepHref={stepHref}
+                disabled={!frame.canEdit || starting}
+                runnable={prepared.readiness.ready}
+              />
+            ) : null}
+            {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
+            {startError ? <p role="alert" className="mt-3 text-sm text-status-fault">{startError}</p> : null}
+          </WhatRuns>
+          {/* Every check, folded under one line (FLD24, spec sber F4): open while one stops the run. */}
+          <AllChecks checks={prepared.readiness.checks} rules={prepared.readiness.rules} fix={(id) => checkHref(id, stepHref, workbench)}>
+            {prepared.readiness.research_trace ? (
+              <ResearchTraceCard
+                trace={prepared.readiness.research_trace}
+                outlook={prepared.readiness.question_outlook ?? []}
+                answer={prepared.readiness.answerability ?? null}
+                design={design}
+              />
+            ) : null}
+            <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
+          </AllChecks>
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (
             <SyntheticBanner />
           )}
-          {startError ? <p role="alert" className="text-sm text-status-fault">{startError}</p> : null}
         </>
       ) : null}
       <RunList runs={runs} />
-      <ActionDock
-        back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
-        // Not while a new choice of respondents is being checked: Start would send the old one.
-        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
-        note={
-          !frame.canEdit
-            ? t(frame.closed ? "research.exec.closed" : "research.exec.readOnly")
-            : prepared.kind !== "ready"
-              ? null
-              : !prepared.readiness.ready
-                ? t("research.exec.dockNotReady")
-                : blocked
-                  ? t("research.exec.dockBlocked")
-                  : unacknowledged
-                    ? t("research.exec.answerability.dock")
-                    : prepared.readiness.confirmation_required
-                    ? t("research.exec.dockAsk")
-                    : t("research.exec.dockReady")
-        }
-      >
-        {prepared.kind === "ready" ? (
-          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
-            {starting ? t("research.exec.starting") : limited ? t("research.exec.answerability.startLimited") : t("research.exec.start")}
-          </AiButton>
-        ) : null}
-      </ActionDock>
+      {workbench ? null : (
+        // The classic layout's way back; in the workbench the navigator is it.
+        <ActionDock inHeader={false} back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }} note={null}>{null}</ActionDock>
+      )}
     </div>
   );
 }
@@ -940,7 +1043,8 @@ function PopulationChoice({
 }) {
   const P = "research.exec.population";
   return (
-    <Card title={t(`${P}.title`)}>
+    <div className="mt-4 border-t border-border pt-3">
+      <h3 className="mb-1 text-sm font-semibold">{t(`${P}.title`)}</h3>
       <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
         <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
         <label className="flex items-start gap-2">
@@ -956,45 +1060,14 @@ function PopulationChoice({
               <span className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{m?.dimension_id ?? v.label}</span>
                 {m ? <span className="text-ink-muted">{tv(`${P}.outcome`, { target: outcomeValue(m.kind, m.target), achieved: outcomeValue(m.kind, m.achieved) })}</span> : null}
-                <Chip tone={verdict === "met" ? "done" : "fault"}>{t(`aia.intelligence.population.children.verdict.${verdict}`)}</Chip>
+                <StatusPill tone={verdict === "met" ? "done" : "fault"}>{t(`aia.intelligence.population.children.verdict.${verdict}`)}</StatusPill>
               </span>
             </label>
           );
         })}
       </fieldset>
       <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
-    </Card>
-  );
-}
-
-/** "Kdo bude odpovídat": every source of AI respondents, the offered ones choosable, the others
- * with the reason this deployment gives (plan run-recovery-and-truth 5a). */
-function RespondentChoice({ options, value, onChange, disabled }: {
-  options: PersonaSourceOption[];
-  value: string | null;
-  onChange: (source: string) => void;
-  disabled: boolean;
-}) {
-  const P = "research.exec.respondents";
-  return (
-    <Card title={t(`${P}.title`)}>
-      <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
-        <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
-        {options.map((o) => (
-          <label key={o.source} className={`flex items-start gap-2 ${o.offered ? "" : "text-ink-muted"}`}>
-            <input type="radio" name="run-respondents" checked={value === o.source} disabled={!o.offered} onChange={() => onChange(o.source)} />
-            <span className="flex flex-col">
-              <span>
-                <span className="font-semibold">{t(`${P}.${o.source}`)}</span>
-                {o.default ? <span className="text-ink-muted"> · {t(`${P}.default`)}</span> : null}
-              </span>
-              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${P}.reason`, o.reason ?? "")} />}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
-    </Card>
+    </div>
   );
 }
 
@@ -1008,12 +1081,12 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
         <ul className="flex flex-col gap-2">
           {runs.map((r) => (
             <li key={r.run_id} className="flex flex-wrap items-center gap-2 text-sm">
-              <Chip tone={runState(r).tone}>{runState(r).label}</Chip>
+              <StatusPill tone={runState(r).tone}>{runState(r).label}</StatusPill>
               <span>{tv("research.exec.revision", { revision: r.design_revision })}</span>
               <span className="text-ink-muted">{tv("research.exec.startedAt", { when: when(r.created_at) })}</span>
-              {isSynthetic(r) ? <Chip tone="fault">{t("research.exec.fictional")}</Chip> : null}
-              {isModelled(r) ? <Chip tone="neutral">{t("research.exec.modelled")}</Chip> : null}
-              {hasUnknownOrigin(r) ? <Chip tone="fault">{t("research.exec.unknownOrigin")}</Chip> : null}
+              {isSynthetic(r) ? <StatusPill tone="fault">{t("research.exec.fictional")}</StatusPill> : null}
+              {isModelled(r) ? <StatusPill tone="neutral">{t("research.exec.modelled")}</StatusPill> : null}
+              {hasUnknownOrigin(r) ? <StatusPill tone="fault">{t("research.exec.unknownOrigin")}</StatusPill> : null}
               <a className={`underline ${RUN_LINK}`} href={`${stepHref(runDestination(r))}?run=${encodeURIComponent(r.run_id)}`}>
                 {runDestination(r) === "results" ? t("research.exec.toResults") : t("research.exec.toProgress")}
               </a>
@@ -1058,6 +1131,18 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
     }
     setVersion((v) => v + 1);
   }, []);
+  // An Interpretation run a Lead card started is shown under the research run it interprets
+  // (LO5a.2, review of #1006): the page already open turns to that run, `?run=` naming it.
+  useEffect(() => onDeepResearchStarted(({ purpose, researchRunId }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH" || !researchRunId) return;
+    followed.current = researchRunId;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("run") !== researchRunId) {
+      params.set("run", researchRunId);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params}${window.location.hash}`);
+    }
+    setVersion((v) => v + 1);
+  }), []);
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -1131,7 +1216,7 @@ function useRetryableRead(run: ResearchRun | null | undefined): Repairable | nul
  * server asks about are answered here, as a start's are.
  */
 function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) => Promise<void>, busy: boolean) {
-  const { confirm, stepHref } = useResearch();
+  const { confirmSpend, stepHref } = useResearch();
   const frame = useFrame();
   const [offer, setOffer] = useState<{ runId: string; body: NewRunStart } | null>(null);
   const [asked, setAsked] = useState<{ runId: string; answer: Answerability } | null>(null);
@@ -1150,7 +1235,7 @@ function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) 
         } catch (e) {
           const cost = confirmationAsked(e);
           if (!cost) throw e;
-          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: cost.ceiling.toFixed(2), limit: cost.limit.toFixed(2) }), cost.ceiling));
+          const yes = await confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: cost.ceiling, thresholdUsd: cost.limit, act: t("input.spend.research.startRun") });
           if (!yes) return run;
           next = await send(cost.ceiling);
         }
@@ -1199,7 +1284,7 @@ function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) 
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
 function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
-  const { confirm } = useResearch();
+  const { confirmSpend } = useResearch();
   const frame = useFrame();
   const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
   const newRun = useNewRunOffer(run, act, busy);
@@ -1223,7 +1308,7 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
                   // The retry asks a model again, so the study's limit asks again over what it may cost.
                   const asked = confirmationAsked(e);
                   if (!asked) throw e;
-                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+                  const yes = await confirmSpend({ summary: t("input.spend.research.retryAnalysis"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.retryAnalysisAct") });
                   if (!yes) return run;
                   return await research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
                 }
@@ -1248,7 +1333,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
   repairable: Repairable | null;
 }) {
-  const { confirm, stepHref } = useResearch();
+  const { confirm, confirmSpend, stepHref } = useResearch();
   const frame = useFrame();
   // A retry the server refused for its research questions: the gaps, for the run it was refused
   // for, and the person's answer. Shown only while that run is the one followed and retryable.
@@ -1266,7 +1351,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
           // A retry is a new run, so the study's limit asks again.
           const asked = confirmationAsked(e);
           if (!asked) throw e;
-          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+          const yes = await confirmSpend({ summary: t("input.spend.research.retryRun"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.retryRunAct") });
           if (!yes) return run;
           next = await research.retry(frame.studyId, run.run_id, asked.ceiling, acknowledge);
         }
@@ -1330,7 +1415,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   );
 }
 
-/** Náklady (artifact-fieldwork FLD4b): what the run has spent and holds, the calls it could not price
+/** Náklady (artifact-fieldwork FLD4b; as tiles, FLD4e): what the run has spent and holds, the calls it could not price
  *  and what remains in the study; totals only (Q76 (c)). The remainder is read again whenever the spend
  *  shown changes, so the two never disagree for long; with no spend to show, nothing is read. */
 function SpendCard({ run }: { run: ResearchRun }) {
@@ -1350,11 +1435,16 @@ function SpendCard({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
-        <dl data-run-spend className="@container divide-y divide-border rounded-control border border-border">
+        // The board's compact panel (FLD20, Fieldwork.dc.html "Náklady"): label and value in one row each,
+        // what is spent first and strongest; the unpriced calls a row only when there are any.
+        <dl data-run-spend className="flex max-w-xl flex-col divide-y divide-border text-sm">
           {rows.map((r) => (
-            <div key={r.key} data-spend={r.key} className="grid gap-1 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr] @sm:items-baseline @sm:gap-3">
+            <div key={r.key} data-spend={r.key} className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-2 first:pt-0 last:pb-0">
               <dt className="text-ink-muted">{r.label}</dt>
-              <dd className="min-w-0"><span className="font-mono">{r.value}</span>{r.note ? <span className="text-ink-muted"> · {r.note}</span> : null}</dd>
+              <dd className="min-w-0 text-right">
+                <span data-spend-value className={`block tabular-nums text-ink ${r.key === "spent" ? "text-base font-semibold" : ""}`}>{r.value}</span>
+                {r.note ? <span data-spend-note className="mt-0.5 block text-xs text-ink-muted">{r.note}</span> : null}
+              </dd>
             </div>
           ))}
         </dl>
@@ -1362,6 +1452,9 @@ function SpendCard({ run }: { run: ResearchRun }) {
     </Card>
   );
 }
+
+/** The steps this client places on Průběh, in the pipeline's order (FLD2c). */
+const PIPELINE_ORDER: readonly string[] = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"];
 
 export function ProgressStep() {
   const frame = useFrame();
@@ -1371,7 +1464,9 @@ export function ProgressStep() {
   const repairable = useRetryableModules(run);
   // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
   const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
-  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
+  // A step that ran and stopped between two polls changes the steps' states: its events are read too.
+  const stepStates = run ? run.steps.map((s) => `${s.step_id}:${s.status}:${s.attempts_recorded ?? ""}`).join(",") : "";
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running, stepStates);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -1396,7 +1491,14 @@ export function ProgressStep() {
   const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");
   // Opened by a start that found this run instead of starting one (PC13).
   const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
-  const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
+  // The run's own steps (FLD2c): the pipeline's order for the keys this client places, the rest after
+  // in the run's order, none the run does not have. Parallel steps (the analysis modules) keep the
+  // pipeline's order.
+  const rank = (key: string) => {
+    const at = PIPELINE_ORDER.indexOf(key);
+    return at < 0 ? PIPELINE_ORDER.length : at;
+  };
+  const listed = [...run.steps].sort((a, b) => rank(a.node_key) - rank(b.node_key));
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
   const state = runState(run);
@@ -1411,20 +1513,12 @@ export function ProgressStep() {
       <SpendCard run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
-          <Chip tone={state.tone}>{state.label}</Chip>
+          <StatusPill tone={state.tone}>{state.label}</StatusPill>
           <span className="text-sm">{tv("research.exec.revision", { revision: run.design_revision })}</span>
           <span className="text-sm text-ink-muted">{tv("research.exec.startedAt", { when: when(run.created_at) })}</span>
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
           {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
         </div>
-        {listed.length ? (
-          <div className="mt-3 flex items-center gap-3">
-            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
-              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
-            </span>
-            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
-          </div>
-        ) : null}
         {parked ? (
           <div role="status" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
             <p>{parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}</p>
@@ -1456,20 +1550,32 @@ export function ProgressStep() {
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
       {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
-      <Card title={t("aia.stages.progress")}>
-        <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {listed.map((s) => (
+      <Card title={t("research.exec.stepsTitle")}>
+        {listed.length ? (
+          <div className="mb-3 flex items-center gap-3">
+            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
+              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
+            </span>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
+          </div>
+        ) : null}
+        <ol className="flex flex-col gap-3" aria-label={t("research.exec.stepsTitle")}>
+          {listed.map((s, index) => {
+            const stepActivity = activityOf(activity, s.step_id);
+            const last = lastReported(stepActivity, s.status, run.is_terminal);
+            return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
-            <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.step_id} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
+                <span data-step-number aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
+                <StatusPill tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</StatusPill>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {researchStepWork(run, s.node_key) ? (
                   <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
                 ) : null}
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
-                    <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
+                    <StatusPill tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</StatusPill>
                   </span>
                 ) : null}
               </div>
@@ -1479,9 +1585,12 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
-              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
+              {last ? <span data-last-reported className="font-mono text-xs tabular-nums text-ink-muted">{last}</span> : null}
+              {stepActivity?.quota ? <QuotaFillTable quota={stepActivity.quota} /> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={stepActivity} startedAt={s.started_at} label={stepLabel(s.node_key)} />
             </li>
-          ))}
+            );
+          })}
         </ol>
       </Card>
     </div>
@@ -1670,7 +1779,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><h4 className="text-sm font-semibold">Schválené znalosti klienta</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Podklady dostupné této studii. Otázka neposílá hodnoty výsledků nebo map automaticky a nemění zmrazený běh.</p>{assistance && frame.canEdit ? <Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => assistance("answer_memory", "Jaké schválené znalosti klienta poskytují kontext k tématu této studie?")}>Zeptat se na klientské znalosti</Button> : null}</div>
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
-  return <ResultsWorkspace run={run} progressHref={progressHref}
+  return <ResultsWorkspace run={run} progressHref={progressHref} tabs={!leadOwns}
     notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
@@ -1703,7 +1812,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
-        <ReportDocumentView run={run} />
+        <ReportDocumentView run={run} review={review} onReview={setReview} />
         <div id="res-report">{report}</div>
         {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
@@ -1723,10 +1832,7 @@ function noResultsWords(run: ResearchRun): string {
 function RevisionMoved({ note }: { note: RevisionNote | null }) {
   if (!note) return null;
   return (
-    <section role="note" data-revision-moved className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-4">
-      <p className="text-sm font-semibold">{note.title}</p>
-      <p className="mt-1 text-sm">{note.body}</p>
-    </section>
+    <StaleMark data-revision-moved title={note.title}>{note.body}</StaleMark>
   );
 }
 
@@ -1769,7 +1875,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
-          {/* Downloads happen on the report card above (CompleteReport); approval on the document read, in Zpráva's doc bar (RPT3a). */}
+          {/* Read, downloaded and approved in Zpráva's doc bar (RPT3a, RPT3c); the card above says what the report holds. */}
           {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}
@@ -1838,10 +1944,31 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
   );
 }
 
+/** A chip of the findings list's module filter. */
+const filterChip = (on: boolean): string =>
+  `min-h-11 rounded-control border px-2.5 py-1 text-left text-xs sm:min-h-8 focus-visible:outline-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border hover:bg-surface-sunken"}`;
+
 function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: CompiledSpecification | null; progressHref: string | null }) {
   const frame = useFrame();
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
-  const [selectedModule, setSelectedModule] = useState<(typeof ANALYSIS_ORDER)[number]>("executive");
+  const [filter, setFilter] = useState<(typeof ANALYSIS_ORDER)[number] | "all">("all");
+  // A finding or a claim the filter leaves off the page, pointed at by the Lead, the inspector or a
+  // coverage chip (LEAD_REVEAL): the list goes back to "Vše", and the next look finds it. A claim no
+  // key finding cites is drawn only among its module's answers, so its module is chosen instead.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const detail = (e as CustomEvent<unknown>).detail;
+      const target = typeof detail === "string" ? readAnalysisTarget(detail) : null;
+      if (!target || target.kind === "module") return;
+      const own = loaded.state === "ready" ? loaded.value.modules[target.module] : undefined;
+      const answerOnly = target.kind === "claim" && own?.outcome === "COMPLETED"
+        && !own.key_findings.some((f) => f.claim_ids.includes(target.claimId));
+      if (answerOnly) setFilter(target.module);
+      else if (filter !== "all" && target.module !== filter) setFilter("all");
+    };
+    window.addEventListener(LEAD_REVEAL, on);
+    return () => window.removeEventListener(LEAD_REVEAL, on);
+  }, [filter, loaded]);
   const states = run.steps.filter((step) => step.kind === "research_analysis")
     .map((step) => `${step.node_key}:${step.status}:${step.artifact_id ?? ""}`).join("|");
   useEffect(() => {
@@ -1878,31 +2005,39 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
-    const next = { runId: run.run_id, analysis: shownValue, spec };
-    setShownAnalysis(next);
+    setShownAnalysis({ analysis: shownValue, spec });
     return () => setShownAnalysis(null);
-  }, [run.run_id, shownValue, spec]);
+  }, [shownValue, spec]);
   const retryable = useRetryableRead(run);
   const openItem = useOpenAnalysisItem();
   if (loaded.state === "hidden") return null;
   const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
-  const selected = analysis?.modules[selectedModule];
-  const marks = analysis ? claimMarks(analysis.modules, selectedModule) : new Set<string>();
-  const selectedStep = run.steps.find((step) => step.node_key === `analysis_${selectedModule}`);
-  const selectedPending = analysis?.pending[selectedModule];
+  // The pane under the filter: the chosen module, or on "Vše" the executive summary when it is stored completed.
+  const paneModule = filter !== "all" ? filter : analysis?.modules.executive?.outcome === "COMPLETED" ? "executive" : null;
+  const pane = paneModule ? analysis?.modules[paneModule] ?? (filter !== "all" ? { outcome: "PENDING" as const } : undefined) : undefined;
+  const marks = analysis ? claimMarks(analysis.modules, filter === "all" ? null : filter) : new Set<string>();
+  const selectedStep = paneModule ? run.steps.find((step) => step.node_key === `analysis_${paneModule}`) : undefined;
+  const selectedPending = paneModule ? analysis?.pending[paneModule] : undefined;
   const findings = ANALYSIS_ORDER.flatMap((id) => {
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // The analysis's own origin once read; until then the run's, when it has exactly one (ANL10).
+  const analysisOrigin = loaded.state === "ready" ? resultOriginKind(loaded.value) : null;
+  const runKinds = runOriginKinds(run);
+  const runOrigin = runKinds.size === 1 ? [...runKinds][0] : null;
+  // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
+  const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
-      <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready" && resultOriginKind(loaded.value)
-          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
+      <p data-analysis-header className="mb-1 text-sm font-semibold">{analysisHeader(run.created_at, analysisOrigin ?? runOrigin)}</p>
+      <p role="note" className="mb-3 text-sm text-ink-muted">
+        {analysisOrigin
+          ? t(ANALYSIS_ORIGIN[analysisOrigin])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" && loaded.code === STALE_ANALYSIS ? (
@@ -1917,67 +2052,68 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
       ) : null}
       {analysis ? (
         <div className="flex flex-col gap-4">
+          {/* What waits on the person comes first: blocked modules and modules without a finding, with the way out (ANL4). */}
+          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <AnalysisMilestones run={run} analysis={analysis} />
           <AnalysisCoverage run={run} analysis={analysis} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
-              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky výše. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
-                : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
+                : withoutSupport.length && !Object.keys(analysis.pending).length
+                  ? holdingWords(withoutSupport)
+                  : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
-          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
-            <h3 id="key-findings-title" className="text-base font-semibold">Hlavní zjištění</h3>
+            <h3 id="key-findings-title" className="text-base font-semibold">Zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>
-            {findings.length ? findings.map(({ id, outcome }) => (
-              <div key={id} className="mt-4 border-t border-border pt-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</h4>
-                <ul className="mt-2 flex flex-col gap-3">
-                  {outcome.key_findings.map((finding, index) => (
-                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} className="scroll-mt-4 border-l-2 border-signal pl-3">
-                      <div className="flex items-start gap-2">
-                        <FormattedText text={finding.text} className="min-w-0 grow" />
-                        <FindingInspectButton open={openItem} module={id} index={index} />
-                      </div>
-                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí hlavní zjištění.</p>}
-            {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
-          </section>
-          <AnalysisExternal context={analysis.external_context} />
-          <h3 className="text-base font-semibold">Analýza po částech</h3>
-          <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
-            <nav aria-label="Části AI analýzy" className="flex flex-col gap-1">
+            {/* One list, filtered by module (ANL3b). A finding the filter leaves off is brought back by LEAD_REVEAL. */}
+            <nav aria-label="Části AI analýzy" className="mt-3 flex flex-wrap gap-1.5">
+              <button type="button" data-filter="all" aria-pressed={filter === "all"} onClick={() => setFilter("all")} className={filterChip(filter === "all")}>Vše</button>
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
-                  className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
-                  <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
+                return <button key={id} type="button" data-filter={id} data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} aria-pressed={filter === id} onClick={() => setFilter(id)} className={filterChip(filter === id)}>
+                  {stepLabel(`analysis_${id}`)} <span className="font-normal text-ink-muted">· {label}</span>
                 </button>;
               })}
             </nav>
-            <section aria-label={stepLabel(`analysis_${selectedModule}`)} className="min-w-0 rounded-md border border-border bg-surface-raised p-4">
-              <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
-              {selected?.outcome === "BLOCKED" ? <>
-                <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
-                <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === selectedModule)?.reasons ?? []} /></div>
-              </> : selected?.outcome === "COMPLETED" ? <>
-                {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
-                {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></div>)}
-                </div> : null}
-                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><div className="flex items-start gap-2"><FormattedText text={finding.text} className="min-w-0 grow" /><FindingInspectButton open={openItem} module={selectedModule} index={index} /></div><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></li>)}</ul></div> : null}
-                {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
-                {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
-            </section>
-          </div>
+            {/* The module's own words: on "Vše" the analysis's summary, else the chosen module's summary, and the
+                research questions' answers with what the run recorded about each (PC2); findings are listed once, below. */}
+            {pane && paneModule ? (
+              <section aria-label={filter === "all" ? "Shrnutí analýzy" : stepLabel(`analysis_${paneModule}`)} data-module-pane={paneModule} className="mt-3 rounded-md bg-surface-sunken p-3 text-sm">
+                {pane.outcome === "BLOCKED" ? <>
+                  <p className="leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
+                  <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === paneModule)?.reasons ?? []} /></div>
+                </> : pane.outcome === "COMPLETED" ? <>
+                  {pane.summary ? <FormattedText text={pane.summary} /> : <p className="text-ink-muted">Tato část nemá textový souhrn.</p>}
+                  {filter !== "all" && pane.research_question_answers.length ? <div className="mt-4 space-y-3"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
+                    {pane.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-raised p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: paneModule, index }} marks={marks} outcome={pane} spec={spec} open={openItem} /></div>)}
+                  </div> : null}
+                </> : <div className="text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </section>
+            ) : null}
+            {findings.length ? (
+              <ul className="mt-4 flex flex-col gap-3">
+                {findings.filter(({ id }) => filter === "all" || filter === id).flatMap(({ id, outcome }) => outcome.key_findings.map((finding, index) => (
+                  <li key={`${id}:${index}`} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} data-finding-module={id}
+                    className="scroll-mt-4 border-l-2 border-signal pl-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</p>
+                    <div className="flex items-start gap-2">
+                      <FormattedText text={finding.text} className="min-w-0 grow" />
+                      <FindingInspectButton open={openItem} module={id} index={index} />
+                    </div>
+                    <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
+                  </li>
+                )))}
+              </ul>
+            ) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí zjištění.</p>}
+            {filter !== "all" && findings.length && !findings.some((f) => f.id === filter) ? <p className="mt-3 text-sm text-ink-muted">Tato část neuvádí žádné zjištění.</p> : null}
+            {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
+          </section>
+          <AnalysisExternal context={analysis.external_context} />
         </div>
       ) : null}
     </Card>
@@ -2093,7 +2229,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
               <tr key={o.id} data-object={objectOf(o.id)} data-withheld={o.reason} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
                 <td colSpan={2} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
-                  ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
+                  ? <Value suppressed={o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`} />
                   : "Bez průměru"}</td>
                 <td aria-hidden="true" className="hidden @lg:table-cell" />
                 <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
@@ -2182,7 +2318,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
           const anchor = measureAnchor(measure.id);
           const reading = readMeasure(measure.result, measure.scale, box, at, measure.options);
           return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
-            className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
+            className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--signal)]" : "border-border"}`}>
             {/* The reading runs the card's full width under the title and its chip: beside the chip it
                 was squeezed to half a phone's width (artifact-results, Findings). The title keeps
                 14rem, below which the chip wraps under it. */}
@@ -2227,7 +2363,7 @@ function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
   const named = d.changed.length + d.formulas.length;
   return (
     <div role="note" data-aggregate-deviation className="flex flex-col gap-1 rounded-sm border border-status-fault p-3 text-sm">
-      <div><Chip tone="fault">{t(`${D}.chip`)}</Chip></div>
+      <div><StatusPill tone="fault">{t(`${D}.chip`)}</StatusPill></div>
       <p>{tv(`${D}.text`, { version: d.version ?? t(`${D}.unknownVersion`) })}</p>
       {named ? (
         <ul className="list-disc pl-5 text-xs">

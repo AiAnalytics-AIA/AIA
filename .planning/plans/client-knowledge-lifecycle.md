@@ -20,17 +20,27 @@ chunks:
   - "[x] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
   - "[x] K4a. A study's chosen revisions (use in this study) and their frozen context: selection, freeze, hash, migration"
+  - "[x] K4d. Each frozen entry carries its chosen revision's recorded lineage, and the context its licence lineage by knowledge_lineage's rule (the eligibility the licence gate judges; Q60 (a) supersedes D-4's omission)"
   - "[ ] K4b. The study's consumers read the frozen context behind a switch (agent jobs, the Lead, Design and Deep Research), and the selection's API"
   - "[ ] K4c. Web: Použít v této studii on the client's items and in a study; a superseded or omitted entry said where it is read"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
   - "[ ] K6. Implement correction, retirement, conflicts and dependent-study change visibility"
   - "[ ] K7. Prove all four consumers and reconcile the shared documentation after landing"
-  - "[ ] K8. One semantics for Deep Research evidence entering client knowledge (an item or a proposal), and a document item's text visible to Deep Research"
+  - "[x] K8. One semantics for Deep Research evidence entering client knowledge (an item or a proposal), and a document item's text visible to Deep Research"
+  - "[x] K8a. The rule for evidence entering knowledge: a verbatim capture a person checked is their write (an item, or a proposal where self-approval is off); anything a model wrote stays a proposal until a person accepts it (the product owner, 2026-10-29)"
+  - "[x] K8b. A DOCUMENT or SOURCE item's file text frozen for Deep Research from its source's pinned reading, the Interní dokument mark frozen with it (G64), behind AIA_DEEP_RESEARCH_DOCUMENT_TEXT, off"
   - "[ ] K7a. W5 MVP research consumer proof: intake, reviewed/frozen knowledge, executable dimension, admitted report and same-client reuse; Simulation extension stays in K7 after MVP"
   - "[ ] K9. A cross-client what-needs-me portfolio: every study waiting for the signed-in researcher, across clients (D-47)"
   - "[ ] K10. Project memory searches approved reports too, beside designs (D-47)"
-  - "[ ] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17)"
-  - "[ ] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
+  - "[x] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17) (#853 @ 0eda121e)"
+  - "[x] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
+  - "[ ] K13. A person's accept of an AI-written knowledge proposal writes one ai_proposal row in the approval ledger, once, in the decision's transaction, as design proposals do (two-roles 5b.3; REV-5B-KNOWLEDGE (a), the product owner 2026-10-26; W1)"
+  - "[ ] K14. Reject with a reason, and Rozhodnuté: the review's reject takes an optional reason (DecisionRequest.note, stored as decision_note) and a Rozhodnuté tab lists decided proposals with who, when and why (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K15. People's names in every trail, the server: approved_by, proposed_by, decided_by, internal.by and set_by answered with the person's name beside the id, null when unknown (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K16. 'Cena nejvýše' of AI proposals from a document, the server: the run's ceiling quoted before the start, confirmed by the person, asked again when it grows (lead-orchestration#LO29's rule) (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K17. The ceiling on 'Navrhnout znalosti' before the start, 'horní mez, ne odhad', unknown never zero, asked again when it grows (W1, after K16)"
+  - "[ ] K18. After the MVP: the Data Library's shared-layer flow, as the prototypes draw it (Nigel, 27 Oct 2026)"
+  - "[ ] K19. Deleting a knowledge item for good: DELETE …/knowledge/{item_id} (a person with the right permission), the item and its revisions out of the library, a study's frozen copy kept, the source's bytes kept while anything else names them, audited; no retired state (Q3, Nigel 27 Oct; W2)"
 ---
 # Client knowledge that studies can use correctly
 
@@ -708,6 +718,44 @@ Three slices:
 - F093's silent 200-item truncation ends for a K4b consumer when the switch is on: a selection
   has no window. Under the switch off it stays as it is.
 
+## K4d: the lineage a frozen entry carries (2026-10-28)
+
+K4a deferred licence-lineage omission to D-4 (above). Q60 (a), 2026-10-21, settled it the other way:
+knowledge with an unrecorded dataset lineage reaches `bedrock-eu-primary` alone, judged by the licence
+gate (`licence_determinations.py`, `CLIENT_KNOWLEDGE_DATASET`), so nothing is omitted from the context
+for its lineage. What was missing is the input the gate judges. `for_study` gives each item the
+datasets its **current** revision records (`client_knowledge_repository.py:359-379 @ 28406c46`); a
+frozen entry recorded none, so a K4b consumer would either have declared every dataset-derived entry
+unrecorded, or read the current revision's lineage for a superseded entry whose older text it sends.
+
+- `FrozenKnowledgeEntry.datasets`: `recorded_datasets` of the **chosen** revision's provenance, read
+  from the revision row `freeze_for_study` already reads (no extra query); `None` is unrecorded.
+  It has one spelling: sorted and distinct, an empty tuple or a blank name refused.
+- `FrozenKnowledgeContext.lineage()`: the context's licence lineage through `knowledge_lineage`, the
+  one rule the agent jobs and the Lead declare by; K4b calls it. The rule (`knowledge_lineage`,
+  `DATASET_DERIVED_KINDS`, `UNRECORDED_KNOWLEDGE_LINEAGE`) moves from `domain/research_agents.py` to
+  `domain/knowledge.py`, beside `recorded_datasets`, so the knowledge context does not import the
+  agent contracts; `research_agents` and `research_lead` import it from there.
+- The hash covers each entry's datasets and its kind: the lineage is what the gate judges, and with no
+  datasets recorded the kind decides it (a DATASET declares the unrecorded placeholder, a FACT nothing),
+  so `verify()` refuses a stored copy whose lineage or kind was changed (Codex's P2 on #1104). Rebuilt from the database it cannot differ for the same
+  (item, revision), a revision row being append-only. `CONTEXT_VERSION` is `knowledge-context-v2`;
+  no v1 context was ever stored: `freeze_for_study` has no caller outside the tests
+  (`git grep freeze_for_study @ 28406c46`: the repository and `test_knowledge_context.py` alone).
+- The entry's kind, which decides the unrecorded placeholder, is the item's: a revision keeps its
+  item's kind (`client_knowledge_repository.py:1138-1139 @ 28406c46`).
+- No switch, no migration: no model sees anything different until K4b.
+
+Tests (`test_knowledge_context.py`): `test_a_frozen_entry_carries_the_datasets_its_chosen_revision_records`,
+`test_a_superseded_entry_keeps_the_lineage_of_the_revision_chosen_not_the_newer_one`,
+`test_an_unrecorded_lineage_is_none_and_the_context_names_the_placeholder`,
+`test_a_contexts_lineage_is_the_one_the_agent_jobs_would_declare`,
+`test_a_stored_context_whose_lineage_was_changed_does_not_verify`,
+`test_a_stored_context_whose_kind_was_changed_does_not_verify`, `test_an_entrys_lineage_has_one_spelling`;
+all failed before the change.
+Not here: Deep Research's `knowledge_access` still names every dataset-derived item unresolved without
+reading its recorded lineage (K4b, or K8 with the "Interní dokument" mark, G64).
+
 ## Findings
 
 **F-K1 — A pending item revision can replace a newer accepted correction.**
@@ -822,6 +870,24 @@ It passed alone twice and in the next full run. There is no reproduction, so it 
 hypothesis. The file is not touched by K2d. Next step: run the full suite repeatedly and, if it
 recurs, capture the assertion and its timing.
 
+## K13: the approval ledger records an AI knowledge proposal's accept (2026-10-26)
+
+The product owner in the Decision Review, 2026-10-26 (relayed by the PM coordinator), REV-5B-KNOWLEDGE
+(a): "Yes, one 'ai_proposal' ledger row per accept, as for design proposals". Today an accept of an
+AI-authored knowledge proposal (K2d's, `authored: "ai"`) goes through `decide`
+(`packages/aia_core/src/aia_core/infrastructure/client_knowledge_repository.py:1278 @ 5d2ac5ac`) and
+writes a knowledge revision, but no approval-ledger row; an agent job's accept writes one
+(`infrastructure/workflow_repository.py:2577 @ 5d2ac5ac`, `record_ai_proposal_acceptance`, subject
+`ApprovalSubject.AI_PROPOSAL`, `domain/approval_ledger.py:46,77 @ 5d2ac5ac`). K13: an approval of a
+proposal whose author is `KnowledgeAuthor.AI` writes one `ai_proposal` row in the same transaction as
+the revision, under `APPROVE_GATE` (the worker's scope cannot), naming the proposal and its run, the
+producer (the run's starter), the accepter and whether they are the same person, and the revision
+written; a rejection writes none (a dismissal, as `record_ai_proposal_dismissal` records for agent
+jobs, if the ledger's subject spec admits it). The ledger subject's description in
+`approval_ledger.py` widens from "the agent job's run" to name a client-work run too, with its writer.
+W1, beside K2e and K2f. Test: an AI proposal's approval writes exactly one `ai_proposal` row and a
+second approval of the same proposal none; a person-written proposal's approval writes none.
+
 ## Doc follow-up
 
 After each slice lands, update CLAUDE's knowledge modules/routes and input/review surfaces;
@@ -858,6 +924,113 @@ and a document item holds only `source_id`, so Deep Research never sees the file
 owns the knowledge side; S2 supplies the bundle reader. Gap G36; interface I19.
 
 
+## K8a: one rule for Deep Research evidence entering knowledge (2026-10-29)
+
+The master plan's I19 / G36 read three plans as disagreeing on whether Deep Research evidence enters
+knowledge as an item or a proposal. They import three different things:
+
+| Path | What enters | Whose words | It becomes |
+| --- | --- | --- | --- |
+| "Ověřeno, přidat zdroj" (`application/verified_sources.py`, built) | a captured source: its URL, title and verbatim quote, from the sealed bundle | the source's own; a person checked it | an item, or a proposal where the client or the Study turned self-approval off |
+| K2e's import (not built) | an accepted finding's claim, located by its snapshot and quote | a model's | a proposal |
+| `deep-research-web-search` 37 (not built) | the run's consolidated dataset | a model's and code's | a DATASET proposal |
+
+**The rule** (the product owner, 2026-10-29, relayed by the PM coordinator ~09:46 UTC: "Yes, record
+it"): a verbatim capture a person checked is that person's write, so it is knowledge at once (ADR 0019
+decision 3), or a proposal where self-approval is off; anything a model wrote stays a proposal until a
+person accepts it, even when a person picked it to import. It follows from two decisions already made
+(the click as the person's write, 2026-10-19; AI-written knowledge a proposal, ADR 0019), so the three
+paths agree once each is read by what it imports. K2e and 37 inherit it when they are built.
+
+Pinned (`apps/api/tests/test_verified_sources_api.py`): the click writes an item at once
+(`test_a_checked_source_is_the_clients_knowledge_at_once_from_the_bundle_alone`), a proposal where
+the Study turned self-approval off (`test_a_study_with_self_approval_off_files_the_source_as_a_proposal`),
+and never the finding's claim (`test_the_item_is_the_captured_words_never_the_models_claim`, added
+here). That last test is a regression guard: it passes on `verified_sources.py:87-104 @ d0b3be8d`, and
+fails when the click writes `finding.claim` instead of `finding.quote`. In the fixture bundle the claim
+equals the quote, so the test serves a copy whose claim is a model's wording. No code changes.
+
+## K8b: a document item's text for Deep Research (2026-10-29)
+
+The product owner, 2026-10-29 ~09:46 UTC, relayed by the PM coordinator: "Go, build it".
+
+**What was missing.** `freeze_knowledge` held an item's title, summary and `content.text`
+(`knowledge_access.py:73-90 @ d0b3be8d`). A DOCUMENT or SOURCE item holds only `content.source_id`, so
+a run held its title alone: no word of the file was quotable. And the frozen `KnowledgeSource` carried
+no "Interní dokument" mark (G64), so report-delivery RD0b had nothing to read.
+
+**Contract.**
+- `DeepResearchRuns(document_store=)`: the API passes the store only under
+  `AIA_DEEP_RESEARCH_DOCUMENT_TEXT` (off by default and in test), on every enqueue path: the stage's
+  quote, start, Interpretation start and retry (`routers/deep_research.py` `_enqueuing`) and the
+  Lead's Deep Research card (`DeepResearchCardSettings.document_store`). Without it nothing is read.
+- At enqueue, the study's DOCUMENT and SOURCE items' sources are read from their rows in one query
+  (`ClientSourceRepository.for_study`: the study's own client, `VIEW_STUDY`); `freeze_knowledge` asks
+  a `DocumentReader` each item's size (the row's character count) and, only where it could fit, its
+  text (`study_reading`: the kept reading, verified against the row's hash). What is read is what
+  `source_proposals.require_extractable` lets reach a model, as AI proposals from a document read it:
+  a DOCUMENT-family reading, READ or PARTIAL, with segments (a PDF's table rows among them, as there).
+  A DATASET-family source never, whichever item names it; a DATASET item is not asked. A source whose
+  row says nothing was read (no READ or PARTIAL outcome, no segment) is never fetched. A reading that
+  is missing, fails verification or was read again since is skipped, its item held as without the
+  switch and `truncated`; an item whose stored source id is malformed is held as it was: one
+  unreadable document never refuses a run.
+- The frozen `KnowledgeSource` holds the segments' text after the title and summary, within the
+  existing bounds (16,000 characters per item, 128 KB per run), with `reading_sha256` naming the
+  reading and `internal` the source's mark when frozen. **Its class stays the item's**: the source a
+  run holds is the item's own words (approved knowledge, Class A) with the file's, and mixed material
+  takes the more restrictive class, so a mark (Class C by `material_rules.source_rule`) never lowers
+  it. **The product owner's decision, 2026-10-29 ~12:23 UTC, relayed by the PM coordinator: "Keep
+  Class A".** It departs from the ~09:46 go, which read "Class A, or C when the source is marked":
+  `/code-review` found that C would take the client's own title and body out of the Class-A leakage
+  screen (`executors/deep_research/_shared.py` `_class_a_texts`) and onto Class-C routes, so a marked
+  source stays A and the mark is frozen as `KnowledgeSource.internal`, for RD0b to read.
+- **Reading documents only ever adds.** The items are first held exactly as without them; each
+  document is then given its file's text, in item order, while the budget lasts. One whose size cannot
+  fit stays as it was held, `truncated`, and is never fetched; one that would add no word (its item's
+  own text already at the bound) is not fetched and names no reading. A first build filled the budget
+  in item order with the texts and omitted items a run without them held (41 of 50, measured); a
+  second fetched every reading to find most did not fit (50 of 50); both are fixed and pinned.
+
+**ADR 0021 defect note: the bundle contract.** `KnowledgeSource` gains `internal: bool = False` and
+`reading_sha256: str | None = None`, each left out of the dump at its default (`exclude_if`). A request
+frozen without document text therefore dumps and hashes as before: no request, run-spec or reuse
+fingerprint moves, and every stored request and bundle still reads (every existing Deep Research core
+test passes unchanged). `FrozenKnowledge.fingerprint()` covers each item's text, so a track's reuse key
+moves only where a document's text was added. The engine is otherwise untouched.
+
+**Measured** (SQLite, in-memory store, ~12 KB documents; a throwaway test, not committed): per freeze,
+5 documents 4.2 ms off and 16.1 ms on (5 readings fetched, 68,065 bytes held); 50 documents 6.3 ms
+off and 28.2 ms on (9 fetched, 9 with their text, all 50 held, none omitted); 200 documents 13.6 ms
+off and 39.2 ms on (9 fetched, all 200 held). The fetches are bounded by the budget, not the library.
+The switch adds no model request, so a run's ceiling (its requests at their reservation, `run_cost.py`)
+does not move; what grows is each internal investigator request's input, at most
+`knowledge_items_per_track` (4 to 12 by preset) times `SOURCE_TEXT_CHARS` (12,000) characters, within
+its reservation; a request past the window stops `CONTEXT_TOO_LARGE`, as today.
+
+**Tests** (each failed before the change it pins): `test_deep_research_knowledge_access.py`
+(`test_a_document_items_text_is_what_its_reading_says_and_names_the_reading`,
+`test_a_source_marked_internal_freezes_marked_and_never_lowers_the_items_class`,
+`test_a_document_that_adds_no_word_names_no_reading`,
+`test_a_long_document_is_cut_at_the_item_bound_and_says_so`,
+`test_without_document_texts_the_frozen_knowledge_is_byte_for_byte_todays`,
+`test_document_text_never_pushes_out_knowledge_held_without_it`,
+`test_a_file_that_cannot_fit_or_adds_nothing_is_never_read`); `test_deep_research_runs.py`
+(`test_a_document_items_file_text_is_frozen_from_its_reading`,
+`test_a_source_marked_internal_is_frozen_marked_and_stays_class_a`,
+`test_a_reading_that_fails_verification_is_skipped_never_a_refused_start`,
+`test_a_source_with_nothing_read_or_a_malformed_name_is_never_fetched`,
+`test_a_datasets_rows_and_another_clients_source_are_never_read`, which fails with
+`require_extractable` removed); `test_deep_research_api.py`
+(`test_the_document_text_switch_decides_whether_a_run_freezes_a_files_words`, which fails with the
+router's wiring removed); `test_lead_deep_research_cards_api.py`
+(`test_with_document_text_on_a_cards_run_is_still_the_stages_run`, which fails with the card's wiring
+removed).
+
+**Not here.** Recorded dataset lineage in `knowledge_access` (it still names every dataset-derived
+item unresolved; K4b). RD0b's check itself (report-delivery). Switching it on for develop is the
+owner's call.
+
 ## Execution predecessors (2026-10-20)
 
 K2e/K2f, K3, K4 and K8 are W1. K4 extends the existing immutable context loader before the
@@ -873,8 +1046,54 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 **New chunks.** K9 (W3), K10 (W3), K11 (W1, with `lead-orchestration#LO1`;
 the wallet ceiling only: the posture setter and its Profil UI are `deep-research-web-search#53`'s, G37,
 and K11 places the ceiling beside it in the same Pravidla card; both are listed read-only in Settings, I15), K12 (W1; #513 proposed `client-workspace#C10`, which is taken).
+*The owner, 2026-10-25 (AUD-6 (a), the audit page, relayed by coordinator 3): hide the Simulace tab for the MVP; K12 builds it.*
 
 **Existing chunks, changed.** K8 freezes the "Interní dokument" mark on the frozen `KnowledgeSource`
 at enqueue (G64; a bundle-contract change needing ADR 0021's defect note). The fold of
 `client-workspace` C6-C9 lands here: C6 → K2f/K3, C8 → `client-data-in-analysis#2/2a/3` with its UI
 chunk `client-data-in-analysis#10`, C9 → K6; C7 is closed as superseded by `client-budget`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**K14. Reject with a reason and Rozhodnuté** (W1, screen). Nigel, 27 Oct 2026: reject with a reason (optional), a
+Rozhodnuté tab (who, when, why). The server already takes a note (`DecisionRequest.note`,
+`apps/api/src/aia_api/routers/workspace.py:661-672 @ dbaa7720`), stores it (`decision_note`,
+`infrastructure/tables.py:1577`) and lists decided proposals (`GET …/knowledge/proposals?status=`, `workspace.py:1924-1936`);
+the web sends no reason and shows no decided list. Test: a reject with a reason reads back on Rozhodnuté with who and
+when; a reject without one is allowed.
+
+**K15. Names in trails** (W1, server). Every trail answers ids (`approved_by`, `proposed_by`, `decided_by`,
+`internal.by`, `set_by`; `workspace.py:363`, `:404`; `client_sources.py:102-120 @ a1a9a45c`). Answer each with the
+person's display name from the organization's members beside the id; a departed or unknown person reads null, never a
+guessed name. Used by K14, `client-pages-redesign#CPR3` and `#CPR11`. Test: a proposal by a member answers their name.
+
+**K16. The document proposals' ceiling** (W1, server). The proposals run (`POST …/sources/{id}/proposals`,
+`apps/api/src/aia_api/routers/client_sources.py:507 @ dbaa7720`) states no ceiling; only the client's budget stops it.
+Quote it before the start (the batches K2d counts, at most `MAX_REQUESTS`, times the reservation), take the person's
+confirmation of that ceiling, and ask again when it grows (LO29). Test: the quote equals batches times reservation; a
+start on an older, lower confirmation is 409 with the new ceiling.
+
+**K17. On screen** (W1). `SourceProposals.tsx` and the intake's AI switch (`client-pages-redesign#CPR12`) show it.
+Test: the ceiling shows before the start; an unknown one starts nothing.
+
+**K18. Data Library** (after the MVP). The prototypes' shared-layer flow for the data library (the prototypes inventory:
+partly built). Nothing scheduled.
+
+**K9 on Klienti.** Nigel, 27 Oct 2026: the cross-client "needs me today" is in the MVP, on Klienti. K9 stays this
+plan's (its read); its place on the directory is `client-pages-redesign#CPR8`.
+
+**K19 and K6: deletion, not retirement** (Nigel, 27 Oct 2026 (the Klienti canvas session, relayed by the PM coordinator; the folder rule in the PM coordinator's chat ~10:00 UTC)). Q3: a knowledge item is deleted permanently after a confirmation,
+no undo, brands and competitors too; studies that used it keep their frozen copy (K4's `FrozenKnowledgeContext`); the
+deletion is audited. A folder's files are deleted the same way (`study-files#SF2`; the earlier "retired" reading is
+withdrawn). K19 builds the item deletion (W2): today the only DELETE routes are a contact, a folder and a label
+(`apps/api/src/aia_api/routers/workspace.py:1588, 1748, 1832 @ dbaa7720`). K6 keeps correction, conflicts and
+dependent-study visibility; it no longer builds a retired state or a Vyřadit, and "dependent-study visibility" now
+includes saying an item a study froze has since been deleted. The screens are `client-pages-redesign#CPR22`.

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -55,6 +56,7 @@ __all__ = [
     "AgentDefinition",
     "CallProvenance",
     "CallPurpose",
+    "ContentBlock",
     "CostBasis",
     "Delivery",
     "FallbackPolicy",
@@ -67,7 +69,12 @@ __all__ = [
     "ProviderAdapter",
     "ProviderError",
     "ProviderErrorKind",
+    "ReasoningBlock",
     "StructuredValidation",
+    "TextBlock",
+    "ToolResultBlock",
+    "ToolSpec",
+    "ToolUseBlock",
     "UsageOutcome",
     "canonical_json",
     "check_thinking_budget",
@@ -214,7 +221,7 @@ def input_fingerprint(request: AdapterRequest) -> str:
     """
     content: dict[str, Any] = {
         "system": request.system,
-        "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+        "messages": [{"role": m.role, "content": m.wire_content()} for m in request.messages],
         "output_schema": dict(request.output_schema) if request.output_schema else None,
         "max_output_tokens": request.max_output_tokens,
     }
@@ -232,6 +239,9 @@ def input_fingerprint(request: AdapterRequest) -> str:
     # only when set: every fingerprint recorded without one is unchanged.
     if request.request_profile.effort is not None:
         content["effort"] = request.request_profile.effort.value
+    if request.tools:
+        # The same rule: a request offering no tool keeps its fingerprint.
+        content["tools"] = [t.wire() for t in request.tools]
     return content_fingerprint(content)
 
 
@@ -360,6 +370,9 @@ class StructuredValidation:
     ok: bool
     value: BaseModel | None
     violations: tuple[str, ...] = ()
+    #: A list or object field arrived as a string (perhaps one holding JSON). Still a
+    #: violation; the repair turn says to send the list or object itself.
+    container_as_string: bool = False
 
 
 def validate_structured_output(
@@ -389,12 +402,62 @@ def validate_structured_output(
     try:
         value = contract.model_validate_json(payload, strict=True)
     except ValidationError as exc:
+        errors = exc.errors()
         violations = tuple(
             f"{'.'.join(str(p) for p in error['loc']) or '<root>'}: {error['msg']}"
-            for error in exc.errors()
+            f"{_received(error)}"
+            for error in errors
         )
-        return StructuredValidation(ok=False, value=None, violations=violations)
+        return StructuredValidation(
+            ok=False,
+            value=None,
+            violations=violations,
+            container_as_string=any(
+                error["type"] in _CONTAINER_TYPE_ERRORS and isinstance(error.get("input"), str)
+                for error in errors
+            ),
+        )
     return StructuredValidation(ok=True, value=value)
+
+
+#: Pydantic's wrong-type errors for a field declared a list, tuple, object or map.
+_CONTAINER_TYPE_ERRORS: Final = frozenset(
+    {
+        "list_type",
+        "tuple_type",
+        "set_type",
+        "frozen_set_type",
+        "model_type",
+        "dict_type",
+        "model_attributes_type",
+    }
+)
+
+
+def _received(error: Mapping[str, Any]) -> str:
+    """``, received <JSON type>`` for a wrong-type error, else nothing.
+
+    Pydantic says the same for a list field given a string, null or an object; the
+    repair turn and the attempt's error say which arrived. The type only, never the value.
+    """
+    if "input" not in error or not str(error.get("type", "")).endswith("_type"):
+        return ""
+    found = error["input"]
+    if found is None:
+        name = "null"
+    elif isinstance(found, str):
+        name = "string"
+    elif isinstance(found, bool):  # before int, which bool subclasses
+        name = "boolean"
+    elif isinstance(found, int | float):
+        name = "number"
+    elif isinstance(found, Mapping):
+        name = "object"
+    elif isinstance(found, list):
+        name = "array"
+    else:
+        return ""
+    return f", received {name}"
 
 
 # --------------------------------------------------------------------------- #
@@ -467,11 +530,239 @@ class AgentDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class TextBlock:
+    """Text inside a message of content blocks."""
+
+    text: str
+
+    def wire(self) -> dict[str, Any]:
+        """The block as fingerprinted and measured: provider-neutral JSON."""
+        return {"type": "text", "text": self.text}
+
+
+@dataclass(frozen=True, slots=True)
+class ToolUseBlock:
+    """A tool the model called: its id, the tool's name and the arguments it passed.
+
+    ``arguments`` is the canonical JSON of the object the model passed, so the block is
+    immutable and hashable; :meth:`of` builds it from the object.
+    """
+
+    tool_use_id: str
+    name: str
+    arguments: str
+
+    def __post_init__(self) -> None:
+        if not self.tool_use_id.strip() or not self.name.strip():
+            raise ValueError("a tool call names its id and its tool")
+        try:
+            value = json.loads(self.arguments)
+        except ValueError as exc:
+            raise ValueError("a tool call's arguments are JSON") from exc
+        if not isinstance(value, dict):
+            raise ValueError("a tool call's arguments are one JSON object")
+        # One call, one block: however the JSON was spaced or ordered.
+        object.__setattr__(self, "arguments", canonical_json(value))
+
+    @classmethod
+    def of(cls, tool_use_id: str, name: str, arguments: Mapping[str, Any]) -> ToolUseBlock:
+        """The block for a call with these arguments."""
+        return cls(tool_use_id, name, canonical_json(dict(arguments)))
+
+    @property
+    def input(self) -> dict[str, Any]:
+        """The arguments as an object (a new copy each time)."""
+        value: dict[str, Any] = json.loads(self.arguments)
+        return value
+
+    def wire(self) -> dict[str, Any]:
+        return {"type": "tool_use", "id": self.tool_use_id, "name": self.name, "input": self.input}
+
+
+@dataclass(frozen=True, slots=True)
+class ToolResultBlock:
+    """What AIA answers one tool call with: data, never instructions (ADR 0026 R8)."""
+
+    tool_use_id: str
+    content: str
+    is_error: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.tool_use_id.strip():
+            raise ValueError("a tool result names the call it answers")
+        if not self.content.strip():
+            raise ValueError("a tool result says something: an empty read is a JSON value")
+
+    def wire(self) -> dict[str, Any]:
+        return {
+            "type": "tool_result",
+            "tool_use_id": self.tool_use_id,
+            "content": self.content,
+            "is_error": self.is_error,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ReasoningBlock:
+    """A model's reasoning, kept as the provider returned it and sent back unchanged.
+
+    Opaque: ``block`` is the canonical JSON of the provider's own block, signature
+    included, and only the adapter of ``provider`` reads it. A provider requires a
+    thinking model's reasoning returned untouched within a tool conversation; nothing
+    in AIA shows it or reads its text. ``redacted`` is the adapter's reading of it.
+    """
+
+    provider: Provider
+    block: str
+    redacted: bool = False
+
+    def __post_init__(self) -> None:
+        try:
+            value = json.loads(self.block)
+        except ValueError as exc:
+            raise ValueError("a reasoning block is the provider's JSON") from exc
+        if not isinstance(value, dict) or not value:
+            raise ValueError("a reasoning block is the provider's JSON object")
+        object.__setattr__(self, "block", canonical_json(value))
+
+    @classmethod
+    def of(
+        cls, provider: Provider, block: Mapping[str, Any], *, redacted: bool = False
+    ) -> ReasoningBlock:
+        """The block for the provider's own reasoning object."""
+        return cls(provider, canonical_json(dict(block)), redacted)
+
+    @property
+    def provider_block(self) -> dict[str, Any]:
+        """The provider's block as it came (a new copy each time)."""
+        value: dict[str, Any] = json.loads(self.block)
+        return value
+
+    def wire(self) -> dict[str, Any]:
+        return {
+            "type": "reasoning",
+            "provider": self.provider.value,
+            "block": self.provider_block,
+            "redacted": self.redacted,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ToolSpec:
+    """A tool offered to the model: its name, what it is for and its arguments' schema.
+
+    ``input_schema`` is the canonical JSON of a JSON Schema object, so the spec is
+    immutable and hashable; :meth:`of` builds it from the schema.
+    """
+
+    name: str
+    description: str
+    input_schema: str
+
+    def __post_init__(self) -> None:
+        if not _TOOL_NAME.fullmatch(self.name):
+            raise ValueError(f"a tool's name is [A-Za-z0-9_-]{{1,64}}, not {self.name!r}")
+        if not self.description.strip():
+            raise ValueError("a tool says what it is for")
+        try:
+            value = json.loads(self.input_schema)
+        except ValueError as exc:
+            raise ValueError("a tool's input schema is JSON") from exc
+        if not isinstance(value, dict) or value.get("type") != "object":
+            raise ValueError("a tool's input schema is a JSON Schema object")
+        object.__setattr__(self, "input_schema", canonical_json(value))
+
+    @classmethod
+    def of(cls, name: str, description: str, input_schema: Mapping[str, Any]) -> ToolSpec:
+        """The spec for a tool with this schema."""
+        return cls(name, description, canonical_json(dict(input_schema)))
+
+    @property
+    def schema(self) -> dict[str, Any]:
+        """The input schema as an object (a new copy each time)."""
+        value: dict[str, Any] = json.loads(self.input_schema)
+        return value
+
+    def wire(self) -> dict[str, Any]:
+        return {"name": self.name, "description": self.description, "input_schema": self.schema}
+
+
+#: A tool name every provider accepts.
+_TOOL_NAME: Final = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+#: A block of a message's content, beside plain text (ADR 0026 Amendment 2026-10-28).
+ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | ReasoningBlock
+
+#: The blocks each role may hold: the model calls tools and reasons, AIA answers calls.
+_ROLE_BLOCKS: Final[dict[str, tuple[type, ...]]] = {
+    "user": (TextBlock, ToolResultBlock),
+    "assistant": (TextBlock, ToolUseBlock, ReasoningBlock),
+}
+
+
+def _check_blocks(role: str, blocks: tuple[ContentBlock, ...]) -> None:
+    allowed = _ROLE_BLOCKS.get(role)
+    if allowed is None:
+        raise ValueError(f"a message's role is user or assistant, not {role!r}")
+    for block in blocks:
+        if not isinstance(block, allowed):
+            other = "assistant" if role == "user" else "user"
+            raise ValueError(f"a {type(block).__name__} comes from the {other}, not the {role}")
+
+
+def _tool_calls(blocks: tuple[ContentBlock, ...]) -> tuple[ToolUseBlock, ...]:
+    return tuple(b for b in blocks if isinstance(b, ToolUseBlock))
+
+
+def _reasoning(blocks: tuple[ContentBlock, ...]) -> tuple[ReasoningBlock, ...]:
+    return tuple(b for b in blocks if isinstance(b, ReasoningBlock))
+
+
+@dataclass(frozen=True, slots=True)
 class Message:
-    """One conversational turn sent to a model."""
+    """One conversational turn sent to a model.
+
+    ``content`` is text, as every caller has sent it, or a non-empty tuple of content
+    blocks the role may hold (a tool conversation). A text-only consumer reads
+    :attr:`text`, which refuses a message of blocks rather than guess a string.
+    """
 
     role: Literal["user", "assistant"]
-    content: str
+    content: str | tuple[ContentBlock, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.content, str | tuple):
+            raise ValueError("a message's content is text or a tuple of content blocks")
+        if isinstance(self.content, tuple):
+            if not self.content:
+                raise ValueError("a message of content blocks holds at least one block")
+            _check_blocks(self.role, self.content)
+
+    @property
+    def has_blocks(self) -> bool:
+        """True for a message of content blocks."""
+        return isinstance(self.content, tuple)
+
+    @property
+    def text(self) -> str:
+        """The message's text; raises for a message of content blocks."""
+        if isinstance(self.content, tuple):
+            raise ValueError("a message of content blocks has no single text")
+        return self.content
+
+    @property
+    def blocks(self) -> tuple[ContentBlock, ...]:
+        """The message as blocks: a text message is one text block."""
+        if isinstance(self.content, tuple):
+            return self.content
+        return (TextBlock(self.content),)
+
+    def wire_content(self) -> str | list[dict[str, Any]]:
+        """What is fingerprinted and measured: the text as it is, or every block."""
+        if isinstance(self.content, tuple):
+            return [b.wire() for b in self.content]
+        return self.content
 
 
 @dataclass(frozen=True, slots=True)
@@ -635,6 +926,17 @@ class AdapterRequest:
     #: default is the shape every model was sent before profiles existed. An adapter
     #: that cannot send a profile refuses the request unsent.
     request_profile: RequestProfile = DEFAULT_REQUEST_PROFILE
+    #: Tools offered beside the output contract (a tool conversation's reads, ADR 0026
+    #: Amendment 2026-10-28). Empty for every caller before it: nothing else is sent. An
+    #: adapter that cannot offer them refuses the request unsent.
+    tools: tuple[ToolSpec, ...] = ()
+
+    def __post_init__(self) -> None:
+        names = [t.name for t in self.tools]
+        if len(set(names)) != len(names):
+            raise ValueError("an offered tool is named once")
+        if self.output_schema is not None and (self.schema_name or "structured_output") in names:
+            raise ValueError("an offered tool cannot take the output contract's name")
 
 
 class FinishReason(StrEnum):
@@ -696,6 +998,22 @@ class AdapterResponse:
     reported_cost_usd: float | None = None
     #: The provider-native structured object, when the provider returned one.
     structured: Mapping[str, Any] | None = None
+    #: The response's content blocks in order (tool calls and reasoning among them), when
+    #: the adapter keeps them; empty from an adapter that keeps only text and the object.
+    blocks: tuple[ContentBlock, ...] = ()
+
+    def __post_init__(self) -> None:
+        _check_blocks("assistant", self.blocks)
+
+    @property
+    def tool_calls(self) -> tuple[ToolUseBlock, ...]:
+        """Every tool the model called, in order."""
+        return _tool_calls(self.blocks)
+
+    @property
+    def reasoning(self) -> tuple[ReasoningBlock, ...]:
+        """The model's reasoning blocks, in order."""
+        return _reasoning(self.blocks)
 
 
 class ProviderAdapter(Protocol):
@@ -739,6 +1057,9 @@ class CallPurpose(StrEnum):
     PRIMARY = "PRIMARY"
     SCHEMA_REPAIR = "SCHEMA_REPAIR"
     FALLBACK = "FALLBACK"
+    #: One round of a tool conversation that is not its answer (ADR 0026 Amendment
+    #: 2026-10-28): the model's tool calls answered by AIA's reads.
+    TOOL_ROUND = "TOOL_ROUND"
 
 
 class UsageOutcome(StrEnum):
@@ -894,6 +1215,18 @@ class ModelResult:
     text: str
     output: BaseModel | None
     usage_events: tuple[AIUsageEvent, ...]
+    #: The answering response's content blocks, as :attr:`AdapterResponse.blocks`.
+    blocks: tuple[ContentBlock, ...] = ()
+
+    @property
+    def tool_calls(self) -> tuple[ToolUseBlock, ...]:
+        """Every tool the model called in the answering response, in order."""
+        return _tool_calls(self.blocks)
+
+    @property
+    def reasoning(self) -> tuple[ReasoningBlock, ...]:
+        """The answering response's reasoning blocks, in order."""
+        return _reasoning(self.blocks)
 
     @property
     def total_cost_usd(self) -> float:

@@ -40,6 +40,7 @@ from aia_core.domain.residency import DataClass
 from aia_core.domain.spend_attribution import (
     CARD_APPROVAL,
     START_APPROVALS,
+    ActivitySpend,
     HoldFact,
     SpendActivity,
     SpendPeriod,
@@ -49,6 +50,7 @@ from aia_core.domain.spend_attribution import (
     period_bounds,
     researcher_spend,
     run_spend,
+    runs_spend,
 )
 from aia_core.domain.workflow import FailureClass, StepDefinition
 from aia_core.domain.workflow_templates import RESEARCH, RESEARCH_LEAD
@@ -606,7 +608,7 @@ def test_a_runs_facts_are_its_own_whoever_they_are_booked_to(
 
     def spend(run: str) -> tuple[float, float, int]:
         usage, holds = run_spend_facts(
-            session, organization_id=scope.organization_id, study_id=scope.study_id, run_id=run
+            session, organization_id=scope.organization_id, study_id=scope.study_id, run_ids=[run]
         )
         s = run_spend(usage, holds)
         return s.total_usd, s.reserved_usd, s.uncertain_calls
@@ -619,6 +621,30 @@ def test_a_runs_facts_are_its_own_whoever_they_are_booked_to(
         select(WorkflowRunRow.run_id).where(WorkflowRunRow.idempotency_key == "spend-sibling")
     ).one()
     assert spend(sibling_run) == (0.0, 0.0, 0)
+
+
+def test_a_page_of_runs_is_read_at_once_each_as_it_reads_alone(
+    lead_repo: WorkflowRepository, session: Session, scoped: Any
+) -> None:
+    """The listings read every run's spend in one query; each run's is what it reads alone."""
+    run_id, orphan = _spend_world(lead_repo, session, scoped)
+    scope = lead_repo.scope
+    runs = [run_id, orphan, "RUN-without-facts"]
+    usage, holds = run_spend_facts(
+        session, organization_id=scope.organization_id, study_id=scope.study_id, run_ids=runs
+    )
+    together = runs_spend(runs, usage, holds)
+    for run in runs:
+        alone = run_spend(
+            *run_spend_facts(
+                session,
+                organization_id=scope.organization_id,
+                study_id=scope.study_id,
+                run_ids=[run],
+            )
+        )
+        assert together[run] == alone
+    assert together["RUN-without-facts"].known_usd == 0.0
 
 
 def test_a_researcher_reads_only_themself_in_the_query(
@@ -757,3 +783,11 @@ def test_the_downgrade_drops_the_columns_and_the_upgrade_restores_them(postgres:
             assert "charged_to_user_id" in columns(connection, "ai_usage_events")
         finally:
             transaction.rollback()  # PostgreSQL DDL is transactional
+
+
+def test_a_total_with_an_unknown_call_is_not_a_known_cost() -> None:
+    """F-R10: ``known_usd`` is the total only while no call's outcome is unknown, never a total
+    read as the cost with one left out."""
+    assert ActivitySpend(model_usd=0.4, outside_ledger_usd=0.25).known_usd == pytest.approx(0.65)
+    assert ActivitySpend().known_usd == 0.0  # nothing spent is known, not unknown (OI-4)
+    assert ActivitySpend(model_usd=0.4, uncertain_calls=1).known_usd is None

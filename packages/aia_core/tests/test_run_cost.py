@@ -19,7 +19,7 @@ from aia_core.domain.ai_respondent import (
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.research_design import compile_design
-from aia_core.domain.run_cost import CeilingUnknown, run_cost_ceiling
+from aia_core.domain.run_cost import CeilingUnknown, analysis_ceiling_usd, run_cost_ceiling
 
 #: Five questions (the open one asks alone) and a battery of seven objects: twelve items.
 DESIGN: dict[str, Any] = {
@@ -165,3 +165,11 @@ def test_a_design_without_a_sample_size_has_no_ceiling() -> None:
     ceiling = _ceiling(spec.model_copy(update={"n": None}))
     assert ceiling.unknown is CeilingUnknown.SAMPLE_SIZE_MISSING
     assert ceiling.total_usd is None
+
+
+def test_an_analysis_retry_is_priced_as_its_modules_calls_and_unknown_is_never_zero() -> None:
+    """LO23: what a retry answers before it starts is what its start counts for analysis."""
+    assert analysis_ceiling_usd(2, reservation_usd=0.5, calls_per_module=3) == 3.0
+    assert analysis_ceiling_usd(0, reservation_usd=0.5, calls_per_module=3) == 0.0
+    assert analysis_ceiling_usd(2, reservation_usd=None, calls_per_module=3) is None
+    assert analysis_ceiling_usd(2, reservation_usd=0.0, calls_per_module=3) is None

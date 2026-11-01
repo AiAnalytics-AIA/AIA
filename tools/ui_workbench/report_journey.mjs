@@ -102,6 +102,16 @@ try {
       assert(!entry.suppressed, `@${width}: no suppressed number is shown (${ref})`);
       assert(text.startsWith(entry.value_text), `@${width}: chip ${ref} prints the stored text`);
     }
+    // The sentence check (RD7): exactly the sentences the server marked, each in its own block, in
+    // the block's words; none where it marked none.
+    const flagged = (stored.warnings ?? []).filter((w) => w.code === "unsupported_comparison");
+    const shownMarks = await article.locator("[data-sentence-mark]").evaluateAll((els) =>
+      els.map((e) => [e.closest("[data-aia^='report:']")?.getAttribute("data-aia"), e.textContent]));
+    assert.equal(shownMarks.length, flagged.length, `@${width}: one mark per sentence the check marked`);
+    for (const w of flagged) {
+      assert(shownMarks.some(([block, text]) => block === `report:${w.where}` && text.includes(w.text)), `@${width}: "${w.text}" marked in ${w.where}`);
+    }
+    if (flagged.length) await article.locator("[data-sentence-mark]").first().screenshot({ path: join(out, `${width}-report-sentence-mark.png`) });
     const ids = await article.locator("[data-aia]").evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
     assert.equal(new Set(ids).size, ids.length, `@${width}: no two elements share a data-aia`);
     assert(ids.every((id) => id.startsWith("report:")), `@${width}: every target is the report's own kind`);
@@ -149,7 +159,9 @@ try {
     await approve.click();
     const dialog = page.getByRole("dialog");
     await dialog.waitFor({ timeout: 10000 });
-    assert.match(await dialog.innerText(), /Schválit interní zprávu, uloženou verzi ART-[0-9a-f]{16} \(DOCX[^)]*\)\?/, `@${width}: the question names the version and its format`);
+    // By name and when it was stored, never its id (RPT3d).
+    assert.match(await dialog.innerText(), /Schvalujete tuto verzi: Interní zpráva, vytvořenou \d+\. \d+\. \d{4} \d{2}:\d{2} \(DOCX[^)]*\)\./, `@${width}: the question names the version by its time and its format`);
+    assert.doesNotMatch(await dialog.innerText(), /ART-/, `@${width}: no id in the question`);
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Zrušit", `@${width}: the safe choice holds the focus`);
     await noOverflow(`approval dialog @${width}`);
     await page.screenshot({ path: join(out, `${width}-approval-dialog.png`) });

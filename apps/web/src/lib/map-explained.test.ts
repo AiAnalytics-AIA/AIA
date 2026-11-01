@@ -18,6 +18,7 @@ describe("explainMap", () => {
     expect(x.respondents).toBe(300);
     expect(x.pairs).toEqual({ reliable: 62, weak: 4, unknown: 0, total: 66 });
     expect(x.scale).toEqual([1, 10]);
+    expect(x.floor).toBe(0.15); // the floor the stored map declares
     expect(x.nMin).toBe(map.spec.relation.n_min);
   });
 
@@ -27,7 +28,7 @@ describe("explainMap", () => {
     expect(ratings).toEqual([...ratings].sort((a, b) => b - a));
     const k = map.object_ids.indexOf(x.objects[0].id);
     expect(x.objects[0].rating).toBe(originalRating(map.heights.values[k], [1, 10]));
-    for (const o of x.objects) expect(o.connectedness).toBe(100 * map.scores!.objects.find((s) => s.id === o.id)!.connectedness!);
+    for (const o of x.objects) expect(o).not.toHaveProperty("connectedness"); // not part of -5 (MQ-05)
   });
 
   it("lists the strongest reliable relations by |r|, at most six, and counts the rest", () => {

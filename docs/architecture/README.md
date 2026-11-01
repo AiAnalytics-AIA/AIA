@@ -26,6 +26,11 @@ is shaped that way. The companion documents go deeper:
 | [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |
 | [simulation-deterministic-engine.md](simulation-deterministic-engine.md) | Simulation core: model-generated vs deterministic boundary, ported constants, intentional differences, parity status |
+| [ai-material-classification.md](ai-material-classification.md) | Model-input classification by content: a call's data class from its material, never from a client or Study label |
+| [sociomapa-deterministic-engine.md](sociomapa-deterministic-engine.md) | The Sociomapa engine: what is ported, what is declared, what is refused, by method and contract |
+| [sociomapa-methodology-decision.md](sociomapa-methodology-decision.md) | The methodology owner's decision record for client-facing Sociomaps (`AIA_SOCIOMAP_V3`, earlier `V1`; D6, OI-16) |
+| [sociomapping-hmodel.md](sociomapping-hmodel.md) | The H-Model: what is reported, what is fitted, what is significant |
+| [web-search-service-proposal.md](web-search-service-proposal.md) | The web research service prepared for review (2026-09-27, a proposal; nothing bought or connected) |
 | [adr/](adr/) | Decision records, with a list of what is deliberately still open |
 | [boards-v2.2-content-spec.md](boards-v2.2-content-spec.md) | What the visual architecture boards must assert, and must not |
 

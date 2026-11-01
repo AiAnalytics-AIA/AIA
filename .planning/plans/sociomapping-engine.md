@@ -420,3 +420,10 @@ its geometry is replaced by chunks 2-4.
 - CLAUDE.md map: `sociomap/{fuzzy,storm,fit,coherence,regions}.py`, `TerrainMethod`,
   the preset names; the Visualization Lab's name where it survives.
 - `.planning/overview.md`: D6 reframed as "approve `sociomapping-somecs-1`"; OI-13 status.
+
+## Disposition (MP3, 2026-10-26)
+
+**Kept open as it is** (Nigel, 26 Oct: "Keep it open as it is", the product owner in the Decision
+Review, 2026-10-26, relayed by the PM coordinator; against the proposed POST). Its open chunks stay
+as written; it is outside the development plan, and not POST; the MVP's method stays
+`aia-sociomap-5` (ADR 0038).

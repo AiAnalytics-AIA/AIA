@@ -12,7 +12,7 @@ import type { ResearchAgentAction, ResearchAgentJob, ResearchRun, ResearchStep }
 
 export type { OrbState };
 
-/** `ai`: a model is thinking (--ai-ink). `running`: code is working (--status-running). */
+/** `ai`: a model is thinking (--spark-1). `running`: code is working (--status-running). */
 export type OrbInk = "ai" | "running";
 export type Orb = { state: OrbState; ink: OrbInk };
 
@@ -44,6 +44,7 @@ export const AGENT_ORB: Record<ResearchAgentAction, OrbState> = {
 const RUN_STEP_ORB: Readonly<Record<string, Orb>> = {
   compile: code("shaping"),
   preflight: code("solving"),
+  qc: code("searching"),
   aggregate: code("weaving"),
   sociomap: code("connecting"),
   sociomapping: code("connecting"),

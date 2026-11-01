@@ -198,6 +198,30 @@ def test_with_self_approval_off_the_proposer_does_not_approve_alone(
     assert repo.approve(RETENTION, 1).origin is Origin.APPROVED
 
 
+def test_may_approve_reads_the_rule_the_approval_checks(scoped: Any, session: Any) -> None:
+    """What the page offers (Schválit) and what the approval allows are one rule."""
+    repo = _repo(scoped, session)
+    own = repo.propose(RETENTION, 90)
+    as_proposer = DeepResearchSettingsReader(session, scoped.admin_context)
+    # Self-approval on (the default): the proposer may approve their own.
+    assert as_proposer.may_approve(own) is True
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=False)
+    assert as_proposer.may_approve(own) is False
+    # Another administrator may; a member never does.
+    other = DeepResearchSettingsReader(session, _admin(scoped, "second@example.org"))
+    assert other.may_approve(own) is True
+    assert _reader(scoped, session).may_approve(own) is False
+    # Once someone else approved it, approving it again is not a new decision.
+    DeepResearchSettingsRepository(session, _admin(scoped, "third@example.org")).approve(
+        RETENTION, 1
+    )
+    assert as_proposer.may_approve(own) is True
+    # A withdrawn version is approved by nobody.
+    second = repo.propose(RETENTION, 120)
+    withdrawn = repo.decline(RETENTION, second.version_number, reason="ne")
+    assert other.may_approve(withdrawn) is False
+
+
 def test_live_readiness_follows_the_approvals(scoped: Any, session: Any) -> None:
     repo = _repo(scoped, session)
     before = _reader(scoped, session).effective().missing_for_live()
@@ -206,3 +230,77 @@ def test_live_readiness_follows_the_approvals(scoped: Any, session: Any) -> None
     repo.approve(RETENTION, 1)
     after = _reader(scoped, session).effective().missing_for_live()
     assert RETENTION not in after and len(after) == len(before) - 1
+
+
+# ------------------------------------------------------------------ withdraw / decline
+
+
+def _decline_audit(session: Any) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (r.action, r.payload)
+        for r in _audit(session)
+        if r.action in ("DR_SETTING_PROPOSAL_WITHDRAWN", "DR_SETTING_PROPOSAL_DECLINED")
+    ]
+
+
+def test_the_proposer_withdraws_and_another_administrator_declines(
+    scoped: Any, session: Any
+) -> None:
+    repo = _repo(scoped, session)
+    repo.propose(RETENTION, 90)
+    repo.propose(RETENTION, 30)
+    withdrawn = repo.decline(RETENTION, 1, reason="špatná hodnota")
+    assert withdrawn.state == "WITHDRAWN" and withdrawn.decline is not None
+    assert withdrawn.decline.by == scoped.admin_context.actor_id
+    other = DeepResearchSettingsRepository(session, _admin(scoped, "second@art-chain.io"))
+    declined = other.decline(RETENTION, 2, reason="nesouhlasím")
+    assert declined.state == "DECLINED"
+    # Both versions stay, immutable, with where they stand.
+    assert [(v.version_number, v.state) for v in _reader(scoped, session).versions(RETENTION)] == [
+        (2, "DECLINED"),
+        (1, "WITHDRAWN"),
+    ]
+    assert [a for a, _ in _decline_audit(session)] == [
+        "DR_SETTING_PROPOSAL_WITHDRAWN",
+        "DR_SETTING_PROPOSAL_DECLINED",
+    ]
+
+
+def test_a_declined_version_is_never_approved_and_is_declined_once(
+    scoped: Any, session: Any
+) -> None:
+    repo = _repo(scoped, session)
+    repo.propose(RETENTION, 90)
+    repo.decline(RETENTION, 1, reason="ne")
+    with pytest.raises(SettingRefused) as again:
+        repo.decline(RETENTION, 1, reason="ne")
+    assert again.value.reason == "version_declined"
+    with pytest.raises(SettingRefused) as approve:
+        repo.approve(RETENTION, 1)
+    assert approve.value.reason == "version_declined"
+    assert _reader(scoped, session).effective()[RETENTION].origin is Origin.PROPOSED_DEFAULT
+
+
+def test_a_version_that_was_in_force_is_no_proposal_to_withdraw(scoped: Any, session: Any) -> None:
+    repo = _repo(scoped, session)
+    repo.propose(RETENTION, 90)
+    repo.approve(RETENTION, 1)
+    with pytest.raises(SettingRefused) as in_force:
+        repo.decline(RETENTION, 1, reason="ne")
+    assert in_force.value.reason == "version_not_pending"
+    repo.approve(RETENTION, None)
+    with pytest.raises(SettingRefused) as before:
+        repo.decline(RETENTION, 1, reason="ne")
+    assert before.value.reason == "version_not_pending"
+    assert [v.state for v in _reader(scoped, session).versions(RETENTION)] == ["APPROVED_BEFORE"]
+
+
+def test_a_withdrawal_needs_a_reason_and_a_known_version(scoped: Any, session: Any) -> None:
+    repo = _repo(scoped, session)
+    repo.propose(RETENTION, 90)
+    with pytest.raises(SettingRefused) as blank:
+        repo.decline(RETENTION, 1, reason="  ")
+    assert blank.value.reason == "reason_too_long"
+    with pytest.raises(SettingRefused) as missing:
+        repo.decline(RETENTION, 7, reason="ne")
+    assert missing.value.reason == "unknown_version"

@@ -22,7 +22,9 @@ from aia_core.application.research_lead import (
     LeadBusy,
     LeadContextTooLarge,
     LeadEditsStale,
+    LeadMessageNotQueued,
     LeadNotHatched,
+    LeadQueueFull,
     LeadRejected,
     LeadSelfUpdateDecided,
     LeadSelfUpdateNone,
@@ -34,7 +36,9 @@ from aia_core.application.research_lead import (
     set_study_budget,
     worker_readiness,
 )
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_lead import (
+    QUEUE_MAX,
     RememberNote,
     SelfUpdate,
     context_bytes,
@@ -78,7 +82,12 @@ def _hatch(scoped: Any, session: Any, user: str = "lead") -> None:
 
 
 def _save(scope: Any, session: Any, content: dict[str, Any] = CONTENT) -> int:
-    saved = StudyWorkspaceRepository(session).save(scope, content=content, base_revision=None)
+    saved = StudyWorkspaceRepository(session).save(
+        scope,
+        content=content,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
     return saved.revision
 
 
@@ -174,8 +183,9 @@ def test_a_message_stores_the_persons_turn_and_queues_the_leads(scoped: Any, ses
     )
     assert layer(context, "design")["content"]["title"] == "Fiktivní koncept"
     assert layer(context, "lead")["first_conversation"] is True
-    with pytest.raises(LeadBusy):
-        _message(_lead(scope, session), "A ještě?")
+    # While the Lead works, a message waits, stored (ADR 0041 decision 7).
+    (waiting,) = _message(_lead(scope, session), "A ještě?")
+    assert (waiting["actor"], waiting["queued"]) == ("person", True)
 
 
 def test_a_focus_on_an_audience_filter_the_copy_does_not_store_is_refused(
@@ -224,8 +234,11 @@ def test_a_greeting_waits_for_nothing_but_a_message_waits_for_the_lead(
     _message(_lead(scope, session))
     # A greeting while the Lead answers is the Lead having spoken: a no-op, never a 409.
     assert _lead(scope, session).post(kind="greeting", stage="brief") == []
+    # A message waits, stored, for the Lead to finish (ADR 0041 decision 7).
+    assert [t["queued"] for t in _message(_lead(scope, session))] == [True]
+    later = _lead(scope, session, clock=lambda: utcnow() + timedelta(hours=9))
     with pytest.raises(LeadBusy):
-        _message(_lead(scope, session))
+        later.post(kind="greeting", stage="brief")
     _complete(session, scope, {"reply": "Hotovo."})
     assert len(_message(_lead(scope, session), "Další")) == 2
 
@@ -252,7 +265,7 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
-def _park_on_budget(session: Any, scope: Any, requested: float | None = 0.5) -> Any:
+def _park_on_budget(session: Any, scope: Any, requested: Any = 0.5) -> Any:
     """The worker's side of a turn whose reservation passes the study's budget, with the error
     the worker records (``requested_usd``: the hold the turn asked for)."""
     workflows = WorkflowRepository(session, scope)
@@ -302,42 +315,180 @@ def test_a_message_written_again_before_the_budget_is_set_is_answered_not_held(
     assert state["busy"] is True  # the new turn is queued: the pane waits for it alone
     by_id = {t["turn_id"]: t for t in state["turns"]}
     assert by_id[first[-1]["turn_id"]]["status"] == "CANCELLED"
+    # The parked turn's message is answered by the new turn, with the new one, in order.
     context = _step_input(session, scope, turns[-1]["run_id"])["context"]
-    earlier = [t.get("text") for t in layer(context, "conversation")["turns"]]
-    assert "Kde studie stojí?" in earlier
+    asked = [m["text"] for m in layer(context, "view")["messages"]]
+    assert asked == ["Kde studie stojí?", "Jsi tam?"]
+    assert turns[-1]["answers"] == [first[0]["turn_id"], turns[0]["turn_id"]]
     _complete(session, scope, {"reply": "Ano."})
     assert _lead(scope, session).state()["busy"] is False
 
 
-def test_setting_the_budget_sends_the_parked_message_and_records_the_person(
+def _edit(scope: Any, session: Any, base: int, title: str) -> int:
+    """The working copy moved on: the person edits it after the turn parked."""
+    return (
+        StudyWorkspaceRepository(session)
+        .save(
+            scope,
+            content={**CONTENT, "title": title},
+            base_revision=base,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+        )
+        .revision
+    )
+
+
+def test_setting_the_budget_sends_the_parked_message_on_the_design_as_it_is_now(
     scoped: Any, session: Any
 ) -> None:
     """The product owner, 2026-10-21 (Q39): "once the budget is set or raised, it should
     automatically resend the message the researcher attempted to send in the first place".
-    The person setting the budget is the consent, recorded in the ledger as every lift is."""
+
+    F-LO-PARK-1 (Nigel, 2026-10-28, W1Q11): the turn was sent the context it froze when it
+    parked, so on develop it answered about revision 1 after the brief and the questionnaire had
+    moved on. A released turn is cancelled, never paid; its message waits again, and the turn
+    that answers it is frozen on the copy as it is now."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    parked_on = _save(scope, session)
+    first = _message(_lead(scope, session), "Kde studie stojí?")
+    _park_on_budget(session, scope, requested=0.5)
+    now = _edit(scope, session, parked_on, "Fiktivní koncept, druhá verze")
+
+    study, released = set_study_budget(session, scope, 5.0)
+    assert study.budget_usd == 5.0 and released == [first[-1]["run_id"]]
+    workflows = WorkflowRepository(session, scope)
+    assert workflows.get_run(first[-1]["run_id"])["status"] is WorkflowRunStatus.CANCELLED
+    assert session.scalars(select(ApprovalDecisionRow)).all() == []  # nothing was lifted
+    state = _lead(scope, session).state()
+    by_id = {t["turn_id"]: t for t in state["turns"]}
+    assert by_id[first[-1]["turn_id"]]["reason"] == "lead_turn_released"
+    assert by_id[first[0]["turn_id"]]["queued"] is True  # the pane sends what waits
+    assert state["busy"] is False
+
+    (turn,) = _lead(scope, session).answer_queued()
+    assert turn["workspace_revision"] == now != parked_on
+    assert turn["answers"] == [first[0]["turn_id"]]
+    context = _step_input(session, scope, turn["run_id"])["context"]
+    design = json.dumps(layer(context, "design"), ensure_ascii=False)
+    assert "druhá verze" in design  # the copy as it is now, not the one it parked on
+    _complete(session, scope, {"reply": "Ve fázi zadání."})
+    state = _lead(scope, session).state()
+    assert state["busy"] is False and state["turns"][-1]["output"] == {"reply": "Ve fázi zadání."}
+    assert not any(t["queued"] for t in state["turns"])
+    assert len(_message(_lead(scope, session), "Díky")) == 2
+
+
+def test_a_message_written_after_the_release_is_sent_with_the_released_one(
+    scoped: Any, session: Any
+) -> None:
+    """The released message is answered first, with the new one, and never passed over for a
+    greeting."""
     scope = scoped.scope()
     _hatch(scoped, session)
     _no_budget(scoped, scope)
     first = _message(_lead(scope, session), "Kde studie stojí?")
-    work = _park_on_budget(session, scope, requested=0.5)
+    _park_on_budget(session, scope)
+    set_study_budget(session, scope, 5.0)
+    later = _lead(scope, session, clock=lambda: utcnow() + timedelta(days=1))
+    assert later.post(kind="greeting", stage="brief") == []
 
-    study, released = set_study_budget(session, scope, 5.0)
-    assert study.budget_usd == 5.0 and released == [first[-1]["run_id"]]
-    state = _lead(scope, session).state()
-    assert state["turns"][-1]["status"] == "QUEUED" and state["busy"] is True
-    rows = session.scalars(
-        select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == first[-1]["run_id"])
-    ).all()
-    assert [(r.gate_type, r.decision, r.step_id) for r in rows] == [
-        ("budget", "lift", work.step_id)
+    turns = _message(_lead(scope, session), "Jsi tam?")
+    context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+    assert [m["text"] for m in layer(context, "view")["messages"]] == [
+        "Kde studie stojí?",
+        "Jsi tam?",
     ]
-    assert rows[0].approver_user_id == scope.actor_id
+    assert turns[-1]["answers"] == [first[0]["turn_id"], turns[0]["turn_id"]]
 
-    # The message is answered without being written again; the next one goes as usual.
-    _complete(session, scope, {"reply": "Ve fázi zadání."})
-    state = _lead(scope, session).state()
-    assert state["busy"] is False and state["turns"][-1]["output"] == {"reply": "Ve fázi zadání."}
-    assert len(_message(_lead(scope, session), "Díky")) == 2
+
+def test_a_budget_set_by_another_researcher_releases_the_turn_for_its_owner_alone(
+    scoped: Any, session: Any
+) -> None:
+    """A Lead is its researcher's own (ADR 0026): a colleague's budget set releases the turn,
+    and only its owner's own Lead sends the message again."""
+    owner = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, owner)
+    first = _message(_lead(owner, session))
+    _park_on_budget(session, owner)
+    colleague = scoped.scope(user="researcher")
+    _hatch(scoped, session, "researcher")
+
+    assert set_study_budget(session, colleague, 5.0)[1] == [first[-1]["run_id"]]
+    assert _lead(colleague, session).state()["turns"] == []  # nothing of the owner's reaches them
+    assert _lead(colleague, session).answer_queued() == []
+    owners = {t["turn_id"]: t for t in _lead(owner, session).state()["turns"]}
+    assert owners[first[0]["turn_id"]]["queued"] is True
+    (turn,) = _lead(owner, session).answer_queued()
+    assert turn["answers"] == [first[0]["turn_id"]]
+    assert turn["created_by"] == owner.actor_id
+
+
+def test_a_released_greeting_promises_nothing(scoped: Any, session: Any) -> None:
+    """A greeting parked before F-LO-PARK-1's fix held no message: released, it says nothing will
+    follow, and nothing does (the review of the fix)."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    (greeting,) = _lead(scope, session).post(kind="greeting", stage="brief")
+    _park_on_budget(session, scope)
+    assert set_study_budget(session, scope, 5.0)[1] == [greeting["run_id"]]
+    turn = _lead(scope, session).state()["turns"][-1]
+    assert (turn["status"], turn["reason"]) == ("CANCELLED", None)
+    assert _lead(scope, session).answer_queued() == []
+
+
+def test_a_step_cancelled_since_it_parked_reads_as_no_longer_waiting(
+    scoped: Any, session: Any
+) -> None:
+    """The review of F-LO-PARK-1: a turn cancelled after the release listed it (a message that
+    superseded it, in another transaction) is read again under the run's lock and skipped, its
+    hold not counted."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    _message(_lead(scope, session))
+    work = _park_on_budget(session, scope)
+    workflows = WorkflowRepository(session, scope)
+    assert workflows.awaits_budget(work.step_id)
+    workflows.request_cancel(work.run_id, reason="lead_turn_superseded")
+    assert not workflows.awaits_budget(work.step_id)
+    assert workflows.cancel_reason(work.run_id) == "lead_turn_superseded"
+
+
+def test_a_released_message_withdrawn_is_never_sent(scoped: Any, session: Any) -> None:
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    first = _message(_lead(scope, session))
+    _park_on_budget(session, scope)
+    set_study_budget(session, scope, 5.0)
+    _lead(scope, session).withdraw(first[0]["turn_id"])
+    assert _lead(scope, session).answer_queued() == []
+
+
+def test_a_greeting_the_budget_did_not_pay_for_reads_as_one_quiet_line(
+    scoped: Any, session: Any
+) -> None:
+    """F-LO-PARK-1: the worker ends a greeting the budget cannot pay for (``skipped``)."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    (greeting,) = _lead(scope, session).post(kind="greeting", stage="brief")
+    workflows = WorkflowRepository(session, scope)
+    work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+    assert work is not None
+    workflows.complete_attempt(
+        work.attempt_id, worker_id="w", output={"skipped": "greeting_unfunded"}
+    )
+    turn = _lead(scope, session).state()["turns"][-1]
+    assert (turn["turn_id"], turn["status"], turn["reason"], turn["output"]) == (
+        greeting["turn_id"],
+        "COMPLETED",
+        "greeting_unfunded",
+        None,
+    )
 
 
 def test_a_budget_still_too_small_leaves_the_turn_parked(scoped: Any, session: Any) -> None:
@@ -354,7 +505,6 @@ def test_a_budget_still_too_small_leaves_the_turn_parked(scoped: Any, session: A
     assert set_study_budget(session, scope, 1.0)[1] == []  # lowered
     turn = _lead(scope, session).state()["turns"][-1]
     assert (turn["status"], turn["reason"]) == ("WAITING", "budget_exceeded")
-    assert session.scalars(select(ApprovalDecisionRow)).all() == []
     assert set_study_budget(session, scope, 10.0)[1] != []  # now it fits
 
 
@@ -393,14 +543,41 @@ def test_a_turn_parked_behind_more_than_a_page_of_later_runs_is_still_sent(
     assert set_study_budget(session, scope, 5.0)[1] == [first[-1]["run_id"]]
 
 
-def test_a_parked_turn_whose_hold_is_unknown_stays_parked(scoped: Any, session: Any) -> None:
+@pytest.mark.parametrize("requested", [None, True, -1.0, "0.5"])
+def test_a_parked_turn_whose_hold_is_unknown_stays_parked(
+    scoped: Any, session: Any, requested: Any
+) -> None:
+    """A hold the attempt did not record as a number of USD is unknown, and unknown never fits:
+    a bool or a negative hold passed as one. (NaN and inf cannot be stored in PostgreSQL's JSONB;
+    _recorded_hold refuses them below.)"""
     scope = scoped.scope()
     _hatch(scoped, session)
     _no_budget(scoped, scope)
     _message(_lead(scope, session))
-    _park_on_budget(session, scope, requested=None)
+    _park_on_budget(session, scope, requested=requested)
     assert set_study_budget(session, scope, 500.0)[1] == []
     assert _lead(scope, session).state()["turns"][-1]["status"] == "WAITING"
+
+
+@pytest.mark.parametrize(
+    ("value", "hold"),
+    [
+        (0.5, 0.5),
+        (2, 2.0),
+        (0, 0.0),
+        (None, None),
+        (True, None),
+        (-1.0, None),
+        ("0.5", None),
+        (float("nan"), None),
+        (float("inf"), None),
+    ],
+)
+def test_a_recorded_hold_is_a_finite_non_negative_number_of_usd(value: Any, hold: Any) -> None:
+    """NaN compared as fitting anything, so it is refused here, beside inf."""
+    from aia_core.application.research_lead import _recorded_hold
+
+    assert _recorded_hold(value) == hold
 
 
 def test_a_greeting_does_not_supersede_a_message_waiting_for_budget(
@@ -432,8 +609,9 @@ def test_a_turn_resumed_from_a_budget_wait_holds_the_conversation(
         work.step_id, budget_before=budget, budget_after=budget
     )
     assert _lead(scope, session).state()["busy"] is True
-    with pytest.raises(LeadBusy):
-        _message(_lead(scope, session), "Jsi tam?")
+    # A message waits behind it, stored; nothing paid is stacked behind the resumed turn.
+    (waiting,) = _message(_lead(scope, session), "Jsi tam?")
+    assert waiting["queued"] is True
     _complete(session, scope, {"reply": "Hotovo."})
     assert _lead(scope, session).state()["busy"] is False
     assert len(_message(_lead(scope, session), "Další")) == 2
@@ -589,6 +767,12 @@ def test_another_researchers_decisions_are_not_in_my_digest(scoped: Any, session
             },
             ["job"],
         ),
+        # A Deep Research card is started on the person's approval through the ledger
+        # (LO5a.2), so it waits until decided, as an agent job does (review of #1006).
+        (
+            {"reply": "Doplňme literaturu.", "request": {"kind": "design_research", "why": WHY}},
+            ["job"],
+        ),
     ],
 )
 def test_only_a_prepared_job_waits_in_the_digest(
@@ -624,6 +808,191 @@ def test_a_turns_manifest_is_what_it_froze_and_only_its_researchers(
     with pytest.raises(LeadTurnNotFound):
         _lead(other, session).omitted(turn["turn_id"], "knowledge")
     assert _lead(scope, session).omitted(turn["turn_id"], "knowledge") == ([], 0)
+
+
+# --------------------------------------------------------------------------- the queue (LC5a)
+
+
+def _busy(scoped: Any, session: Any) -> Any:
+    """A hatched researcher whose Lead is answering a first message."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session)
+    _message(_lead(scope, session), "První")
+    return scope
+
+
+def test_messages_from_two_tabs_while_the_lead_works_are_answered_by_one_turn(
+    scoped: Any, session: Any
+) -> None:
+    scope = _busy(scoped, session)
+    (a,) = _lead(scope, session).post(kind="message", stage="brief", text="Z první karty")
+    (b,) = _lead(scope, session).post(kind="message", stage="design", text="Z druhé karty")
+    assert a["queued"] and b["queued"]
+    assert _lead(scope, session).answer_queued() == []  # the Lead is still at work
+    _complete(session, scope, {"reply": "Hotovo."})
+    (turn,) = _lead(scope, session).answer_queued()
+    assert turn["answers"] == [a["turn_id"], b["turn_id"]]
+    view = layer(_step_input(session, scope, turn["run_id"])["context"], "view")
+    assert view["message"] is None and "queued_deferred" not in view
+    assert [(m["text"], m["stage"]) for m in view["messages"]] == [
+        ("Z první karty", "brief"),
+        ("Z druhé karty", "design"),
+    ]
+    # A second tab asking finds the turn already started: nothing more.
+    assert _lead(scope, session).answer_queued() == []
+    state = {t["turn_id"]: t for t in _lead(scope, session).state()["turns"]}
+    assert not state[a["turn_id"]]["queued"] and not state[b["turn_id"]]["queued"]
+    # The turn is frozen with the messages in its view, not twice in the conversation.
+    history = layer(_step_input(session, scope, turn["run_id"])["context"], "conversation")
+    assert [t.get("text") for t in history["turns"] if t["actor"] == "person"] == ["První"]
+
+
+def test_a_withdrawn_message_is_never_answered(scoped: Any, session: Any) -> None:
+    scope = _busy(scoped, session)
+    (kept,) = _lead(scope, session).post(kind="message", stage="brief", text="Platí")
+    (gone,) = _lead(scope, session).post(kind="message", stage="brief", text="Neplatí")
+    _lead(scope, session).withdraw(gone["turn_id"])
+    with pytest.raises(LeadMessageNotQueued):
+        _lead(scope, session).withdraw(gone["turn_id"])
+    _complete(session, scope, {"reply": "Hotovo."})
+    (turn,) = _lead(scope, session).answer_queued()
+    assert turn["answers"] == [kept["turn_id"]]
+    state = _lead(scope, session).state()["turns"]
+    by_id = {t["turn_id"]: t for t in state}
+    assert by_id[gone["turn_id"]]["withdrawn"] is True
+    assert by_id[gone["turn_id"]]["queued"] is False
+    assert all(t["kind"] != "withdrawal" for t in state)  # the withdrawal row is not a turn shown
+    with pytest.raises(LeadMessageNotQueued):
+        _lead(scope, session).withdraw(kept["turn_id"])  # answered: no longer waiting
+    with pytest.raises(LeadTurnNotFound):
+        _lead(scoped.scope(user="researcher"), session).withdraw(kept["turn_id"])
+
+
+def test_erasing_a_members_turns_deletes_their_answer_rows_and_no_one_elses(
+    scoped: Any, session: Any
+) -> None:
+    from aia_core.infrastructure.study_lead_repository import erase_member_turns
+    from aia_core.infrastructure.tables import StudyLeadTurnAnswerRow, StudyLeadTurnRow
+
+    scope = _busy(scoped, session)
+    _lead(scope, session).post(kind="message", stage="brief", text="Ve frontě")
+    _complete(session, scope, {"reply": "Hotovo."})
+    assert _lead(scope, session).answer_queued()
+    other = scoped.scope(user="researcher")
+    _hatch(scoped, session, "researcher")
+    _message(_lead(other, session), "Jiný výzkumník")
+
+    def answers(user: str) -> int:
+        return len(
+            session.scalars(
+                select(StudyLeadTurnAnswerRow).where(StudyLeadTurnAnswerRow.user_id == user)
+            ).all()
+        )
+
+    assert answers(scope.actor_id) and answers(other.actor_id)
+    erase_member_turns(session, organization_id=scope.organization_id, user_id=scope.actor_id)
+    session.flush()
+    assert answers(scope.actor_id) == 0
+    assert not session.scalars(
+        select(StudyLeadTurnRow).where(StudyLeadTurnRow.user_id == scope.actor_id)
+    ).all()
+    assert answers(other.actor_id)  # another member's conversation is untouched
+
+
+def test_erasing_a_clients_lead_turns_deletes_their_answer_rows(scoped: Any, session: Any) -> None:
+    from aia_core.infrastructure.study_lead_repository import erase_client_lead_turns
+    from aia_core.infrastructure.tables import StudyLeadTurnAnswerRow
+
+    scope = _busy(scoped, session)
+    _lead(scope, session).post(kind="message", stage="brief", text="Ve frontě")
+    _complete(session, scope, {"reply": "Hotovo."})
+    assert _lead(scope, session).answer_queued()
+    rows = select(StudyLeadTurnAnswerRow).where(StudyLeadTurnAnswerRow.study_id == scope.study_id)
+    assert session.scalars(rows).all()
+    erase_client_lead_turns(session, client_id=scope.client_id)
+    assert session.scalars(rows).all() == []
+
+
+def test_a_message_is_bounded_in_bytes_and_the_queue_in_count(scoped: Any, session: Any) -> None:
+    scope = _busy(scoped, session)
+    with pytest.raises(LeadRejected) as refused:
+        _lead(scope, session).post(kind="message", stage="brief", text="😀" * 4000)
+    assert refused.value.reason == "message_too_long"
+    for i in range(QUEUE_MAX):
+        _lead(scope, session).post(kind="message", stage="brief", text=f"Zpráva {i}")
+    with pytest.raises(LeadQueueFull):
+        _lead(scope, session).post(kind="message", stage="brief", text="Šestá")
+
+
+def test_a_waiting_messages_focus_is_checked_again_when_its_turn_is_frozen(
+    scoped: Any, session: Any
+) -> None:
+    """Another tab removes the filter a waiting message pointed at: the message is sent, its
+    focus is not (the review of LC5a, the race of Codex on #624)."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    base = _save(scope, session, {**CONTENT, "audience": {"filters": {"kraj": ["Praha"]}}})
+    _message(_lead(scope, session), "První")
+    (waiting,) = _lead(scope, session).post(
+        kind="message",
+        stage="audience",
+        text="Proč tenhle filtr?",
+        focus={"id": "audience:filter:kraj", "label": "Filtr: kraj"},
+    )
+    StudyWorkspaceRepository(session).save(
+        scope,
+        content=CONTENT,
+        base_revision=base,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
+    _complete(session, scope, {"reply": "Hotovo."})
+    (turn,) = _lead(scope, session).answer_queued()
+    view = layer(_step_input(session, scope, turn["run_id"])["context"], "view")
+    assert view["message"] == "Proč tenhle filtr?" and view["focus"] is None
+    assert turn["answers"] == [waiting["turn_id"]]
+
+
+def test_a_free_lead_takes_a_message_with_a_full_queue(scoped: Any, session: Any) -> None:
+    """Only a busy Lead's queue fills up: a free one answers what waits with the new message."""
+    scope = _busy(scoped, session)
+    for i in range(QUEUE_MAX):
+        _lead(scope, session).post(kind="message", stage="brief", text=f"Zpráva {i}")
+    _complete(session, scope, {"reply": "Hotovo."})
+    person, turn = _lead(scope, session).post(kind="message", stage="brief", text="Šestá")
+    assert turn["actor"] == "lead" and person["turn_id"] in turn["answers"]
+    assert len(turn["answers"]) == QUEUE_MAX + 1
+
+
+def test_large_queued_messages_are_answered_one_turn_each_never_cut(
+    scoped: Any, session: Any
+) -> None:
+    """Five 8 KB messages: one fits layer 9's 12 KB, two do not. A chain of five turns, each
+    naming the rest as deferred; each message sent whole."""
+    scope = _busy(scoped, session)
+    big = ["ž" * 4000 for _ in range(QUEUE_MAX)]  # 8,000 bytes each
+    ids = [
+        _lead(scope, session).post(kind="message", stage="brief", text=t)[0]["turn_id"] for t in big
+    ]
+    _complete(session, scope, {"reply": "Hotovo."})
+    for i in range(QUEUE_MAX):
+        (turn,) = _lead(scope, session).answer_queued()
+        assert turn["answers"] == [ids[i]]
+        view = layer(_step_input(session, scope, turn["run_id"])["context"], "view")
+        assert view["message"] == big[i]
+        assert view.get("queued_deferred", []) == ids[i + 1 :]
+        _complete(session, scope, {"reply": "Hotovo."})
+    assert _lead(scope, session).answer_queued() == []
+
+
+def test_small_queued_messages_pack_into_one_turn_while_they_fit(scoped: Any, session: Any) -> None:
+    scope = _busy(scoped, session)
+    texts = ["ž" * 2000, "ž" * 2000, "ž" * 2000]  # 4,000 bytes each: all three fit 12 KB
+    for t in texts:
+        _lead(scope, session).post(kind="message", stage="brief", text=t)
+    _complete(session, scope, {"reply": "Hotovo."})
+    (turn,) = _lead(scope, session).answer_queued()
+    assert len(turn["answers"]) == 3
 
 
 # --------------------------------------------------------------------------- deciding on edits
@@ -705,7 +1074,10 @@ def test_an_accept_shown_on_an_older_working_copy_is_refused_whole(
     scope, turn_id = _ready(scoped, session, EDITS)
     base = StudyWorkspaceRepository(session).content(scope).revision
     StudyWorkspaceRepository(session).save(
-        scope, content={**CONTENT, "goal": "Jinde upraveno"}, base_revision=base
+        scope,
+        content={**CONTENT, "goal": "Jinde upraveno"},
+        base_revision=base,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
     )
     with pytest.raises(LeadEditsStale) as stale:
         _lead(scope, session).decide_edits(
@@ -853,6 +1225,38 @@ JOB = {
     "reply": "Připravil jsem analýzu zadání.",
     "request": {"kind": "agent_job", "action": "analyze_brief", "why": "Zadání je hotové."},
 }
+
+
+@pytest.mark.parametrize("switched_on", [False, True])
+def test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store(
+    scoped: Any, session: Any, monkeypatch: pytest.MonkeyPatch, switched_on: bool
+) -> None:
+    """artifact-questionnaire QST13: the Lead's store (set only with
+    AIA_AI_ANALYSIS_EXTERNAL_CONTEXT) reaches the questionnaire job its card approves."""
+    from aia_core.application.research import ResearchAgentJobs
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    build = {
+        "reply": "Připravil jsem dotazník.",
+        "request": {
+            "kind": "agent_job",
+            "action": "build_questionnaire",
+            "why": "Návrh je hotový.",
+        },
+    }
+    scope, turn_id = _ready(scoped, session, build)
+    store = InMemoryArtifactStore() if switched_on else None
+    _lead(scope, session, external_store=store).approve_request(
+        turn_id, confirm_cost_usd=None, reservation_usd=None
+    )
+    assert given == ([store] if switched_on else [])
 
 
 def test_approving_a_prepared_job_starts_it_once_and_records_it(scoped: Any, session: Any) -> None:
@@ -1076,3 +1480,43 @@ def test_external_context_is_frozen_only_when_switched_on_and_pinned(
     broken = frozen(_lead(scope, session, external_store=store), "Rozbitá?")
     assert layer(broken, EXTERNAL_LAYER)["lines"] == []
     assert layer(broken, EXTERNAL_LAYER)["unavailable"] == "context_unverified"
+
+
+def test_a_deep_research_run_of_the_study_is_in_the_turns_context(
+    scoped: Any, session: Any
+) -> None:
+    """lead-orchestration LO5a.1 (F-DRL-4): the Lead could not see the study's Deep Research,
+    so it could neither say where a rešerše stands nor name a run to retry. With none, the
+    layer is absent and the context is what it was."""
+    from aia_core.application.deep_research import DeepResearchRuns
+
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session, {**CONTENT, "research_plan": {"research_questions": ["Proč?"]}})
+
+    def frozen(text: str) -> dict[str, Any]:
+        turns = _message(_lead(scope, session), text)
+        context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+        _complete(session, scope, {"reply": "Ano."})
+        return context
+
+    before = frozen("Běží rešerše?")
+    names = [e["layer"] for e in before["layers"]]
+    assert "deep_research" not in names and "targets" not in names
+    # The research questions a focus may name are shown with their ids (review of #925), on a
+    # copy that stores none.
+    from aia_core.domain.research_lead import request_ids
+
+    shown = layer(before, "design")["research_questions"]
+    assert [q["text"] for q in shown] == ["Proč?"]
+    assert request_ids(before).research_questions == {shown[0]["id"]}
+    revision = StudyDesignRepository(session, scope).latest()
+    assert revision is not None
+    started = DeepResearchRuns(session, scope).start(
+        design_revision_id=revision.revision_id, preset_name="QUICK", prices=None
+    )
+    entry = layer(frozen("A teď?"), "deep_research")["runs"]
+    assert [(r["run_id"], r["purpose"], r["target"], r["preset"]) for r in entry] == [
+        (started.run_id, "DESIGN_RESEARCH", "návrh výzkumu", "QUICK")
+    ]
+    assert entry[0]["actual_cost_usd"] is None  # nothing spent yet: unknown, never 0

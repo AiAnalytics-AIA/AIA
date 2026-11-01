@@ -97,6 +97,20 @@ describe("the worker's readiness", () => {
     expect(leadAvailability(state({ worker_ready: false }))).toEqual({ kind: "WAITING", reason: null });
   });
 
+  it("reads ready from the worker's record as on, naming that start's time and build (LO12b)", () => {
+    const a = leadAvailability(state({ worker_ready: true, worker_composed_at: "2026-10-28T20:00:00Z", worker_build: "abc1234def" }));
+    expect(a).toEqual({ kind: "ON", composedAt: "2026-10-28T20:00:00Z", build: "abc1234def" });
+    expect(isLeadOn(a)).toBe(true);
+    expect(availabilityWords(a)).toMatch(/^Vedoucí výzkumu odpovídá: tak byl sestaven pracovník spuštěný 28\. ?10\. ?2026.*21:00.*\(build abc1234\)\.$/);
+  });
+
+  it("says the route refusal the worker's composition records, with who fixes it (LO12b)", () => {
+    const a = leadAvailability(state({ worker_ready: false, worker_reason: "egress_retention_unspecified" }));
+    expect(a).toEqual({ kind: "WAITING", reason: "egress_retention_unspecified" });
+    expect(availabilityWords(a)).toContain("dobu uchování");
+    expect(availabilityWords(a)).toContain("Opraví to provozovatel AIA");
+  });
+
   it("still reads a parked newest turn as waiting when readiness is not reported", () => {
     const turns = [turn({ status: "WAITING", reason: "research_lead_unconfigured" })];
     expect(leadAvailability(state({ worker_ready: undefined, turns }))).toEqual({ kind: "WAITING", reason: "research_lead_unconfigured" });

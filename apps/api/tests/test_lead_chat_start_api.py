@@ -16,6 +16,7 @@ import pytest
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.wallet import StudyWallets
 from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.money import WalletVerdict
 from aia_core.domain.workflow_templates import (
     RESEARCH,
@@ -91,7 +92,12 @@ def _save(app: FastAPI, world: Any, content: dict[str, Any] = DESIGN) -> None:
     with create_session_factory(app.state.engine)() as session:
         repo = StudyWorkspaceRepository(session)
         scope = _scope(world, session)
-        repo.save(scope, content=content, base_revision=repo.content(scope).revision)
+        repo.save(
+            scope,
+            content=content,
+            base_revision=repo.content(scope).revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+        )
         session.commit()
 
 
@@ -182,6 +188,18 @@ def test_with_the_lead_on_a_typed_command_is_not_sent_to_the_model(
     assert [t["actor"] for t in typed.json()["turns"]] == ["person"]
     assert typed.json()["turns"][0]["command"] == "agent_job:build_questionnaire"
     assert _lead_runs(app) == 0
+
+
+def test_a_typed_job_answers_its_ceiling_before_it_starts(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """LO23 (spec lead/LP-4): a typed agent job's card answers the job's reservation before the
+    person approves it; a typed research run answers none here (its readiness carries it)."""
+    _save(app, world)
+    typed = _type(researcher, world, "Navrhni dotazník: krátce").json()["turns"][0]
+    assert typed["ceiling_usd"] == JOB_RESERVATION
+    run = _type(researcher, world, "Spusť výzkum").json()["turns"][0]
+    assert run["ceiling_usd"] is None
 
 
 def test_a_near_match_is_a_message_never_a_start(
@@ -553,7 +571,8 @@ def test_a_typed_analysis_retry_starts_the_stage_retry_on_the_newest_analysed_ru
     turn_id = _type(researcher, world, "Zopakuj analýzu").json()["turns"][0]["turn_id"]
     approved = _approve(researcher, world, turn_id, confirm_cost_usd=3.0)
     assert approved.status_code == 200, approved.text
-    assert [(a["run_id"], a["confirm_cost_usd"]) for a in asked] == [(run_id, 3.0)]
+    # The person's yes is passed on as their issued confirmation (lead-orchestration LO2).
+    assert [(a["run_id"], a["confirmation"].usd) for a in asked] == [(run_id, 3.0)]
     retry_row = _chat_starts(app)[-1]
     comment = json.loads(retry_row.comment)
     assert (comment["start"], comment["turn_id"], comment["ceiling_usd"]) == (
@@ -693,3 +712,32 @@ def test_a_charge_refused_after_the_create_leaves_no_run_no_row_and_no_charge(
     refused = _approve(researcher, world, turn_id)
     assert refused.status_code == 409 and refused.json()["code"] == "outside_wallet", refused.text
     assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+
+
+def test_a_typed_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """QST13: the typed "Navrhni dotazník" reads the pinned Design Research findings as the
+    stage's start does, under AIA_AI_ANALYSIS_EXTERNAL_CONTEXT alone."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    _save(app, world)
+    off = _type(researcher, world, "Navrhni dotazník: krátce").json()["turns"][0]["turn_id"]
+    assert _approve(researcher, world, off).status_code == 200
+    assert given == []
+    monkeypatch.setattr(
+        app.state,
+        "settings",
+        app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+    )
+    turns = _type(researcher, world, "Navrhni dotazník: delší").json()["turns"]
+    on = turns[-1]["turn_id"]
+    assert _approve(researcher, world, on).status_code == 200
+    assert given and all(store is not None for store in given)

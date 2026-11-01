@@ -13,15 +13,17 @@ describe("spendRows", () => {
   it("reads spent, held and the study's remainder, a hold never as spent", () => {
     const rows = spendRows(SPEND, true, 98.5, null)!;
     expect(rows.map((r) => [r.key, r.value])).toEqual([
-      ["spent", "1,23 USD"],
-      ["held", "0,50 USD"],
+      ["spent", "1,23 USD"],
+      ["held", "0,50 USD"],
       ["ceiling", t("research.exec.spend.ceilingUnrecorded")],
-      ["remaining", "98,50 USD"],
+      ["remaining", "98,50 USD"],
     ]);
     expect(rows.find((r) => r.key === "remaining")!.note).toBe(t("research.exec.spend.remainingNote"));
-    // Holds are spoken of as the running steps' only while the run goes on.
-    expect(rows.find((r) => r.key === "held")!.note).toBeUndefined();
+    // A hold is never read as spent: an ended run's unreleased hold still says so; a zero needs no note.
+    expect(rows.find((r) => r.key === "held")!.note).toBe(t("research.exec.spend.heldNote"));
+    expect(spendRows({ ...SPEND, reserved_usd: 0 }, true, 98.5, null)!.find((r) => r.key === "held")!.note).toBeUndefined();
     expect(spendRows(SPEND, false, 98.5, null)!.find((r) => r.key === "held")!.note).toBe(t("research.exec.spend.heldNote"));
+    expect(spendRows({ ...SPEND, reserved_usd: 0 }, false, 98.5, null)!.find((r) => r.key === "held")!.note).toBeUndefined();
   });
 
   it("says the study's remainder is being read, or unknown when it could not be, never zero", () => {
@@ -45,7 +47,7 @@ describe("spendRows", () => {
 
   it("reads the ceiling the run started under, why it had none, or that it recorded none, never zero", () => {
     const of = (ceiling: Parameters<typeof spendRows>[3]) => spendRows(SPEND, true, 1, ceiling)!.find((r) => r.key === "ceiling")!;
-    expect([of({ usd: 2.5, unknown: null }).value, of({ usd: 2.5, unknown: null }).note]).toEqual(["2,50 USD", t("research.exec.spend.ceilingNote")]);
+    expect([of({ usd: 2.5, unknown: null }).value, of({ usd: 2.5, unknown: null }).note]).toEqual(["2,50 USD", t("research.exec.spend.ceilingNote")]);
     const unknown = of({ usd: null, unknown: "fieldwork_reservation_missing" });
     expect(unknown.value).toBe(t("research.exec.spend.ceilingUnknown"));
     expect(unknown.note).toBe(t("research.exec.cost.unknown.fieldwork_reservation_missing"));

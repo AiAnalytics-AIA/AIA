@@ -27,20 +27,21 @@
 import "./object-map-windows.css";
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
-import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
-import { LEAD_REVEAL } from "@/lib/lead";
+import { isRefusal, objectTarget, pairTarget, readMapOp, readTarget } from "@/lib/artifacts/sociomap";
+import { LEAD_REVEAL, type LeadMapView, mapViewWords } from "@/lib/lead";
 import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
-  type SegmentLegend, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
+  type SegmentLegend, allRelations, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
 } from "@/lib/object-map-signed-off";
 import {
   CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
-  type Hit, type Norm, type PanelCamera, type RelationMode,
-  REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
-  panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
+  type Hit, type IdwTerrain, type Norm, type PanelCamera, type RelationMode,
+  REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, floorWords, nodeScale, nodeTones, normalizer, relativeFloor,
+  panelNodes, relationPairs, relationStrength, storedGrid, storedTerrains, strongestRelation, terrainGrid, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
+import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 /** The canvas's size before it is measured (and in tests): the panel's own fallback. */
 const DEFAULT_SIZE = { width: 900, height: 700 };
@@ -60,6 +61,15 @@ let lastStage: HTMLElement | null = null;
 /** The stage's height before it is measured (stageHeight then follows the pane it is read in). */
 const FIRST_HEIGHT = "min(700px, max(120px, calc(100dvh - 260px)), max(360px, 110vw))";
 
+/** One of the Lead's views the Sociomapa stage routed to this map, numbered in the order it was sent. */
+const LEAD_MAP_ROUTED = "aia:lead-map-routed";
+
+/** Hands one of the Lead's views to the map of `battery`: the Sociomapa stage's routing, after it checked
+ *  the view against every map it draws (SociomapStage). The map applies it once, as it arrives. */
+export function routeToMap(battery: string, view: LeadMapView): void {
+  window.dispatchEvent(new CustomEvent<{ battery: string; view: LeadMapView }>(LEAD_MAP_ROUTED, { detail: { battery, view } }));
+}
+
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
   if (storedFrame(map) && map.terrain.status === "computed") return <PanelView battery={battery} map={map} facts={facts} />;
   // Without a stored terrain there is no frame to draw on: say so where the map would be, and keep
@@ -78,7 +88,7 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
               <li key={o.id}>
                 <button type="button" disabled aria-label={tv("research.exec.objectMap.selectObject", { label: o.label })}
                   className="grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs">
-                  <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: color66(o.relative ?? REL_FLOOR) }} />
+                  <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: color66(o.relative ?? relativeFloor(map) ?? REL_FLOOR) }} />
                   <span className="truncate">{o.label}</span>
                   <span className="tabular-nums">{panelNumber(originalRating(o.height, battery.rating_scale) ?? o.height)}</span>
                 </button>
@@ -174,16 +184,29 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // What opened the detail (the canvas or a list button): × gives the focus back to it.
   const detailOpener = useRef<HTMLElement | null>(null);
   const [size, setSize] = useState(DEFAULT_SIZE);
+  // Measured once the canvas has a box (whatever its size); without a ResizeObserver there is nothing to wait
+  // for. A Lead's view from above that came before the measure is drawn at the measured size (topWaiting).
+  const measured = useRef(typeof ResizeObserver === "undefined");
+  // The stage's node as the ref callback set it: a Lead's view in the first render's handlers still reaches it.
+  const stageNode = useRef<HTMLDivElement | null>(null);
+  const topWaiting = useRef(false);
   const [ratio, setRatio] = useState(() => (typeof window === "undefined" ? 1 : Math.min(2, window.devicePixelRatio || 1)));
   // Absolutni draws the stored envelope of the absolute means; a map that stores none offers only Relativni.
   const stored = useMemo(() => absoluteGrid(map), [map]);
   const absolute = norm === "absolute" ? stored : null;
-  const grid = people ? density! : absolute ?? relativeGrid;
-  const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
+  const floor = useMemo(() => relativeFloor(map), [map]);
+  const tones = useMemo(() => nodeTones(nodes, norm, floor), [nodes, norm, floor]);
+  // The terrain switch: the inverse-distance terrains the run stored (plain, or under the hills'
+  // falloff), opened on the plain one; a map that stored one offers that one only.
+  const terrains = useMemo(() => storedTerrains(map), [map]);
+  const [terrainChoice, setTerrain] = useState<IdwTerrain>("framed_relative_idw");
+  const terrain = terrains.includes(terrainChoice) ? terrainChoice : terrains[0];
+  const chosen = useMemo(() => (terrain ? terrainGrid(map, terrain, norm === "absolute" && stored !== null) : null), [terrain, map, norm, stored]);
+  const grid = people ? density! : chosen ?? absolute ?? relativeGrid;
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
-  // "Top vztahy" follows the selection, in full screen as on the page: the selected object's five
+  // "Nejsilnější vztahy" (the panel's Top) follows the selection, in full screen as on the page: the selected object's five
   // strongest, or the map's five strongest with nothing selected (the panel's rule).
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
   // The node size follows the mapped objects; an object nobody rated is left out of the map, as the panel counts it.
@@ -216,7 +239,11 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     if (!node || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) setSize((s) => (s.width === Math.round(width) && s.height === Math.round(height) ? s : { width: Math.round(width), height: Math.round(height) }));
+      if (width > 0 && height > 0) {
+        setSize((s) => (s.width === Math.round(width) && s.height === Math.round(height) ? s : { width: Math.round(width), height: Math.round(height) }));
+        measured.current = true;
+        if (topWaiting.current) { topWaiting.current = false; setCamera((c) => topCamera(c, Math.round(width), Math.round(height))); }
+      }
     });
     observer.observe(node);
     return () => observer.disconnect();
@@ -235,7 +262,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const latest = useRef<Parameters<typeof drawObjectMap>[1] | null>(null);
   const pending = useRef(0);
   useEffect(() => {
-    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people };
+    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people, smooth: { ratio } };
     const draw = () => {
       pending.current = 0;
       const node = canvas.current;
@@ -250,7 +277,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     };
     if (typeof window.requestAnimationFrame !== "function") { draw(); return; }
     if (!pending.current) pending.current = window.requestAnimationFrame(draw);
-  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, statementsHere, people, ratio]);
+  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, statementsHere, people, ratio, terrain]);
   // Cleared on unmount, so a remount (React's development double mount included) schedules again.
   useEffect(() => () => { if (pending.current) window.cancelAnimationFrame(pending.current); pending.current = 0; }, []);
 
@@ -371,15 +398,59 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const back = detailOpener.current?.isConnected ? detailOpener.current : canvas.current;
     back?.focus({ preventScroll: true });
   };
-  // The Lead points at one of this map's objects while Správa objektů is closed: open it, so the
-  // object's button (its target) is there to be shown.
+  // The Lead's views on this map (artifact-sociomap SOC2), routed here by the Sociomapa stage, which
+  // checked them against every map it draws (routeToMap): each applied once, as it arrives, to the
+  // picture only. A select opens the element's detail on the object map; a filter sets the camera (top /
+  // relief), the map (objects / respondents) or brings this battery's map into view. What this map
+  // cannot do is said in words (lead note). A view from above waits for the canvas to be measured, so it
+  // fits the box it is drawn in.
+  const [leadNote, setLeadNote] = useState("");
+  const selectTarget = (target: string) => {
+    const t = readTarget(target);
+    const at = (id: string) => nodes.findIndex((n) => n.id === id);
+    if (!t) return;
+    showMap("objects");
+    if (t.kind === "object") { setSelected(at(t.object)); setRelation(null); }
+    else { setSelected(at(t.a)); setRelation([at(t.a), at(t.b)]); }
+    detailOpener.current = null;
+    showDetail();
+  };
+  const say = (key: string, vars: Record<string, string> = {}) => setLeadNote(tv(`research.exec.objectMap.panel.${key}`, vars));
+  const applyLeadView = (view: LeadMapView) => {
+    const op = readMapOp(view, [{ battery_id: battery.battery_id, title: battery.title, objects: nodes }]);
+    setLeadNote("");
+    if (isRefusal(op)) say("leadRefused", { words: op.words });
+    else if (op.op === "select") selectTarget((view as { target: string }).target);
+    else if (op.op === "filter" && op.name === "view" && op.value === "top" && !measured.current) topWaiting.current = true;
+    else if (op.op === "filter" && op.name === "view") { topWaiting.current = false; setCamera((c) => (op.value === "top" ? topCamera(c, size.width, size.height) : camera3d(c))); }
+    else if (op.op === "filter" && op.name === "mode" && op.value === "respondents" && !density) say("leadNoRespondents");
+    else if (op.op === "filter" && op.name === "mode") showMap(op.value as "objects" | "respondents");
+    else if (op.op === "filter" && op.name === "battery") stageNode.current?.scrollIntoView?.({ block: "start" });
+    else if (op.op === "filter") say("leadNoControl", { what: mapViewWords({ op: "filter", name: op.name, value: op.value }) });
+    else say("leadNotApplied", { op: op.op });
+  };
+  // The Lead points at one of this map's objects while Správa objektů is closed: open it; at one of its
+  // relations on the object map: open the relation's detail. Either way the target's element is there to
+  // be shown; the respondent map is left as the person has it. The listeners read the latest handlers.
+  const onObjects = view === "objects";
+  const lead = useRef({ applyLeadView, selectTarget, openSheet, onObjects });
+  useEffect(() => { lead.current = { applyLeadView, selectTarget, openSheet, onObjects }; });
   useEffect(() => {
-    const on = (e: Event) => {
-      const target = (e as CustomEvent<unknown>).detail;
-      if (nodes.some((n) => objectTarget(battery.battery_id, n.id) === target)) openSheet();
+    const onRouted = (e: Event) => {
+      const { battery: to, view: v } = (e as CustomEvent<{ battery: string; view: LeadMapView }>).detail;
+      if (to === battery.battery_id) lead.current.applyLeadView(v);
     };
-    window.addEventListener(LEAD_REVEAL, on);
-    return () => window.removeEventListener(LEAD_REVEAL, on);
+    const onReveal = (e: Event) => {
+      const target = (e as CustomEvent<unknown>).detail;
+      const t = typeof target === "string" ? readTarget(target) : null;
+      if (!t || t.battery !== battery.battery_id) return;
+      const has = (id: string) => nodes.some((n) => n.id === id);
+      if (t.kind === "object" && has(t.object)) lead.current.openSheet();
+      else if (t.kind === "pair" && has(t.a) && has(t.b) && lead.current.onObjects) lead.current.selectTarget(target as string);
+    };
+    window.addEventListener(LEAD_MAP_ROUTED, onRouted);
+    window.addEventListener(LEAD_REVEAL, onReveal);
+    return () => { window.removeEventListener(LEAD_MAP_ROUTED, onRouted); window.removeEventListener(LEAD_REVEAL, onReveal); };
   }, [nodes, battery.battery_id]);
   // Nastavení mapy and Nástroje are the bar's popovers (a second press closes); Správa objektů is a tab
   // of the side sheet, beside the detail.
@@ -431,7 +502,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const dock = useRef<HTMLDivElement>(null);
   const [resets, setResets] = useState(0);
   useEffect(() => { if (resets) dock.current?.focus({ preventScroll: true }); }, [resets]);
-  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
+  const resetDisplay = () => { showMap("objects"); setNorm("range"); setTerrain("framed_relative_idw"); setMode("top"); setResets((n) => n + 1); };
   // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
   // window less the page's sticky header. The bar, the rail and the legend chip are on the map, so
   // nothing of the panel sits over the stage; measured again whenever the pane or the stage moves.
@@ -478,6 +549,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
         </div>
       )}
+      {people || !terrain ? null : (
+        <div role="group" aria-label={t(`${p}.terrain`)}>
+          <SectionHead label={t(`${p}.terrain`)} help={t(`${p}.terrainHelp`)} />
+          <div className="omw-row">
+            <button type="button" className="omw-btn" aria-pressed={terrain === "framed_relative_idw"} disabled={!terrains.includes("framed_relative_idw")} onClick={() => setTerrain("framed_relative_idw")}>{t(`${p}.terrainIdw`)}</button>
+            <button type="button" className="omw-btn" aria-pressed={terrain === "framed_relative_idw_falloff"} disabled={!terrains.includes("framed_relative_idw_falloff")} onClick={() => setTerrain("framed_relative_idw_falloff")}>{t(`${p}.terrainFalloff`)}</button>
+          </div>
+        </div>
+      )}
       <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />
       <div className="omw-row"><button type="button" className="omw-btn" onClick={() => openWork("objects")}>{t(`${p}.objectManager`)}</button></div>
       <SectionHead label={t(`${p}.exportSection`)} help={t(`${p}.exportHelp`)} />
@@ -497,14 +577,14 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
 
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
-      <div ref={setStage} className="omw omx relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
-        data-testid="object-map-stage" data-moving={moving || undefined} style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
+      <div ref={(node) => { stageNode.current = node; setStage(node); }} className="omw omx relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
+        data-testid="object-map-stage" data-map-battery={battery.battery_id} data-moving={moving || undefined} style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
         onPointerDownCapture={(e) => { lastStage = e.currentTarget; }}
         onFocusCapture={(e) => { lastStage = e.currentTarget; }}>
         <div className="omx-body">
           <div className="omx-mapbox">
             <canvas ref={canvas} tabIndex={0} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
-              data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
+              data-camera={JSON.stringify(camera)} data-norm={norm} data-terrain={terrain ?? ""} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
               data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
               aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
               aria-describedby={people ? undefined : described}
@@ -520,15 +600,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                 </div>
               ) : null}
               <span className="omx-sep" aria-hidden />
-              {narrow ? iconBtn(t(`${p}.more`), <Ic d="M5 12h.01M12 12h.01M19 12h.01" bold />, () => openMenu("more"), menu === "more") : (
+              {narrow ? iconBtn(t(`${p}.more`), <PhosphorIcon name="dots-three" size={18} />, () => openMenu("more"), menu === "more") : (
                 <>
-                  {iconBtn(t(`${p}.settings`), <Ic d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />, () => openWork("settings"), menu === "settings", "settings")}
-                  {people ? null : iconBtn(t(`${p}.toolsButton`), <Ic d="M5 19c4-9 10-9 14-14M5 19l3-1M5 19l1-3M19 5l-3 1M19 5l-1 3" />, () => openWork("tools"), menu === "tools", "tools")}
+                  {iconBtn(t(`${p}.settings`), <PhosphorIcon name="sliders-horizontal" size={18} />, () => openWork("settings"), menu === "settings", "settings")}
+                  {people ? null : iconBtn(t(`${p}.toolsButton`), <PhosphorIcon name="magic-wand" size={18} />, () => openWork("tools"), menu === "tools", "tools")}
                 </>
               )}
               <button type="button" className={`omx-icon${pill?.warn ? " is-warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
                 aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={`${t(`${p}.info`)} (I)`} onClick={toggleInfo}>
-                <Ic d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z" />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
+                <PhosphorIcon name="info" size={18} />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
               </button>
               {/* One live region, always there, so the chip's first appearance is announced too. */}
               <span role="status" data-testid="object-map-filter-status">
@@ -536,10 +616,12 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                   <span className="omx-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
                     title={`${t(`${p}.filterTitle`)} ${changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}. ${t(`${p}.filterUnchanged`)}`}>
                     <b>{t(`${p}.filterChip`)}</b> {changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}<span className="sr-only">. {t(`${p}.filterUnchanged`)}</span>
-                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}>×</button>
+                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}><PhosphorIcon name="x" size={14} /></button>
                   </span>
                 ) : null}
               </span>
+              {/* A Lead view the map refused, in words; read out, nothing drawn over the panel. */}
+              <span role="status" className="sr-only" data-testid="object-map-lead-note">{leadNote}</span>
             </div>
 
             {menu === "more" ? (
@@ -562,24 +644,24 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
 
             {/* 2. The view rail, bottom right: zoom, fit, 2D / 3D, full screen. */}
             <div className="omx-rail omx-glass" role="group" aria-label={t(`${p}.tools`)}>
-              <button type="button" className="omx-icon" title={`${t(`${p}.zoomIn`)} (+)`} aria-label={t(`${p}.zoomIn`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_IN))}><Ic d="M12 5v14M5 12h14" /></button>
-              <button type="button" className="omx-icon" title={`${t(`${p}.zoomOut`)} (−)`} aria-label={t(`${p}.zoomOut`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_OUT))}><Ic d="M5 12h14" /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomIn`)} (+)`} aria-label={t(`${p}.zoomIn`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_IN))}><PhosphorIcon name="plus" size={18} /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomOut`)} (−)`} aria-label={t(`${p}.zoomOut`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_OUT))}><PhosphorIcon name="minus" size={18} /></button>
               <span className="omx-hair" aria-hidden />
-              <button type="button" className="omx-icon" title={`${t(`${p}.center`)} (0)`} aria-label={t(`${p}.center`)} onClick={() => setCamera(INITIAL_CAMERA)}><Ic d="M12 12h.01M12 5a7 7 0 100 14 7 7 0 000-14zM12 2v3M12 19v3M2 12h3M19 12h3" /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.center`)} (0)`} aria-label={t(`${p}.center`)} onClick={() => setCamera(INITIAL_CAMERA)}><PhosphorIcon name="crosshair" size={18} /></button>
               <span className="omx-hair" aria-hidden />
               <div className="omx-dim" role="group" aria-label={t(`${p}.dimension`)}>
                 <button type="button" aria-pressed={fromAbove} title={t(`${p}.top`)} aria-label={t(`${p}.top`)} onClick={() => setCamera((c) => topCamera(c, size.width, size.height))}>2D</button>
                 <button type="button" aria-pressed={!fromAbove} title={t(`${p}.three`)} aria-label={t(`${p}.three`)} onClick={() => setCamera(camera3d)}>3D</button>
               </div>
               <span className="omx-hair" aria-hidden />
-              <button type="button" className="omx-icon" title={`${t(`${p}.fullscreen`)} (F)`} aria-label={t(`${p}.fullscreen`)} aria-pressed={full} onClick={toggleFull}><Ic d={full ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.fullscreen`)} (F)`} aria-label={t(`${p}.fullscreen`)} aria-pressed={full} onClick={toggleFull}><PhosphorIcon name={full ? "corners-in" : "corners-out"} size={18} /></button>
             </div>
 
             {/* 3. The legend: a chip, opened on demand; closed again when a sheet or a popover opens. */}
             {legendOpen ? (
               <div className="omx-legendwrap">
-                {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
-                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}>×</button>
+                {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} floor={floor} />}
+                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}><PhosphorIcon name="x" size={14} /></button>
               </div>
             ) : (
               <button type="button" className="omx-legendchip omx-glass" aria-expanded={false} title={`${t(`${p}.legend`)} (L)`} onClick={() => setLegendOpen(true)}>
@@ -605,7 +687,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                     </div>
                     <button type="button" className="omx-icon omx-icon--sm" aria-label={t(`${p}.sheetFold`)} title={t(`${p}.sheetFold`)} onClick={() => setFolded(true)}>›</button>
                     <button type="button" className="omx-icon omx-icon--sm" aria-label={tv(`${p}.closeWindow`, { title: sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`) })} title={`${t(`${p}.sheetClose`)} (Esc)`}
-                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}>×</button>
+                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}><PhosphorIcon name="x" size={14} /></button>
                   </div>
                   <div className="omx-sheetbody" id={`${described}-sheet`} role="tabpanel" aria-labelledby={`${described}-tab-${sheetTab}`} data-testid={sheetTab === "detail" ? "object-map-detail" : undefined}>
                     {sheetTab === "detail" ? <h3 className="omx-sheettitle">{detailTitle}</h3> : null}
@@ -627,15 +709,17 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   );
 }
 
-/** A line icon on a 24 px grid. */
-function Ic({ d, bold = false }: { d: string; bold?: boolean }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={bold ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
-}
-
 /** A number as the panel's `fmt66` prints it (two decimals below 10, one below 100), in Czech. */
 function panelNumber(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";
   return Math.abs(v) >= 100 ? num(v, 0) : num(v, Math.abs(v) < 10 ? 2 : 1);
+}
+
+/** The legend's words for the relative scale: its floor as the map declares it (floorWords). */
+function scaleWords(floor: number | null): string {
+  const w = floorWords(floor);
+  const p = "research.exec.objectMap.panel";
+  return w.kind === "floor" ? tv(`${p}.infoScaleRange`, { floor: w.percent }) : t(w.kind === "full" ? `${p}.infoScaleRangeFull` : `${p}.infoScaleRangeUnknown`);
 }
 
 /** The legend's three marks under the ramp: the lowest and highest PRIMARY mean on the declared
@@ -649,7 +733,7 @@ function legendMarks(battery: BatteryWithMaps, stored: (number | null)[], norm: 
 
 /** The panel's legend (`updateLegend66`, `relationKeyHtml66`): the height scale at a glance, its
  *  meaning behind an ⓘ, and what the lines mean folded out. */
-function Legend({ battery, values: stored, norm, strongest }: { battery: BatteryWithMaps; values: (number | null)[]; norm: Norm; strongest: number }) {
+function Legend({ battery, values: stored, norm, strongest, floor }: { battery: BatteryWithMaps; values: (number | null)[]; norm: Norm; strongest: number; floor: number | null }) {
   const [open, setOpen] = useState(false);
   // The scale reads the PRIMARY objects' stored means; the numbers print on the declared scale.
   const [lo, word, hi] = legendMarks(battery, stored, norm);
@@ -664,7 +748,7 @@ function Legend({ battery, values: stored, norm, strongest }: { battery: Battery
           <div className="my-1 block text-[11px] font-normal normal-case leading-[1.4] tracking-normal opacity-85" data-testid="object-map-legend-info">
             {row("infoHeight", "infoHeightText")}
             {row("infoBetween", "infoBetweenText")}
-            {row("infoScale", norm === "absolute" ? "infoScaleAbsolute" : "infoScaleRange")}
+            <div><span className="font-semibold">{t("research.exec.objectMap.panel.infoScale")}</span> {norm === "absolute" ? t("research.exec.objectMap.panel.infoScaleAbsolute") : scaleWords(floor)}</div>
           </div>
         </details>
       </b>
@@ -746,18 +830,19 @@ function DensityLegend({ segments }: { segments: SegmentLegend | null }) {
 
 export type SegmentLines = { title: string | null; rows: { colour: string; text: string }[]; foot: string | null };
 
-/**
- * What the panel's legend says about the taste segments (`updateLegend66` on Respondenti): with
- * segments, each one's colour, share and the objects its people rate above and below the rest,
- * the overlap when they are not distinct, and the grey of a dot not clearly in one; with a
- * borderline split, the likely groups in grey and that nobody is coloured; otherwise why none is shown.
- */
 /** A segment's share as the panel prints it: the panel rounds a share to 4 decimals before it prints
  *  the percentage (its payload does), so 23/107 reads 22 %, not 21 %. */
 export function sharePercent(x: number): string {
   return `${Math.round(100 * Number(x.toFixed(4)))} %`;
 }
 
+/**
+ * What the panel's legend says about the taste segments (`updateLegend66` on Respondenti): with
+ * segments, each one's colour, share and the objects its people rate above and below the rest,
+ * the overlap when they are not distinct, the grey of a dot not clearly in one, and, as its foot, that
+ * the segments only describe (S-2); with a
+ * borderline split, the likely groups in grey and that nobody is coloured; otherwise why none is shown.
+ */
 function segmentLines(legend: SegmentLegend): SegmentLines {
   const pct = sharePercent;
   const named = (g: SegmentLegend["segments"][number]) =>
@@ -770,7 +855,7 @@ function segmentLines(legend: SegmentLegend): SegmentLines {
         ...legend.segments.map((g, j) => ({ colour: SEGMENT_COLOURS[j % SEGMENT_COLOURS.length], text: tv("research.exec.objectMap.panel.segmentRow", { n: j + 1, share: pct(g.share) }) + named(g) })),
         { colour: SEGMENT_GREY, text: t("research.exec.objectMap.panel.segmentGrey") },
       ],
-      foot: null,
+      foot: t("research.exec.objectMap.panel.segmentsDescribe"),
     };
   }
   if (legend.decision === "BORDERLINE") {
@@ -893,9 +978,30 @@ const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
 /** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
 const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
 
+/** Všechny vztahy: every other object's stored relation, its status and how many rated both; each line
+ *  opens the pair as the strongest ones above do. The status under each name says which ones the map reads. */
+function AllRelations({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+  const p = "research.exec.objectMap.panel";
+  const lines = allRelations(battery, map, selected);
+  const label = objectDetail(battery, map, selected).label;
+  return (
+    <details className="omw-all" data-testid="object-map-detail-all-relations">
+      <summary>{tv(`${p}.allRelations`, { n: lines.length })}</summary>
+      <p className="omw-tip">{t(`${p}.allRelationsHelp`)}</p>
+      {lines.map((x) => (
+        <button key={x.id} type="button" className="omw-answer" data-verdict={x.verdict} aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+          <span>{x.label}<small>{t(`${p}.relationStatus.${x.verdict}`)}{x.n === null ? "" : ` · ${tv(`${p}.relationRated`, { n: x.n })}`}</small></span>{" "}
+          <b>{x.r === null ? "—" : signed(x.r)}</b>
+          <span className="sr-only">{tv(`${p}.relationShow`, { a: label, b: x.label })}</span>
+        </button>
+      ))}
+    </details>
+  );
+}
+
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation?: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) return <p className="omw-tip py-4 text-center">{t(`${p}.objectDetailEmpty`)}</p>;
   const o = objectDetail(battery, map, selected);
@@ -911,21 +1017,20 @@ function ObjectCard({ battery, map, selected, relation, onRelation }: { battery:
       {o.primary ? null : <p className="omw-tip mb-2">{t(`${p}.detailSecondary`)}</p>}
       <div className="omw-facts">
         <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />
-        <Fact label={t(`${p}.detailConnectedness`)} help={t(`${p}.detailConnectednessHelp`)} value={panelNumber(o.connectedness)} />
-        {o.alignment !== null ? <Fact label={t(`${p}.detailAlignment`)} help={t(`${p}.detailAlignmentHelp`)} value={(o.alignment >= 0 ? "+" : "") + panelNumber(o.alignment)} /> : null}
       </div>
       <h3 className="omw-h3 !mt-[15px]"><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h3>
       {o.relations.length ? (
         <div data-testid="object-map-detail-relations">
           {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <button key={x.id} type="button" className="omw-answer" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+            <button key={x.id} type="button" className="omw-answer" aria-pressed={relation === undefined ? undefined : isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
               <span>{x.label}</span>{" "}<b>{signed(x.r)}</b>
               <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
             </button>
           ))}
         </div>
       ) : <p className="omw-tip">{t(`${p}.detailNoRelation`)}</p>}
+      <AllRelations battery={battery} map={map} selected={selected} relation={relation ?? null} onRelation={onRelation} />
       {o.primary ? null : (
         <>
           <h3 className="omw-h3 !mt-[15px]">{t(`${p}.detailPlacement`)}</h3>
@@ -940,7 +1045,7 @@ function ObjectCard({ battery, map, selected, relation, onRelation }: { battery:
 /** The panel's "Vybraný vztah" (`relationHtml66`) without the p-value and the noise level, which
  *  the map does not store (nor, under this estimator, an interval: "95 % —" as the panel prints a
  *  missing one); the verdict reads the stored status. "zřetelný" from the declared |r| (Metodika; 0,3 as the panel). */
-function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
+export function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
   const p = "research.exec.objectMap.panel";
   let verdict: ReactNode;
   if (d.r === null) verdict = tv(`${p}.${d.verdict === "noSpread" ? "relationNoSpread" : "relationFewRatings"}`, { n: d.n ?? 0 });
@@ -972,12 +1077,12 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
   if (!d) return <p className="omw-tip py-4 text-center">{t(`${p}.personEmpty`)}</p>;
   return (
     <div className="flex items-center gap-[9px]">
-      <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-extrabold text-white">{d.id.slice(-2)}</div>
+      <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-semibold text-white">{d.id.slice(-2)}</div>
       <div>
         <b data-testid="object-map-detail-person">{d.id}</b>
         <p className="omw-tip">
           {t(`${p}.personPosition`)}
-          {d.explained !== null ? <><br />{tv(`${p}.personExplained`, { pct: d.explained })}{d.faded ? ` · ${t(`${p}.personFaded`)}` : ""}</> : null}
+          {d.faded ? <><br />{t(`${p}.personFaded`)}</> : null}
           {d.segment !== null ? <><br />{d.segment >= 0 ? tv(`${p}.personSegment`, { n: d.segment + 1 }) : t(`${p}.personNoSegment`)}</> : null}
         </p>
       </div>

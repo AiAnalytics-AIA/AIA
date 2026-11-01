@@ -1,0 +1,32 @@
+{
+ "recorded_at": "2026-10-28T09:00:00+00:00",
+ "source_classes": {
+  "knihovna-kvitkov.example": "INDUSTRY_RESEARCH"
+ },
+ "hosts": {
+  "knihovna-kvitkov.example": [
+   "93.184.215.14"
+  ]
+ },
+ "search": {
+  "služby knihoven v malých městech": {
+   "hits": [
+    {
+     "url": "https://knihovna-kvitkov.example/sluzby-knihoven",
+     "title": "Služby knihoven v malých městech (fiktivní stránka)"
+    }
+   ],
+   "credits": 1,
+   "request_id": "acceptance-search-1"
+  }
+ },
+ "pages": {
+  "https://knihovna-kvitkov.example/sluzby-knihoven": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/html; charset=utf-8"
+   },
+   "body": "<!doctype html>\n<html lang=\"cs\">\n<head>\n<meta charset=\"utf-8\">\n<title>Služby knihoven v malých městech (fiktivní stránka)</title>\n</head>\n<body>\n<main>\n<h1>Služby knihoven v malých městech</h1>\n<p>Fiktivní veřejná stránka pro akceptační test AIA. Adresa leží v doméně .example, která podle RFC 2606 nikdy nepatří nikomu skutečnému; text, čísla ani instituce neexistují.</p>\n<h2>Otevírací doba</h2>\n<p>Podle fiktivního přehledu z roku 2025 mělo 42 % knihoven v obcích do 20 000 obyvatel otevřeno alespoň jeden den v týdnu po 18. hodině.</p>\n<h2>Samoobslužné služby</h2>\n<p>Výdejní schránky na rezervované knihy provozovalo 9 % sledovaných knihoven. Nejčastěji stály u nádraží nebo u úřadu.</p>\n<h2>Služby pro seniory</h2>\n<p>Rozvoz knih domů nabízela pětina sledovaných knihoven, obvykle jednou za dva týdny a zdarma.</p>\n</main>\n</body>\n</html>\n"
+  }
+ }
+}

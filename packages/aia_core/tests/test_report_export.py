@@ -8,15 +8,20 @@ records it only for bytes the stamp takes.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import zipfile
+from datetime import date
 from typing import Any
 
 import pytest
 import report_samples
 
 from aia_core.application.report_export import REVIEW_STAMP_RECORD, review_stamp_record
+from aia_core.domain.report.review import ReviewMark, ReviewState, approved_words
+from aia_core.infrastructure.report_docx.embed import reembed_fonts
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer, write_package
+from aia_core.infrastructure.report_docx.review_stamp import stamp_review
 
 DRAFT = "KONCEPT — NESCHVÁLENO"
 
@@ -52,3 +57,26 @@ def test_bytes_the_stamp_refuses_record_nothing(samples: dict[str, bytes]) -> No
     assert dict(review_stamp_record(stated)) == {}
     # Not a package at all.
     assert dict(review_stamp_record(b"PK fictional bytes")) == {}
+
+
+def test_an_approved_editor_saved_version_exports_stamped_with_its_fonts_back(
+    samples: dict[str, bytes],
+) -> None:
+    """RPT15 (spec szz T7), in the order ``export_docx`` takes: the stamp on the stored bytes,
+    then the fonts. The stamp still applies, every face the renderer embeds is back, and the
+    body is the stored version's, byte for byte."""
+    stored = report_samples.without_embedded_fonts(samples["internal"])
+    mark = ReviewMark(
+        ReviewState.APPROVED,
+        "ART-0000000000000001",
+        hashlib.sha256(stored).hexdigest(),
+        date(2026, 10, 26),
+    )
+    stamped = stamp_review(stored, mark)
+    exported = reembed_fonts(stamped)
+    assert exported is not None
+    with zipfile.ZipFile(io.BytesIO(exported)) as z, zipfile.ZipFile(io.BytesIO(stamped)) as before:
+        footers = b"".join(z.read(n) for n in z.namelist() if n.startswith("word/footer"))
+        assert approved_words(mark).encode() in footers
+        assert any(n.startswith("word/fonts/") for n in z.namelist())
+        assert z.read("word/document.xml") == before.read("word/document.xml")

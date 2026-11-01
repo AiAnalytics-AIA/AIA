@@ -31,7 +31,10 @@ import codecs
 import hashlib
 import json
 import re
-from collections.abc import Callable, Mapping, Sequence
+import time
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from html.parser import HTMLParser
@@ -72,6 +75,7 @@ from ..domain.deep_research.works import normalise_doi
 from .document_text import read_web_document
 
 __all__ = [
+    "FETCH_DEADLINE_S",
     "FetchTransport",
     "FetchedPage",
     "FetchedResource",
@@ -90,7 +94,10 @@ __all__ = [
     "WebFetcher",
     "extract_links",
     "extract_page",
+    "fetch_out_of_time",
+    "fetch_time_left",
     "load_recorded_web",
+    "note_request_sent",
     "page_snapshot",
 ]
 
@@ -106,6 +113,77 @@ class ToolCallFailed(Exception):
         super().__init__(message)
         self.reason = reason
         self.delivery = delivery
+
+
+#: One fetch's overall deadline, every redirect hop and robots.txt read included
+#: (security-audit-2026-10 S13). A read timeout bounds one read; this bounds the fetch.
+FETCH_DEADLINE_S: Final = 120.0
+
+
+class _FetchClock:
+    """One fetch's deadline. It starts with the fetch's first request, not before: waiting
+    for a host's turn (its lock, its crawl delay before anything is sent) is not time a
+    server holds, and a fetch queued behind others must not be spent before it sends."""
+
+    def __init__(self, monotonic: Callable[[], float], deadline_s: float) -> None:
+        self._monotonic = monotonic
+        self._deadline_s = deadline_s
+        self._started: float | None = None
+        self.sent = False
+        #: A request of this fetch left and no answer to it is known (a lost answer).
+        self.unanswered = False
+
+    @property
+    def started(self) -> bool:
+        """Whether a request of this fetch has been attempted (its clock is running)."""
+        return self._started is not None
+
+    def left(self, *, start: bool) -> float:
+        if self._started is None:
+            if not start:
+                return self._deadline_s
+            self._started = self._monotonic()
+        return self._started + self._deadline_s - self._monotonic()
+
+
+_FETCH_CLOCK: ContextVar[_FetchClock | None] = ContextVar("aia_fetch_clock", default=None)
+
+
+def fetch_time_left() -> float | None:
+    """Seconds left of the fetch in progress in this context, or ``None`` outside one.
+
+    A wire asks as it sends, and bounds its request by the answer, so a redirect or a
+    robots.txt read never starts a fresh deadline of its own; the first ask starts the
+    fetch's clock."""
+    clock = _FETCH_CLOCK.get()
+    return None if clock is None else clock.left(start=True)
+
+
+def note_request_sent(*, answered: bool) -> None:
+    """Record that a request of the fetch in progress left: a wire calls it once a request
+    was answered (``answered``) or failed after it may have left, never for one it knows was
+    not sent. A later request of the same fetch that is not sent then leaves the call as a
+    whole ``RESPONDED`` when every request that left was answered, else ``UNKNOWN``."""
+    clock = _FETCH_CLOCK.get()
+    if clock is not None:
+        clock.sent = True
+        clock.unanswered = clock.unanswered or not answered
+
+
+def fetch_out_of_time() -> bool:
+    """Whether the fetch in progress has sent and has no time left: a failure now is the
+    deadline's, not the host's (so nothing is learned about the host from it)."""
+    clock = _FETCH_CLOCK.get()
+    return clock is not None and clock.started and clock.left(start=False) <= 0
+
+
+@contextmanager
+def _fetch_deadline(clock: _FetchClock) -> Iterator[None]:
+    token = _FETCH_CLOCK.set(clock)
+    try:
+        yield
+    finally:
+        _FETCH_CLOCK.reset(token)
 
 
 # --------------------------------------------------------------------------- #
@@ -535,11 +613,17 @@ class WebFetcher:
         resolver: Resolver,
         adapter_id: str,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        monotonic: Callable[[], float] = time.monotonic,
+        deadline_s: float = FETCH_DEADLINE_S,
     ) -> None:
+        if deadline_s <= 0:
+            raise ValueError("deadline_s must be positive")
         self._transport = transport
         self._resolver = resolver
         self.adapter_id = adapter_id
         self._clock = clock
+        self._monotonic = monotonic
+        self._deadline_s = deadline_s
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
@@ -576,9 +660,36 @@ class WebFetcher:
         ``host_out_of_scope``, a later hop as ``redirect_out_of_scope`` -- in both
         cases before anything is sent to that host.
         """
+        clock = _FetchClock(self._monotonic, self._deadline_s)
+        with _fetch_deadline(clock):
+            try:
+                return self._hops(url, max_bytes=max_bytes, host_allowed=host_allowed, clock=clock)
+            except ToolCallFailed as exc:
+                if exc.delivery is Delivery.NOT_SENT and clock.sent:
+                    # This request was not sent, but an earlier one of the same fetch was:
+                    # the call as a whole was served (every answer known) or may have been.
+                    delivery = Delivery.UNKNOWN if clock.unanswered else Delivery.RESPONDED
+                    raise ToolCallFailed(str(exc), reason=exc.reason, delivery=delivery) from exc
+                raise
+
+    def _hops(
+        self,
+        url: str,
+        *,
+        max_bytes: int,
+        host_allowed: HostFilter | None,
+        clock: _FetchClock,
+    ) -> tuple[str, list[str], FetchedResponse]:
         redirects: list[str] = []
         current = url
         while True:
+            if clock.left(start=False) <= 0:
+                # One deadline for the whole fetch: no hop starts once it has passed.
+                raise ToolCallFailed(
+                    "the fetch's deadline passed before this request",
+                    reason="timeout",
+                    delivery=Delivery.NOT_SENT,
+                )
             host = check_url(current)
             if host_allowed is not None and not host_allowed(host):
                 raise FetchRefused(

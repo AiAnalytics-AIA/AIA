@@ -87,4 +87,5 @@ handoff starts, the film never plays.
 - FrontDoor's entry also: "the identity's cyan (`brand-apex`) is the signal there".
 - `tokens.json` gained `brand-apex`; `brand-stage`'s usage now names the handoff.
 - `components/brand/AiaMark.tsx` and `LatticeField.tsx` are no longer used by any page (FrontDoor
-  was their only user); kept, since AiaMark's test pins it to the mark's source SVG.
+  was their only user); kept, since AiaMark's test pins it to the mark's source SVG. *2026-10-26:*
+  AiaMark no longer exists; #995 (`646780a3`) removed it and its test (OI-222).

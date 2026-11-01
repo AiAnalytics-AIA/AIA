@@ -53,7 +53,7 @@ from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.item_ids import list_ids, with_item_ids
 from aia_core.domain.prompts import PromptPin
-from aia_core.domain.research_lead import LeadOutput, layer
+from aia_core.domain.research_lead import SHOW_DIFF_STAGES, LeadOutput, layer
 from aia_core.domain.residency import DataClass
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -76,7 +76,12 @@ from .deep_research import (
     deep_research_registry,
 )
 from .deep_research_recorded import recorded_runtime
-from .recorded_models import RecordedModels, RecordedSigner
+from .recorded_models import (
+    DEEP_RESEARCH_ROLES,
+    RecordedModels,
+    RecordedSigner,
+    deep_research_answer,
+)
 from .registry import registry_for
 from .research import research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
@@ -111,7 +116,7 @@ SYNTHETIC_SEED: Final = 20260816
 #: What a scripted reply starts with: never read as a model's answer.
 SCRIPTED_PREFIX: Final = "[Workbench · bez modelu]"
 #: What makes a scripted answer this one's, for the stored turn's reuse key.
-SCRIPT_VERSION: Final = "workbench-lead-1"
+SCRIPT_VERSION: Final = "workbench-lead-2"
 _SCRIPTED_WHY: Final = "Ukázková úprava z workbench"
 _FOCUS_ID: Final = re.compile(r"^[A-Za-z0-9_.\-]+$")
 
@@ -140,6 +145,10 @@ def _first_objective_id(design: Mapping[str, Any]) -> str | None:
     return _first_plan_id(design, "objectives", "objective_ids")
 
 
+def _has_layer(frozen: Mapping[str, Any], name: str) -> bool:
+    return any(entry.get("layer") == name for entry in frozen.get("layers") or ())
+
+
 def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     """A Lead turn's answer without any model, from the frozen context alone, deterministic.
 
@@ -149,8 +158,12 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     "aktualizuj návrh": the brief's analysis, which reads Návrh's saved answers and comments); a
     message with "pamatuj" also asks the Lead to remember it as a personal note, and one with
     "detail" opens the first research question's detail, else the first hypothesis's
-    (``inspect``). Every reply
-    starts with :data:`SCRIPTED_PREFIX`.
+    (``inspect``); "rešerš" prepares Design Research, and "výklad" or "výsledk" Interpretation
+    Research over the ``targets`` layer's default, when it has one (LO5a.1); one asking for
+    "změny" on Návrh, Dotazník or Dimenze shows that stage's waiting changes (``show_diff``);
+    one with "reliéf" sets Sociomapa's view to relief (``filter``), and one about an object or a
+    pair the person pointed at selects it (``select``). Every reply starts with
+    :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
     study = layer(frozen, "study")
@@ -163,7 +176,10 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
             "Doporučený další krok: projděte zadání."
         )
         return LeadOutput(reply=reply, follow=["Co mám udělat jako první?"])
-    message = str(view.get("message") or "")
+    # Several queued messages answered together (LC5a): the script reads them as one.
+    message = str(view.get("message") or "") or "\n".join(
+        str(m.get("text") or "") for m in view.get("messages") or ()
+    )
     first = questions[0] if questions else None
     edit: dict[str, Any]
     target = "brief:title"
@@ -199,9 +215,20 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
             views.append({"op": "inspect", "target": f"rq:{rq}"})
         elif hypothesis is not None:
             views.append({"op": "inspect", "target": f"hypothesis:{hypothesis}"})
+    # A message asking for the changes shows this stage's waiting ones (research-lead-workbench 14).
+    if "změny" in message.casefold() and view.get("stage") in SHOW_DIFF_STAGES:
+        views.append({"op": "show_diff", "stage": view["stage"]})
+    # On Sociomapa (research-lead-workbench 14): "reliéf" sets the map's view to relief, and a
+    # message about an object or a pair the person pointed at selects it, as the real Lead may.
+    if "reliéf" in message.casefold():
+        views.append({"op": "filter", "name": "view", "value": "relief"})
+    pointed = view.get("focus")
+    pointed_id = str(pointed.get("id") or "") if isinstance(pointed, Mapping) else ""
+    if pointed_id.startswith(("object:", "pair:")):
+        views.append({"op": "select", "target": pointed_id})
     body: dict[str, Any] = {
         "reply": f"{SCRIPTED_PREFIX} Připravil jsem ukázkovou úpravu a jedno rozhodnutí.",
-        "view": views,
+        "view": views[:3],
         "edits": [edit],
         "request": {
             "kind": "agent_job",
@@ -213,6 +240,14 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
         # A prepared research run instead (plan research-lead-workbench chunk 23): its card starts
         # the run through Spuštění's route, on the workbench's fictional fieldwork.
         body["request"] = {"kind": "research_run", "why": "Ukázka spuštění výzkumu"}
+    elif "rešerš" in message.casefold():
+        # Design Research over the whole design (lead-orchestration LO5a.1); the card opens Návrh.
+        body["request"] = {"kind": "design_research", "why": "Ukázka rešerše k návrhu"}
+    elif ("výklad" in message.casefold() or "výsledk" in message.casefold()) and (
+        layer(frozen, "targets").get("default") if _has_layer(frozen, "targets") else None
+    ):
+        # Interpretation Research over the default candidate: the newest research-questions module.
+        body["request"] = {"kind": "interpretation_research", "why": "Ukázka rešerše k výsledkům"}
     elif "aktualizuj návrh" in message.casefold():
         # Návrh's saved answers or comments, read from the working copy by the brief's analysis.
         body["request"] = {
@@ -361,13 +396,11 @@ class _ScriptedSigner:
 class ScriptedDeepResearchModel:
     """Bedrock Converse's wire for the Deep Research agents, answered by a script.
 
-    Each answer is built from what the agent was shown and ``answers`` (``agents.json``):
-    the planner's queries per subject text (else ``default_queries``), each web source's
-    evidence by URL (quotes literally on the recorded page, so grounding passes by its own
-    rules), every item supported by the verifier, and one finding per subject citing its
-    first accepted evidence. An internal track finds nothing. A contract this wire has no
-    script for gets the provider's validation refusal, answered and unbilled. Every response
-    carries ``x-aia-scripted`` and a ``workbench-scripted-<role>-<n>`` request id.
+    Each answer is the shared recorded one (:func:`~aia_executors.recorded_models.
+    deep_research_answer`), built from what the agent was shown and ``answers``
+    (``agents.json``). A contract this wire has no script for gets the provider's validation
+    refusal, answered and unbilled. Every response carries ``x-aia-scripted`` and a
+    ``workbench-scripted-<role>-<n>`` request id, and reports no tokens.
     """
 
     answers: Mapping[str, Any]
@@ -384,7 +417,15 @@ class ScriptedDeepResearchModel:
             "x-amzn-requestid": f"workbench-scripted-{role}-{len(self.requests)}",
             "x-aia-scripted": SCRIPTED_DEEP_RESEARCH,
         }
-        answer = getattr(self, f"_answer_{role}", None)
+        answer = (
+            deep_research_answer(
+                role,
+                json.loads(request.body["messages"][0]["content"][0]["text"]),
+                self.answers,
+            )
+            if role in DEEP_RESEARCH_ROLES
+            else None
+        )
         if answer is None:
             return HttpResponse(
                 status=400,
@@ -392,8 +433,7 @@ class ScriptedDeepResearchModel:
                 body={"message": f"the workbench has no script for {role!r}"},
             )
         name = request.body["toolConfig"]["tools"][0]["toolSpec"]["name"]
-        payload = json.loads(request.body["messages"][0]["content"][0]["text"])
-        tool = {"toolUse": {"toolUseId": "t", "name": name, "input": answer(payload)}}
+        tool = {"toolUse": {"toolUseId": "t", "name": name, "input": answer}}
         return HttpResponse(
             status=200,
             headers=headers,
@@ -404,60 +444,6 @@ class ScriptedDeepResearchModel:
                 "usage": {"inputTokens": 0, "outputTokens": 0, "totalTokens": 0},
             },
         )
-
-    def _answer_planner(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        plans: Mapping[str, Any] = self.answers.get("planner") or {}
-        default = list(self.answers.get("default_queries") or [])
-        tracks = []
-        for track in payload["tracks"]:
-            plan: Mapping[str, Any] = plans.get(track["subject"]) or {}
-            tracks.append(
-                {
-                    "track_id": track["track_id"],
-                    "sub_questions": list(plan.get("sub_questions") or []),
-                    "queries": list(plan.get("queries") or default),
-                }
-            )
-        return {"tracks": tracks, "notes": ""}
-
-    def _answer_web_investigator(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        web: Mapping[str, Any] = self.answers.get("web") or {}
-        evidence = [
-            {"source_id": s["source_id"], **e}
-            for s in payload["sources"]
-            for e in web.get(s["url"], [])
-        ]
-        return {"evidence": evidence, "gaps": []}
-
-    def _answer_internal_investigator(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        return {"evidence": [], "gaps": []}
-
-    def _answer_verifier(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        return {
-            "verdicts": [
-                {
-                    "evidence_id": item["evidence_id"],
-                    "verdict": "supported",
-                    "reason": "workbench: podloženo citací",
-                }
-                for item in payload["items"]
-            ]
-        }
-
-    def _answer_synthesizer(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        by_subject: dict[str, list[Mapping[str, Any]]] = {}
-        for evidence in payload["evidence"]:
-            by_subject.setdefault(evidence["subject_key"], []).append(evidence)
-        first = payload["evidence"][0]["claim"] if payload["evidence"] else ""
-        return {
-            "summary": first or "Workbench: nic nebylo nalezeno.",
-            "findings": [
-                {"subject_key": k, "text": v[0]["claim"], "evidence_ids": [v[0]["evidence_id"]]}
-                for k, v in by_subject.items()
-            ],
-            "gaps": [s["text"] for s in payload["subjects"] if s["subject_key"] not in by_subject],
-            "limitations": ["Workbench: zaznamenané fiktivní stránky, nikoli živý web."],
-        }
 
 
 def _role(request: HttpRequest) -> str:

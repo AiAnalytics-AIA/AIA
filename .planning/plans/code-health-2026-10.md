@@ -7,6 +7,7 @@ chunks:
   - "[x] 4a. Stop exporting values only their own module uses: src/lib, src/research, scripts (#780)"
   - "[x] 4b. The same for src/components and what 4a left, with a standing knip check (make web_unused, in CI)"
   - "[x] 5. Replace the source trees' `# type: ignore` sites with real type fixes, outside the frozen engine and open PRs (#781)"
+  - "[x] 6. Remove AiaMark and bump knip to 6 (Nigel, Q87 (a), 2026-10-23)"
 ---
 # Code health, October 2026
 
@@ -146,6 +147,27 @@ These figures are from knip 5.88.1 at develop `9607ee09`.
 - `npm run knip`, `tsc --noEmit` and `eslint src scripts` are clean.
 - vitest: 3,596 passed.
 - `tokens:check`, `check:design`, `audit-gate.mjs` (nothing blocks) and `npm run build` pass.
+
+## Chunk 6. AiaMark removed, knip 6
+
+Nigel decided both open items on 2026-10-23 (Q87, option (a) "Both"; relayed by the PM coordinator).
+
+- **`AiaMark.tsx` and `AiaMark.test.tsx` are deleted.**
+  - No page rendered the component, so its test pinned the geometry of dead code.
+  - `public/skin/brand/aia-mark.svg` stays: `CompleteReport.tsx` draws it.
+- **knip 5.88.1 → 6.42.1**, pinned exactly. The config needed no migration.
+- **Two config entries become unnecessary under knip 6.**
+  - knip 6 finds the npm-script entries (`build-tokens.mjs`, `check-design.mjs`) from any checkout
+    path, and it knows PostCSS comes with Next.js. So those two entries and the `postcss` ignore
+    are gone; knip 6 flagged them as redundant.
+  - The control: in the same `/tmp` worktree, knip 5.88.1 still reported the three scripts and an
+    unlisted `postcss`, and knip 6.42.1 reported nothing.
+- **Verification** on develop `21a30fa0`:
+  - `npm run knip` exits 0, both in the checkout and in a `/tmp` worktree;
+  - `tsc --noEmit` is clean;
+  - eslint's only warning is the existing one in `step-activity.test.ts`;
+  - vitest: 3,762 passed;
+  - `tokens:check`, `check:design`, the audit gate (nothing blocks) and `npm run build` pass.
 
 ## Left for later
 

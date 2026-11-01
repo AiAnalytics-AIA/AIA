@@ -11,8 +11,11 @@ chunks:
   - "[x] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
   - "[x] 8. aia-sociomap-5 the only method of new runs: the code's default pins -5 by its own name, -1 to -4 leave every product path (run pins, Metodika presets and in-force, the web, the report), Metodika's in force is -5 (D-13); as built under the owner's decisions of 2026-10-21 (§ Chunk 8 as built)"
   - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
-  - "[ ] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4)"
+  - "[x] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4) (#823, merged 2026-10-23)"
   - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
+  - "[x] 12. The -5 terrain by inverse-distance weighting: framed_relative_idw (terrain.idw_power in (0, 10]) the method's terrain, the falloff variant stored beside it in every -5 run, the envelope no longer drawn; the register approves the new -5 fingerprint b2992c12… beside 959a5877… (the methodology owner 2026-10-26, Nigel 2026-10-27; #1015)"
+  - "[ ] 13. The report's map terrain chosen by the study's lead researcher: each map figure of the internal and the client report drawn in the terrain chosen from those the run stored (plain IDW by default), the figure saying which; the choice recorded with the study (Nigel 2026-10-27: 'editable and configurable by the lead researcher'; whether that is the person running the study or the AI Lead is open)"
+  - "[x] 14. The client report draws -5's object map only, never its respondent map or taste segments: the register approves the object map for clients, the respondent map and segments after the web and the report draw them (the methodology owner 2026-10-28, MQ-01 (b), MQ-13 (ii))"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
 
@@ -323,3 +326,109 @@ place in the chapter, drawn from #517's renderer.
   numba cache path, a deployment detail, is not recorded.
 - **Client reports show the `-5` respondent map** beside its two object-map views.
 - **"Klienti"** is the team's own client handling.
+
+### The terrain under inverse-distance weighting (the methodology owner, 2026-10-26)
+
+- **The `-5` object terrain is the objects' relative heights weighted by inverse distance, as the
+  Sociomapy app interpolates them** (`framed_relative_idw`): z(q) = Σ_j w_j t_j / Σ_j w_j,
+  w_j = d_j^(−p), p = `terrain.idw_power` = 3, on the same framed grid, Relativní and Absolutní
+  alike. The terrain at an object is its own height, beside a taller one too; every other point is
+  a weighted mean of the objects, far from them as well.
+- **Selectable:** the same under the hills' falloff (`framed_relative_idw_falloff`, × max_j
+  exp(−d_j² / 2σ²), σ = 0.25: far from every object, ground; a replaced kernel shapes the falloff)
+  and the envelope (`framed_relative_envelope`, no power). The hill width and the kernel do not
+  enter the plain weighted mean.
+- **Both inverse-distance terrains are stored** (Nigel, 2026-10-27): a run under either stores the
+  other beside it, and the map switches between them, opened on plain IDW. Plain IDW fills empty
+  space with the nearest objects' height (the 8-object `complete` study's bottom-left corner reads
+  about 0.9); the falloff keeps each object at its own height and lets empty space fall to ground.
+- **`terrain.idw_power` lies in (0, 10]**: above that, 1 / d^p underflows or overflows on a map's
+  grid (200 fails with a division by zero, 1e6 with an overflow), in the spec and Metodika alike.
+- **Report figures** print the version's own terrain (under `-5`, plain IDW) and say which terrain
+  they show. Letting the study's lead researcher choose the terrain of a report's map figures
+  (internal and client) is a later chunk.
+- **Why** (evidence in the methodology folder's project, `NPC_Panel/analysis/idw_terrain/`, five
+  maps): the envelope lifted 0–4 objects per real map by up to 0.33 of the scale next to a taller
+  neighbour; none is lifted under inverse-distance weighting. Chosen knowingly over the falloff
+  variant (first signed off the same day): plain weighting brings back plateaus (56–80 % of cells
+  within 0.10 of the nearest object; the envelope 18–28 %) and raises ground far from every object
+  to 0.51–0.72, on 0.1–3.7 % of the cells.
+- **The register approves the new `-5` fingerprint** (`b2992c12…`) client-facing beside the
+  `959a5877…` entry, which runs stored before the change keep. `-2`, `-3` and `-4` are unchanged.
+- **Metodika** shows the weighted mean and its falloff variant as steps after the envelope's, with
+  `terrain.idw_power` (in (0, 10]) among the terrain's parameters; the terrain parity fixture
+  (`signed_off_terrain.json`) was produced again by the methodology's own code. The web's `-5`
+  fixture stays a stored map of the envelope: a run stored before the change.
+
+## Chunk 10 ticked (2026-10-26, docs PR)
+
+Shipped by #823 (merged into develop 2026-10-23, `58a272b4`), the Settings backends' SB1: the Metodik mark (`PUT /members/{user_id}/methodologist`, `apps/api/src/aia_api/routers/scope.py:806-821 @ 40b16d58`), and `MethodologyRepository` requiring it before any methodology change (`packages/aia_core/src/aia_core/infrastructure/methodology_repository.py:233-237 @ 40b16d58`, `require_methodologist`). The Settings gap map recorded the drift (SOSM#10 open although SB1 shipped).
+
+## Chunks 12 and 13 added (2026-10-27)
+
+- **Chunk 12** is the inverse-distance terrain as Aram built it in #1015 (§ The terrain under
+  inverse-distance weighting, added by that PR). It is ticked when #1015 merges.
+- **Chunk 13** is the follow-up #1015 names: until it lands, a report prints the method's own terrain
+  (plain IDW under `-5`) and says which. **Open question:** "the lead researcher" means the person
+  running the study, or the study's AI Lead (Build Map question; Nigel's answer of 2026-10-27 named
+  the role, not which).
+
+Chunk 12 ticked: #1015 merged into develop on 2026-10-27 (`aabb37e2`), after Codex and a second review found nothing blocking. Five follow-ups (a near-zero distance in the IDW weight, the alternate terrain's three fields required together, Metodika's note on where the map opens, the kernel slot's help, timing the four IDW grids) are on the PR for Aram.
+
+## Chunk 14: the client report's respondent map (2026-10-28)
+
+**Finding (check A, the PM coordinator's open check on MQ-01).** The client report of a modelled
+`-5` run printed the respondent map: every placed respondent as a dot coloured by taste segment, its
+segment legend and the reading text. `compose_map_sections` added the `respondents` view to any
+signed-off map with a stored respondent map, client or not
+(`packages/aia_core/src/aia_core/application/report_maps.py:372-373 @ 947686c0`). The client report
+calls it with `client=True` (`application/client_report.py:169-170 @ 947686c0`), and the register
+approves `-5` as a whole (`domain/sociomap_register.py:69-100 @ 947686c0`). The methodology owner
+approved the object map for clients and the respondent map and segments only after the web and the
+report draw them (2026-10-28, MQ-01 (b)); a dot is one person, internal only (MQ-13 (ii)). The map
+snapshots (RD4) were clean: their views are `top` and `3d` (`application/map_snapshots.py:43`).
+
+**Fix.** The `respondents` view is added only when `client` is false; the client report keeps the top
+and 3D views of the object map, and the internal report all three; its respondent figure is no longer
+drawn for it (`object_map_snapshots(respondents=False)`). A draft stored before the fix is never served
+again: the client report's contract moves to `aia-client-report-8` (its reuse key), the document read
+skips an unapproved draft of an earlier contract, and its approval is refused (`ReportNotApprovable`);
+the next download composes anew. A version saved in the editor carries its composition's contract
+(`report_editor_saves.py`), so an unapproved edited client version of an earlier contract is refused
+too (`client_report.of_current_composition`, Codex P2 on #1109). A draft recording no contract is not
+current: every client draft has recorded one since the first composition (`ab913735`, 2026-10-13),
+and the respondent map reached the report later (`23ac1b46`, 2026-10-20). **A client report approved before the fix keeps its bytes** (D2: an
+approved version is never replaced): any approved `-5` client report on develop still holds the
+respondent map. **Decided: leave them** (the product owner, 2026-10-28, relayed by the PM
+coordinator): develop holds only fictional data, so they stay as recorded history. Tests:
+`test_report_signed_off_map_figure.py::test_the_client_report_shows_the_object_map_never_the_respondent_map_or_segments`
+(failed on `947686c0`: the client figures were top, 3D and the respondent map) and
+`test_sociomap_register.py::test_the_client_report_shows_a_new_runs_object_map_never_its_respondent_map`,
+which replace the two tests that asserted the respondent map in the client report.
+`apps/executors/tests/test_ai_fieldwork.py::test_a_client_draft_of_an_earlier_composition_is_never_shown_or_approved`
+(failed before: the document read returned the `-7` draft, and its approval passed).
+`apps/api/tests/test_report_editor_api.py::test_an_edited_client_version_of_an_earlier_composition_is_never_approved`
+(failed before: the edited version was approved, 200).
+
+**Decision: MQ-04's "maps computed elsewhere are internal only" gets no gate for the MVP** (the
+product owner, 2026-10-28, relayed by the PM coordinator). Only the worker computes a map
+(`apps/executors/src/aia_executors/research.py:898 @ 947686c0`); the report never re-derives one:
+`verified_map` checks the stored map's lineage, the run's dataset and specification, and reads it
+(`application/report_chapters.py:83-120`), so no coordinates are compared anywhere. A map records its
+numerical libraries (`numerical_runtime`), not the image that computed it. Revisit if a second
+compute path appears.
+
+**Findings (design notes, not built).**
+- **F-SOSM-14a.** The `-5` respondent map is kept from clients by a check in the composer
+  (`report_maps.py`, `not client`), not by the register, which approves `aia-sociomap-5` as a whole
+  (`domain/sociomap_register.py:69-100`). A per-view approval on `MethodApproval` (for example the
+  client views `top`, `3d`), read by `compose_map_sections`, would keep the decision in the register
+  as data; approving the respondent map later (MQ-01 (b)) is a code change until then.
+- **F-SOSM-14b** (to the methodology owner with RN-1, by the PM coordinator). The `-5` reader note
+  printed in the client report says how reliably the map is determined is given by the split-half
+  check and the uncertainty radius (`sociomap_register.py:96`), which the client report never prints
+  (`_credibility_note` is internal only, `report_maps.py:333-352`).
+
+**Doc follow-up.** `CLAUDE.md` §2, `application/report_maps.py`: "client=True: approved maps only, as
+figures" becomes "client=True: approved maps only, as figures, the object map alone (a `-5` respondent
+map and its segments internal, MQ-01 (b))".

@@ -286,3 +286,41 @@ def test_the_study_s_own_words_never_hold_back_the_stamp(
     refused = _appended(stored, _paragraph("Stav: KONCEPT \u2014 NESCHVÁ", "LENO"))
     with pytest.raises(NotStampable):
         stamp_review(refused, _mark(refused))
+
+
+@pytest.mark.parametrize("which", ["styles", "footer"])
+def test_a_part_declaring_a_dtd_is_never_parsed_for_the_stamp(
+    samples: dict[str, bytes], which: str
+) -> None:
+    """A version saved in the report editor is a stranger's file: a styles or footer part that
+    declares a document type is refused before any entity is read (NotStampable), never
+    parsed with entities resolved."""
+    stored = samples["client"]
+    footer = next(n for n in _parts(stored) if _footer(n))
+    name = "word/styles.xml" if which == "styles" else footer
+    hostile = _rewritten(
+        stored,
+        {
+            name: lambda b: (
+                b'<?xml version="1.0"?><!DOCTYPE w [<!ENTITY x "1">]>' + b.split(b"?>", 1)[1]
+            )
+        },
+    )
+    with pytest.raises(NotStampable, match="document type"):
+        stamp_review(hostile, _mark(hostile))
+
+
+def test_a_footer_still_saying_draft_beside_its_status_run_is_not_stampable(
+    samples: dict[str, bytes],
+) -> None:
+    """The draft words typed into a footer beside its status run (an editor save, RPT8c):
+    stamping the run would leave the file saying approved and draft at once."""
+    stored = samples["client"]
+    footer = next(n for n in _parts(stored) if _footer(n))
+    draft = "KONCEPT — NESCHVÁLENO".encode()
+    typed = _rewritten(
+        stored,
+        {footer: lambda b: b.replace(b"</w:p>", b"<w:r><w:t>" + draft + b"</w:t></w:r></w:p>", 1)},
+    )
+    with pytest.raises(NotStampable, match="draft words"):
+        stamp_review(typed, _mark(typed))

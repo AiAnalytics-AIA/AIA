@@ -92,8 +92,8 @@ class ScopeResolver:
 
     # ------------------------------------------------------------- internals --
 
-    def _membership_role(self, principal: AuthenticatedPrincipal) -> OrganizationRole:
-        """Return the principal's organization role, or deny."""
+    def _membership(self, principal: AuthenticatedPrincipal) -> OrganizationMemberRow:
+        """Return the principal's membership of their organization, or deny."""
         row = self._session.scalar(
             select(OrganizationMemberRow).where(
                 OrganizationMemberRow.organization_id == principal.organization_id,
@@ -102,7 +102,14 @@ class ScopeResolver:
         )
         if row is None:
             raise ScopeDenied("not found", reason="not_a_member")
-        return OrganizationRole(row.role)
+        if row.deactivated_at is not None:
+            # Deactivated in this organization (D-27): no scope here, at once, whatever token.
+            raise ScopeDenied("not found", reason="user_deactivated")
+        return row
+
+    def _membership_role(self, principal: AuthenticatedPrincipal) -> OrganizationRole:
+        """Return the principal's organization role, or deny."""
+        return OrganizationRole(self._membership(principal).role)
 
     def _active_user(self, principal: AuthenticatedPrincipal) -> UserRow:
         """Return the user row, denying a deactivated account.
@@ -153,13 +160,14 @@ class ScopeResolver:
         to read client research data.
         """
         self._active_user(principal)
-        role = self._membership_role(principal)
+        membership = self._membership(principal)
         return OrganizationContext(
             organization_id=principal.organization_id,
             actor_id=principal.user_id,
-            organization_role=role,
+            organization_role=OrganizationRole(membership.role),
             grant=ScopeGrant._issue(),
             request_id=principal.request_id,
+            methodologist=bool(membership.methodologist),
         )
 
     def authorize_session(

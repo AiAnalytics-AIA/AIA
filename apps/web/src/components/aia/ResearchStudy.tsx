@@ -6,8 +6,8 @@
 // then loads its working content from AIA by the study alone (ADR 0018). A person
 // who may only read never starts a study's content.
 
-import { notFound, useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useMemo } from "react";
+import { notFound, useRouter, useSelectedLayoutSegment } from "next/navigation";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { type StudyWorkspace, type WorkingContent, workspace } from "@/lib/api";
@@ -38,9 +38,16 @@ function Waiting({ children, name }: { children: ReactNode; name?: string }) {
   );
 }
 
-function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingContent; children: ReactNode }) {
+function Frame({ w: first, content, children }: { w: StudyWorkspace; content?: WorkingContent; children: ReactNode }) {
   const { client } = useClient();
+  // The study as last read: a status changed on the study reads it again here, in place, so what
+  // it allows (can_edit, closed) follows without the stage or its unsaved state remounting.
+  const [w, setW] = useState(first);
   const studyId = w.study.study_id;
+  const refreshStudy = useCallback(async () => { setW(await workspace.study(studyId)); }, [studyId]);
+  // While its status changes the study is read-only to the stages (the session keeps its store: it is
+  // rebuilt only when what the study allows has changed, once the study is read again).
+  const [holding, setHolding] = useState(false);
   const clientId = client.client_id;
   const canEdit = w.can_edit;
   const canReview = w.can_review;
@@ -59,17 +66,23 @@ function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingC
       studyId,
       studyName: w.study.name,
       lastStage: w.study.last_stage && isStepKey(w.study.last_stage) ? w.study.last_stage : null,
-      canEdit,
+      canEdit: canEdit && !holding,
       canReview,
       closed: closedStatus ? { status: closedStatus, deliveredAt } : null,
+      status: w.study.status,
+      refreshStudy,
+      holdEdits: setHolding,
       stepHref: (step: StepKey) => appRoutes.stage(clientId, studyId, step),
       onStage,
     }),
-    [clientId, client.name, studyId, w.study.name, w.study.last_stage, canEdit, canReview, closedStatus, deliveredAt, onStage],
+    [clientId, client.name, studyId, w.study.name, w.study.last_stage, w.study.status, canEdit, holding, canReview, closedStatus, deliveredAt, onStage, refreshStudy],
   );
   return (
     <StudyFrameProvider frame={frame}>
-      <ResearchSession studyId={studyId} initialContent={content}>{children}</ResearchSession>
+      <ResearchSession studyId={studyId} initialContent={content} canEdit={canEdit}>
+        <ResearchStages />
+        {children}
+      </ResearchSession>
     </StudyFrameProvider>
   );
 }
@@ -109,7 +122,7 @@ export function ResearchStudy({ studyId, children }: { studyId: string; children
             <p className="text-sm">{t("aia.study.readOnly")}</p>
           </section>
         ) : (
-          <ClosedStudyNotice closed={{ status: w.study.status, deliveredAt: w.study.delivered_at ?? null }} />
+          <ClosedStudyNotice closed={{ status: w.study.status, deliveredAt: w.study.delivered_at ?? null }} studyId={w.study.study_id} onChanged={retry} />
         )}
       </Waiting>
     );
@@ -127,11 +140,22 @@ export function ResearchStudyEntry() {
   return null;
 }
 
-/** /research/<study>/<stage>: one stage, in the study's session. */
-export function ResearchStage({ slug }: { slug: string }) {
+/**
+ * The study's stages, drawn in its layout (research-lead-workbench 34): the stage is read from the
+ * address one level below it, so a stage change re-renders this one screen with another step and
+ * swaps only the stage's body. The Lead's conversation, the split, the header and the navigator stay
+ * mounted, with the study's reads; a page per stage remounted them all on every click.
+ */
+export function ResearchStages() {
+  const segment = useSelectedLayoutSegment();
   const frame = useStudyFrame();
-  const step = stepFromSlug(slug);
-  if (!step) notFound();
-  if (!frame) return null;
+  const step = segment ? stepFromSlug(decodeURIComponent(segment)) : null;
+  if (!step || !frame) return null;
   return <ResearchScreen step={step} frame={frame} />;
+}
+
+/** /research/<study>/<stage>: the address of a stage, drawn by ResearchStages; one that names none is not found. */
+export function ResearchStage({ slug }: { slug: string }) {
+  if (!stepFromSlug(slug)) notFound();
+  return null;
 }

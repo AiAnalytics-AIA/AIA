@@ -1,8 +1,9 @@
 """Passes to the report editor's origin: a one-time ticket and the docs cookie it buys.
 
 ONLYOFFICE Docs is served at ``docs.<hostname>``, an origin of its own, so its JavaScript
-never runs beside AIA's session token (plan report-editor-hosting). AIA's ``aia_session``
-cookie is host-only and *is* that token, so it never reaches the editor's origin. Instead:
+never runs beside AIA's session token (plan report-editor-hosting). AIA's session cookie
+is host-only and *is* that token (deployed, ``__Host-aia_session``, which no other host can
+set), so it never reaches the editor's origin. Instead:
 
 * a signed **ticket** (60 s) names the person and their organization and carries a random
   id; the API spends it once (``docs_ticket_spends``), on the editor's own origin;

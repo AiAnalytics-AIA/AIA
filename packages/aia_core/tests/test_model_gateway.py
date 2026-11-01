@@ -18,6 +18,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from aia_core.application.model_gateway import (
+    CONTAINER_HINT_VERSION,
     REPAIR_PROMPT_VERSION,
     GovernedModelGateway,
     input_token_bound,
@@ -64,6 +65,11 @@ class Answer(BaseModel):
     model_config = ConfigDict(extra="forbid")
     verdict: str
     score: int
+
+
+class ListAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[str]
 
 
 class LooseAnswer(BaseModel):
@@ -918,6 +924,43 @@ def test_one_same_model_repair_is_made_and_recorded(
     assert terminal[1].note == f"repair_prompt={REPAIR_PROMPT_VERSION}"
     # Both calls were billed, so both are counted.
     assert result.total_cost_usd == pytest.approx(2 * result.actual_cost_usd)
+
+
+def test_a_list_sent_as_a_string_is_named_and_the_repair_asks_for_the_list(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    adapter = ScriptedAdapter(
+        Provider.OPENAI,
+        [_ok('{"items": "[\\"a\\", \\"b\\"]"}'), _ok('{"items": ["a", "b"]}')],
+    )
+    result = _run(
+        _gateway(model_registry, adapter),
+        _request(agent=_agent(output_contract=ListAnswer)),
+        context,
+    )
+    assert isinstance(result.output, ListAnswer)
+    repair = adapter.requests[1].messages[-1].content
+    assert "- items: Input should be a valid array, received string\n" in repair
+    assert "itself, never a string holding JSON" in repair
+    terminal = [e for e in result.usage_events if e.outcome.is_terminal]
+    assert terminal[1].note == (
+        f"repair_prompt={REPAIR_PROMPT_VERSION} repair_hint={CONTAINER_HINT_VERSION}"
+    )
+
+
+def test_no_container_hint_for_any_other_violation(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    adapter = ScriptedAdapter(
+        Provider.OPENAI,
+        [_ok('{"verdict": "fine", "score": "7"}'), _ok('{"verdict": "fine", "score": 7}')],
+    )
+    result = _run(_gateway(model_registry, adapter), _request(), context)
+    repair = adapter.requests[1].messages[-1].content
+    assert "score: Input should be a valid integer, received string" in repair
+    assert "string holding JSON" not in repair
+    terminal = [e for e in result.usage_events if e.outcome.is_terminal]
+    assert terminal[1].note == f"repair_prompt={REPAIR_PROMPT_VERSION}"
 
 
 def test_second_violation_fails_with_the_violations(

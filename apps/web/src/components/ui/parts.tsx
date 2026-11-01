@@ -10,7 +10,7 @@ import { t } from "@/i18n/t";
 import type { SaveState } from "@/lib/inline-edit";
 
 /** A popover on z-overlay (a menu, the swatches), anchored under its trigger: no side yet. */
-const POPOVER_AT = "absolute top-full z-[var(--z-overlay)] mt-1 rounded-md border border-border bg-surface-overlay p-1 shadow-[var(--shadow-overlay)]";
+const POPOVER_AT = "absolute top-full z-[var(--z-overlay)] mt-1 rounded-panel border border-border bg-surface-overlay p-1 shadow-[var(--shadow-overlay)]";
 /** A popover under its trigger, opening rightwards from its left edge. */
 export const POPOVER = `${POPOVER_AT} left-0`;
 /** A popover under its trigger, opening leftwards from its right edge (a trigger at a row's end). */
@@ -52,6 +52,9 @@ export const FIELD_ERROR = "border-status-fault bg-status-fault-wash";
  * there; WCAG 2.2 target size).
  */
 export const TOUCH = "min-h-11 sm:min-h-8";
+
+/** A chip or tag: 44 px at phone width, the look contract's 24 px from 640 px (WCAG 2.2's 24 px target). */
+export const CHIP_TOUCH = "min-h-11 sm:min-h-6";
 
 /** A link that stands on its own (not inside a sentence): the touch target and focus ring, its text on
  *  the first line of the box, beside what it belongs to. */

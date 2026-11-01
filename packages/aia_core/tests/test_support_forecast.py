@@ -13,6 +13,8 @@ from aia_core.domain.methodology.pins import aggregation_pin_for, read_aggregati
 from aia_core.domain.research_design import CheckStatus, assess_readiness, compile_design
 from aia_core.domain.support_forecast import (
     SUPPORT_FORECAST_CHECK,
+    ReportableState,
+    SupportForecast,
     forecast_support,
     with_support_forecast,
 )
@@ -144,6 +146,35 @@ def test_a_population_drawn_run_is_unknown_never_good() -> None:
     assert not forecast.known and forecast.analysis is None
     check = _check(spec, forecast)
     assert check.status is CheckStatus.WARN and "náhled publika" in check.message
+
+
+def test_what_a_reportable_n_stands_for_is_named_so_none_is_never_read_as_good() -> None:
+    """SMP9 (stand-in review of #1010): ``reportable_n`` is ``None`` when n already suffices, when
+    the evidence is indicative, when nothing was forecast and when the search found nothing; the
+    state tells them apart."""
+
+    def rule(minimum: int, indicative: int) -> SupportSpec:
+        line = SupportThresholds(
+            min_cell=None, n_guard=None, indicative=None, min_layer_donors=minimum,
+            indicative_layer_donors=indicative,
+        )  # fmt: skip
+        return SupportSpec(methodology_version="test", results=line, analysis=line)
+
+    def state(n: int, support: SupportSpec = AIA_SUPPORT_V1, source: Any = ROSTER) -> Any:
+        return forecast_support(_spec(n), support=support, persona_source=source).reportable_state
+
+    assert state(200) is ReportableState.MET
+    assert state(50, rule(5, 100_000)) is ReportableState.INDICATIVE
+    assert state(50) is ReportableState.NEEDS_MORE
+    assert state(2500, rule(100_000, 100_000)) is ReportableState.NOT_FOUND
+    assert state(450, source=PersonaSource.PANEL) is ReportableState.UNKNOWN
+    # A drawn panel sample whose analysis is suppressed was never searched (Codex on 77f2852b):
+    # its missing n is unknown, not a search that found nothing.
+    drawn = SupportForecast(
+        persona_source=PersonaSource.PANEL, respondents=50, donors=12,
+        results=SupportStatus.SUPPRESS, analysis=SupportStatus.SUPPRESS,
+    )  # fmt: skip
+    assert drawn.reportable_n is None and drawn.reportable_state is ReportableState.UNKNOWN
 
 
 def test_a_forecast_never_makes_a_design_unready() -> None:

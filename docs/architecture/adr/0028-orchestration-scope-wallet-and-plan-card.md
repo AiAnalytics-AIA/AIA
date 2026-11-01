@@ -269,3 +269,25 @@ Decision 2 rejects charging by settled spend for concurrency; releasing the unsp
 run ends (the hold settled to its usage) keeps concurrency safe and is a different rule. Adopting it
 is an amendment to this ADR; LO1 builds the ADR as written (`lead-orchestration.md` § LO1
 delivered; the retry case is OI-170).
+
+## Note, 2026-10-26: a fifth money amount and the house payer (not yet amended)
+
+Two later decisions move this ADR's money vocabulary; neither is built, and each writes its own
+amendment (or ADR) in its chunk's PR.
+
+- **LI0, the organization's allowance for personal Lead work** (`lead-identity` LI0; core, W3; Nigel,
+  2026-10-25, answer (a): a hatch is paid from it). A fifth named money amount beside D-01's four (the
+  sixth `MoneyAmount`, after the unnamed wallet ceiling; `packages/aia_core/src/aia_core/domain/money.py:77,115
+  @ 5d2ac5ac`), proposed Czech name "Rozpočet osobního Vedoucího" (Nigel's to confirm). It caps work
+  a researcher's own Lead does outside any study, as *Rozpočet klienta* caps a client's own work: it is
+  not in `PRECEDENCE` (`money.py:162 @ 5d2ac5ac`), which keeps ordering a study's paid work unchanged,
+  and no wallet or threshold applies to it. Null means no personal Lead work may be paid, never
+  unlimited. Set on Settings by an OWNER or ADMIN, audited.
+- **LI8, the house payer** (`lead-identity` LI8; W3; Nigel, 26 Oct 2026, relayed by the PM
+  coordinator: "create the AIA organization for charges spent that dont belong to a single client").
+  Every paid path is keyed by a client today, so a hatch cannot be held or ledgered until an "AIA"
+  house entity exists. Its ADR, drafted in LI8 before LI0 and the hatch's request side are built,
+  decides the entity's shape and whether LI0's allowance is that entity's budget or is replaced by
+  it. Nothing is charged to it before that ADR is accepted.
+
+Until those land, decision 2, `PRECEDENCE` and D-01's four names stand as written.

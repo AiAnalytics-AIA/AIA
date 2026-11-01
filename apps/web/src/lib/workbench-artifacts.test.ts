@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { FILTER_VALUES } from "./artifacts/sociomap";
 import { ACTION_LABELS } from "./research-agent-jobs";
 import { STAGE_ORDER } from "./workbench-stages";
 import {
@@ -14,6 +15,7 @@ const FILE = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_cor
   id_pattern: string;
   view_ops: { op: string; live: boolean }[];
   filters: Record<string, string[]>;
+  filter_values: Record<string, Record<string, string[] | null>>;
   targets: { kind: string; stage: string; live: boolean }[];
   artifacts: Record<string, unknown>[];
 };
@@ -30,6 +32,8 @@ describe("the per-artifact contract", () => {
     expect([...LIVE_TARGETS].sort()).toEqual(FILE.targets.filter((t) => t.live).map((t) => t.kind).sort());
     expect(TARGET_STAGE).toEqual(Object.fromEntries(FILE.targets.map((t) => [t.kind, t.stage])));
     expect(VIEW_FILTERS).toEqual(FILE.filters);
+    // Each filter's values, the map's own (SOC1) and the server's grounding alike.
+    expect(FILTER_VALUES).toEqual(FILE.filter_values.sociomap);
   });
 
   it("starts only workers the cards know", () => {
@@ -77,5 +81,10 @@ describe("aiaId / parseAiaId", () => {
   it("lets the Lead show its changes on Dimenze, where its edits land", () => {
     expect(allowsView("dimensions", "show_diff")).toBe(true);
     expect(ARTIFACTS.dimensions.edits).toBe(true);
+  });
+
+  it("lets the Lead propose n on Vzorek and show the change there (artifact-sample SMP7)", () => {
+    expect(ARTIFACTS.sample.edits).toBe(true);
+    expect(allowsView("sample", "show_diff")).toBe(true);
   });
 });

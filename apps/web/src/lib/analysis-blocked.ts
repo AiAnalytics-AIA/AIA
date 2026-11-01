@@ -38,3 +38,17 @@ export function wayOut(module: string, runEnded: boolean, retryable: readonly st
   if (retryable === null) return "unknown";
   return retryable.includes(module) ? "retry" : "same_data_fails";
 }
+
+/** A completed module that states no supported finding, as the server diagnosed it (evidence-integrity 9a). */
+export type Unsupported = { module: (typeof ANALYSIS_ORDER)[number]; reason: "no_supported_finding" | "context_missing"; resolutions: string[] };
+
+/** Every module the server diagnosed as stating nothing, in module order; a reason this client does not know is left out. */
+export function unsupportedModules(analysis: ResearchAnalysis | null): Unsupported[] {
+  if (!analysis) return [];
+  return ANALYSIS_ORDER.flatMap((module) => {
+    const d = analysis.modules[module]?.diagnostic;
+    return d && (d.reason === "no_supported_finding" || d.reason === "context_missing")
+      ? [{ module, reason: d.reason, resolutions: d.resolutions }]
+      : [];
+  });
+}

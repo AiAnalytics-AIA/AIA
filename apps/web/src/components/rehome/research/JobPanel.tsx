@@ -43,11 +43,11 @@ export function JobPanel({ job, onCancel, studyId, embedded = false }: { job: Jo
 
   return (
     <div role={embedded ? "region" : "dialog"} aria-modal={embedded ? undefined : true} aria-labelledby="job-title" className={embedded ? "min-w-0" : "fixed inset-0 z-40 flex items-center justify-center bg-surface-inverse/40 p-4"}>
-      <div className={embedded ? "min-w-0 rounded-md border border-ai-edge bg-ai-wash p-4 text-ink" : "w-[min(34rem,100%)] rounded-md border border-border-strong bg-surface-overlay p-5 text-ink shadow-[var(--shadow-overlay)]"}>
+      <div className={embedded ? `min-w-0 rounded-md border ai-spark ai-spark--wash p-4 text-ink${job.orb ? " ai-spark--working" : ""}` : "w-[min(34rem,100%)] rounded-md border border-border-strong bg-surface-overlay p-5 text-ink shadow-[var(--shadow-overlay)]"}>
         <div className="flex items-start gap-3">
           {job.orb ? <ActivityOrb orb={job.orb} size={64} /> : <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />}
           <div className="min-w-0 flex-1">
-            <span className="inline-flex items-center gap-1 rounded-pill bg-ai-wash px-2 py-px text-[11px] font-semibold leading-[18px] text-ai-ink">
+            <span className="inline-flex items-center gap-1 rounded-pill bg-ai-wash px-2 py-px text-[11px] font-semibold leading-[18px] text-ink">
               <Sparkle size={11} />
               {t("research.aiJob")}
             </span>

@@ -14,6 +14,12 @@
 
 DOCS=(docker compose --project-directory "$DEPLOY_DIR/docs" --env-file "$ENV_FILE"
       -f "$DEPLOY_DIR/docs/docker-compose.yml")
+# Compose interpolates the whole file for every command, and the secret is required there (:?),
+# so once a rollback deleted it, down, status and logs would refuse too. Only up keeps the guard;
+# the others use no secret, and get a placeholder only when there is none.
+if [ "${1:-}" != "up" ]; then
+  export AIA_ONLYOFFICE_JWT_SECRET="${AIA_ONLYOFFICE_JWT_SECRET:-unused-unless-starting}"
+fi
 
 require_env_file
 
@@ -22,7 +28,7 @@ case "${1:-}" in
     docker network inspect aia-docs > /dev/null 2>&1 \
       || die "the network aia-docs does not exist; deploy AIA first"
     log "starting the Document Server"
-    "${DOCS[@]}" up -d --wait --wait-timeout 420
+    "${DOCS[@]}" up -d --wait --wait-timeout 600
     log "the Document Server is up at https://docs.$AIA_PUBLIC_HOSTNAME"
     ;;
   down)

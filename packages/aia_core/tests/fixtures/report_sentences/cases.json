@@ -1,0 +1,228 @@
+{
+  "about": "The sentence check's reading rule (report-delivery RD7), case by case: one sentence of analysis prose, the number its block cites as the ledger prints it (null: none), and whether the check marks it. Fictional text.",
+  "cases": [
+    {
+      "text": "Nejvíc důvěřují lidé v Praze.",
+      "cites": null,
+      "marked": true,
+      "why": "a superlative with no number"
+    },
+    {
+      "text": "Důvěra v Praze je vyšší než ve Zlíně.",
+      "cites": null,
+      "marked": true,
+      "why": "a comparative's než"
+    },
+    {
+      "text": "Oproti loňsku důvěra klesla.",
+      "cites": null,
+      "marked": true,
+      "why": "oproti"
+    },
+    {
+      "text": "Ve srovnání s Ostravou je Praha napřed.",
+      "cites": null,
+      "marked": true,
+      "why": "a phrase"
+    },
+    {
+      "text": "Rozdíl mezi regiony je velký.",
+      "cites": null,
+      "marked": true,
+      "why": "a difference"
+    },
+    {
+      "text": "Mladší převažují mezi nespokojenými.",
+      "cites": null,
+      "marked": true,
+      "why": "a lead"
+    },
+    {
+      "text": "Důvěra v Praze (48,2 %) je nejvyšší.",
+      "cites": "48,2 %",
+      "marked": false,
+      "why": "it prints the number its block cites"
+    },
+    {
+      "text": "Praha vede s 48,2 bodu.",
+      "cites": "48,2",
+      "marked": false,
+      "why": "no comparison word, and a number besides"
+    },
+    {
+      "text": "Důvěra je vyšší než ve Zlíně, uvádí 51 %.",
+      "cites": "48,2 %",
+      "marked": true,
+      "why": "a number the block does not cite is no admitted claim"
+    },
+    {
+      "text": "Bankám důvěřuje většina dospělých.",
+      "cites": null,
+      "marked": false,
+      "why": "no comparison"
+    },
+    {
+      "text": "Výsledky nejsou měřené na lidech.",
+      "cites": null,
+      "marked": false,
+      "why": "nejsou is a negation, not a superlative"
+    },
+    {
+      "text": "Nejistota je vysoká.",
+      "cites": null,
+      "marked": false,
+      "why": "nejistota is uncertainty"
+    },
+    {
+      "text": "Nejprve ověřte výsledky na novém vzorku.",
+      "cites": null,
+      "marked": false,
+      "why": "an adverb of order"
+    },
+    {
+      "text": "Nejde o měřený výsledek.",
+      "cites": null,
+      "marked": false,
+      "why": "nejde is a negation"
+    },
+    {
+      "text": "Podíl dvou nejvyšších bodů neuvádíme.",
+      "cites": null,
+      "marked": false,
+      "why": "a metric's name"
+    },
+    {
+      "text": "Nejen Praha, ale i Brno.",
+      "cites": null,
+      "marked": false,
+      "why": "nejen"
+    },
+    {
+      "text": "Důvěra je v Praze vyšší.",
+      "cites": null,
+      "marked": true,
+      "why": "a comparative without než"
+    },
+    {
+      "text": "Spokojenost vyššího managementu je stabilní.",
+      "cites": null,
+      "marked": true,
+      "why": "an inflected comparative (vyššího), read as one: the list errs toward marking"
+    },
+    {
+      "text": "S vyšším vzděláním roste důvěra.",
+      "cites": null,
+      "marked": true,
+      "why": "vyšším"
+    },
+    {
+      "text": "Mladší respondenti jsou spokojenější.",
+      "cites": null,
+      "marked": true,
+      "why": "-ější"
+    },
+    {
+      "text": "Ženy nakupují častěji.",
+      "cites": null,
+      "marked": true,
+      "why": "a comparative adverb"
+    },
+    {
+      "text": "VYŠŠÍ DŮVĚRA V PRAZE.",
+      "cites": null,
+      "marked": true,
+      "why": "upper case folds"
+    },
+    {
+      "text": "Duvera je vyssi nez ve Zline.",
+      "cites": null,
+      "marked": true,
+      "why": "text without diacritics folds alike"
+    },
+    {
+      "text": "Více informací v příloze.",
+      "cites": null,
+      "marked": false,
+      "why": "více alone is no comparison"
+    },
+    {
+      "text": "Většina dospělých bankám důvěřuje.",
+      "cites": null,
+      "marked": false,
+      "why": "většina is a majority, not a comparative"
+    },
+    {
+      "text": "Menšina odpověděla záporně.",
+      "cites": null,
+      "marked": false,
+      "why": "menšina is a minority"
+    },
+    {
+      "text": "Respondenti otázce rozumějí.",
+      "cites": null,
+      "marked": false,
+      "why": "a verb ending -ějí is no adverb"
+    },
+    {
+      "text": "Její odpověď je jasná.",
+      "cites": null,
+      "marked": false,
+      "why": "její"
+    },
+    {
+      "text": "Spokojenější jsou mladší (48,2 %).",
+      "cites": "48,2 %",
+      "marked": false,
+      "why": "supported by the number its block cites"
+    },
+    {
+      "text": "Ověřte výsledky na větším vzorku.",
+      "cites": null,
+      "marked": true,
+      "why": "KNOWN OVER-MARK, for the methodology owner's review: a comparative about the method, not a result; a word list cannot tell them apart"
+    },
+    {
+      "text": "Zjistit, zda nový ranní nápoj v plechovce dává smysl lidem, kteří denně dojíždějí do práce, komu nejvíc a za jakou cenu.",
+      "cites": null,
+      "marked": false,
+      "why": "a study's goal restated (zda): it asks, it claims nothing (seen on the workbench's fictional draft)"
+    },
+    {
+      "text": "Kdo nakupuje nejčastěji?",
+      "cites": null,
+      "marked": false,
+      "why": "a question claims nothing"
+    },
+    {
+      "text": "Ověřili jsme, jestli jsou mladší spokojenější.",
+      "cites": null,
+      "marked": false,
+      "why": "jestli: an indirect question"
+    },
+    {
+      "text": "Nejvyšší počet je 1 204.",
+      "cites": "1 204",
+      "marked": false,
+      "why": "a thousands space reads as the ledger's no-break space"
+    },
+    {
+      "text": "Nejvíc důvěřují lidé v Praze, 48.2 %.",
+      "cites": "48,2 %",
+      "marked": false,
+      "why": "a decimal point reads as the ledger's comma"
+    },
+    {
+      "text": "Nejvíc důvěřují lidé v Praze, 48 %.",
+      "cites": "48,2 %",
+      "marked": true,
+      "why": "another number is no support: 48 is not 48,2"
+    },
+    {
+      "text": "Respondenti uvedli: „Důvěra dosahuje 48,2 %.“ Nejvíc důvěřují lidé v Praze.",
+      "cites": "48,2 %",
+      "marked": true,
+      "why": "a closing quote ends its sentence: the number supports only the sentence it is in"
+    }
+  ],
+  "status": "PROVISIONAL: AIA's starting reading of a Czech comparison (the PM, 2026-10-24), for the methodology owner, Aram, to review. It only marks a sentence, never refuses one."
+}

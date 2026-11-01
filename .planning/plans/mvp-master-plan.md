@@ -5,10 +5,10 @@ chunks:
   - "[x] MP1. The five cohesion traces folded in: the gap register (§6) and the interface register (§5), anchors spot-checked"
   - "[x] MP2. Each gap's chunk added to its plan, with a named ID (§6.1, §5); each plan's owner reviews before its wave"
   - "[ ] MP3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
-  - "[ ] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
+  - "[x] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
   - "[ ] MP5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits, respondent replacement, assumption evidence and open-answer coding; ADRs awaiting an owner decision stay Proposed"
-  - "[ ] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
-  - "[ ] MP7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
+  - "[x] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
+  - "[x] MP7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
   - "[x] MP8. A register check: tools/master_check.py fails on a dangling plan#ID reference, a plan missing from §3, an AC or G or I row with no resolvable chunk, or a count that does not match the tables"
   - "[ ] MP9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
   - "[ ] MP10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
@@ -201,18 +201,32 @@ to the input-interactions plan (#528).
 | Q33 | Report approval stays a modal naming the document | `input-interactions#6` |
 | Q34 | Any member may rename a client, audited, under EDIT_CLIENT_PROFILE | `input-interactions#7` |
 
+### The owner's audit answers of 2026-10-25 (about 21:15 UTC)
+
+Relayed by coordinator 3 from the audit page; all thirty are in
+[`mvp-owner-decisions.md`](../mvp-owner-decisions.md) § The audit answers of 2026-10-25 and summarised in
+`overview.md`. Those that move this register:
+
+| Id | Answer | Chunks |
+|---|---|---|
+| MP3 | (b) go plan by plan: each §3.2 disposition confirmed with its plan's owner, one plan at a time. **Being reviewed, not decided** | `mvp-master-plan#MP3` |
+| SCOPE-OVERRIDES | (d) another combination: "i want to review each individually"; S2-S5 go to a review page. **Being reviewed, not decided** | §11.3 |
+| MVPQ-06 (rest) | (a) the plan's proposed targets adopted for evaluations 25, 26 and 39 | `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27` |
+| COHESION-Q5 | (c) no dates: I-2 and I-4 stay undated | `mvp-cohesion.md` §5 Q5 |
+| PERF-BUDGETS | (b) planning proposes per-journey numbers in that chunk's PR; the owner approves them there | `mvp-acceptance-harness#18` |
+| ADR-0041 | (b) accept with amendments; the amendment is being drafted, the ADR stays Proposed | `lead-conversation#LC0` |
+| ADR-HELD | (a) 0027, 0034, 0036 and 0037 each accepted once its methodology answer is written in | `mvp-master-plan#MP5` |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
 | — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b3` (switching on `AIA_AI_SCALE_LABELS_IN_PROMPT`, which 3b1 built off); `panel-grounded-respondents` 7f-7h |
-| — | ADR 0041 (the Lead's conversation and context, #529) accepted | the owner | `lead-conversation#LC0` |
-| — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
+| — | ADR 0041 (the Lead's conversation and context, #529) accepted. *2026-10-25: (b) accept with amendments; the amendment is being drafted* | the owner | `lead-conversation#LC0` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
-| — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
-| — | The scope overrides S2 to S5, only if wanted (§11.3) | the owner | §11.3 |
-| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts), and the new ADR for the Lead's web lookup (Q6) written | the owner | `mvp-master-plan#MP5`, `lead-orchestration#LO20` |
+| — | The scope overrides S2 to S5, only if wanted (§11.3). *2026-10-25: (d), the owner reviews each individually; not decided* | the owner | §11.3 |
+| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts), and the new ADR for the Lead's web lookup (Q6) written. *2026-10-25: 0034, 0036 and 0037 (with 0027) accepted once each methodology answer is written in* | the owner | `mvp-master-plan#MP5`, `lead-orchestration#LO20` |
 
 ### Signature
 
@@ -240,8 +254,11 @@ Signed: Nigel Blount, product owner ("ok lets sign it", relayed by the coordinat
 
 **Role.** `CORE`: carries an MVP gate. `SUPPORT`: needed, gates nothing alone. `CLOSE`: finished or
 superseded, to be verified and closed by its owner. `FOLD`: its remaining work belongs inside another
-plan. `POST`: after the MVP, by decision. The dispositions of plans outside the development plan are
-**proposed** (◇): each plan's owner confirms in `MP3`.
+plan. `POST`: after the MVP, by decision. The dispositions of plans outside the development plan were
+**proposed** (◇) and the owner reviewed them plan by plan in `MP3` (2026-10-25: (b)); **he answered every
+one on 2026-10-26** in the Decision Review (relayed by the PM coordinator), recorded row by row in §3.2.
+A CLOSE or FOLD unticks and deletes nothing: the plan keeps its chunks and its status, its body records
+the disposition, and its owner closes it with a pointer when the receiving plan has the work.
 
 ### 3.1 Core: carry an MVP gate
 
@@ -267,6 +284,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
 | `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
+| `lead-identity` | S1 (proposed) | I-1 (proposed) | core, W3, after `lead-conversation#LC5b` and `#LC10` (Nigel, 2026-10-25 ~23:47 UTC, relayed by the PM coordinator); LI0's money amount needs its ADR 0028 amendment |
 | `lead-client-knowledge` | S1 | I-1, I-3 | LK0's licence determination (Q60) first; ADR 0042 (Proposed, written in LK1) before the read round |
 | `artifact-questionnaire` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#17` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
 | `artifact-brief` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
@@ -285,33 +303,47 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
 | `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
+| `study-deletion` | S3 | I-5 (proposed) | **proposed core (planning, 26 Oct): all SD questions answered** (ADR 0043 accepted 2026-10-26, Q1-Q8 and SD-F1-NOW in the Decision Review); `study-data-lifecycle#SDL3`'s study half; SD7's client half first, as its own small PR (OI-232); a proposal of this register, not the owner's scope decision |
 | `production-environment` | S3 | I-5 | operator items (§11.5) |
 | `signed-off-sociomap-method` | S2 and the methodology owner | I-2 | the owner's D-13 (`-5` the only method); the methodology owner's register entry (MQ-01) before a `-5` map reaches a client |
+| `settings-redesign` | lane B: the Settings builder (S1) | I-1 (proposed) | **proposed core, 2026-10-26** (was SUPPORT in §3.2): the Settings pages are step 2-3 of `prototype-build`, every open chunk W1; Nigel may change it |
+| `prototype-build` | the coordinator; lane A "the second account" (Nigel's art-chain organisation account) | I-1 to I-4 | the order from the approved prototypes to the product (five steps, eight lanes; Nigel's decisions of 25-26 Oct 2026); core because lane A's chunks (`prototype-build#PBA1` to `#PBA7`) are build work with no other plan, and the five step chunks index the others |
+| `study-files` | S3 (RA1-RA3 with S2, who own the fieldwork dataset) | I-2 (proposed) | **core, 2026-10-27**: Nigel's decisions of 27 Oct (~01:10-01:40 UTC, the PM coordinator's chat), folders and filing in the MVP; SF1's and SF4's migrations in the serial lane; SF2 introduces the minimal retired state (W2) and `client-knowledge-lifecycle#K6` (W3) extends it; `lead-orchestration#LO18a` before SF7; `artifact-brief#BRF7` with SF6 |
+| `client-pages-redesign` | S3 (the client workspace), beside lane A's shell | I-1 to I-3 (proposed) | **core, 2026-10-27**: Nigel, "build it, the design system upgrade will take place once that's finished" (canvas v5, redrawn to v7); the visual base Petrol core v4 (the design-system session's canvas v10), brought into tokens.json by CPR21, a separate later chunk; the server chunks CPR1-CPR3 before the screens that read them; `study-files#SF1` to `#SF4` before CPR12, CPR17 and CPR18; `client-knowledge-lifecycle#K9` before CPR8 |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.
 
-### 3.2 Outside the development plan: proposed disposition
+### 3.2 Outside the development plan: disposition
 
-| Plan | Proposed role | Why | Action |
+The owner's answer is quoted in each row: the Decision Review, 2026-10-26, relayed by the PM coordinator
+(REV-MP3-*). "Against" marks an answer that differs from the proposal.
+
+| Plan | Role | Why | Action |
 |---|---|---|---|
-| `productization-coherence` | SUPPORT (S1) | PC5 (stage track says the design changed after the run) and PC16 (rewording a question keeps its links) land inside artifacts 17-18 | add to workbench 17-18 as acceptance lines |
-| `client-workspace` | FOLD into `client-knowledge-lifecycle` (S3) | C6-C9 overlap K3, K2, K6; C8 contradicts ADR 0027 and F19 | re-scope C8, point C6-C9 at the lifecycle chunks |
-| `architecture-enforcement` | SUPPORT (S3) | the new tables must pass its contracts; chunk 9 (a digest on scope and claims) is security | schedule beside M1-M6; not gating |
-| `ai-research-activation` | FOLD into §4 and `MP7` | its open chunk is the activation the AI route still lacks | close when `MP7` is done |
-| `run-recovery-and-truth` | CLOSE | chunk 4 (search beyond Wikipedia) is `deep-research-web-search` 51-52 | owner closes with a pointer |
-| `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0 once `MP3` is run; no checkpoint work stays in the old plan |
-| `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
-| `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | CLOSE (verify) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | owners verify against `develop`, close |
-| `methodology-tab` | POST | S4d waits on the audit's author, W1c on panel source weighting, X1 is Simulation | none |
-| `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
-| `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none |
-| `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
+| `productization-coherence` | SUPPORT (S1), **accepted** 2026-10-26 ("Accept: SUPPORT (S1)") | PC5 (stage track says the design changed after the run) and PC16 (rewording a question keeps its links) land inside artifacts 17-18 | add to workbench 17-18 as acceptance lines |
+| `client-workspace` | FOLD into `client-knowledge-lifecycle` (S3), **accepted** 2026-10-26 ("Accept: FOLD into client-knowledge-lifecycle (S3)") | C6-C9 overlap K3, K2, K6; C8 contradicts ADR 0027 and F19 | C6 → `client-knowledge-lifecycle#K2f`, C7 → `#K2`, C9 → `#K6`; C8 re-scoped by the lifecycle's owner under ADR 0027; recorded in the plan |
+| `architecture-enforcement` | SUPPORT (S3), **accepted** 2026-10-26 ("Accept: SUPPORT (S3)") | the new tables must pass its contracts; chunk 9 (a digest on scope and claims) is security | schedule beside M1-M6; not gating |
+| `ai-research-activation` | FOLD into §4 and `MP7`, **accepted** 2026-10-26 ("Accept: FOLD into §4 and MP7") | its open chunk is the activation the AI route still lacks | close when `MP7` is done |
+| `run-recovery-and-truth` | CLOSE, **accepted** 2026-10-26 ("Accept: CLOSE") | chunk 4 (search beyond Wikipedia) is `deep-research-web-search` 51-52 | owner closes with a pointer |
+| `research-agent-workflows` | FOLD, **accepted** 2026-10-26 ("Accept: FOLD") | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0; no checkpoint work stays in the old plan |
+| `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional, **accepted** 2026-10-26 ("Accept: CLOSE A4 and A5; keep A3 optional") | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
+| `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed CLOSE (verify)) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | none; each stays in progress with its own chunks |
+| `methodology-tab` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | S4d waits on the audit's author (R-1), W1c on panel source weighting, X1 is Simulation | none; outside the development plan, not POST |
+| `panel-grounded-respondents` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | 7f-7h are the holdout validation that lifts client-facing analysis prose; 7h waits for the methodology owner's confirmation of P1-P8 (ADR 0024 Q1 (a), 2026-10-26) | none; outside the development plan, not POST |
+| `sociomapping-engine` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none; outside the development plan, not POST |
+| `simulation-studio` | POST, **accepted** 2026-10-26 ("Accept: POST") | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
+| `report-editor-hosting` | SUPPORT (S1, operations) | the ONLYOFFICE server and its gate for `artifact-report#RPT8`; activation (chunk 4) waits on OI-200 | registered 2026-10-25 (register drift) |
+| `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
+| `sonnet-5-5-switch` | SUPPORT (operations) | AUD-7 (a): develop's route model from Claude Sonnet 4.5 to Claude Sonnet 5.5; chunk 1 (the code, #907) built, chunks 2-5 the infra session's | registered 2026-10-27 (register drift) |
+| `prompt-caching` | SUPPORT (planned) | prompt caching on the Bedrock route behind `AIA_AI_PROMPT_CACHE` (off), measured first (#912) | registered 2026-10-27 (register drift); no chunk is scheduled |
+| `design-system-v2` | SUPPORT (S1, beside `prototype-build` lane A), **Nigel, 2026-10-27** ("register design-system-v2 as SUPPORT") | the code half of the design system: tokens, then shared components, then the screens' parts (DS0-DS26; DS12 and DS23-DS26 landed in #1022). The core screen plans build on its parts, but it gates nothing alone: no MVP gate is about the look, and its cleanup chunks (DS18, DS22) should not hold a release | registered 2026-10-27 (register drift, added by #1022). Overlaps settled by each plan's owner before building: DS23 (Petrol into `tokens.json`) already did most of `client-pages-redesign#CPR21`, which is re-scoped to what DS23 left; DS8 (one Chip), DS13 (Segmented, Tabs) and DS14 (Switch) are checked against `input-interactions`' shared primitives, which own the inputs |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
 | Plan | Why |
 |---|---|
 | `class-b-search-route` | deferred whole on 2026-10-19: the open posture replaces classification for Deep Research in the MVP (`deep-research-web-search#53`); the content rule stays in it as the redesign's starting point. It is **not** core. |
+| `fronta-prace` | Nigel, 2026-10-26 ~00:38 UTC: "lets table this idea as a plan in the future"; the organization's work queue on Stav systému, which needs an organization-level work-queue read (an architecture decision first) |
 
 Counts are derived, not typed: `python tools/master_check.py` prints how many plans each table holds and
 checks them against the plan files' front matter.
@@ -683,6 +715,8 @@ Also required are the cutover rollback
 rehearsed on develop, the Cognito and Google callbacks for the production hostname, and the
 activation profile of §4 `READY` on the production host. The proposed sizes are accepted (D-20); production's hostname is `app.ai-analytics.ai`
 (page Q15), and the Bedrock quota is an operator's (`mvp-target-architecture.md` §9).
+Legal's confirmation of OI-61 (panel-derived material to `bedrock-eu-primary`) is obtained before
+the first production release (ADR 0024 Q3 (a), "Before production", the owner, 2026-10-26).
 
 ## 10. Risks of the whole
 
@@ -714,7 +748,7 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | Defined segments start from the sampler's stored descriptors; the internal drill-down shows stored attributes and answers only, no generated persona prose (the methodology parts stay open) | MVPQ-03, owner 2026-10-20 | `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1` |
 | The accepted data contract alone is the client dataset's evidence policy; "z dat klienta" beside each number, source and period disclosed once (benchmark interval and survey grounding stay open) | MVPQ-05, owner 2026-10-20 | `client-data-in-analysis#2`, `client-data-in-analysis#9` |
 | Common Crawl stays required for I-R; the owner owns evaluations 25, 26 and 39, with USD 50 apart from the USD 25 study (thresholds stay open) | MVPQ-06, owner 2026-10-20 | `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `mvp-acceptance-harness#11` |
-| Deleted content lasts at most 30 days in backups and versions; a deletion journal is replayed after restore; content-free usage rows stay, admins only | MVPQ-07, owner 2026-10-20 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` |
+| Deleted content lasts at most 30 days in backups and versions; a deletion journal is replayed after restore; content-free usage rows stay, admins only; **the kept AI spend and audit rows for 365 days, and a sealed Lead deleted 365 days after sealing (closed 2026-10-26: "lets do 365 days")** | MVPQ-07, owner 2026-10-20; retention closed by Nigel 2026-10-26 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` |
 | Client-level source extraction stays in Client Knowledge, a recorded exception to AC-02 | MVPQ-08, owner 2026-10-20 | `client-knowledge-lifecycle#K8` |
 | A client deliverable's gate: no "Interní dokument" source, no drill-down content, no number without an admitted claim; an unsupported claim blocks approval; no separate legal review | MVPQ-09, owner 2026-10-20 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD7` |
 | Segment evidence is built: per-segment admitted claims, so the Segments module can state a finding and the report composes | X1, owner 2026-10-20 | `segment-maps-and-drilldown#10` |
@@ -784,6 +818,14 @@ The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2
 | S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#53`; contradicts the open posture's intent |
 | S5 | Client PDF in the MVP | Client report DOCX only; amend AC-13 | `report-delivery#RD1`, `docs/migration/mvp-acceptance.md` |
 
+**2026-10-25 (SCOPE-OVERRIDES (d)):** "i want to review each individually". S2 to S5 went to a review page,
+one at a time.
+
+**Decided 2026-10-26** (the Decision Review, relayed by the PM coordinator): **none is taken**, and the
+plans stand as written. S2 (a) "Don't take it: keep two meters"; S3 (a) "Don't take it: keep a private
+Lead per researcher"; S4 (a) "Don't take it: wording follows the posture"; S5 (a) "Don't take it: keep
+the client PDF" (RD1's client PDF is built, #883).
+
 ### 11.4 Open, with the chunks each blocks
 
 Answer-ready wording, stable decision ids, decision owner and permitted independent work are in
@@ -793,7 +835,7 @@ Q8) are in § The scope baseline; the methodology owner's are MQ-01 to MQ-24 in
 
 | # | Question | Blocks | Recommendation |
 |---|---|---|---|
-| 3, 5, 6, 9 (rest) | **The methodology and quality halves of four answered questions** (owner parts recorded 2026-10-20, §11.1): MVPQ-03 segment combinations, support, own dimensions, clustering and its register entry (reconcile with PR #504's `aia-sociomap-5`); MVPQ-05 the benchmark interval and whether a client survey may ground AI respondents; MVPQ-06 the evaluation tasks, metrics and thresholds; MVPQ-09 any scientific check beyond admitted support | `segment-maps-and-drilldown#1`, `client-data-in-analysis#9`, `deep-research-web-search#27`, `report-delivery#RD1` | The methodology owner (03, 05, 09) and the product owner (06) |
+| 3, 5, 6, 9 (rest) | **The methodology and quality halves of four answered questions** (owner parts recorded 2026-10-20, §11.1): MVPQ-03 segment combinations, support, own dimensions, clustering and its register entry (reconcile with PR #504's `aia-sociomap-5`); MVPQ-05 the benchmark interval and whether a client survey may ground AI respondents; MVPQ-06 the evaluation tasks, metrics and thresholds (*answered 2026-10-25: the plan's proposed targets adopted*); MVPQ-09 any scientific check beyond admitted support | `segment-maps-and-drilldown#1`, `client-data-in-analysis#9`, `deep-research-web-search#27`, `report-delivery#RD1` | The methodology owner (03, 05, 09) and the product owner (06) |
 | 10 | **Replacement weighting and support.** What a replaced respondent does to the weights, the effective n and the support rules (a methodology dependency; the feature itself is settled, F18) | `run-qc-and-checkpoint#RQC5` | The method owner defines it; until then the chunk builds the mechanism and labels the limit |
 
 | 12 | **Canonical Sociomap decisions.** Confirm the still-open Q5/Q6/Q7 meaning and evidence policy, fixed-ruler kernel widths, F10 misfit threshold and F16 disposition with the methodology owner; use the existing decision sheets, not new invented defaults. *Under MVPQ-13 (2026-10-20), answered by `aia-sociomap-5` except the packet's MQ-04, MQ-05 (i, ii) and MQ-07 to MQ-10* | `sociomap-formula-corrections#0b`, `sociomap-formula-corrections#I0`, `sociomap-formula-corrections#3`, `sociomap-formula-corrections#4c` | Canonical F1-F16 remain the baseline; checked implementation chunks do not approve the audit's provisional parameters |
@@ -859,3 +901,66 @@ parallel crosscheck's not-yet-received final output. Segment-map/filter work is 
 proof that compare_segments supplies admitted comparative analysis; until a named
 producer/method passes admission, the capability and affected coverage remain
 explicitly unavailable. Apply the owner's empty-module/report policy when answered.
+
+### MP4: contracts and shared-surface owners, checked 2026-10-28
+
+Checked against `develop` @ `6309d390`. Paths are repo-relative; `core/` is
+`packages/aia_core/src/aia_core/`, `exec/` is `apps/executors/src/aia_executors/`. The shared fixtures
+live under `packages/aia_core/tests/fixtures/`, not a root `tests/fixtures/` (there is none).
+
+**The six contracts of `mvp-development-plan.md` §5**
+
+| Contract | State | Anchor | Needed by | What remains |
+|---|---|---|---|---|
+| Edit vocabulary | WRITTEN | `core/domain/edit_ops.py:803` (`CATALOGUE`, 30 operations, 9 `applied=True`, 21 declared), `:871` (`REFUSALS`), `:1041` (`locked_items`), `:341` (`TEXT_EDIT_OPS`) @ 6309d390; fixture `packages/aia_core/tests/fixtures/edit_ops/cases.json`, read by `test_edit_ops.py::test_the_case_file_holds_the_catalogue_exactly` and `apps/web/src/lib/edit-ops.cases.test.ts`; `working-copy-edit-ops#WCE0` ticked | W0 (S1, S2 locks, S3) | the 21 declared operations are refused `op_not_available` until the chunk that gives each its payload |
+| `LeadWorkerSpec` row | WRITTEN | `core/domain/lead_workers.py:88` (`LeadWorkerSpec`), `:171` (`WorkerRegistry`) @ 6309d390; fixture `packages/aia_core/tests/fixtures/lead_workers/workers.json` (8 rows, the design workers), `test_lead_workers.py::test_the_rows_are_the_fixture_s`, `::test_a_row_missing_any_field_is_refused_at_registration`; `lead-orchestration#LO9a` ticked | W0 (S1); S2 straight-liner, S3 report writer | rows for the results and report workers: `lead-orchestration#LO9c` (W2), `#LO9b` (W3) |
+| `ResultsContext` | PLANNED (W1) | no type in code (no `ResultsContext` definition in any `.py` or `.ts` @ 6309d390); `lead-orchestration#LO8` open, W1 (`mvp-execution-contracts.md` E11); ADR 0041 reserves its layer (`docs/architecture/adr/0041-lead-conversation-and-context.md:100` @ 6309d390) | before W2 (§5); I1 says W1 | the whole contract: type, `MaterialRule`, lineage, bound, the L slot |
+| Plan authority capability | PLANNED (W1) | ADR 0028 decision 4, Accepted (`docs/architecture/adr/0028-orchestration-scope-wallet-and-plan-card.md:104` @ 6309d390); ledger subjects admitted (`core/domain/approval_ledger.py:55-56, 92-93` @ 6309d390); no capability in code, `exec/activation.py:391-394` @ 6309d390 reports `lead_plans` not built; `lead-orchestration#LO3` open, W1 (E07); `#LO0` ticked | before W1 plan code | the capability, its `ScopeResolver` issue and the `layer_check` rule ADR 0028:228 promises (not in `tools/layer_check.sh` yet) |
+| Origin `CLIENT_REPORTED` and the evidence policy | PLANNED (W1 design, W3 code) | code MISSING: `DataOrigin` has three members (`core/domain/fieldwork.py:59-78`), `CLIENT_ADMISSIBLE_ORIGINS` is `MODELLED_AI_PANEL` alone (`:88`) @ 6309d390, held by `test_evidence_admission.py::test_every_origin_is_decided_once`; `evidence-integrity#8a` open, W1 (E11); `client-data-in-analysis#0` (policy) and `#1` (origin) open, W3 (E17); ADR 0027 and ADR 0037 Proposed, 0037 held for the methodology owner | W3 (S3) | the policy decision, both ADRs, the two-origin input (8a) and the origin |
+| Acceptance fixtures and the scripted provider | PLANNED (W0), the provider partly written | provider: `exec/recorded_models.py` (respondent, analysis, Lead, the eight design workers; `:25` lists what is not recorded: client-source extraction and the Deep Research agents), `exec/acceptance_recorded.py:12` refuses Deep Research @ 6309d390, `tests/acceptance/test_acceptance_harness.py::test_a_run_is_answered_by_recorded_models_behind_the_gateway`; harness `#1`, `#3`, `#9` ticked; **`mvp-acceptance-harness#2` (fixed inputs) and `#4` (doubles behind the gateway and the retrieval gate) open**, W0 (E01); `tests/acceptance/` holds no inputs; no open PR for either into develop on 2026-10-28 | W0 (all) | `#2`: the fictional brief, document, dataset with a personal column, web page, past study; `#4`: recorded Deep Research agents, client-source extraction and the retrieval-gate double |
+
+**The ADRs of §6 that W0 and W1 need**
+
+| ADR | Decides | Status @ 6309d390 | Needed before |
+|---|---|---|---|
+| [0028](../../docs/architecture/adr/0028-orchestration-scope-wallet-and-plan-card.md) | orchestration scope, wallet, plan card | Accepted 2026-10-20 (`:3`) | W1 plan code |
+| [0029](../../docs/architecture/adr/0029-working-copy-operation-log-merge-and-per-change-accept.md) | the operation log, merge, per-change accept | Accepted 2026-10-20 (`:3`) | W1 |
+| [0030](../../docs/architecture/adr/0030-the-lead-over-time-and-its-files.md) | the Lead over time and its files | Accepted 2026-10-20 (`:3`) | W2 M7 |
+| [0031](../../docs/architecture/adr/0031-production-environment.md) | the production environment | Accepted 2026-10-20 (`:3`) | W1 infra apply |
+| [0032](../../docs/architecture/adr/0032-open-posture-classification-deferred.md) | open posture, amends ADR 0008 | Accepted 2026-10-20 (`:3`); built as `DataPosture` (`core/domain/client_rules.py:19`, `test_client_rules.py`) | W0 |
+
+**The shared surfaces of `mvp-development-plan.md` §2 (I16, I17, I24)**
+
+| Surface | Owner | Path exists? | Enforced by |
+|---|---|---|---|
+| `core/domain/material_rules.py`, `core/domain/residency.py` | S1 | yes, both | convention only; `test_material_rules.py`, `test_residency.py` hold behaviour, not ownership |
+| the classification in `web_retrieval.py`, `core/application/deep_research.py`, `exec/deep_research/*` | S2 | yes; **two files are named `web_retrieval.py`**: the classification is `core/application/web_retrieval.py:7-9` (`RetrievalGate`), the wires `core/infrastructure/web_retrieval.py` | convention for ownership; `layer_check` holds the egress fence (`tools/layer_check.sh:653`, `:752`) and the import contract "only the executor compositions import a live network wire" (`pyproject.toml:209`) |
+| `core/infrastructure/workflow_repository.py` (ledger writers) | S3 | yes | convention for ownership; `layer_check` keeps the ledger to its repositories (`tools/layer_check.sh:472`) and cross-study queries to `WorkQueue` (`:296`) |
+| `core/domain/workflow_templates.py`, `exec/registry.py` | S3 reviews | yes, both | convention; a new type fails `test_workflow_templates.py::test_the_set_of_workflow_types_is_closed` and a new ledger subject `test_approval_ledger.py::test_every_subject_is_listed_once_and_says_who_writes_it` until listed, which makes the addition visible, not reviewed |
+| `apps/web/src/lib/api.ts`, `apps/web/src/i18n/cs.ts` | S1 for refusal wording | yes, both | convention only |
+| `apps/api/src/aia_api/routers/settings.py` | S1 (Reach panel S2) | yes | convention only |
+
+No `CODEOWNERS` exists (`.github/CODEOWNERS`, `CODEOWNERS`, `docs/CODEOWNERS` absent @ 6309d390); the
+repository has no rulesets (`GET /repos/…/rulesets` answered `[]`); branch protection on `develop` is
+unknown (the API refused this session, 403). The rule "a small PR the owner reviews first" is therefore
+convention: the sessions keep it, nothing in CI does. `layer_check` and the import contracts enforce
+*who may call what*, which narrows where a change can land, never *who reviews it*. Every session-owned
+path in §2's first table also exists @ 6309d390.
+
+**Verdict.** MP4 is **not met** for W0. Of the four things W0 needs, three are in place: the edit
+vocabulary (WRITTEN), the `LeadWorkerSpec` row (WRITTEN) and the open-posture ADR (0032, Accepted and
+built). The acceptance fixtures and the scripted provider are not: `mvp-acceptance-harness#2` and `#4`
+are open, and the provider double covers the Lead, the design workers, respondents and analysis but not
+Deep Research, client-source extraction or the retrieval gate. They are the only missing piece, so
+**MP4 ticks when harness #2 and #4 merge.** The shared-surface owners are named and every path stands;
+their review rule is convention. `ResultsContext`, the plan authority and `CLIENT_REPORTED` are not W0
+contracts: each is PLANNED under its own chunk before the wave that needs it, and is re-checked at its
+gate under MP10.
+
+**Ticked 2026-10-28.** The acceptance fixtures and the scripted provider landed:
+- `mvp-acceptance-harness` #2, the fixed fictional inputs, in #1058 (`98a8fd1d`);
+- `mvp-acceptance-harness` #4, recorded doubles behind the gateway and the retrieval gate, in #1062 (`088a5d18`).
+
+Both are ticked on develop @ 088a5d18. All four of W0's contracts are therefore WRITTEN, and MP4 is met. The
+contracts W1-W3 need (`ResultsContext`, the plan authority, `CLIENT_REPORTED`) stay PLANNED under their own chunks,
+re-checked at their gates (MP10).

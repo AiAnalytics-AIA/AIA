@@ -161,8 +161,11 @@ try {
   check("the stage track follows the run it shows (PC5)", !/běží/.test(progressLine) && /hotov/.test(progressLine), progressLine);
   check("the stage track points at the run's results", !(await trackLine("Výsledky")).includes("Zatím nic"), await trackLine("Výsledky"));
   await visit(stage(binding.study, "results"), "results", 5000);
-  for (const tab of ["Data", "Sociomapy", "Rešerše a zpráva"]) {
-    await page.getByRole("tab", { name: tab, exact: true }).click();
+  // In the workbench each view is a stage of its own, opened by its hash (artifact-results RES9).
+  const workbench = (await page.locator("[data-workbench]").count()) > 0;
+  for (const [tab, hash] of [["Data", "data"], ["Sociomapy", "maps"], ["Rešerše a zpráva", "report"]]) {
+    if (workbench) await page.evaluate((h) => { location.hash = h; }, hash);
+    else await page.getByRole("tab", { name: tab, exact: true }).click();
     await page.waitForTimeout(2500);
     await keep(`results-${tab.replace(/\W+/g, "-").toLowerCase()}`);
   }
@@ -176,8 +179,12 @@ try {
   await goal.fill(`${before} (upraveno ${stamp})`);
   await page.waitForTimeout(3500); // the 1.8 s autosave
   await visit(stage(binding.study, "run"), "run-after-design-change", 6000);
-  const revisions = [...(await page.evaluate(() => document.body.innerText)).matchAll(/Revize návrhu (\d+)/g)].map((m) => Number(m[1]));
-  check("the Run stage names a newer revision than the run's", revisions.length >= 2 && Math.max(...revisions) > Math.min(...revisions), `revisions on screen: ${revisions.join(", ")}`);
+  // Kontrola reads the working copy and submits nothing (artifact-fieldwork FLD22): it names the
+  // working copy's revision, the earlier run keeps its Design Revision, and the visit made none.
+  const text = await page.evaluate(() => document.body.innerText);
+  const working = /Pracovní kopie · revize \d+/.test(text);
+  const runs = [...text.matchAll(/Revize návrhu (\d+)/g)].map((m) => Number(m[1]));
+  check("the Run stage reads the edited working copy beside the run's own revision", working && runs.length >= 1, `working copy named: ${working}; run revisions: ${runs.join(", ")}`);
   await goal.page().goto(`${FACADE}${stage(binding.study, "brief")}`, { waitUntil: "load" });
   await page.locator("textarea").first().fill(before); // the goal as it was
   await page.waitForTimeout(3500);
@@ -193,7 +200,9 @@ try {
     await visit(stage(binding.study, "run"), "delivered-run", 6000);
     check("a delivered study starts nothing", !(await page.getByRole("button", { name: "Spustit výzkum" }).isEnabled().catch(() => false)));
     await visit(stage(binding.study, "results"), "delivered-results", 6000);
-    const download = page.getByRole("button", { name: /Stáhnout zprávu/ });
+    // The report is downloaded from Zpráva's doc bar, on Rešerše a zpráva (RPT3c).
+    await page.getByRole("tab", { name: "Rešerše a zpráva" }).click().catch(() => {});
+    const download = page.locator("[data-report-docbar]").getByRole("button", { name: "Stáhnout DOCX" }).first();
     const reportMade = (await page.getByText("Tento běh zprávu nevytváří").count()) === 0;
     check("a delivered study keeps its report downloadable", !reportMade || (await download.isEnabled()), reportMade ? "" : "this run makes no report (analysis off)");
   } finally {

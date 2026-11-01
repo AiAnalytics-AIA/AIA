@@ -119,6 +119,8 @@ def build(session: Any) -> tuple[Any, Any]:
             "status": "COHERENT_CORE_MATCHED_BLOCKS",
             "structure_status": "QC_PASSED",
             "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+            # As the v17 certificate names it: the one evaluator certifies none without it.
+            "production_panel": "WB_PANEL_v1_4.csv",
             "panel_sha256": content_sha256(panels["wb1_4"]),
             "matched_blocks": [],
             "core_same_person_joint": True,

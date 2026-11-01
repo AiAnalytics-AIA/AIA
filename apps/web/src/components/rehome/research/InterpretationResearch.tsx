@@ -10,8 +10,9 @@ import { useStepActivity } from "./useStepActivity";
 import { needsRepair, phaseLabel } from "@/lib/research-execution";
 import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
-import { withBudget } from "@/lib/budget-line";
 import { olderRulesWords } from "@/lib/review-rules";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
+import { holdingWords } from "@/lib/report-status";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
@@ -19,8 +20,9 @@ import { FormattedText } from "./FormattedText";
 import { DeepResearchWaits } from "./DeepResearchWaits";
 import { SearchedNothingNote, useSearchedNothing } from "./SearchedNothing";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
+import { errorText } from "@/lib/error-words";
 
-const message = (e: unknown) => e instanceof Error ? e.message : String(e);
+const message = (e: unknown) => errorText(e);
 
 /**
  * Research over the pinned result. Which completed review the report adds is one choice
@@ -29,13 +31,15 @@ const message = (e: unknown) => e instanceof Error ? e.message : String(e);
  * (research-integrity-report 3).
  */
 export function InterpretationResearch({ run, review = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
-  const { frame, confirm } = useResearch();
+  const { frame, confirm, confirmSpend } = useResearch();
   // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
   const mayReview = canReview(frame);
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundleFor, setBundleFor] = useState<{ runId: string; value: DeepResearchBundle } | null>(null);
   const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "stale" | "unavailable">("loading");
+  // Completed modules that hold the report: no supported finding (evidence-integrity 9b).
+  const [unsupported, setUnsupported] = useState<string[]>([]);
   const [preset, setPreset] = useState<"QUICK" | "STANDARD">("QUICK");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +75,14 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     return () => { live = false; if (timer) clearInterval(timer); };
   }, [frame.studyId, run.run_id, refresh, running]);
 
+  // A run a Lead card started while this panel is open is read now, and shown once it is this
+  // run's (the load keeps the selection only among this run's own Interpretation runs).
+  useEffect(() => onDeepResearchStarted(({ runId, purpose }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH") return;
+    setSelected(runId);
+    setRefresh(n => n + 1);
+  }), []);
+
   useEffect(() => {
     let live = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- another run's bundle is cleared before this one is read
@@ -90,7 +102,11 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     let live = true;
     setAnalysisReady("loading");
     research.analysis(frame.studyId, run.run_id).then(
-      value => { if (live) setAnalysisReady(value.complete === true ? "ready" : "incomplete"); },
+      value => {
+        if (!live) return;
+        setAnalysisReady(value.complete === true ? "ready" : "incomplete");
+        setUnsupported((value.holding ?? []).filter((m) => value.modules[m]?.outcome === "COMPLETED"));
+      },
       (e: unknown) => { if (live) setAnalysisReady(e instanceof ApiError && e.code === "fingerprint_mismatch" ? "stale" : "unavailable"); },
     );
     return () => { live = false; };
@@ -106,7 +122,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       } catch (e) {
         if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required" || typeof e.details.ceiling_usd !== "number") throw e;
         const ceiling = e.details.ceiling_usd;
-        if (!await confirm(await withBudget(frame.studyId, `Rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.interpret"), ceilingUsd: ceiling, act: t("input.spend.research.startInterpret") })) return;
         job = await deepResearch.interpret(frame.studyId, run.run_id, artifact, preset, ceiling);
       }
       setJobs(old => [job, ...old.filter(j => j.run_id !== job.run_id)]);
@@ -124,7 +140,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       catch (e) {
         if (action !== "retry" || !(e instanceof ApiError) || e.code !== "cost_confirmation_required" || typeof e.details.ceiling_usd !== "number") throw e;
         const ceiling = e.details.ceiling_usd;
-        if (!await confirm(await withBudget(frame.studyId, `Opakování rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.retryInterpret"), ceilingUsd: ceiling, act: t("input.spend.research.retryInterpretAct") })) return;
         await deepResearch.retry(frame.studyId, current.run_id, ceiling);
       }
       setRefresh(n => n + 1);
@@ -173,18 +189,18 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         <p className="mb-3 text-sm leading-6">{bundle.accepted.length
           ? "Zpráva spojí uložené výsledky a sociomapy s přijatými externími podklady a jejich zdroji. Stažení nespouští další placený výzkum."
           : "Zpráva může uvést, že rešerše nepřinesla ověřené zjištění; nebude tvrdit, že obsahuje externě doložený benchmark. Stažení nespouští další placený výzkum."}</p>
-        {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí.</p> : null}
+        {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">{unsupported.length ? holdingWords(unsupported) : "Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí."}</p> : null}
         {analysisReady === "stale" ? <p role="status" className="mb-3 text-sm font-medium">{t("research.exec.results.analysisStale")}</p> : null}
         {analysisReady === "unavailable" ? <p role="status" className="mb-3 text-sm font-medium">Připravenost analýzy se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.</p> : null}
         {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
         <div className="flex flex-wrap gap-2">
           {used
             ? <Button onClick={() => onReview?.(null)} disabled={busy || !mayReview}>Nepoužívat ve zprávě</Button>
-            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !mayReview || analysisReady !== "ready"}>Použít ve zprávě</Button>}
+            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.querySelector("[data-report-docbar]")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !mayReview || analysisReady !== "ready"}>Použít ve zprávě</Button>}
         </div>
         <p className="mt-2 text-xs text-ink-muted">{used
-          ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte tam."
-          : "Zprávu s rešerší stahujete a schvalujete v kartě Kompletní zpráva studie nahoře."}</p>
+          ? "Panel Zpráva výše teď ukazuje zprávu s touto rešerší: v jeho liště ji stáhnete jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte ji tam."
+          : "Zprávu s rešerší čtete, stahujete a schvalujete v liště panelu Zpráva výše."}</p>
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
       {older && bundle.accepted.length ? <div role="note" aria-label={older.title} data-older-rules className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">

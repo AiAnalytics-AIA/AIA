@@ -26,11 +26,13 @@ from ..sociomap.specification import (
     AIA_SOCIOMAP_V3,
     AIA_SOCIOMAP_V4,
     AIA_SOCIOMAP_V5,
+    FIXED_RULER_EXTENT,
     SociomapSpec,
     SociomapSpecV3,
     require_supported,
 )
 from .catalogue import (
+    Bound,
     ConstantRef,
     Evidence,
     EvidenceKind,
@@ -40,6 +42,10 @@ from .catalogue import (
     Preset,
     StepGroup,
     Symbol,
+    above,
+    at_least,
+    at_most,
+    below,
 )
 from .sociomap_formulas import SOCIOMAP_FORMULAS
 
@@ -182,7 +188,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\qquad l \in \text{všechny položky, které } k \text{ hodnotil}"
         ),
         implements=f"{_S}.relations:person_minmax",
-        source_sha256="986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+        source_sha256="ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
         symbols=(
             Symbol(r"a_{ki}", "hodnocení respondenta k u objektu i (po F1)"),
             Symbol(r"\tilde a_{ki}", "totéž na vlastní škále respondenta: nejnižší 0, nejvyšší 1"),
@@ -478,7 +484,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+        source_sha256="3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -932,7 +938,11 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             f"{_T}/test_sociomap_primary_scores.py::test_the_scores_are_the_audits_formula_on_a_hand_computed_example",
             f"{_T}/test_sociomap_primary_scores.py::test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic",
         ),
-        note_cs="Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+        note_cs=(
+            "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda "
+            "aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, "
+            "28. 10. 2026)."
+        ),
     ),
     MethodStep(
         id="f8_height",
@@ -1458,11 +1468,12 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Respondent bez rozptylu není umístěn",
         formula_latex=r"\max_l a_{kl} = \min_l a_{kl} \;\Rightarrow\; k \text{ NEUMÍSTĚN}",
         implements=f"{_S}.relations:person_minmax",
-        source_sha256="986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+        source_sha256="ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
         evidence=(_rule("AUDIT-F11"),),
         tests=(
             f"{_T}/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
             f"{_T}/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+            f"{_T}/test_straight_lining.py::test_the_v3_rescaling_keeps_only_a_spread",
         ),
         note_cs="Je vyloučen ze vztahů a z terénu, ale počítá se do výšek a je sečten.",
     ),
@@ -1573,6 +1584,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             ParameterRef("terrain.kernel_cutoff", "Práh jádra"),
             ParameterRef("terrain.frame_fill", "Podíl rámu vyplněný objekty v"),
             ParameterRef("terrain.relative_height_floor", "Nejnižší relativní výška f"),
+            ParameterRef("terrain.idw_power", "Mocnina vážení vzdáleností p"),
         ),
         evidence=(_rule("AUDIT-F12"), _rule("AUDIT-F13")),
         tests=(
@@ -1583,11 +1595,68 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         note_cs=(
             "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. "
             "\u03c3 = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). "
-            "aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách "
+            "aia-sociomap-5 počítá od 26. 10. 2026 terén váženým průměrem výšek objektů podle "
+            "vzdálenosti, jako aplikace Sociomapy (další krok); obálka zůstává volitelná. "
+            "Obálka v rámu (metoda framed_relative_envelope) staví kopce v relativních výškách "
             "t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý "
             "kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; "
             "\u03c3 = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku "
             "pravítka)."
+        ),
+    ),
+    MethodStep(
+        id="terrain_idw",
+        title_cs="Terén: výšky objektů vážené vzdáleností",
+        formula_latex=(
+            r"z(q) = \frac{\sum_{j} w_j t_j}{\sum_{j} w_j},"
+            r"\quad w_j = \lVert q - y_j\rVert^{-p}"
+        ),
+        implements=f"{_S}.terrain:idw_at",
+        source_sha256="675b582985a20b65d46b554dc673b14393a13f56bb46e7495c58e4f8b5550c87",
+        symbols=(Symbol("p", "mocnina vážení vzdáleností"),),
+        evidence=(_SIGNED_OFF_TERRAIN,),
+        tests=(
+            f"{_TERRAIN_TEST}test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one",
+            f"{_TERRAIN_TEST}test_every_other_point_is_a_weighted_mean_of_the_objects",
+            _TERRAIN_PARITY_TEST,
+            _TERRAIN_MAP_TEST,
+        ),
+        note_cs=(
+            "Terén aia-sociomap-5 od 26. 10. 2026 (metoda framed_relative_idw), jako ho počítá "
+            "aplikace Sociomapy: v každém bodě mapy vážený průměr relativních výšek objektů, váha "
+            "převrácená vzdálenost na p-tou. Výška u objektu je jeho vlastní t_j, i vedle vyššího "
+            "souseda (obálka ho zvedala až o třetinu stupnice); mezi objekty a kolem nich nese zem "
+            "jejich hodnoty, i daleko od všech. Volitelné zůstávají obálka kopců a tentýž průměr "
+            "pod poklesem kopců (další krok). Stejný rámec a mřížka jako obálka; i vrstva "
+            "Absolutní."
+        ),
+    ),
+    MethodStep(
+        id="terrain_idw_falloff",
+        title_cs="Terén: výšky vážené vzdáleností, pod poklesem kopců",
+        formula_latex=(
+            r"z(q) = \frac{\sum_{j} w_j t_j}{\sum_{j} w_j}\,"
+            r"\max_{j} \exp\!\left(-\frac{\lVert q - y_j\rVert^2}{2\sigma^2}\right),"
+            r"\quad w_j = \lVert q - y_j\rVert^{-p}"
+        ),
+        implements=f"{_S}.terrain:idw_falloff_at",
+        source_sha256="ce55f057dabaa148308143129ba5bde001392f27b70b7e28f5e27517792f408a",
+        symbols=(
+            Symbol("p", "mocnina vážení vzdáleností"),
+            Symbol(r"\sigma", "šířka kopce", "jednotky vzdálenosti"),
+        ),
+        evidence=(_SIGNED_OFF_TERRAIN,),
+        tests=(
+            f"{_TERRAIN_TEST}test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground",
+            _TERRAIN_PARITY_TEST,
+            _TERRAIN_MAP_TEST,
+        ),
+        note_cs=(
+            "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z "
+            "předchozího kroku, násobený poklesem kopců o šířce \u03c3. U objektu jeho vlastní "
+            "výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. "
+            "Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou "
+            "terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze."
         ),
     ),
 )
@@ -1812,6 +1881,17 @@ _CONTEXT: Final[dict[str, _Context]] = {
         inputs=("f6_smacof", "ruler_scale", "f8_height", "relative_heights", "terrain_frame"),
         audit="F12-F13",
     ),
+    "terrain_idw": _Context(
+        role_cs="Krajina aia-sociomap-5, jako v aplikaci Sociomapy: u každého objektu jeho výška, "
+        "jinde vážený průměr výšek objektů.",
+        inputs=("ruler_scale", "relative_heights", "terrain_frame"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "terrain_idw_falloff": _Context(
+        role_cs="Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
+        inputs=("ruler_scale", "relative_heights", "terrain_frame"),
+        audit=_SIGNED_OFF_POINT,
+    ),
     "f10_placement": _Context(
         role_cs="Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
         inputs=("f6_smacof", "f2_person_minmax"),
@@ -1948,7 +2028,7 @@ _GROUPS: Final = (
     StepGroup(
         "S6",
         "Terén",
-        ("relative_heights", "terrain_frame", "f12_envelope"),
+        ("relative_heights", "terrain_frame", "f12_envelope", "terrain_idw", "terrain_idw_falloff"),
         "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
     ),
     StepGroup(
@@ -2003,6 +2083,81 @@ _GROUPS: Final = (
     ),
 )
 
+_SPEC_CHECK: Final = f"{_S}.specification"
+_V3: Final = f"{_SPEC_CHECK}:_require_supported_v3"
+_CORRECTED: Final = f"{_SPEC_CHECK}:_baseline_corrected_problems"
+_SRS: Final = f"{_SPEC_CHECK}:_soft_rank_spearman_problems"
+_CREDIBILITY: Final = f"{_SPEC_CHECK}:_credibility_problems"
+_RESPONDENTS: Final = f"{_SPEC_CHECK}:_respondent_map_problems"
+_SEGMENTS: Final = f"{_SPEC_CHECK}:_segments_problems"
+_TERRAIN: Final = f"{_SPEC_CHECK}:_terrain_problems"
+_SHARE: Final = (at_least(0), at_most(1))
+_OPEN_SHARE: Final = (above(0), below(1))
+#: The range each check holds a field to (F13), under every preset that gives it a number. Not
+#: here: relation.confidence, layout.max_iterations and layout.tolerance (held to one value under
+#: the signed-off layout, to a range under the others), layout.min_objects (two objects or three,
+#: by the layout), and a pair of quantiles or stress bands (held as one).
+_BOUNDS: Final = (
+    Bound("relation.n_min", (at_least(4),), _V3),
+    Bound("relation.effect_floor", _OPEN_SHARE, _V3),
+    Bound("relation.clear_effect", _OPEN_SHARE, _CORRECTED),
+    Bound("relation.false_discovery_rate", _OPEN_SHARE, _CORRECTED),
+    Bound("relation.noise_rule.permutations", (at_least(2),), _CORRECTED),
+    Bound("relation.noise_rule.seed", (at_least(0),), _CORRECTED),
+    Bound("layout.layout_floor", (at_least(1), at_most("relation.n_min")), _CORRECTED),
+    Bound("layout.layout_weight_full_at", (above(3),), _CORRECTED),
+    Bound("layout.sparse_share", (at_least(0), below(1)), _CORRECTED),
+    Bound("layout.min_layout_partners", (at_least(0),), _CORRECTED),
+    Bound("layout.precision_weight_cap", (at_least(1),), _CORRECTED),
+    Bound("layout.interval_mds.random_starts", (at_least(0),), _CORRECTED),
+    Bound("layout.interval_mds.floor_fraction", _SHARE, _CORRECTED),
+    Bound(
+        "layout.soft_rank_spearman.min_objects",
+        (at_least(2), at_most("layout.soft_rank_spearman.max_objects")),
+        _SRS,
+    ),
+    Bound("layout.soft_rank_spearman.repulsion_weight", (at_least(0),), _SRS),
+    Bound("layout.soft_rank_spearman.restarts_below_ten_objects", (at_least(1),), _SRS),
+    Bound("layout.soft_rank_spearman.restarts", (at_least(1),), _SRS),
+    Bound("layout.soft_rank_spearman.max_passes", (at_least(1),), _SRS),
+    Bound("layout.soft_rank_spearman.seed", (at_least(0),), _SRS),
+    Bound("credibility.split_half_threshold", _SHARE, _CREDIBILITY),
+    Bound("credibility.split_half_splits", (at_least(1),), _CREDIBILITY),
+    Bound("credibility.split_half_seed", (at_least(0),), _CREDIBILITY),
+    Bound("credibility.bootstrap_resamples", (at_least(2),), _CREDIBILITY),
+    Bound("credibility.bootstrap_seed", (at_least(0),), _CREDIBILITY),
+    Bound("credibility.safety_factor", (above(0),), _CREDIBILITY),
+    Bound("connectedness.resamples", (at_least(1),), _V3),
+    Bound("respondent_map.chance_level", _OPEN_SHARE, _RESPONDENTS),
+    Bound("respondent_map.min_ratings", (at_least(3),), _RESPONDENTS),
+    Bound("respondent_map.informative_min_objects", (at_least(1),), _RESPONDENTS),
+    Bound("respondent_map.density_sigma", (above(0),), _RESPONDENTS),
+    Bound("segments.max_segments", (at_least(2),), _SEGMENTS),
+    Bound("segments.min_respondents", (at_least("segments.max_segments"),), _SEGMENTS),
+    Bound("segments.min_ratings", (above(3),), _SEGMENTS),
+    Bound("segments.penalty_factor", (above(0),), _SEGMENTS),
+    Bound("segments.jitter", (above(0),), _SEGMENTS),
+    Bound("segments.min_separation", (at_least(0),), _SEGMENTS),
+    Bound("segments.distinct_separation", (at_least(0),), _SEGMENTS),
+    Bound("segments.borderline_margin", (at_least(0),), _SEGMENTS),
+    Bound("segments.min_gain_share", _SHARE, _SEGMENTS),
+    Bound("segments.min_segment_share", _SHARE, _SEGMENTS),
+    Bound("segments.colour_membership", (above(0), at_most(1)), _SEGMENTS),
+    Bound("segments.profile_false_discovery_rate", _OPEN_SHARE, _SEGMENTS),
+    Bound("segments.profile_top", (at_least(1),), _SEGMENTS),
+    Bound("segments.consensus_maps", (at_least(1),), _SEGMENTS),
+    Bound("segments.consensus_min_objects", (at_least(1),), _SEGMENTS),
+    Bound("segments.shuffles", (at_least(0),), _SEGMENTS),
+    Bound("segments.seed", (at_least(0),), _SEGMENTS),
+    Bound("terrain.sigma", (above(0),), _TERRAIN),
+    Bound("terrain.grid_resolution", (at_least(1), at_most(256)), _TERRAIN),
+    Bound("terrain.frame_fill", (above(0), at_most(1)), _TERRAIN),
+    Bound("terrain.relative_height_floor", (at_least(0), below(1)), _TERRAIN),
+    Bound("terrain.idw_power", (above(0), at_most(10)), _TERRAIN),
+    Bound("terrain.half_extent", (at_least(FIXED_RULER_EXTENT),), _TERRAIN),
+    Bound("terrain.kernel_cutoff", _OPEN_SHARE, _TERRAIN),
+)
+
 SOCIOMAP: Final = MethodModule(
     id="sociomap",
     title_cs="Sociomapa: objektová mapa",
@@ -2018,6 +2173,7 @@ SOCIOMAP: Final = MethodModule(
     groups=_GROUPS,
     formulas=SOCIOMAP_FORMULAS,
     editable=True,
+    bounds=_BOUNDS,
     note_cs=(
         "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich "
         "výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle "

@@ -11,10 +11,12 @@ Pure: stdlib and Pydantic only.
 """
 
 from .catalogue import (
+    Bound,
     BuiltinFormula,
     ConstantRef,
     Evidence,
     EvidenceKind,
+    Limit,
     MethodModule,
     MethodStep,
     ParameterEffect,
@@ -23,6 +25,7 @@ from .catalogue import (
     PreviewLine,
     StepGroup,
     Symbol,
+    bound_of,
     feeds_of,
 )
 from .registry import MODULES, module
@@ -39,15 +42,18 @@ from .resolution import (
     read_constant,
     read_path,
     resolve_callable,
+    takes_whole_numbers,
 )
 
 __all__ = [
     "ABSENT",
     "MODULES",
+    "Bound",
     "BuiltinFormula",
     "ConstantRef",
     "Evidence",
     "EvidenceKind",
+    "Limit",
     "MethodModule",
     "MethodStep",
     "MethodologyReferenceError",
@@ -61,6 +67,7 @@ __all__ = [
     "Symbol",
     "ValueOrigin",
     "ValueView",
+    "bound_of",
     "describe",
     "feeds_of",
     "leaf_paths",
@@ -69,4 +76,5 @@ __all__ = [
     "read_constant",
     "read_path",
     "resolve_callable",
+    "takes_whole_numbers",
 ]

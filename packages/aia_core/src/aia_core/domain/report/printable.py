@@ -25,7 +25,18 @@ _WORD: Final = {"\x0b": " ", "\x0c": " ", "\x0e": " ", "\x1e": "-"}
 _NOT_XML: Final = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 #: Fields that name, never print: rewriting one would part it from what it names.
 _NAMES: Final = frozenset(
-    {"id", "ref", "refs", "base_ref", "target", "ledger", "sources", "outputs"}
+    {
+        "id",
+        "ref",
+        "refs",
+        "base_ref",
+        "target",
+        "control",
+        "notes_control",
+        "ledger",
+        "sources",
+        "outputs",
+    }
 )
 
 

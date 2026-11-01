@@ -272,6 +272,30 @@ def test_unparseable_text_is_one_violation() -> None:
     assert verdict.violations == ("output is not a single JSON object",)
 
 
+class Containers(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    as_list: list[str] = []
+    as_tuple: tuple[str, str] = ("a", "b")
+    as_set: frozenset[str] = frozenset()
+    as_map: dict[str, int] = {}
+    as_model: Closed | None = None
+
+
+@pytest.mark.parametrize("field", ["as_list", "as_tuple", "as_set", "as_map", "as_model"])
+def test_a_container_sent_as_a_string_is_still_refused_and_flagged(field: str) -> None:
+    verdict = validate_structured_output(Containers, structured={field: "[]"}, text="")
+    assert not verdict.ok
+    assert verdict.container_as_string
+    assert verdict.violations[0].startswith(f"{field}: ")
+    assert verdict.violations[0].endswith(", received string")
+
+
+def test_a_scalar_sent_as_a_string_is_not_flagged() -> None:
+    verdict = validate_structured_output(Closed, structured={"name": "a", "count": "3"}, text="")
+    assert verdict.violations == ("count: Input should be a valid integer, received string",)
+    assert not verdict.container_as_string
+
+
 def test_validation_is_deterministic() -> None:
     text = '{"name": 1, "count": "x", "extra": true}'
     first = validate_structured_output(Closed, structured=None, text=text)

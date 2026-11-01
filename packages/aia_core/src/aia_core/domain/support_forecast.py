@@ -31,6 +31,7 @@ Pure: no I/O.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Final
 
 from .ai_respondent import fictional_roster, fieldwork_seed
@@ -51,6 +52,7 @@ from .sociomap.slots import NO_SLOTS, Slots
 
 __all__ = [
     "SUPPORT_FORECAST_CHECK",
+    "ReportableState",
     "SupportForecast",
     "forecast_support",
     "with_support_forecast",
@@ -65,6 +67,21 @@ _SEARCH_FLOOR: Final = 200
 #: The most respondents the search may draw over all its candidates, so one readiness
 #: read stays bounded whatever methodology is in force (about 1 s at 25 ms per 1,000).
 _SEARCH_BUDGET: Final = 40_000
+
+
+class ReportableState(StrEnum):
+    """What :attr:`SupportForecast.reportable_n` stands for, so its ``None`` is never read as good
+    (artifact-sample SMP9). ``MET``: the analysis gate already admits the evidence at the design's
+    n. ``INDICATIVE``: it admits it as indicative. ``NEEDS_MORE``: it suppresses it, and
+    ``reportable_n`` names the smallest n that would not. ``NOT_FOUND``: it suppresses it, and no
+    n was found within the search. ``UNKNOWN``: nothing was forecast (a panel run without the
+    sample a start would draw, no n)."""
+
+    MET = "met"
+    INDICATIVE = "indicative"
+    NEEDS_MORE = "needs_more"
+    NOT_FOUND = "not_found"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +106,23 @@ class SupportForecast:
     @property
     def known(self) -> bool:
         return self.donors is not None
+
+    @property
+    def reportable_state(self) -> ReportableState:
+        """What :attr:`reportable_n` stands for: unknown, never good, when nothing was forecast."""
+        if self.analysis is None:
+            return ReportableState.UNKNOWN
+        if self.analysis is SupportStatus.REPORTABLE:
+            return ReportableState.MET
+        if self.analysis is SupportStatus.INDICATIVE:
+            return ReportableState.INDICATIVE
+        if self.reportable_n is None:
+            # A panel forecast never searches for a sufficient n (each candidate would draw the
+            # population again), so its missing n is unknown, never a search that found nothing.
+            if self.persona_source is PersonaSource.PANEL:
+                return ReportableState.UNKNOWN
+            return ReportableState.NOT_FOUND
+        return ReportableState.NEEDS_MORE
 
 
 def _statuses(

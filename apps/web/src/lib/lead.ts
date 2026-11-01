@@ -10,7 +10,10 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { type ConditionRefusal, type ConditionValue, conditionRefusal, qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import type { ResearchAgentJob } from "./api";
 import { parseAudienceId } from "./artifacts/audience";
+import type { MapFilter } from "./artifacts/sociomap";
+import { JOB_STAGE } from "./lead-cards";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
@@ -35,16 +38,120 @@ export type RouteSetEdit = { op: "route_set"; question_id: string; condition: Co
 export type WorkingEdit = LeadEdit | RouteSetEdit;
 
 /** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
- *  open an element's detail in the item drawer over its stage. */
-export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focus" | "inspect"; target: string };
+ *  open an element's detail in the item drawer over its stage, show a stage's waiting changes; on
+ *  Sociomapa, select an element and set a display filter (artifact-sociomap SOC1's forms,
+ *  `readMapOp`), which SociomapStage applies. */
+export type LeadView =
+  | { op: "open_stage"; stage: WorkbenchStage }
+  | { op: "show_diff"; stage: WorkbenchStage }
+  | { op: "focus" | "inspect"; target: string }
+  | { op: "select"; target: string }
+  | { op: "filter"; name: MapFilter; value: string };
+
+/** A Lead view the map applies (its picture only, never the map). */
+export type LeadMapView = Extract<LeadView, { op: "select" | "filter" }>;
+
+/** Sent with a LeadMapView when the Lead selects on Sociomapa or sets one of its display filters;
+ *  the map checks it (`readMapOp`) and changes its picture. A map that mounts after the move reads
+ *  the one waiting (`takeLeadMapView`). */
+export const LEAD_MAP_VIEW = "aia:lead-map-view";
+// Every view not yet taken, oldest first: a turn may carry several (Codex on #992).
+const leadMapViews: LeadMapView[] = [];
+
+/** Hands the map a Lead view: kept for a map not shown yet, and sent to the one on screen. */
+export function sendLeadMapView(view: LeadMapView): void {
+  leadMapViews.push(view);
+  window.dispatchEvent(new CustomEvent<LeadMapView>(LEAD_MAP_VIEW, { detail: view }));
+}
+
+/** The oldest Lead view waiting for the map, taken once (the map on screen takes each as it comes). */
+export function takeLeadMapView(): LeadMapView | null {
+  return leadMapViews.shift() ?? null;
+}
+
+/** Every Lead view waiting for the map, in order, taken at once (a map that mounts after the move). */
+export function takeLeadMapViews(): LeadMapView[] {
+  return leadMapViews.splice(0);
+}
+
+const FILTER_WORDS: Readonly<Record<MapFilter, (value: string) => string>> = {
+  view: (v) => (v === "relief" ? "Mapa: reliéf" : "Mapa: shora"),
+  labels: (v) => (v === "on" ? "Mapa: popisky zapnout" : "Mapa: popisky vypnout"),
+  hide_weak: (v) => (v === "on" ? "Mapa: skrýt slabé vztahy" : "Mapa: ukázat slabé vztahy"),
+  mode: (v) => (v === "respondents" ? "Mapa respondentů" : "Mapa objektů"),
+  battery: (v) => `Mapa: sada ${v}`,
+};
+
+/** A Lead's map view in words, for its chip: what the picture becomes, never a code. */
+export function mapViewWords(view: LeadMapView, design?: TargetWords | null): string {
+  return view.op === "filter" ? FILTER_WORDS[view.name](view.value) : `Vybrat: ${targetLabel(view.target, design)}`;
+}
+
+/**
+ * What a Lead's show_diff on `stage` shows (the owner, 2026-10-22): the Lead's edits still to
+ * decide there, else the newest proposal still waiting for review from a worker whose proposal
+ * changes that stage (JOB_STAGE); null when nothing waits. `editStages`: each waiting edit's stage.
+ */
+export function changesToShow<J extends ResearchAgentJob>(stage: WorkbenchStage, editStages: readonly WorkbenchStage[], jobs: readonly J[]): { kind: "edits" } | { kind: "proposal"; job: J } | null {
+  if (editStages.includes(stage)) return { kind: "edits" };
+  const waiting = jobs
+    .filter((j) => j.proposal_state === "pending" && JOB_STAGE[j.action] === stage)
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  return waiting[0] ? { kind: "proposal", job: waiting[0] } : null;
+}
 
 export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }
   | { kind: "research_run"; why: string }
   /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
   | { kind: "analysis_retry"; why: string; run_id?: string }
-  | { kind: "design_research"; why: string }
-  | { kind: "interpretation_research"; why: string };
+  /** LO5a.1: a preset, a design focus (research-question ids) and an Interpretation target
+   *  (a candidate id of the turn's targets layer). LO5a.2: started on the server by its approval,
+   *  under the stage start's gates (isDeepResearchCard). */
+  | { kind: "design_research"; why: string; preset?: "QUICK" | "STANDARD"; focus?: string[] }
+  | { kind: "interpretation_research"; why: string; target?: string | null; preset?: "QUICK" | "STANDARD" }
+  | { kind: "deep_research_retry"; why: string; run_id: string };
+
+export type DeepResearchCard = Extract<LeadRequest, { kind: "design_research" | "interpretation_research" | "deep_research_retry" }>;
+
+/** A Deep Research card (LO5a.2): its approval starts the run on the server, as the stage's own
+ *  start would, never by opening the stage first. */
+export function isDeepResearchCard(r: LeadRequest): r is DeepResearchCard {
+  return r.kind === "design_research" || r.kind === "interpretation_research" || r.kind === "deep_research_retry";
+}
+
+/** The stage a started Deep Research card's run is followed on, by the purpose the server
+ *  answered: a design checkpoint's on Dotazník (its DeepResearchPanel), an Interpretation's on
+ *  Zpráva (InterpretationResearch). A retry card does not say which it retries, so without a
+ *  purpose it stays where it is (null); the other two fall back on their kind. */
+export function deepResearchStage(r: DeepResearchCard, purpose: string | null | undefined): "questionnaire" | "report" | null {
+  const p = purpose ?? (r.kind === "design_research" ? "DESIGN_RESEARCH" : r.kind === "interpretation_research" ? "INTERPRETATION_RESEARCH" : null);
+  return p === "DESIGN_RESEARCH" ? "questionnaire" : p === "INTERPRETATION_RESEARCH" ? "report" : null;
+}
+
+const PRESET_WORDS = { QUICK: "Rychlý", STANDARD: "Standardní" } as const;
+
+/** A Deep Research card's facts as label/value rows: what starts, its preset, focus or target,
+ *  and how it is paid. A preset the card did not name is the stage's default, said so; a target
+ *  it did not name is the turn's default candidate, never guessed here. */
+export function deepResearchFacts(r: DeepResearchCard, s: { walletOn: boolean; decided: boolean }): { label: string; value: string; sub?: string }[] {
+  const what = r.kind === "design_research"
+    ? { label: "Co se stane", value: "Spustí se hloubkový výzkum nad návrhem, jak je teď", sub: "Návrh se uloží jako nová verze; kontroluje se jako spuštění u Dotazníku." }
+    : r.kind === "interpretation_research"
+    ? { label: "Co se stane", value: "Spustí se literární rešerše k výsledku běhu", sub: "Nad zmrazeným výsledkem; data respondentů ani výpočty nemění." }
+    : { label: "Co se stane", value: `Zopakuje se hloubkový výzkum ${r.run_id}`, sub: "Se stejným zadáním; co už proběhlo, se neplatí znovu." };
+  const rows: { label: string; value: string; sub?: string }[] = [what];
+  if (r.kind !== "deep_research_retry") rows.push({ label: "Rozsah", value: r.preset ? PRESET_WORDS[r.preset] : "Výchozí rozsah kroku" });
+  if (r.kind === "design_research" && r.focus?.length) rows.push({ label: "Zaměření", value: `${r.focus.length} ${r.focus.length === 1 ? "výzkumná otázka" : r.focus.length < 5 ? "výzkumné otázky" : "výzkumných otázek"}` });
+  if (r.kind === "interpretation_research") rows.push({ label: "Výsledek", value: r.target ? `Vybraný výsledek (${r.target})` : "Výchozí výsledek, který Vedoucí viděl" });
+  rows.push({ label: "Platba", value: "z rozpočtu studie", ...walletSub(s) });
+  return rows;
+}
+
+function walletSub(s: { walletOn: boolean; decided: boolean }): { sub?: string } {
+  if (s.decided) return {};
+  return { sub: s.walletOn ? "Strhne se z Peněženky ve výši stropu ceny; práh potvrzení a schválená nastavení se kontrolují jako na kroku." : "Práh potvrzení a schválená nastavení se kontrolují jako na kroku." };
+}
 
 /**
  * The card a person's typed start shows (LO5), as the request it starts: the server matched the
@@ -97,6 +204,11 @@ export type LeadTurn = {
   workspace_revision: number | null;
   created_at: string;
   created_by: string | null;
+  /** The client's sources a person's message carried to the Lead (LO18a); read only in the turn answering it. */
+  files?: { source_id: string; sha256: string; reading_sha256: string | null; filename: string }[];
+  /** The most the turn's prepared agent job can cost, before it starts (LO23): its reservation;
+   *  null when unknown (never 0) or when the turn prepares no agent job. */
+  ceiling_usd?: number | null;
   /** What the person decided on each of this turn's edits, from the approval ledger (by index). */
   edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null; auto?: boolean }>;
   /** The person's approval of this turn's paid request, when given. */
@@ -119,6 +231,12 @@ export type LeadTurn = {
   command?: string | null;
   /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
   changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
+  /** A person's message that waits for the Lead, stored on the server and shown in every tab
+   *  (ADR 0041 decision 7); withdrawn: taken back before any turn was sent it. */
+  queued?: boolean;
+  withdrawn?: boolean;
+  /** The messages a Lead turn was sent, in queue order. */
+  answers?: string[];
 };
 
 /**
@@ -151,7 +269,9 @@ export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { no
 }
 
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
-export type RequestApproval = { run_id: string; design_revision_id: string; status: string };
+/** `purpose`: a Deep Research card's run (LO5a.2), DESIGN_RESEARCH or INTERPRETATION_RESEARCH;
+ *  `research_run_id`: an Interpretation run's research run, whose results show it. */
+export type RequestApproval = { run_id: string; design_revision_id: string; status: string; purpose?: string | null; research_run_id?: string | null };
 
 export type LeadState = {
   available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[];
@@ -177,6 +297,8 @@ export type LeadPreferences = { auto_accept_text_edits: boolean };
 
 type Content = { project: ResearchProject; analysis: Analysis | null };
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLocaleLowerCase("cs");
+/** Whether `text` names exactly one of `items` as a list edit compares them (whitespace collapsed, case aside). */
+export const namesOne = (items: readonly string[], text: string): boolean => items.filter((x) => norm(x) === norm(text)).length === 1;
 const LIST_KEY: Record<PlanList, "objectives" | "research_questions" | "hypotheses"> = {
   "plan.objectives": "objectives",
   "plan.research_questions": "research_questions",
@@ -443,7 +565,7 @@ export function droppedLines(dropped: { reason: string }[]): string[] {
 export function editStage(e: LeadEdit): WorkbenchStage {
   if (e.op === "set_text") return e.field.startsWith("plan.") ? "design" : "brief";
   if (e.op.startsWith("list_")) return "design";
-  if (e.op === "set_n") return "dimensions";
+  if (e.op === "set_n") return "sample"; // N is set on Vzorek (artifact-sample SMP7)
   return "questionnaire";
 }
 
@@ -494,7 +616,7 @@ export function focusSelector(target: string): string {
   if (kind === "section" && id) return `[data-aia="${css(target)}"], [id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
   if (kind === "plan" && id) {
-    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
+    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions", hypotheses: "plan-hypotheses" };
     return `[id="${section[id] ?? "plan-understanding"}"]`;
   }
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
@@ -511,6 +633,7 @@ const PLAN_LABELS: Record<string, string> = {
   variants: "Návrh: varianty výzkumu",
   questions: "Návrh: otázky k doplnění",
   narrative: "Návrh: porozumění zadání",
+  hypotheses: "Návrh: hypotézy",
 };
 
 /** An item row's words as a person sees them: without its numbering and icons (aria-hidden), what
@@ -645,6 +768,7 @@ export function targetOfElement(el: Element | null): { id: string; label: string
       "plan-variants": { id: "plan:variants", label: "Návrh: varianty výzkumu" },
       "plan-questions": { id: "plan:questions", label: "Návrh: otázky k doplnění" },
       "plan-understanding": { id: "plan:narrative", label: "Návrh: porozumění zadání" },
+      "plan-hypotheses": { id: "plan:hypotheses", label: "Návrh: hypotézy" },
     };
     if (plan[id]) return plan[id]!;
   }
@@ -745,17 +869,38 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
   egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
   egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
+  egress_retention_unspecified: "Tuto studii nelze poslat modelu: trasa AI nemá stanovenou dobu uchování dat u poskytovatele.",
+  egress_residency_violation: "Tuto studii nelze poslat modelu: trasa AI nemá potvrzené zpracování v EU.",
+  egress_training_exclusion_missing: "Tuto studii nelze poslat modelu: trasa AI nemá smluvně vyloučené trénování na datech.",
   research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
   ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
+  lead_queue_full: "Na Vedoucího už čeká pět zpráv. Počkejte, až odpoví.",
+  lead_message_not_queued: "Zpráva už nečeká: Vedoucí ji mezitím dostal.",
+  message_too_long: "Zpráva je příliš dlouhá: nejvýše 8 KB textu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
   stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
+  live_settings_unapproved: "Hloubkový výzkum s placeným vyhledáváním čeká na schválení nastavení v Nastavení → Hloubkový výzkum; nic se nespustilo.",
+  outside_wallet: "Strop ceny se nevejde do toho, co zbývá v Peněžence; nic se nespustilo. Peněženku můžete navýšit.",
+  ceiling_unknown: "Cenu nelze odhadnout, a tak se nic nespustilo: neznámá cena se nikdy nečte jako nulová.",
+  no_wallet: "Studie nemá otevřenou Peněženku; nic se nespustilo.",
+  deep_research_start_unavailable: "Hloubkový výzkum se v tomto prostředí z karty spustit nedá.",
+  deep_research_not_found: "Co karta jmenuje (běh, výsledek nebo verzi návrhu), ve studii není; nic se nespustilo.",
+  research_input: "Návrh zatím nemá, co hloubkový výzkum potřebuje; nic se nespustilo.",
+  focus_unknown: "Karta jmenuje výzkumnou otázku, kterou návrh nemá.",
+  run_not_retryable: "Tento běh hloubkového výzkumu nelze opakovat.",
+  lineage_changed: "Výsledek, nad kterým běh běžel, se od té doby změnil; opakování se nespustilo.",
+  artifact_corrupt: "Uložený výsledek běhu nelze ověřit; nic se nespustilo.",
   agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
+  // F-LO-PARK-1 (Nigel, 2026-10-28, W1Q11): a greeting the budget could not pay for ends unpaid,
+  // one quiet line; a turn a budget set released is answered again on the design as it is now.
+  greeting_unfunded: "Přehled studie čeká na rozpočet.",
+  lead_turn_released: "Rozpočet je nastavený: Vedoucí odpoví znovu, nad návrhem, jak je teď.",
 };
 
 /** Asked when a card is approved after the design moved past what its turn read (LO10). */

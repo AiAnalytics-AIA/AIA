@@ -136,7 +136,12 @@ def test_remaining_is_by_ceilings_and_never_negative() -> None:
 
 
 def test_a_charge_is_authorised_only_by_a_start_that_consults_the_wallet() -> None:
-    assert {ApprovalSubject.CHAT_START, ApprovalSubject.PLAN_STEP} == CHARGE_AUTHORITIES
+    # A Lead card's start is judged as the person's typed start (LO5a.2, migration M3b).
+    assert {
+        ApprovalSubject.CHAT_START,
+        ApprovalSubject.PLAN_STEP,
+        ApprovalSubject.LEAD_CARD,
+    } == CHARGE_AUTHORITIES
 
 
 def test_the_charge_kinds_are_the_four_plan_steps() -> None:

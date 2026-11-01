@@ -28,11 +28,13 @@ from aia_core.application.project_memory import (
     search_client_studies,
 )
 from aia_core.application.research import BudgetNotRaised, ResearchStepNotFound
+from aia_core.application.working_copy import EditsRefused, apply_person_edits
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.brief_material_classes import brief_material_classes
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
+from aia_core.domain.edit_ops import WorkingOp
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeFolder,
@@ -52,6 +54,7 @@ from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import (
     ClientContext,
     ClientPermission,
+    ClientStatus,
     Permission,
     ScopeDenied,
     SeparationOfDutiesViolation,
@@ -185,13 +188,18 @@ class MemoryHitResponse(BaseModel):
 
 
 class ClientCard(BaseModel):
-    """One client in the directory."""
+    """One client in the directory.
+
+    ``status`` is the client's: an archived client is never listed, as
+    :meth:`ScopeResolver.accessible_clients` leaves it out (ADR 0019).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     client_id: str
     name: str
     slug: str
+    status: Literal["ACTIVE", "DORMANT"]
     your_role: str | None
     active_count: int
     study_count: int
@@ -200,10 +208,11 @@ class ClientCard(BaseModel):
 
 
 class ClientCounts(BaseModel):
-    """What the client's tabs count: open studies, and knowledge waiting or held.
+    """What the client's tabs count: open studies, knowledge waiting or held, and files.
 
-    Archived studies are not counted. The knowledge counts are null for a caller
-    who may not read the client's knowledge: unknown, never zero.
+    Archived studies are not counted. The knowledge counts and ``sources`` (the files the
+    client keeps) are null for a caller who may not read the client's knowledge: unknown,
+    never zero.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -212,6 +221,7 @@ class ClientCounts(BaseModel):
     simulations: int
     pending_proposals: int | None
     datasets: int | None
+    sources: int | None
 
 
 class ClientWorkspace(BaseModel):
@@ -536,6 +546,30 @@ class WorkingContentSaved(BaseModel):
     deduplicated: bool
 
 
+#: The most operations one batch carries; a stage that holds more saves its copy whole.
+OPS_PER_BATCH = 100
+
+
+class WorkingOpsSave(BaseModel):
+    """A person's edits from a stage, in the working copy's vocabulary (``domain/edit_ops.py``),
+    applied in order as one batch (working-copy-edit-ops WCE3a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The revision the edits were made on; null only for a study with no content yet.
+    base_revision: int | None = Field(default=None, ge=1)
+    ops: list[WorkingOp] = Field(min_length=1, max_length=OPS_PER_BATCH)
+    reason: str = Field(default="autosave", max_length=64, pattern=r"^[a-z0-9_:.-]{1,64}$")
+
+
+class WorkingOpsSaved(WorkingContentSaved):
+    """What one batch did, and the copy as saved: the stage keeps the server's copy (the ids it
+    gave what the batch added among it), not its own."""
+
+    content: dict[str, Any]
+    analysis: dict[str, Any] | None
+
+
 class WorkingRevisionResponse(BaseModel):
     """One saved revision of a study's working content."""
 
@@ -826,6 +860,10 @@ class Me(BaseModel):
     email: str | None
     organization_role: str
     may_administer: bool
+    #: The Metodik mark (D-14): stores and puts in force methodology versions.
+    methodologist: bool
+    #: The organization's name, for the page's breadcrumb; None if it cannot be read.
+    organization_name: str | None = None
 
 
 class ClientStart(BaseModel):
@@ -837,13 +875,15 @@ class ClientStart(BaseModel):
 
 
 @router.get("/workspace/me", response_model=Me, summary="Who you are here")
-def me(principal: PrincipalDep, admin: OrganizationDep) -> Me:
-    """The caller's user id, e-mail and organization role; no client data."""
+def me(principal: PrincipalDep, admin: OrganizationDep, repo: ScopeRepositoryDep) -> Me:
+    """The caller's user id, e-mail, organization role and its name; no client data."""
     return Me(
         user_id=principal.user_id,
         email=principal.email,
         organization_role=admin.organization_role.value,
         may_administer=admin.may_administer,
+        methodologist=admin.methodologist,
+        organization_name=repo.organization_name(admin),
     )
 
 
@@ -880,6 +920,9 @@ def my_clients(
     for client_id in resolver.accessible_clients(principal):
         scope = _client_scope(principal, resolver, client_id)
         client = repo.get_client_in_scope(scope)
+        if client.status is ClientStatus.ARCHIVED:
+            # Archived after its scope was resolved: left out, as it would have been before.
+            continue
         studies = repo.studies_in_client(scope, include_archived=False)
         active = [s for s in studies if s.status in OPEN_STATUSES]
         cards.append(
@@ -887,6 +930,7 @@ def my_clients(
                 client_id=client.client_id,
                 name=client.name,
                 slug=client.slug,
+                status="DORMANT" if client.status is ClientStatus.DORMANT else "ACTIVE",
                 your_role=scope.client_role.value if scope.client_role else None,
                 active_count=len(active),
                 study_count=len(studies),
@@ -908,6 +952,7 @@ def client_workspace(
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
     session: SessionDep,
+    store: ArtifactStoreDep,
 ) -> ClientWorkspace:
     """The client, the caller's role in it, what they may do, and what its tabs count.
 
@@ -917,15 +962,18 @@ def client_workspace(
     studies = repo.studies_in_client(scope, include_archived=False)
     pending: int | None = None
     datasets: int | None = None
+    sources: int | None = None
     if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
         summary = ClientKnowledgeRepository(session).summary(scope)
         pending = summary.pending_proposals
         datasets = summary.items_by_kind.get(KnowledgeKind.DATASET, 0)
+        sources = ClientSourceRepository(session, store).count(scope)
     counts = ClientCounts(
         research=sum(1 for s in studies if s.kind is StudyKind.RESEARCH),
         simulations=sum(1 for s in studies if s.kind is StudyKind.SIMULATION),
         pending_proposals=pending,
         datasets=datasets,
+        sources=sources,
     )
     return _workspace(scope, repo).model_copy(update={"counts": counts})
 
@@ -1245,13 +1293,29 @@ class ContactResponse(BaseModel):
     receives_reports: bool
 
 
+class RuleChangeResponse(BaseModel):
+    """A budget or rule field, from what to what; ``before_known`` false: not recorded."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str
+    before: str | float | bool | None
+    after: str | float | bool | None
+    before_known: bool
+
+
 class ProfileChangeResponse(BaseModel):
+    """One history entry. ``actor_name`` is a member's display name, never an e-mail;
+    null when there is none."""
+
     model_config = ConfigDict(extra="forbid")
 
     action: str
     at: datetime | None
+    actor_name: str | None
     fields: list[str]
     contact_name: str | None
+    changes: list[RuleChangeResponse]
 
 
 class ClientProfileResponse(BaseModel):
@@ -1290,7 +1354,20 @@ def _profile_out(scope: ClientContext, repo: ClientProfileRepository) -> ClientP
         contacts=[_contact_out(c) for c in repo.contacts(scope)],
         history=[
             ProfileChangeResponse(
-                action=h.action, at=h.at, fields=list(h.fields), contact_name=h.contact_name
+                action=h.action,
+                at=h.at,
+                actor_name=h.actor_name,
+                fields=list(h.fields),
+                contact_name=h.contact_name,
+                changes=[
+                    RuleChangeResponse(
+                        field=c.field,
+                        before=c.before,
+                        after=c.after,
+                        before_known=c.before_known,
+                    )
+                    for c in h.changes
+                ],
             )
             for h in repo.history(scope)
         ],
@@ -2185,6 +2262,66 @@ def save_study_working_content(
         revision=saved.revision,
         revision_id=saved.revision_id,
         deduplicated=saved.deduplicated,
+    )
+
+
+@router.post(
+    "/studies/{study_id}/workspace/ops",
+    response_model=WorkingOpsSaved,
+    summary="Apply a person's edits to the research study's working content",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "A newer revision exists, an edit was refused, or the content awaits "
+            "migration",
+        }
+    },
+)
+def apply_study_working_ops(
+    body: WorkingOpsSave, scope: StudyScopeDep, session: SessionDep
+) -> WorkingOpsSaved:
+    """The edits applied in order and saved as one new revision, each logged under its own
+    operation, made by the caller through the interface (ADR 0029 decisions 1 and 3).
+
+    Needs ``EDIT_STUDY`` on an open research study. ``base_revision`` is the revision the edits
+    were made on; one from an older revision is refused with 409 ``stale_revision``, as a save is.
+    The batch is all or nothing: an edit the copy does not take (its item gone, a locked Sociomap
+    input) refuses the batch with 409 ``edit_refused``, each refused position with its word, and
+    nothing is saved. An operation the vocabulary declares but does not apply yet has no payload,
+    so the body is refused (422) before anything is read.
+    """
+    try:
+        saved, content = apply_person_edits(
+            session, scope, body.ops, base_revision=body.base_revision, reason=body.reason
+        )
+    except ScopeDenied as exc:
+        raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
+    except WorkspaceConflict as exc:
+        raise _workspace_conflict(exc) from exc
+    except WorkspaceRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except EditsRefused as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "edit_refused",
+                "message": "The working content did not take every edit; nothing was saved.",
+                "details": {
+                    "refused": {str(i): word for i, word in sorted(exc.refused.items())},
+                    "current_revision": exc.current_revision,
+                },
+            },
+        ) from exc
+    return WorkingOpsSaved(
+        study_id=saved.study_id,
+        state=saved.state.value,
+        revision=saved.revision,
+        revision_id=saved.revision_id,
+        deduplicated=saved.deduplicated,
+        content=dict(content.content or {}),
+        analysis=content.analysis,
     )
 
 

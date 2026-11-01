@@ -455,3 +455,48 @@ def test_a_proposal_is_dismissed_in_the_ledger_and_rebuilt_as_a_new_job(
     assert newer.status_code == 201
     old = researcher.post(f"{url}/{third}/rebuild", json={"design_revision_id": rid})
     assert old.status_code == 409 and old.json()["code"] == "stale_design"
+
+
+def test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pending(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    # The listing's page is the newest 20 jobs; ``pending=true`` must not filter that page.
+    rid = revision(researcher, world)
+    url = base(world)
+    asked = {"design_revision_id": rid, "action": "analyze_brief"}
+    oldest = researcher.post(url, json={**asked, "instruction": "První"}).json()["run_id"]
+    assert _worker(app).run_once() is not None
+    for n in range(20):
+        made = researcher.post(url, json={**asked, "instruction": f"Další {n}"})
+        assert made.status_code == 201, made.text
+    assert oldest not in [j["run_id"] for j in researcher.get(url).json()]
+    pending = researcher.get(url, params={"pending": "true"}).json()
+    assert [j["run_id"] for j in pending] == [oldest]
+    assert pending[0]["proposal_state"] == "pending"
+
+
+def test_a_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """QST13: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT gives a job's start the store it reads the newest
+    Design Research bundle from; off, no store and no external layer."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    rid = revision(researcher, world)
+    body = {"design_revision_id": rid, "action": "build_questionnaire"}
+    assert researcher.post(base(world), json=body).status_code == 201
+    assert given == []
+    monkeypatch.setattr(
+        app.state,
+        "settings",
+        app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+    )
+    assert researcher.post(base(world), json={**body, "instruction": "Kratší"}).status_code == 201
+    assert len(given) == 1 and given[0] is not None

@@ -7,6 +7,12 @@ chunks:
   - "[ ] AUD4. Předpoklady o cílové skupině: the assumption list with attached evidence, external and client knowledge labelled apart"
   - "[ ] AUD5. The Lead on Cílová skupina: propose_audience as a card, its proposal inline, the stage's AI start removed"
   - "[ ] AUD6. Journey: Cílová skupina at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[ ] AUD7. The source note above §01: the catalogue's version label and the default persona source (spec vzorek A2; W2)"
+  - "[ ] AUD8. 'Přidat faktor' chips and catalogue search in place of the full catalogue (spec vzorek A4; W2)"
+  - "[ ] AUD9. Live Proveditelnost: the debounced preview, three KPI tiles, feasibility in words (spec vzorek A5; W2)"
+  - "[ ] AUD10. Built-in subpanels as 'Hotové skupiny' chips inside Zúžit (spec vzorek A6; W2)"
+  - "[ ] AUD11. A note where the audience's description and its filters disagree (spec vzorek A7; W2, blocked on OQ5)"
+  - "[ ] AUD12. A Lead target audience:strategy: the strategy choice pointable, in the domain's audience parts and the stage's data-aia marks in one change, since the two must agree (spec vzorek, the audience row; W2)"
 ---
 # Artifact: Cílová skupina (Audience)
 
@@ -93,6 +99,8 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
   each row is input-interactions.md § Chunk 5, as delivered.
 - Delivered: B9, the built-in subpanels under a search (feature/audience-subpanel-list);
   the record of each row is input-interactions.md § Chunk 5, as delivered.
+- Delivered: B11, Discover's product and success criterion edited in place (feature/audience-discover-inline);
+  the record of each row is input-interactions.md § Chunk 5, as delivered.
 
 ## 7. Chunks
 
@@ -109,6 +117,39 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 
 **AUD2. Body.** Tests: `AudienceStep.test.tsx`: the table lists the saved filters with the catalogue
 version; a missing preview says why. Depends on `input-interactions#5`.
+
+AUD2, part 1 (research stages v73, spec `vzorek/A1`, R4): one choice, "Koho mají výsledky
+reprezentovat?", of Celá ČR 18+, Zúžit and Najít ve výsledcích, the last disabled with its reason. The
+source and population questions are gone; a choice writes `analytics` / `cz18` (`normalizeEntry`), so
+`audienceReady` is unchanged. A study stored as an own dataset, a special group or a Discover opens
+readable and says what is kept (`keptPaths`); a stored subpanel reads as Zúžit (`strategyOf`). A
+choice starts afresh as a preset change does (`chooseStrategy` over `presetReset`, OI-51 (a), "Clear
+both"), so leaving a subpanel for Celá ČR 18+ no longer keeps its support figures, and keeps a
+description the person wrote. Since the subpanels and the filter editor now share Zúžit, a filter
+edit on a chosen subpanel leaves it behind (`detachSubpanel`: its name and support figures go, the
+description stays; a study on the classic's special path is written as ČR 18+, so its filters stay
+Zúžit's), because compile records `builtin_subpanel` (Codex on #1000). The
+description is written in place (§01, `setAudienceDescription`) and the AI proposal asks about it.
+The built-in subpanels move under Zúžit as they are (radio cards; "Hotové skupiny" chips are AUD10).
+The strategy stays three radio cards, not the spec's segmented chips: a chips group chooses as the
+arrows move (I3), and an arrow from Zúžit to Celá ČR 18+ would clear the filters (the reason B9 kept
+cards). Tests: `AudienceStep.test.tsx` ("offers three strategies…", "a study stored as own, special or
+discover opens readable…"), `audience.live.test.ts` ("one strategy choice"), the audience and
+workspace journeys. Part 2 is the filter rows (`vzorek/A3`).
+
+**AUD9, as delivered (research stages v73, spec `vzorek/A5`; chunk added by the build plan).**
+Proveditelnost is asked again 400 ms after the last change of the filters or n
+(`useAudiencePreview`), with no button; an answer to an older question is dropped and the last
+answer stays, dimmed, while a newer one is asked. Three figures: "V populaci vybráno" (the selected
+rows of the population's), "Vzorek" (the stored n, linked to Vzorek, where it is set since #945, through next/link so a pending save and the Lead's pane survive; Codex on #1002) and
+"Lze vytáhnout" (`feasibility`): Ano only on the server's `PASS`, Těsně on `PASS_WEIGHTED`
+(representative once its weights are calibrated, `sampling.py`'s meaning, not the prototype's
+"kvóty nemusí vyjít"), Ne with the refusal in words, Neznámé without an answer, an n or a status the
+code knows. A count not answered reads "nezjištěno", never 0. Cost: one POST per settled change; the
+journey prints each preview's time on the machine it runs on. Open before merge: the p95 on develop
+(build plan). Tests: `useAudiencePreview.test.ts`, `audience.live.test.ts` ("Lze vytáhnout…"),
+`AudienceStep.test.tsx` ("Proveditelnost counts the audience in AIA without a click…"), the audience
+journey.
 
 **AUD3. Per-filter counts.**
 - `audience_preview` adds `per_filter: {factor: selected_rows}`: each filter alone over the same
@@ -176,6 +217,36 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
   #728's port, took this branch's copy. The next commit, `816fb230`, restores them; from there the
   file differs from develop `db44f5f3` only in `closeWhere`. No head this PR ships loses the test.
 
+- **OI-51, fixed by the product owner's answer (a), 2026-10-25.** A preset change kept the previous
+  audience's subpanel and filters, as 18.6.6 did. On the screen: "Vlastní publikum" and ČR připravujeme
+  kept both, and Speciální skupiny kept the filters; ČR 18+ already cleared them. `chooseSpecialPreset`
+  (the classic's port, not on the screen) kept them too.
+  - Anchor: `apps/web/src/research/audience.ts:94` (`setAnalyticsChoice`) and `:161`
+    (`chooseSpecialPreset`) @ f7762d72; `setAudienceEntry` above them.
+  - Fix: `presetReset`, used by every preset path, clears the subpanel, filters and segment (OI-51's
+    smallest fix). A change that cleared something invalidates the run check. The parity tests compare
+    the rest with the classic run on the reset audience.
+  - Tests: `AudienceStep.test.tsx` "switching preset clears the previous subpanel and filters";
+    `audience.live.test.ts` "what a preset change clears"; `audience.parity.test.ts` setAudienceEntry,
+    setAnalyticsChoice and the preset-after-preset cases; the audience journey's step 3.
+  - The description stays as it is on a preset change (the product owner, 2026-10-25).
+  - Follow-up, fix/audience-preset-clears-strategy (the product owner, 2026-10-25, "Clear both"):
+    `presetReset` also resets the strategy to "population" and the subpanel's support figures
+    (`support_tier`, `subpanel_status`, `support_summary`) to the template's defaults. A special
+    panel's keys (`special_panel_key`, `builtin_special_key`) follow the same rule, since they are the
+    same kind of stale write. On the classic's port (`chooseSpecialPreset`, which no screen calls) a
+    coming-soon preset after a special panel is then no longer "ready". On ČR 18+ the description
+    also stays: the classic's `chooseAudience('population')` wrote "ČR 18+" there. Only a change
+    of who is sampled invalidates the run check, not the support figures alone. The new preset writes
+    its own figures when it has any.
+  - A strategy change (not a preset change) keeps a subpanel's support figures as they are (the product
+    owner, 2026-10-26: "leave the strategy question as is").
+  - A preset's `dataset_name` (shown as "Zdroj audience") stays as it is on ČR připravujeme (the product
+    owner, 2026-10-26: "leave the dataset name as is"). No OI-51 question is left open.
+  - Tests:
+    `AudienceStep.test.tsx` "switching to one's own audience clears the subpanel's strategy and support
+    too…"; `audience.live.test.ts` "what a preset change clears"; the audience journey's step 3.
+
 ## 8. Owner questions
 
 None.
@@ -184,3 +255,43 @@ None.
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/population.py`: the preview's `per_filter` (AUD3).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**AUD7. Source note** (spec `vzorek/A2`; W2, lane F). Nigel, 26 Oct 2026: the audience's Zdroj stays as it is.
+
+**AUD8. Přidat faktor** (spec `vzorek/A4`; partly no backend: suggested factors have no ranking source; W2, lane F). After AUD2's rows.
+
+**AUD9. Live feasibility** (spec `vzorek/A5`; W2, lane F). The preview's p95 measured on develop before merge.
+
+**AUD10. Hotové skupiny** (spec `vzorek/A6`; W2, lane F).
+
+**AUD11. Description-filter mismatch** (spec `vzorek/A7`, no backend; W2, lane F). Blocked: whether a provable-only check is wanted, or none (OQ5, Nigel).
+
+**Notes.**
+- AUD2 is re-scoped by `vzorek/A1` and `vzorek/A3` to one strategy choice and editable filter rows (contradiction 15).
+- AUD5 carries `vzorek/A8`; AUD6 `vzorek/A9`.
+- Decided by default (planning, 26 Oct 2026, open to Nigel's override): AUD4 (Předpoklady) sits under §01 of Cílová skupina (OQ6).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**AUD12. audience:strategy** (W2, lane F). The spec's audience row names `audience:strategy` (a **hypothesis** id) beside
+`audience:preview`; `_AUDIENCE_PARTS` (`packages/aia_core/src/aia_core/domain/research_lead.py:757 @ dbaa7720`) holds
+`definition`, `filters` and `preview` only. Add `strategy` there and the stage's mark together: the domain refuses a
+target the web marks, so the two land in one PR. Test: the Lead's focus on `audience:strategy` is accepted and the stage
+scrolls to the strategy choice.

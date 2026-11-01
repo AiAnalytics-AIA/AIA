@@ -19,6 +19,7 @@ from pydantic import BaseModel, TypeAdapter
 from aia_core.domain import edit_ops as e
 from aia_core.domain.analysis.native import research_questions_of
 from aia_core.domain.design_items import Documents, ItemKey
+from aia_core.domain.lead_artifacts import ViewOpKind
 from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.research_lead import FOCUS_ID, LeadOutput
 from aia_core.domain.research_trace import comparisons_of
@@ -86,7 +87,7 @@ def test_the_lead_output_carries_exactly_the_operations_marked_so() -> None:
         for definition in schema["$defs"].values()
         if "op" in definition.get("properties", {})
         and definition["properties"]["op"].get("const")
-        not in ("open_stage", "focus", "inspect")  # the view's commands, not edits
+        not in {v.value for v in ViewOpKind}  # the view's commands, not edits
     }
     marked = {n.value for n, s in e.CATALOGUE.items() if s.in_lead_output}
     # A route_set is applied but a person's alone (WCE13): outside the Lead's union.

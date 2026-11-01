@@ -10,7 +10,7 @@ export type MapRelations = "top" | "selected" | "all";
 /** The display choices of the `-5` panel's toolbar. */
 export type MapDisplay = { map: MapView; norm: MapNorm; relations: MapRelations };
 
-/** How the map opens: the objects, Relativní, Top vztahy (the panel's own opening). */
+/** How the map opens: the objects, Relativní, Nejsilnější vztahy (the panel's own opening). */
 export const OPENING_DISPLAY: MapDisplay = { map: "objects", norm: "range", relations: "top" };
 
 export type DisplayChange =

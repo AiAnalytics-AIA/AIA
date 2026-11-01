@@ -66,3 +66,18 @@ def test_a_refused_owner_change_is_in_the_access_audit(
     assert stray is None
     assert len(rows) == 2
     assert rows[1].subject_user_id is None and rows[1].payload == {}
+
+
+def test_an_address_that_is_no_address_is_refused_and_makes_no_user(
+    app: Any, owner: TestClient
+) -> None:
+    """Sign-in binds a member by their e-mail: "alice" made a member who could never sign in
+    (the Codex finding on #828)."""
+    for bad in ("alice", "alice@", "@example.org", "a b@example.org", "alice@example", ""):
+        refused = owner.post(f"{API}/members", json={"email": bad, "role": "MEMBER"})
+        assert refused.status_code == 422, (bad, refused.text)
+    with create_session_factory(app.state.engine)() as session:
+        assert session.scalar(select(UserRow).where(UserRow.email == "alice")) is None
+    added = owner.post(f"{API}/members", json={"email": "  Alice@Example.org ", "role": "MEMBER"})
+    assert added.status_code == 201, added.text
+    assert added.json()["email"] == "alice@example.org"

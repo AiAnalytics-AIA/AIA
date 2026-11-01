@@ -1,6 +1,9 @@
 # ADR 0034 — Open-answer coding: a frozen, reviewed assignment artifact, counts by a pure function, admitted like every number; the method awaits the methodology owner
 
-**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+**Status:** Accepted — 2026-10-26 (the product owner, Decision Review), with the
+[amendment of 2026-10-26](#amendment-2026-10-26) below; **the coding method (decision 6), Q7, Q8 and
+MQ-14a–f stay the methodology owner's**, and every count still refuses by name until his method
+version exists. Proposed — 2026-10-20; held for the methodology owner's answers (the product
 owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The coding
 method (decision 6) is awaiting the methodology owner** (MVPQ-02b) and is not chosen here. The
 admission rule [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires
@@ -10,6 +13,11 @@ artifacts are immutable), [ADR 0023](0023-methodology-is-data-the-methodologist-
 pinned, versioned data) and [ADR 0024](0024-panel-grounded-respondents-are-modelled-evidence.md)
 (modelled answers stay internal until a validation lifts them). **Leaves unchanged** every respondent
 answer and every fieldwork artifact.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
 **Date:** 2026-10-20
 **Plan:** [assumptions-and-open-answer-coding](../../../.planning/plans/assumptions-and-open-answer-coding.md)
 AOC4-AOC9; `report-delivery` RD10
@@ -106,3 +114,26 @@ AOC5 (W2, storage and node), AOC6-AOC8 and RD10 (W3) once the method is approved
 
 1. **MVPQ-02b, the method**, is the methodology owner's (A. Bahbouh), approved by the owner. Every
    numeric behaviour above waits for it.
+
+## Amendment, 2026-10-26
+
+The product owner's verdict in the Decision Review, 2026-10-26 (relayed by the PM coordinator),
+REV-ADR-0034-VERDICT: **(b) "Accept with the amendment described"**. The review's amendment: align
+decision 4 with ADR 0024's client-report lift and name the coding node's switch. Only the verdict is
+answered. He left the rest to the methodology owner ("a lot of questions are for the methodology
+owner so lets leave that to him"), so these stay open and are not decided here:
+
+- **MQ-14a–f** (MVPQ-02b, decision 6): the denominator and missing answers, multi-label semantics,
+  small-code suppression, what a model may do, review and agreement, who writes the codebook.
+
+**0034-Q7 (a)** (the product owner in chat, 26 Oct 2026 ~12:20 UTC, relayed by the PM coordinator): coded counts over AI answers follow ADR 0024's client-report lift like
+every other modelled number: they reach the client report only under the owner's lift, and analysis
+prose only after a validation. Decision 4's "internal until a validation lifts them" reads so.
+
+**0034-Q8 (a)** (the product owner in chat, 26 Oct 2026 ~12:30 UTC, relayed by the PM coordinator): the coding node gets its own off switch, named in AOC5, off by default and
+on for develop only once the coding method version is approved.
+
+What acceptance changes: decisions 1-5 are the accepted contract for open-answer coding (decision
+4 as amended by Q7 below), so
+`assumptions-and-open-answer-coding` AOC5's storage, node and refusals are built against them; the
+node refuses `coding_method_unapproved` and no count exists until the method version is approved.

@@ -41,6 +41,12 @@ Exit status: 1 when any capability or acceptance criterion is FAIL or the matrix
 malformed, else 0. NOT_EXECUTED and NOT_RUNNABLE do not fail the run -- they are
 reported, loudly, and CI's step summary shows them next to the passes so nobody
 mistakes one for the other.
+
+``--report-only`` is how CI runs it: parity reports and never blocks (the owner,
+2026-10-19, MVP-21; ``mvp-cohesion.md`` F9), so a capability's FAIL is printed and
+written to the report but does not fail the run. An acceptance criterion's FAIL and a
+malformed matrix still do. Without the flag, as a person runs it locally, a parity FAIL
+exits 1 as before.
 """
 
 from __future__ import annotations
@@ -410,8 +416,11 @@ class Report:
     acceptance: dict[str, Any]
     fixtures: list[dict[str, Any]]
 
-    def failed(self) -> bool:
-        return self.counts.get(FAIL, 0) > 0 or self.acceptance["verdict"] == FAIL
+    def failed(self, *, report_only: bool = False) -> bool:
+        """Whether the run fails: an acceptance FAIL always; a capability's FAIL unless
+        parity is only reported (``--report-only``, MVP-21)."""
+        parity_failed = self.counts.get(FAIL, 0) > 0 and not report_only
+        return parity_failed or self.acceptance["verdict"] == FAIL
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -627,6 +636,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--json", type=Path, help="write the full report as JSON")
     parser.add_argument("--markdown", type=Path, help="write the report as markdown")
     parser.add_argument("--write", type=Path, help="render: splice the table into this file")
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="a capability's FAIL is reported and does not fail the run (MVP-21); an "
+        "acceptance criterion's FAIL still does",
+    )
     args = parser.parse_args(argv)
 
     matrix = load_matrix(args.matrix)
@@ -653,6 +668,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     report = build_report(matrix, results, available)
     markdown = render_report_markdown(report)
+    parity_fails = report.counts.get(FAIL, 0)
+    if args.report_only and parity_fails:
+        markdown = (
+            f"> **{parity_fails} capability FAIL reported, not blocking.** Parity "
+            "reports and never blocks (MVP-21, `--report-only`); an acceptance criterion's "
+            "FAIL still fails this job.\n\n" + markdown
+        )
     if args.json:
         args.json.write_text(json.dumps(report.to_json(), indent=2) + "\n", "utf-8")
     if args.markdown:
@@ -673,12 +695,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"  beside it: {acc['not_release_ready']} of {acc['capabilities_on_path']} "
         "capabilities on the path have no release-ready parity (information, MVP-21)"
     )
-    if report.failed():
+    if report.failed(report_only=args.report_only):
         print(
             "parity_status: FAILED -- a parity gate or an acceptance criterion failed, "
             "or did not run where it could."
         )
         return 1
+    if parity_fails:
+        print(
+            f"parity_status: {parity_fails} capability FAIL reported, not blocking "
+            "(--report-only: parity reports and never blocks, MVP-21)."
+        )
     return 0
 
 

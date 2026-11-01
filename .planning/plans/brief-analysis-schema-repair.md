@@ -1,0 +1,587 @@
+---
+status: in-progress
+chunks:
+  - "[x] 1. A wrong JSON type is named in the violation (received string / null / object / …), so the repair turn and error_json say what arrived"
+  - "[x] 2. (a) The repair turn says to send a list or object itself, never a string holding JSON, when one arrived as a string (repair_hint=container-as-string-v1 on that repair's ledger note)"
+  - "[ ] 3. Deferred: (b) narrow typed decoding, only if an observed failure shows `received string`"
+  - "[x] 4a. Schema-enforced output, the reduced schema: domain/constrained_output.py reduces a contract's schema to Bedrock's grammar subset or refuses it by name; a golden fixture pins every contract's verdict (20 of 22 reduce); no client text reaches a sent schema"
+  - "[ ] 4b. Schema-enforced output, sent: RequestProfile's declared constrained capabilities behind AIA_BEDROCK_CONSTRAINED_OUTPUT (off by default and in test; fieldwork refused), the gateway sends the reduced schema with toolSpec.strict through the Bedrock adapter, recorded Converse fixtures first; the paid probe on the product owner's ok"
+  - "[x] 5. Keep refused answers, every study step: one hook in StepModelCaller, REFUSED_ANSWER_SOURCE (the request's class; unclassified recorded as null), a refused_answer artifact on the failing step's own project (design workers, Lead, Deep Research, fieldwork, validation); analysis left as it is; operator-only"
+  - "[ ] 5b. Deferred (the product owner, 2026-10-28 ~20:35 UTC, option C): client-source proposals keep no refused answer until a client-work failure is seen; the artifact store stays study-scoped"
+---
+# A brief analysis refused for `tracked_sets: Input should be a valid array`
+
+On develop, 2026-10-28 12:13:54-12:14:40Z, an "Analyzuj zadání" job (the brief-analysis research
+agent, contract `BriefAnalysis`) failed twice on the same violation, primary and repair:
+run RUN-4486b029e2c74102, step STP-7e7cbdbe4a2b4bb3, attempt ATT-53bca5687f3d4a62, on a fictional
+client. Both calls finished COMPLETED (6,723/1,951 and 8,530/1,891 tokens in/out; maxTokens 4096),
+so neither was truncated. The 12:08Z switch to application inference profiles is ruled out: it
+changes only the URL path (`test_without_the_keys_the_route_model_is_sent_the_same_bytes_as_before`).
+
+## Findings
+
+### F1. A refused design-agent answer is not kept, and its violation cannot tell the shapes apart
+
+1. **Claim.** When a research agent's structured answer is refused, nothing records what the model
+   sent. The violation is the same whether the field held a string, null or an object, so the
+   failure cannot be diagnosed after the fact.
+2. **Anchor.** `ModelCallFailed.rejected_output` carries the answer
+   (`packages/aia_core/src/aia_core/domain/ai_contracts.py:933-950 @ 848f015b`). `recovery_inputs`
+   drops it from error_json (`packages/aia_core/src/aia_core/domain/ai_execution.py:165-176 @ 848f015b`).
+   `ai_usage_events` has no text column (`infrastructure/tables.py:2176 @ 848f015b`).
+   `validate_structured_output` prints only Pydantic's `msg`
+   (`packages/aia_core/src/aia_core/domain/ai_contracts.py:383-386 @ 848f015b`).
+3. **Reproduction.** `pytest packages/aia_core/tests/test_research_agents.py -k wrong_json_type`:
+   a string holding a JSON array, null and a lone object each give
+   `tracked_sets: Input should be a valid array`.
+4. **Consequence.** The researcher's "Analyzuj zadání" fails and its cost is spent (two paid calls).
+   The repair turn tells the model the expected type but not what it sent, and here the repair
+   repeated the fault. Nobody can say which fault it was.
+5. **Smallest fix.** Name the received JSON type in a type violation (chunk 1). The real cure
+   depends on the shape (chunk 2).
+6. **Test.** `test_a_wrong_json_type_is_named_in_the_violation` (string / null / object).
+   The string case is a **hypothesis** for the develop failure: a JSON array sent as a string
+   holding JSON, a known tool-use failure in long answers. The real shape was not stored and is
+   not recoverable without a paid re-run.
+
+## Decision
+
+The product owner, 2026-10-28 ~12:45 UTC, relayed by the PM coordinator: "Ship the 'received …'
+wording plus a repair hint (\"send the list itself, not text holding JSON\"). No relaxation of AIA's
+strict check. If a real failure later shows \"received text\", decide on accepting it then." So
+chunks 1 and 2 are built, (b) is deferred as chunk 3, (c) is not built. Strict validation is
+unchanged: every shape that was refused before is still refused.
+
+Built:
+
+- `validate_structured_output` appends `, received <JSON type>` to a Pydantic wrong-type error (the
+  type of `error["input"]`, never its value; nothing appended when no input was recorded), and its
+  verdict carries `container_as_string` when a field declared a list, tuple, set, object or map
+  arrived as a string (`domain/ai_contracts.py`, `_received`, `_CONTAINER_TYPE_ERRORS`). Tests:
+  `test_a_wrong_json_type_is_named_in_the_violation[string|null|object]`,
+  `test_a_container_sent_as_a_string_is_still_refused_and_flagged[as_list|as_tuple|as_set|as_map|as_model]`,
+  `test_a_scalar_sent_as_a_string_is_not_flagged`.
+- The gateway's repair turn adds one line under the violations when `container_as_string`, and that
+  repair's ledger note records `repair_hint=container-as-string-v1` beside the unchanged
+  `repair_prompt=schema-repair-v1` / `schema-repair-tool-v1`. The note names exactly the
+  instruction sent; a repair without the hint sends the same instruction as before
+  (`application/model_gateway.py`, `CONTAINER_HINT_VERSION`, `_repair_message`, `_note`). Tests:
+  `test_a_list_sent_as_a_string_is_named_and_the_repair_asks_for_the_list`,
+  `test_no_container_hint_for_any_other_violation`.
+
+Measured cost: no new call, no new latency. A hinted repair sends one more line (~25 tokens) on a
+call that was already being made, so no kill switch: the burst size is zero.
+
+### Review outcomes (`/code-review`, 2026-10-28)
+
+- Fixed: the hint's prompt identity (a v2 bump would not say which repairs carried it; now the hint
+  has its own version on the note), set and frozenset fields, and a missing `input` read as null.
+- Left: the analysis harness builds its own repair turn (`domain/analysis/harness.py`), so analysis
+  modules get the `received …` wording but not the hint. The fix chosen was for the design-job
+  path; widening it to analysis is a follow-up for the product owner.
+- Left: an analysis outcome stores the violation's detail, so a module refused after this deploy
+  reads `…, received string` where one refused before reads without it. The Blokované nároky
+  grouping keys on the violation code, not the detail.
+
+Follow-ups 4 and 5: the product owner, 2026-10-28 ~12:50 UTC, relayed by the PM coordinator, chose
+all three follow-ups. The third (the route model to Sonnet 5.5) is the infra session's; chunk 4 must
+work on whichever route model is in force.
+
+## Proposal (put to the coordinator before building)
+
+- **(a) Repair hint.** The violation names what arrived, and when a list or object field
+  received a string, the repair turn adds one line: send the array or object itself, not a string
+  holding JSON. It costs one more paid call per failure and may still fail: here the repair
+  already saw `tracked_sets` named, and failed again.
+- **(b) Narrow typed decoding.** Only for a provider-native tool answer. A string is decoded only
+  where the contract's schema declares an array or object at that exact location, and only if
+  `json.loads` yields exactly that container. The decoded value then goes through the same strict
+  validation. A scalar is never coerced (`"12"` stays not an integer), and every other mismatch is
+  still refused. The decoding is recorded on the call's ledger note, so it is visible. It saves the
+  repair call, but it accepts an answer the model did not send in its declared form.
+- **(c) Keep the refused answer** (bounded) on the attempt, as analysis already does. Rejected for
+  now: it is Class B material in a column no rule classifies, and chunk 1 answers the diagnostic
+  question without storing text.
+
+### F2. The research-agent path drops the refused answer that analysis keeps
+
+1. **Claim.** A design job's refused answer is carried on `ModelCallFailed.rejected_output` and then
+   lost, so no schema failure of a design job can be diagnosed after the fact. Analysis keeps it.
+2. **Anchor.** `packages/aia_core/src/aia_core/domain/ai_execution.py:165-176 @ 848f015b`
+   (`recovery_inputs`, no `rejected_output`), against
+   `apps/executors/src/aia_executors/analysis.py:450 @ 848f015b`, which keeps it. Bedrock
+   invocation logging is off in eu-central-1 (the product owner's console read, 2026-10-28, ADR 0010
+   activation evidence, "Retention, 2026-10-28"), so no copy exists outside AIA either.
+3. **Reproduction.** Any test that makes a research agent fail with `structured_output_invalid` and
+   reads the attempt's error: it has no answer text. For example, a scripted adapter answering
+   twice off-contract under `ResearchAgentExecutor`.
+4. **Consequence.** The develop failure of 2026-10-28 (RUN-4486b029e2c74102) cannot be told apart
+   between a string-encoded list, null and an object. Chunk 1 now records the type for new failures.
+5. **Smallest fix.** Not built. Keeping the bounded answer in error_json, as analysis does, would
+   put the model's answer about a Class B design (up to 65,536 characters, `MAX_REJECTED_OUTPUT_CHARS`)
+   in a column that no material rule classifies and that the run reads expose. Chunk 1's received
+   type answers the diagnostic question without storing text. If the text is wanted, it belongs in a
+   classified artifact of the run, not error_json. That is a decision for the product owner.
+6. **Test.** One that asserts what a failed design job's attempt keeps.
+
+### F3. A second brief-analysis failure, with two array fields refused in one answer (recorded only)
+
+1. **Claim.** A second `research_agent` attempt failed `structured_output_invalid` on
+   **two** top-level array fields at once.
+   - When: 2026-10-28 19:23:52 UTC, on develop.
+   - Model: Sonnet 4.5, still on the route. Develop switched the route to Sonnet 5.5 at 19:42:33.
+   - Calls: CALL-09c1a688708e42688005 and CALL-0f62317eb64743f28519, the primary and its repair.
+   - Provider request id: 697d30ef-78c6-4e88-946f-08e1b0653222.
+   - `error_json`, as the product owner pasted it (relayed by the PM coordinator):
+     `"violations": ["tracked_sets: Input should be a valid array", "questions_for_user: Input should be a valid array"]`.
+2. **Anchor.** The same contract and validator as F1:
+   - `packages/aia_core/src/aia_core/domain/research_agents.py:92`
+     (`tracked_sets`) and `:94` (`questions_for_user`) `@ b7a0231e`;
+   - `validate_structured_output`.
+   - Develop still ran 1f633e5b, which is before #1075 (`fed99aa2`), so the violations carry no
+     `received <type>`. The develop CI runs after the merge were each cancelled by the next merge
+     before they finished.
+3. **Reproduction.** As F1. Both fields' violation text is the same for a string, null or an
+   object (`test_a_wrong_json_type_is_named_in_the_violation`).
+4. **Consequence.** Another "Analyzuj zadání" failed after two paid calls.
+   - Two independent array fields failed in one answer: a list of objects (`tracked_sets`) and a
+     list of strings (`questions_for_user`).
+   - That fits the string-encoded-array hypothesis: a model that serializes array fields as JSON
+     strings does it across fields, where a null or an object would more likely be one-off.
+   - **Still a hypothesis.** The type was not recorded, because #1075 was not deployed.
+5. **Smallest fix.** None now: record only, as the coordinator asked.
+   - The first failure after #1075 deploys will name the received type.
+   - If it reads `received string`, that is the observed shape chunk 3 (narrow typed decoding)
+     waits for, and chunk 4 (schema-enforced output) would prevent it on the model's side.
+   - Unrecorded: whether the same happens on Sonnet 5.5.
+6. **Test.** Already covered for the wording (F1's test). A two-field case would add nothing the
+   per-field tests do not hold.
+
+**Sonnet 5.5 reading** (recorded only; the PM coordinator, from the infra session's probe on
+develop, 2026-10-28 20:20-20:22 UTC, policy `aia-bedrock-develop-2026-10-28-route-sonnet55`).
+Schema refusals happen on 5.5 too, in analysis as well as design:
+
+- **Analysis.** 2 of the 10 analysis calls failed their schema on the first answer and were
+  repaired: ledger outcome FAILED, finish COMPLETED, max_out 2,141. CloudTrail shows 10 analysis
+  Converse calls at maxTokens 8192, the 8 modules plus the 2 repairs.
+- **Design.** The design job's primary (`aia.research.build_questionnaire`, 20:23:57) was
+  TRUNCATED at its 4,096-token output limit, and its repair answered. That is a truncation, not a
+  type error.
+
+The reading does not say which violations the 5.5 analysis failures had. This strengthens the case
+for chunk 4 (schema-enforced output) on whichever route model is in force; it changes no build.
+
+## Chunk 4 research: schema-enforced output (read-only, 2026-10-28)
+
+### What the provider offers
+
+Sources: Anthropic's own pages, read today (docs.aws.amazon.com is not reachable from this session):
+[Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) and
+[Strict tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use).
+AWS's page, <https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html>, is
+known only through a search summary. It still needs to be read: see "Open, for the product owner's
+read" below.
+
+- **Two mechanisms, one grammar.** `strict: true` on a tool definition constrains the tool's
+  `input` to its schema by grammar-constrained sampling. Structured outputs puts a JSON schema on
+  the answer text. On Converse these are, per the search summary of AWS's page, `strict: true` on
+  the tool and `outputConfig.textFormat`. Both share one compile pipeline. The strict tool is the
+  one that fits AIA: the adapter already sends one output tool (`bedrock.py:240-247 @ b7a0231e`).
+- **Models.** Anthropic's page lists `claude-sonnet-4-5-20250929` and `claude-sonnet-5-5` among the
+  supported models, with Amazon Bedrock "ga". Whether the **EU inference profiles** carry it, and in
+  eu-central-1, is not stated there. That is the one fact to read from AWS.
+- **What it would fix.** Constrained sampling cannot emit a string where the schema says array, so
+  the 2026-10-28 shape could not occur. Anthropic: "With `strict: true`, the response always
+  contains `passengers: 2`", not `"2"`.
+- **What it does not guarantee.** A truncated answer (`max_tokens`) or a refusal "might not match
+  your schema", and an enum can differ in case. AIA's strict validator stays after the call either
+  way, as the plan requires.
+- **Limits per request.**
+  - 20 strict tools; AIA sends 1.
+  - 24 optional parameters and 16 union-typed parameters, across all strict schemas.
+  - An internal grammar-size limit, answered with a 400 "Schema is too complex for compilation".
+  - A 180 s compile timeout. A new schema's first request compiles, and the compiled grammar is
+    cached for 24 h.
+- **The schema is cached apart from the messages.** Anthropic says PHI must not be put in property
+  names, `enum` or `const` values or `pattern`s, because cached schemas "do not receive the same
+  PHI protections". AIA's schemas are built by code from contracts. The respondent block contract
+  keys items by their id (`ai_respondent.py:563-580 @ b7a0231e`), never by question text. Before any
+  build, a test should hold that no client text can reach a sent schema.
+- **Thinking and tool_choice.** Anthropic's pages show strict tools with no `tool_choice`, which is
+  `auto`, so they work beside the `auto_tool` profile Sonnet 5.5 needs. Neither page says whether
+  strict sampling holds with extended or adaptive thinking on. This goes to the AWS read.
+
+### What AIA's contracts use that the grammar refuses
+
+Measured by walking `output_schema()` of every agent contract (22 contracts, script in the session
+scratchpad; to be committed as a test with the build):
+
+- **Every contract** carries `minLength` / `maxLength` and `maxItems`. The supported subset has
+  no string-length constraints, no `maxItems`, and `minItems` only 0 or 1.
+- **BriefAnalysis:** 11 `maxLength`, 5 `minLength`, 9 `maxItems`, one `minItems` > 1, and one
+  `prefixItems` (`scale_labels: tuple[str, str]`). Tuples are not in the supported list.
+- **QuestionnaireProposal:** 4 tuples, `minimum` / `maximum`, one `anyOf`.
+- **The Lead's LeadOutput:** 14 KB, 18 optional fields (the limit is 24), 9 `anyOf`, 3 `oneOf` (not
+  in the supported list), 8 `pattern`s.
+- **AnalysisDraft:** 5 optional fields. AIA's own `schema_supports_strict` (an every-field-required
+  rule from the OpenAI strict tier) refuses it and the Lead's contract. Anthropic's grammar allows
+  optional fields up to 24, so that predicate is the wrong judge for this provider.
+
+So no contract can be sent strict as it stands. The provider's SDK helpers handle this by sending a
+**reduced schema**: the unsupported constraints are removed (and named in the field's description),
+and the full contract is validated afterwards. For AIA that would be:
+
+- The grammar enforces types, shapes, required fields and `additionalProperties: false`, which is
+  the 2026-10-28 class of failure.
+- AIA's validator still enforces lengths, counts, bounds and model validators, and their violations
+  keep the one repair.
+
+### Design proposal (not built; for the coordinator and the product owner)
+
+1. **The profile.** The grammar is independent of forced versus auto: Sonnet 4.5 is forced, Sonnet
+   5.5 is auto, and both are listed. So the proposal is a declared `RequestProfile.constrained: bool`
+   beside `structured_output`, rather than two new `StructuredOutput` values (`FORCED_TOOL_STRICT`,
+   `AUTO_TOOL_STRICT`) that would duplicate the axis. This differs from the brief's "a new
+   `structured_output` value", so it is put up for the decision.
+2. **The switch.** `AIA_BEDROCK_CONSTRAINED_OUTPUT`, off by default and off in test. On, it sends
+   `strict: true` only where the resolved model's profile declares `constrained` and the reduced
+   schema passes a local check of the documented subset. Anything else is sent as today, never
+   rewritten into a request nobody priced.
+3. **The reduced schema** (`domain/ai_contracts.py`, pure). This is the contract's schema minus the
+   unsupported keywords:
+   - a tuple sent as an array of its item type, if `prefixItems` turns out to be unsupported;
+   - `oneOf` makes a contract ineligible rather than being rewritten.
+
+   It records its own fingerprint beside the contract's, so the ledger says which schema the model
+   was held to. The validator is unchanged.
+4. **Tests first.** Recorded Converse fixtures for a strict tool request and its answer: forced on
+   4.5, auto on 5.5. A golden test over every contract's reduced schema (eligible or not, and why).
+   A test that no sent schema carries client text.
+5. **The probe** (Nigel's ok, through the coordinator). A few cents: one strict brief analysis on
+   the route model in force, read for the 400s a schema would draw and the first-request compile
+   latency. It runs outside the infra session's Sonnet 5.5 probe window.
+
+### The AWS read (the product owner, 2026-10-28 ~15:15 UTC, relayed by the PM coordinator)
+
+His summary of AWS's structured-output page, its Claude page, and the Sonnet 4.5 and 5.5 model cards.
+
+**Request fields:**
+- Strict tools: `toolConfig.tools[].toolSpec.strict: true`, beside `inputSchema.json`.
+- Structured output: `outputConfig.textFormat = {type: "json_schema", structure: {jsonSchema:
+  {schema: "<schema as a JSON string>", name, description}}}`.
+
+**Models:**
+- Sonnet 4.5 (`eu.anthropic.claude-sonnet-4-5-20250929-v1:0`) supports it, with eu-central-1 a
+  Geo source. It is in the Legacy stage, end of life 2027-04-08.
+- Sonnet 5.5 (`eu.anthropic.claude-sonnet-5-5`) supports it. Its EU Geo profile routes to
+  Frankfurt, Stockholm, Milan, Spain, Ireland and Paris.
+
+**Schema subset (Draft 2020-12):**
+- Supported: basic types, `enum`, `const`, `anyOf`, `allOf` (limited), internal `$ref`, formats, and
+  `pattern` without lookaround or backreferences.
+- `minItems` only 0 or 1.
+- Unsupported: `minimum`/`maximum`/`multipleOf`, `minLength`/`maxLength`, recursion, external
+  `$ref`, and `additionalProperties` other than `false`, which every object must set or the request
+  is a 400.
+- Not mentioned, and treated here as unsupported: `prefixItems`, `oneOf`, `maxItems`.
+
+**Limits:**
+- At most **12 optional properties** per schema, nested objects counted. Anthropic's own page says
+  24; Bedrock's is lower.
+- At most **16 union-typed properties**.
+- The first compile takes up to about 90 s, and AWS recommends a read timeout of at least 120 s
+  (AIA's is 300 s).
+- Compiled schemas are cached for 24 h from first access, encrypted with AWS-managed keys, and
+  shared for identical schemas within the account.
+- A too-low `maxTokens` gives incomplete JSON.
+
+**Thinking and tool choice:**
+- The structured-output pages say nothing on thinking.
+- The Sonnet 5.5 card: adaptive thinking is on by default, and tool choice is "auto and none only".
+- Structured output with citations is a 400.
+
+### Revised eligibility (measured 2026-10-28 on `b7a0231e`)
+
+The rules applied: the unsupported keywords are stripped; tuples are sent as plain arrays;
+`oneOf`, recursion or an open object makes a contract ineligible; and a contract is ineligible over
+12 optional properties or 16 union-typed properties.
+
+**20 of the 22 agent contracts are eligible:**
+- the 8 research actions (brief analysis, questionnaire build and optimize, audience, dimensions,
+  and the 3 advice actions);
+- analysis (5 optional properties);
+- client-source proposals;
+- Deep Research triage, planner, both extractors, verifier, synthesizer, independent verifier,
+  brief synthesizer, lead and replan.
+
+The respondent's block contracts are eligible too: probabilities, selection and open answer,
+stripped of their bounds and lengths.
+
+**Ineligible, and sent as today:**
+- the Lead's `LeadOutput`: `oneOf`, and 18 optional properties against the limit of 12;
+- the Deep Research investigator turn: 17 union-typed properties against 16, a margin of one.
+  This count is per object property, and AWS's own counting may differ.
+
+**What the grammar would no longer hold, AIA's validator still does:**
+- string lengths;
+- list lengths (the 9 tuples, `BriefAnalysis.scale_labels` among them, lose their fixed length 2;
+  a probability vector loses its fixed width);
+- numeric bounds;
+- model validators.
+
+Every pattern in the eligible contracts (`^Q[1-9]$`, `^T[1-9][0-9]{0,2}$`) is within the
+supported regex subset.
+
+### Which mechanism, per profile
+
+**Strict tools (`toolSpec.strict`) for both profiles; not `outputConfig.textFormat`.**
+
+- Sonnet 4.5 (`forced_tool`) keeps its forced tool, now strict.
+- Sonnet 5.5 (`auto_tool`, tool choice "auto and none only") keeps its offered tool, now strict.
+- The answer still arrives as `toolUse.input` through the adapter's one path (`bedrock.py:356-363 @
+  b7a0231e`).
+
+Why not `textFormat`: it would move the answer into text, add a second response path, and make the
+auto-tool instruction contradict the request.
+
+What strict tools do not cover: under `auto` the model may still answer in text instead of calling
+the tool. That stays the gateway's `TEXT_INSTEAD_OF_TOOL` violation and its one repair.
+
+**Open, for the probe.** Whether strict sampling holds while Sonnet 5.5 thinks adaptively. No page
+says. The probe's one strict call on the route model in force answers it.
+
+**Two risks the build must carry:**
+- **Compile latency.** Every new schema compiles once, for up to about 90 s. Fieldwork builds a
+  schema per questionnaire block, keyed by item ids, so the first respondent of each block in a new
+  design waits. Propose fieldwork stays out of the first switch-on (a per-capability allowlist),
+  with the design and analysis agents first.
+- **Schema retention.** The 24 h schema cache is outside the message's protections. The test
+  holding that no client text reaches a sent schema comes before the build.
+
+## Chunk 5 draft: keeping the refused answer (for the product owner's approval; not built)
+
+### The class: the request's, not a fixed B
+
+The follow-up as chosen says "classed B like the design it came from". The code says a design job's
+request is sent as the **most restrictive** of its parts
+(`packages/aia_core/src/aia_core/domain/research_agents.py:791-799 @ b7a0231e`):
+
+- the design, B by rule;
+- a nonempty instruction, B by rule;
+- the prompt (C for the code's own wording, otherwise what its author declared or an operator
+  classified);
+- **Class A for every approved knowledge item the snapshot carries**
+  (`rule_class(MaterialRule.KNOWLEDGE)`).
+
+So any job whose context carries approved knowledge is sent as Class A. Its answer is written from
+that context and can repeat it. A fixed B would store a Class A answer as B, which is lower than what
+it came from. The draft therefore gives the answer **the class its request was sent as**.
+
+### The rule (draft wording for `domain/material_rules.py`)
+
+```python
+class MaterialRule(StrEnum):
+    ...
+    #: A model's answer that its output contract refused, kept for diagnosis. It takes the
+    #: class its request was sent as (the product owner, <date>): an answer is written from
+    #: its context and may repeat any of it, so it is never lower than that context.
+    REFUSED_ANSWER = "rule:refused_answer"
+
+
+def refused_answer_class(sent_as: DataClass) -> DataClass:
+    """A refused answer's class: exactly the class its request was sent as."""
+    return sent_as
+```
+
+`REFUSED_ANSWER` stays out of `RULE_CLASSES`. That map holds fixed classes, and this one is
+inherited. Like every rule, an operator's exact-bytes classification can only raise it
+(`classify_by_rule`).
+
+### Where it is stored
+
+- **An artifact, never `error_json`.** A new artifact type, `research_agent_refused_answer`, goes on
+  the job's own design project, beside its `research_agent_proposal`
+  (`apps/executors/src/aia_executors/research_agents.py:56 @ b7a0231e`). It is written only when
+  the gateway fails the job with `structured_output_invalid`, and before the step fails.
+  `error_json` stays as it is: reason, violations (now with the received type), call ids.
+- **Payload.**
+  - agent id and version, prompt version, call ids and the violations;
+  - `rejected_output`: the last refused answer as `ModelCallFailed` carries it, at most
+    65,536 characters (`MAX_REJECTED_OUTPUT_CHARS`, `ai_contracts.py:907 @ b7a0231e`);
+  - `data_class`, and `class_source` `rule:refused_answer` (or `operator`).
+- **Read by nobody but an operator at first.** No API route serves it, and it is not in any run
+  read. If a person should see it later (for example under the run's Technical details), that is
+  its own decision.
+- **Precedent.** Analysis already keeps its refused answers inside its turn artifacts
+  (`packages/aia_core/src/aia_core/domain/analysis/artifact.py:300-303 @ b7a0231e`), stored the
+  same way and served by no route. The draft keeps the design jobs' the same way, with the class
+  stated.
+
+### Retention and deletion
+
+- **Client deletion erases it.** It lives in the client's design project, and
+  `delete_client` erases every artifact of the client's projects
+  (`packages/aia_core/src/aia_core/application/client_deletion.py:209 @ b7a0231e`,
+  `erase_client_projects`), then their stored objects.
+- **Retention otherwise.** It lives as long as the design project's other artifacts. There is no
+  separate expiry; a shorter one (for example 90 days) would be a new mechanism, offered only if
+  wanted.
+
+### Size
+
+At most 65,536 characters per failed job, and only failed jobs write one. The develop failure's
+answers were about 1,900 output tokens, roughly 8 KB.
+
+### Questions for the product owner
+
+1. **Class.** The request's class (A when the job carried approved knowledge, otherwise B), as
+   drafted? Or a fixed B, as the follow-up was worded? Recommended: the request's class, which is
+   never lower than the material it came from.
+2. **Which answer.** The gateway hands back only the **last** refused answer, the repair's. The
+   primary's answer is sent back to the model inside the repair turn, but it is not kept. Keeping
+   both needs the gateway to carry the first too, a small change in `model_gateway.py`.
+   Recommended: the last only for now, since it is the answer that ended the job.
+3. **Who reads it.** Operator only at first, as drafted?
+4. **Scope.** Design jobs only (chunk 5 as chosen)? Or every structured agent that fails the same
+   way: the Lead, client-source proposals, Deep Research? Recommended: design jobs first, and the
+   rest when one of them meets the same failure.
+
+### Decisions (the product owner, 2026-10-28 19:11-19:13 UTC, PM status page, relayed by the coordinator)
+
+- **W1Q2, class:** the request's class, never a fixed B.
+- **W1Q3, which answer:** the last only, the repair's. No gateway change.
+- **W1Q4, who reads it:** operators only. No API route and no screen.
+- **W1Q5, scope: every structured agent**, not the recommended "design jobs only". That covers the
+  design workers, the Lead, client-source proposals and Deep Research's agents, each answer stored
+  on its own run with the same class rule and operator-only reading. Any agent that needs a
+  different storage home or class source is proposed before it is built.
+
+### Storage for every agent (the product owner, 2026-10-28 ~20:20 UTC, relayed: approved)
+
+- **One hook** in `StepModelCaller.invoke`'s `except ModelCallFailed` (`apps/executors/src/aia_executors/ai_step.py`).
+  Every worker-step agent fails through it: the design workers, the Lead turn, Deep Research,
+  fieldwork, validation and client-source proposals all call `caller.invoke` and let `StepFailed`
+  propagate.
+- **One record type:** `refused_answer`, on the failing step's own project.
+  - The client's deletion erases it with that project
+    (`packages/aia_core/src/aia_core/infrastructure/repositories.py:722 @ df1377f7`, `erase_client_projects`).
+- **Different homes, for approval:**
+  - Client-source proposals: the client's `client_sources` work project, not a study.
+  - Analysis: already keeps its refused answer in its turn artifact
+    (`domain/analysis/artifact.py:300-303`), with no class. Proposed: leave it as it is.
+- **Not reachable yet:** the Lead hatch's model call and Deep Research triage
+  (`application/deep_research_triage.py`). No executor calls either today. Each takes the same
+  sink once it does.
+- **Null class:** under advisory gates a request can be unclassified. It is recorded as
+  `data_class: null` with `class_source: "unclassified"`, never a guessed class.
+
+### What chunk 5 built (study steps), and what is left (5b)
+
+- **The record.** `refused_answer(request, failure)`, in `domain/ai_execution.py`. It is made only
+  for `structured_output_invalid` carrying the answer. It keeps the ids, the violations, the last
+  answer and the request's class (`REFUSED_ANSWER_SOURCE`, `domain/material_rules.py`). An
+  unclassified request is recorded as `data_class: null`, `class_source: "unclassified"`.
+- **The hook.** `StepModelCaller(refused_answers=…)` in `apps/executors/src/aia_executors/ai_step.py`.
+  - It keeps the record once the attempt is settled and checkpointed and any model slot is
+    released, before the step fails.
+  - A failure to keep it is logged without the answer, and the step fails with its own error. A
+    lost lease (`StopExecution`, a `BaseException`) still stops the step.
+  - The record is stored through the repository the executor already uses, named by
+    `refused_answers`.
+- **Wired:** the design workers, the Lead turn, Deep Research steps (`_shared._caller`), fieldwork
+  (`AIFieldwork.produce` / `answer_plans(refused_answers=)`) and validation arms.
+- **Not wired:**
+  - Analysis, as the product owner chose.
+  - The hatch and triage calls, which no executor makes yet.
+  - Client-source proposals: deferred (chunk 5b). Their approved home, the client's work project,
+    would need `ArtifactRepository` to take a `ClientWorkContext`. Today it takes a `StudyContext`
+    only (`artifact_repository.py:203-207`), and its storage key needs a study
+    (`storage.py:123-145`). Put to the product owner as (A) mirror `ProjectRepository`'s rule
+    (`repositories.py:158-165`), (B) the client's work journal, or (C) skip. **Decision
+    (2026-10-28 ~20:35 UTC, relayed by the PM coordinator): "(C) Skip it for now … this seems the
+    safest".** The artifact store stays study-scoped. Widening it waits until a client-work failure
+    is actually seen; until then, a refused client-source proposal keeps only its violations
+    (now naming the received type, #1075).
+- **Bound:** a step fails on its first refused answer, so at most one per attempt. The exception
+  is Deep Research's lead step, which catches a refused plan and carries on
+  (`deep_research/lead.py:99-109`), so it can keep one per refused plan.
+
+### Review outcomes (`/code-review`, chunk 5, 2026-10-28)
+
+- **Fixed.** `REFUSED_ANSWER` is a plain source constant (`material_rules.REFUSED_ANSWER_SOURCE`),
+  not a `MaterialRule` member. A member broke `RULE_CLASSES` lookups and
+  `test_a_rule_classifies_any_bytes_with_no_operator_step`.
+- **Fixed.** `StepModelCaller(refused_answers=…)` is a required repository. A caller now states
+  where refused answers go, or `None` with its reason (analysis, client-source proposals), so a
+  missing home is visible. The caller builds the record from its own context and runtime version,
+  so five copies of a keeper became five one-line repositories.
+- **Fixed.** The answer is kept after any model slot is released, never while holding one.
+- **Left.** A respondent answer that passes the contract and is then refused by
+  `interpret_block` (`respondent_output_invalid`) is not kept. It is outside the scope chosen
+  (`structured_output_invalid`); a follow-up if the product owner wants it.
+- **Not a defect.** The kept answer is bounded: `ModelCallFailed` cuts `rejected_output` to
+  `MAX_REJECTED_OUTPUT_CHARS` (65,536) when it is built (`ai_contracts.py:948-950`).
+
+### Tests the build starts with (red first)
+
+- A design job failing `structured_output_invalid` stores one `research_agent_refused_answer`
+  with the last refused answer, bounded, and its class.
+- A job that carried approved knowledge stores the answer as Class A; one without stores it as B.
+- `error_json` carries no answer text.
+- No API route serves the artifact.
+- Deleting the client erases it, with its stored object.
+
+## Chunk 4a built (2026-10-28)
+
+`packages/aia_core/src/aia_core/domain/constrained_output.py`, `reduce_for_grammar(schema)`:
+
+- **Kept:** every type, shape, `required`, `enum`/`const`, `anyOf`/`allOf`, internal `$ref`,
+  the listed formats, and patterns without lookaround or backreferences.
+- **Dropped,** and still checked by the contract after the call: string and list lengths, numeric
+  bounds, `minItems` above 1. A tuple is sent as an array of its items.
+- **Refused by name:** an unknown keyword (the Lead's `discriminator`, from its `oneOf`), an open
+  object, recursion, an external `$ref`, an unsupported format or pattern, more than 12 optional
+  properties, or more than 16 unions.
+- **Unions** are counted at every node, not per property: stricter than AWS's wording, never looser.
+  It refuses the Deep Research investigator turn at 18.
+
+Tests (`packages/aia_core/tests/test_constrained_output.py`):
+
+- the golden fixture `fixtures/constrained_output/contracts.json` (every contract's verdict and
+  reduced-schema SHA-256);
+- 20 of 22 reduce;
+- each rule;
+- the contract still refuses what the grammar no longer holds;
+- no client text: a respondent block names items by id, and the Lead's schema carries none of its
+  context.
+
+### Review outcomes (`/code-review`, chunk 4a, 2026-10-28)
+
+- **Fixed, all fail-closed:**
+  - a definition counts each time it is referenced;
+  - the pattern check catches `(?P=…)` and large repeats (`{1000}`, `{100,}`), and may refuse a
+    valid pattern it cannot tell apart;
+  - `type: ["object", …]` must be closed too;
+  - an empty tuple is refused;
+  - a dangling `$ref`, or one outside `$defs`, is refused;
+  - the recursion check is a linear three-colour walk.
+  Tests: `test_every_edge_the_grammar_cannot_take_is_refused`,
+  `test_a_definition_counts_each_time_it_is_referenced`, `test_a_long_respondent_block_still_reduces`.
+- **For 4b's probe:** whether Bedrock's grammar takes `title`, `description` and `default` as
+  annotations. Anthropic documents `default`; the other two are not named. If it refuses them,
+  they are dropped like a bound.
+- **Left:** the Lead's discriminated `oneOf` could be sent as `anyOf`, but its 18 optional
+  properties are over the limit of 12 anyway.
+
+## Doc follow-up
+
+- `AGENTS.md` (Pydantic): strict JSON mode reports a string, null or object for a list field with the
+  same `msg`. Read `error["input"]` to say what arrived.
+- `docs/architecture/ai-runtime.md:257 @ 848f015b` (the repair call, `schema-repair-v1`): add that a
+  repair answering a list or object sent as a string carries one more line, recorded on its note as
+  `repair_hint=container-as-string-v1`, and that a wrong-type violation names the JSON type received.
+- `.planning/open-items.md`: F2, the research-agent path keeping no refused answer.
+- `CLAUDE.md` map, under `packages/aia_core/src/aia_core/domain/`: add `constrained_output.py` --
+  "A contract's schema reduced to Bedrock's constrained-decoding grammar (reduce_for_grammar):
+  bounds dropped, a tuple as an array, anything else refused by name; 12 optional / 16 union
+  limits; the contract still validates after the call (brief-analysis-schema-repair 4a)".

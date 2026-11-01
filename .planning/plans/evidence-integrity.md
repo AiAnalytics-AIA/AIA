@@ -1,15 +1,20 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
+  - "[x] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
+  - "[x] 2a. The checks a run's stored dataset and specification answer, EXACT against the unit's own qc.kontrola on captured fictional runs (fixture tools/run_qc_capture.py)"
+  - "[ ] 2b. The checks that read the respondents' demographics (Cramér's V, segment ranges, the persona's strength), over a panel run's recorded sample"
+  - "[ ] 2c. The probability diagnostics (entropy, max probability, the behaviour layer's shift), once fieldwork stores each draw's record with the dataset"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
-  - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
-  - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
+  - "[x] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
+  - "[x] 5b. One joint-certificate authority: the claim gate and admission take the population's JointStatus, and layer_check's companions.py exemption is dropped (OI-24, the joint half)"
+  - "[ ] 5c. A client MODELLED claim on a field whose phrase permits none (HISTORICAL_OR_EXPLORATORY, persona/context with provenance, …) refused at the evidence gate, as the contract's CLIENT_MODELLED_CLAIM refuses it; wave left for the methodology owner"
+  - "[x] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side (the screen moves onto it in artifact-results RES2)"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
   - "[ ] 9a. A module with no supported finding (MVPQ-04, W1): stored as a structured diagnostic that is not a finding, shown on Analysis and Results, with its resolution paths named"
-  - "[ ] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
+  - "[x] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
   - "[ ] 8a. A two-origin analysis input and its fingerprint, designed (W1) and reviewed with S3 before client-data-in-analysis 5"
   - "[ ] 8b. The two-origin input wired (W3): the production constructor supplies the client-reported table and the sealed-bundle context, and a changed context or origin changes the module's input fingerprint and payload"
   - "[ ] 10. The filtered base (W2, after run-qc-and-checkpoint RQC11): a conditional question aggregated over the respondents it was asked, its own effective n and support, the base stated on Results and in the report"
@@ -19,7 +24,7 @@ chunks:
 Track E of the MVP roadmap (`overview.md` § MVP roadmap, #493). Written 2026-10-19 from
 `mvp-cohesion.md` F7 (#496): three decisions had no plan, and all three change the same two
 places, the analysis gate and the evidence layer, so they share one plan. **Owner: a chat session,
-named when chunk 1 starts.**
+named when chunk 1 starts.** Chunks 1, 7 and 9a: the Analýza screen session (2026-10-22, the PM's assignment).
 
 ## Decisions this plan carries
 
@@ -55,6 +60,37 @@ named when chunk 1 starts.**
    with one uncited finding is refused; a draft with all cited passes; `test_analysis_executor.py`
    stays green. Decide here whether "shown as an unsupported hypothesis" is built or only refusal
    (refusal is the smaller change and the default).
+   *Landed.* `check_analysis_draft` refuses a key finding with no `claim_ids` as
+   `ViolationCode.FINDING_UNCITED`, subject `key_findings[<i>]` (`domain/analysis/draft.py` `_coverage`). A
+   finding that names only an unknown claim stays `DANGLING_CLAIM_REF`, and one whose claims fail admission
+   fails the draft as before, so "names at least one claim" is "cites at least one admitted claim".
+   - The hypothesis is settled: a refused finding reaches the repair turn like any violation. `repair_prompt`
+     lists each, and the test asserts the finding's path is named. A draft still failing is stored BLOCKED
+     by the existing harness.
+   - Refusal only, no "unsupported hypothesis" register: the default. A finding that cannot cite evidence is
+     not a finding.
+   - The rule is part of the identity. `ANALYSIS_HARNESS_VERSION` moves to `aia-analysis-harness-3`
+     (`domain/analysis/harness.py:79`) and `PROMPT_TEMPLATE_VERSION` to `analysis-module-v4`, whose rule 1 now
+     states it, so the model learns it before a paid turn.
+     - Without the bump, a module stored COMPLETED with an uncited finding would fail re-admission under
+       today's gate. It would not read stale (`_stale`, `application/analysis_results.py:726 @ 16682082`), so
+       `_retryable` (`:705`) would never offer it, and its run's analysis would stay unreadable.
+     - With the bump, every module completed under harness 2 reads stale and retryable, and Analýza and
+       Průběh say so (PC3) until a same-data round asks it again.
+     - The workbench's recorded wire answers from the payload (`aia_executors/recorded_models.py`
+       `grounded_draft`, every finding cited), so the bump does not break it.
+   - `AnalysisModuleResult` refuses a key finding with no claim too (`domain/analysis/result.py`), so no path
+     around the gate builds one. A finding that cites nothing is not also scanned for numbers: one defect,
+     one violation.
+   - Parity: "finding-without-evidence" is now EXACT (both refuse that draft). The new
+     "nineteen-of-twenty-cited" is an INTENTIONAL_DIFFERENCE: the unit's 95 % lets one uncited finding in
+     twenty through, and AIA does not. "no-finding-at-all" stays owed, waiting on 9a's diagnostic (MVPQ-04),
+     not on a gate refusal.
+   - Tests: `test_analysis_draft.py` (one uncited finding refused and named, also in the repair prompt; a
+     finding citing only an unknown claim; a draft without findings left to 9a; a hand-built result with an
+     uncited finding refused), `test_analysis_gate_parity.py`, the version pins in `test_analysis_harness.py`
+     and `test_analysis_modules.py`;
+     `test_analysis_executor.py`, the recorded-analysis and acceptance suites green.
 2. **QC function.** `domain/` pure: straight-lining first, over a run's stored dataset, thresholds
    as declared parameters (the unit's, recorded as such). EXACT fixture captured from the unit's
    own `qc.py` with `tools/` capture (the pattern of `respondent_capture.py`), pinned by SHA-256.
@@ -70,6 +106,107 @@ named when chunk 1 starts.**
 5. **One authority.** Test that every field `domain.evidence` admits client-facing is allowed by
    `RECOMMENDED_USE_POLICY`; then make `domain.evidence` read the population list and delete the
    duplicate. Blocked on `mvp-cohesion.md` F3 only for client data columns.
+   *Landed (2026-10-28; field policy only, the product owner in the session: "Go ahead, field policy
+   only; do 5b separately").*
+   - Proven first: the two lists disagree. Over the real dictionary the evidence derivation (the
+     reference's, exact) lets 287 fields back a client-facing measured claim; the population contract
+     115, a strict subset (`test_population_reference_parity.py`
+     `test_client_measured_claims_are_never_more_permissive_than_the_reference`). Nothing in production
+     built a dictionary-backed evidence book (`native.py` builds the instrument book only), so the 172
+     were a latent widening, reached the moment a claim names a panel field.
+   - `FieldPolicyBook.from_population_policy(policy)` (`domain/evidence/field_policy.py`): every
+     eligibility of a population field is the contract's `FieldPolicy.decide`, use by use
+     (`_CONTRACT_USE`); bound to the contract's dictionary SHA-256; an unmapped field refuses the book; a
+     runtime field the dictionary does not declare stays undeclared. Its input is what a run's population
+     carries (`RuntimePopulation.field_policy`).
+   - `from_dictionary_rows` goes through it and now takes the contract's `weight_columns` (weighting is the
+     declared weights, no longer any `vaha_` name).
+   - Kept, as the parity reading only: `derive_eligibility` and `from_policy_document` (the reference's
+     own export, re-derived and checked). Its docstring says so; `layer_check` already keeps the API,
+     worker and executors from calling it.
+   - Per source: panel respondents' fields, the contract (this chunk); a Study's own items,
+     `instrument.py`, unchanged; a client's own data, `client-data-in-analysis` chunk 0.
+   - On the synthetic dictionary six fields tighten (`vote_2021`, `religious_affiliation`, `has_savings`,
+     `tv_daily_minutes`, `life_stage`, `is_procurement_buyer_current`): a measured claim on each is now
+     refused `NOT_MEASURED_EVIDENCE`, and `life_stage` answers a factual question as modelled.
+   - No stored run moves: no module was judged under a dictionary book, so no fingerprint changes.
+   - Tests (each failed on `origin/develop` @ 7b1b3df7 and passes here): `test_evidence_field_policy.py`
+     "a population book is eligible for exactly what its contract permits", "the reference reading stays
+     wider than the book", "a measured claim the contract refuses is refused" (six), "a derived field
+     answers as modelled not measured", "a runtime field the contract has not classified stays undeclared",
+     "a contract with an unmapped field refuses the book"; parity, on the real 400 fields:
+     `test_population_reference_parity.py` "the evidence book of the real dictionary is the contract's 115".
+     The policy-document tests' helper writes the reference's derivation, as a reference export carries
+     it, and the round trip compares against that.
+   - Tests that pinned the old, wider answer, changed (none loosened):
+     - `test_evidence_claims.py`: `decide(claim("has_savings")) == frozenset()` asserted that a measured
+       client claim on a calibrated, person-modelled field passes, the widening OI-24 names. The
+       individual-level and mandated-weight tests now hold their own rule on a modelled claim, and each
+       states the new refusal of the measured one ("a calibrated field is not measured evidence"); the
+       disclosure cases add `NOT_MEASURED_EVIDENCE` where the contract refuses the field, and "a historical
+       field needs its disclosure on a modelled claim too" keeps that branch's own case.
+     - `test_evidence_gate_parity.py`: `person-value-modeled-individual` and `mandated-weight` move from
+       EXACT to SEMANTIC: the reference blocks both, production blocks both with one more code
+       (`NOT_MEASURED_EVIDENCE`).
+   - The book's other flags come from the contract too. Only `analysis` (equal under both readings: not
+     audit-only) and `client_facing_measured_claim` are read by a gate; simulation (5 "technical/provenance
+     only" fields, stricter, pinned in the population parity suite) and weighting (the contract's declared
+     weight columns, not any `vaha_` name) change no decision today.
+   - A dictionary row whose `recommended_use` is not one of the contract's 16 phrases, or whose
+     `persona_eligible` is neither yes nor no, now refuses the book, as the population import does; the
+     evidence regexes used to read it.
+   - A book from a run's population carries no field descriptions (the contract keeps none); no gate reads
+     them.
+   - **For the methodology owner (Aram):** the contract's client list also narrows internal measured
+     claims; kept fail closed. Findings F2.
+   - **Not built here:** the contract also refuses a client *modelled* claim on a field whose phrase
+     permits none (`CLIENT_MODELLED_CLAIM`, e.g. HISTORICAL_OR_EXPLORATORY); the evidence gate has no such
+     check. MVP-29 names the measured list only; chunk 5c (the coordinator, 2026-10-28), its wave the
+     methodology owner's. The internal-surface question is Findings F2.
+5b. **One joint-certificate authority** (OI-24, the joint half, split from 5 by the product owner on
+   2026-10-28). The claim gate and admission take the population's `JointStatus` in place of
+   `evidence/joint_status.py`'s; `layer_check`'s `companions.py` exemption is dropped. Touches the
+   analysis, report tables and the population loader.
+   *Landed (2026-10-28; the product owner in the session: "Go ahead with 5b as proposed").*
+   - Proven first: the same certificate bytes were judged twice by different checks. The loader
+     (`population/companions.py` `evaluate_joint_certificate`) required a known `status` and ignored
+     the prediction status, `production_panel`, `runtime_identity_contract` and empty block names;
+     the claim gate (`evidence/joint_status.py` `load_joint_status`, over the copy a panel dataset
+     records, `analysis_results._joint_certificate`) required those and ignored `status`. A
+     certificate one refused, the other certified.
+   - One evaluator: `evaluate_joint_certificate`, every check either side made, so nothing either
+     refused is certified; `panel_sha256` measured by the caller, and one not measured refuses
+     (`NOT_THIS_PANEL`). One type: the population's `JointStatus`, now issued only by the evaluator
+     and `fallback` (the evidence type's issuance check) and carrying its `fingerprint()`.
+     `load_joint_status`, `JointDegradation`, `StructureStatus` and `PredictionValidationStatus`
+     are gone; `native_evidence` asks the one evaluator with the panel SHA-256 its dataset recorded,
+     and a run with none is the `MISSING` fallback.
+   - The stored vocabulary is the registry's: `JointState`, under its check constraint
+     (`run_population_joint_state_known`, `population_companion_joint_state_known`), so no migration.
+     The claim gate's "malformed" reads `UNPARSEABLE` (the loader's word for it), its hash mismatch
+     `NOT_THIS_PANEL`; an analysis record's `joint_degradation` stores those words from now on.
+   - Stored identities kept: the `MISSING` status and a certified one fingerprint exactly as the claim
+     gate's did (`test_a_stored_module_keeps_its_certificate_identity`, pinned to the values on
+     develop @ 1f633e5b). A module judged under another degraded certificate would read stale under
+     the new word; no stored run has one (native runs are `MISSING`, develop's certificate certified).
+   - Both joint-claim rule sets stay, each over the one status: the loader's `JointStatus.decide`
+     (persona construction, sampling) and the claim gate's `evaluate_joint_structure`. They answer
+     different questions and disagree (a core-only client-facing joint); merging them is the
+     methodology owner's (Findings F3).
+   - `layer_check`: `JointStatus(` only in `companions.py`, the exemption gone; the apps rule names
+     `evaluate_joint_certificate` and `from_population_policy` beside the other authority builders.
+   - Tests (each failed on develop @ 1f633e5b, passes here): `test_evidence_joint_status.py` "the
+     loader and the claim gate read one status", "a certificate either side refused refuses a client
+     claim" (four), "a permissive status cannot be built by hand", the evaluator's new refusals
+     (prediction status, `production_panel`, an empty block name); "a stored module keeps its
+     certificate identity", "a byte order mark is read as the certificate". The deleted loader's cases
+     are kept against the one evaluator, by the stored word. Test certificates carry what the real one
+     does: `status` in the claim gate's synthetic certificate, `production_panel` in the loader's
+     and in M03's rebuild (`m03["constants"]["production_panel"]`).
+5c. **A client modelled claim the contract permits none for** (split from 5 by the coordinator, 2026-10-28).
+   The evidence gate refuses a client-facing modelled claim on a field whose `recommended_use` permits no
+   client claim, as `population.policy.FieldPolicy.decide(…, CLIENT_MODELLED_CLAIM)` does. Its wave is the
+   methodology owner's (Aram).
 
 ## Depends on / feeds
 
@@ -87,12 +224,46 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 
 `ARCHITECTURE.md` §4 (a finding cites an admitted claim; QC is a warning, never a gate).
 
+Chunk 5: `ARCHITECTURE.md` §4 and `CLAUDE.md`'s map, `domain/evidence/field_policy.py`: "a population's
+fields take their eligibility from the population contract (`FieldPolicyBook.from_population_policy`,
+115 client-measurable v17 fields); the reference's derivation (287) is the parity reading only".
+`open-items.md` OI-24: the field-policy half closed by evidence-integrity#5; the joint-certificate half
+open, owned by #5b.
+
+Chunk 5b: `CLAUDE.md`'s map, `domain/evidence/joint_status.py`: "the claim gate's joint units and
+`evaluate_joint_structure`, over the population's `JointStatus`" (no longer "certificate, hash-bound");
+`domain/population/companions.py`: "the one fail-closed joint certificate evaluator
+(`evaluate_joint_certificate`), for the loader and the claim gate; `JointStatus` issued only there";
+`ARCHITECTURE.md`'s evidence capability paragraph: "only `evaluate_joint_certificate` issues a
+`JointStatus`" in place of `load_joint_status` (`ARCHITECTURE.md:280`). `docs/architecture/analysis.md:48`:
+"a native run's status is the `MISSING` fallback" in place of "`load_joint_status(None)` answers
+`MISSING`"; `docs/architecture/research-journey.md` J3's "`load_joint_status` is bound to the measured
+panel's hash" reads "`evaluate_joint_certificate`". `open-items.md` OI-24 closed by evidence-integrity#5
+and #5b; Findings F3 to the register.
+
 ## Added by the master plan (2026-10-19)
 
 - **6.** `ResultsContext` and the Results artifact need the admitted evidence: today Results reads the raw
   aggregate artifact and decides suppression in the browser (`research-execution.ts:373`); no API serves
   `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
   the response, not hidden in the page.
+  - *As built (2026-10-26, the Výsledky screen session, the PM's assignment).* `GET …/research/runs/{run_id}/results`
+    (`routers/research.py` `run_results`, `VIEW_RESULTS`) over `application/admitted_results.py`: the run's
+    evidence table built from its verified sources as its analysis builds it (`native_sources` with no context,
+    `native_evidence`), each question admitted for the internal surface through the report's own rule
+    (`report_tables.admit_question`, now shared with `question_tables`); a number leaves only from an
+    `AdmittedClaim`. A suppressed row carries its ref, metric, answer and its reasons as codes
+    (`admitted_results.reason_codes`: the reasons' words name the estimate, its interval, n and effective n
+    withheld), and no number, interval or effective n; a question the gate refuses carries the gate's violation
+    codes and no number; 409 `results_unavailable` (its `reason`) while the run has no verified aggregate or no
+    evidence table, 409 `artifact_corrupt` for a source that failed its hash (the mark committed). The evidence
+    table is built once for every reader by `analysis_results.sources_evidence` (the analysis, the client report,
+    Výsledky); `native.ref_metric` reads a suppressed ref's metric beside where the refs are minted. Tests:
+    `test_results_serve_admitted_rows_and_a_suppressed_number_never_leaves_the_api`,
+    `test_results_wait_for_the_aggregate_and_stay_in_their_study`,
+    `test_results_over_a_corrupt_aggregate_keep_it_marked_corrupt`, `test_admitted_results.py`. The screen still
+    reads the aggregate until `artifact-results#RES2` moves it onto this route; the route recomputes on each read
+    (a frozen run's answer cannot change), so RES2 decides whether to keep it, by measurement.
 - **7, corrected at 0d525bc8.** `AnalysisInputs.external_context` already exists (`application/analysis.py:101`) and reaches its fingerprint (:138) and prompt (:176). The missing connection is the production constructor in `application/analysis_results.py:570-579`, which supplies no external context. Trace the sealed-bundle provider into that constructor and the Lead, then test stored source lineage and payload. Reuse the existing field; do not build a second context type or claim its absence. External context remains context, never respondent evidence. Retiring it would change the integrated MVP scope and needs an explicit override.
   - *Module preparation, landed on `feature/analysis-external-context` (2026-10-22); the Lead is still to come.*
     - A run with analysis pins the Study's newest finished Design Research run's sealed bundle when it starts:
@@ -137,6 +308,72 @@ MVPQ-04 is settled (block), so the diagnostic of chunk 9a is W1 and the composer
 
 **9a and 9b, added 2026-10-20 (MVPQ-04).** A module that cannot state a supported finding stores a diagnostic: the module, reason codes and what would resolve it (a same-data retry through `retry_analysis`, a changed design, more data). It is not a finding, is not counted as admitted, and appears on Analysis and Results. The composer of the internal report and the exports (internal DOCX and PDF, with literature, client) refuse while any of the eight modules is BLOCKED or empty; the existing "all eight modules complete" rule is the same rule stated once. Test: a module with no finding blocks composition and export, shows its diagnostic, and a patched finding with no claim id is refused by the citation gate.
 
+*9a, the backend (2026-10-22, under Q72 (A), stacked on chunk 1's harness 3).* Q72 (A), the product owner
+2026-10-22: a module must have a supported finding before the report goes only where a finding is expected.
+**The module list is pending the methodology owner's confirmation (Aram).**
+- Which modules are expected is decided by code from the run's own data, never from a model's "no context"
+  (`domain/analysis/artifact.py` `finding_expected`, stored on each outcome as `finding_expected`):
+  - the executive summary, the audience and the implications always;
+  - the objects when the evidence the module is given holds a tracked set's rows (a set whose every row was
+    suppressed is not measured);
+  - the hypotheses when the design states one (they reach the module since F1);
+  - the segments when the evidence holds segment rows;
+  - the research questions when one is not a gap the run recorded at start; an answer or a key finding there
+    must cite a number;
+  - never the limitations.
+- `no_supported_finding(record)`: expected and states nothing. The report's refusal (9b) reads it. It is
+  offered one same-data round: `_retryable` lists it unless this run already asked it again (its
+  `analysis_retry.modules`), and the executor does not reuse its empty answer only for a module the person
+  asked again (`analysis_retried` in its step input), so a round never pays for a module the ceiling left out.
+- `finding_diagnostic(record, same_data_tried=)`: `no_supported_finding` with `same_data_retry` (unless tried),
+  `changed_design`, `more_data`;
+  `context_missing` with `changed_design`, `more_data` for a module the run lacks the context for (holds
+  nothing); else `None`. `GET …/runs/{id}/analysis` answers it per module as `diagnostic`.
+- A record stored before the expectation (`None`) is never read as either: under its older harness it is stale.
+- Tests: `test_analysis_artifact.py` "a module expected to find that states nothing holds and says so" and
+  "the expectation is decided by the run's own data"; `test_analysis_executor.py` "a module completed without
+  a finding is asked again over the same data" and "no context from the hypotheses module holds only when the
+  design states some" (the guard the PM asked for), "a same-data round that still states nothing is not
+  offered again", "research questions the run recorded as gaps hold nothing".
+- Ships inside chunk 1's harness 3, never apart from it: a harness-3 record stored without the hypotheses or the
+  expectation would otherwise be neither stale nor retryable. A rollback to an image before it cannot parse a
+  record carrying `finding_expected` (a closed model).
+- Left for 9a's web part: Analýza shows the diagnostic and its ways out (ANL4). 9b: the report's refusal.
+
+*9b, the refusal (2026-10-22, stacked on 9a).* One rule, stated once: `RunAnalysis.holding`
+(`application/analysis_results.py`) lists the modules the report waits on: no stored outcome, not
+COMPLETED, or `no_supported_finding`. `RunAnalysis.complete` is `not holding`, so the API's `complete`,
+Analýza's "Povinná analýza" and the with-literature start read the same rule.
+- `compose_internal_report` refuses while any module holds, naming them ("waiting on: executive"). Every
+  internal report goes through it: the worker's draft (and so its PDF) and the report with literature.
+- Approval and the stored exports read no analysis. An internal draft stored after 9a was composed through
+  this gate, and a stored outcome never changes. A draft stored before 9a was composed under the old rule
+  (all eight completed), over records with no expectation, which never hold. So approving it approves
+  what the old rule admitted, and 9b does not reopen it. 9b ships on 9a's branch, so no draft exists from
+  between the two.
+- The refusal carries `reason: analysis_holds_report` and `modules`. A direct `POST …/report/context`
+  answers them in `details` (`test_research_api.py` "a report a module holds is refused naming the
+  modules"), and `approvalRefusal` says them in Czech (`report-status.ts` `holdingWords`). So does the
+  with-literature card on Rešerše a zpráva (`InterpretationResearch.tsx`; `ExecutionSteps.test.tsx`
+  "names the module with no supported finding that holds the report with literature").
+- `GET …/runs/{id}/analysis` answers `holding`. Výsledky's analysis overview names a completed module that holds
+  the report instead of saying the rest is still running (`ExecutionSteps.test.tsx` "names a completed
+  module with no supported finding …"). Its ways out stay ANL4's.
+- The report step fails as it already does for a BLOCKED module (`report_inputs_refused`, read as REFUSED
+  by `report-status.ts`). Its English message on Průběh and its error-tracking issue predate 9b and are
+  shared with that case; they are left as they are here.
+- The citation gate refuses a key finding that cites no claim (chunk 1, `test_analysis_draft.py` "a key
+  finding that cites no claim is refused and named"), so no finding can be patched in to pass this gate.
+- Tests: `test_analysis_results.py` "a module with no supported finding holds the report and nothing else does"
+  (the limitations never hold), "a record from before the expectation never holds the report", "a blocked or
+  missing module holds the report"; `test_analysis_executor.py` "a module completed without a finding is asked
+  again over the same data":
+  the run's report step is refused naming the module, no report is stored and `complete` is false; after
+  the same-data round finds something, the retry's report composes.
+- **The client report stays ungated** (the product owner, 2026-10-22, /pmstatus Q79 (a)). It prints no
+  analysis prose (`client_report.py:117` reads the data alone, `with_context=False`), so an empty module
+  cannot reach it. `client_report.py` is unchanged.
+
 ## Cross-check additions (2026-10-20)
 
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
@@ -156,3 +393,127 @@ row names it. 1 moves from E20 to E32 (G62), before its W1 consumer 9a.
 refusal while a module has no supported finding) and `artifact-chain-to-draft-report#CHN10`. Once
 9b lands, the Segments chapter (ch-5) has no admitted producer without 10, so no run could reach a
 draft report.
+
+## Findings
+
+- **F1. The hypotheses module was never given the design's hypotheses** (found while building 9a, 2026-10-22).
+  - Anchor: `domain/analysis/prompt.py:147 @ 774eca10` `module_payload` sends the research questions, the
+    evidence and the external context, never `research_plan.hypotheses`. `domain/analysis/modules.py:101
+    @ 774eca10` tells the module to "Evaluate only hypotheses explicitly supplied … If none are supplied, say
+    hypotheses cannot be assessed".
+  - Consequence: on every run the hypotheses module answered "cannot be assessed". The product owner saw it
+    (Q72, 2026-10-22: "basically every hypothesis was answered in the style of 'there was no context'").
+  - Repro: any run whose design states hypotheses; the module's first request has no hypotheses in it.
+  - Fix: `domain/analysis/native.py` `hypotheses_of` reads `research_plan.hypotheses`; the hypotheses module
+    alone is given them as `stated_hypotheses`, inside harness 3 (chunk 1's bump), so stored modules are
+    repaired by one same-data round. A module given none keeps its fingerprint.
+  - Tests: `test_analysis_modules.py` "only the hypotheses module is given the stated hypotheses" and "the
+    design's hypotheses are read as stated"; `test_analysis_executor.py` "the hypotheses module is given the
+    design's stated hypotheses".
+- **F2. The contract's client list also narrows internal measured claims** (evidence-integrity#5,
+  2026-10-28; for the methodology owner, Aram).
+  - Anchor: `domain/evidence/claims.py` `_field_rules` refuses a measured claim on any surface without
+    `eligibility.client_facing_measured_claim`, which #5 takes from the contract's `CLIENT_MEASURED_CLAIM`
+    (`domain/evidence/field_policy.py` `_contract_eligibility`).
+  - Consequence: on the real dictionary 172 fields lose measured eligibility (287 to 115); 40 of them are
+    measured on a person (26 politics, 9 core, 5 RELIGION) and refused only for grade D (27) or a phrase
+    permitting no client claim (13), so they cannot back an internal measured claim either.
+  - Kept fail closed (the coordinator, 2026-10-28). The alternative: judge internal measured claims by the
+    contract's provenance (`ProvenanceClass.is_measured`) and its forbidding rules, the 115 for
+    client-facing claims only.
+  - Nothing changes in production until a population-dictionary book is built: `domain/analysis/native.py`
+    builds only the instrument book.
+  - Test: `test_evidence_claims.py` "client facing disclosures" (the internal surface's
+    `NOT_MEASURED_EVIDENCE`).
+- **F3. Two joint-claim rules over one certificate** (evidence-integrity#5b, 2026-10-28; for the
+  methodology owner, Aram).
+  - Anchor: `domain/population/companions.py` `JointStatus.decide` (read through
+    `RuntimePopulation.decide_joint` by `panel_persona.py` and `population/sampling.py`) and
+    `domain/evidence/joint_status.py` `evaluate_joint_structure` (the claim gate).
+  - Consequence: the loader refuses every client-facing joint of two fields unless
+    `client_joint_outputs_allowed` (false at v17), core-only included; the claim gate allows a
+    core-only joint claim client-facing under `core_same_person_joint` and
+    `descriptive_core_outputs_allowed` (both true at v17). Today the loader asks only internally
+    (`client_facing=False`), so no output differs; the rule a future client-facing caller meets
+    depends on which it asks.
+  - Kept as two (5b does not change what may be claimed jointly). Merging them is a methodology
+    decision.
+
+## Chunk 2, split (2026-10-28, the E08 session; the product owner: "Yes, E08 builds it", relayed by the PM coordinator)
+
+`qc.kontrola` (`legacy/npc-panel-18.6.6/app/qc.py:70-255`) is a dozen checks over the unit's run dict
+(`v["detail"]`, a respondent x column frame, and `v["otazky"]`). Each check is placed by what its
+input is in AIA. AIA's stored input is the run's `FieldworkDataset` (`domain/fieldwork.py:184`: per
+respondent answers, weight, donor) and its `ResearchSpecification`.
+
+| The unit's check | Its input | In AIA | Sub-chunk |
+|---|---|---|---|
+| Per question: share not answered (`podil_chybi` > 0.20) | the answers | the dataset; a scale's "don't know" is `None` in both (`dotaznik.py:83`, `fieldwork.py` `Answer`) | 2a |
+| Choice: "nevím" share (`nevim_min` 0.02, `nevim_max` 0.35), concentration (`koncentrace_max` 0.90) | the answers | the dataset; the option is the same string (`research_design.py:95` `DONT_KNOW`) | 2a |
+| Scale: mean, sd, sd < 0.5 | the answers | the dataset | 2a |
+| Open: unique share (`verbatim_unikaty_min` 0.70), words | the answers, the run's mode | the dataset; see "dry" below | 2a |
+| Straight-lining on scales (`straightline_max` 0.15, three or more scale questions) | the answers | the dataset, per respondent through `straight_lining.answer_spread` (RQC1) | 2a |
+| Identical answer vectors (`duplicity_max` 0.10, response space) | the answers, the options | the dataset and the specification | 2a |
+| Persona effect not verified by ablation | `v["ablation"]`, the mode | AIA runs no ablation; see below | 2a |
+| Cramér's V by segment, segment ranges on a scale, mean max V over the run | demographic columns (`SEGMENTY_QC`) | not in the dataset; a panel run's recorded sample has them, a roster run has none | 2b |
+| Entropy, max probability, behaviour shift (`mean_maxprob_max`, `mean_entropy_min`, `behavior_shift_warn`) | each draw's record (`_entropy_`, `_maxprob_`, `_behavior_l1_`) | computed by fieldwork (`ai_fieldwork.Answered.details`) but not stored for a research run (only `validation.py:308` reads them) | 2c |
+| Technical error rate (`chybovost_max` 0.05) | `_chyba`, failed parses kept as blank rows | none: an AI respondent's failed block fails or parks the step, never a blank row (`ai_respondent.py`, "no blank answer") | not applicable, recorded so |
+| Custom segment's ESS and confidence class | `v["segment"]` | AIA has no segment mode | not applicable, recorded so |
+
+A check without an input reads `not_applicable` with its reason, never passed (unknown is never good).
+The thresholds are the unit's `PRAHY`, which the file calls "my calibration, not an industry standard"
+(`qc.py:30`): declared as parameters, recorded with every result as the unit's.
+
+**2a, its divergences for the methodology owner (ported as the unit runs; none chosen here).**
+- *Dry mode.* The unit rates repeated open answers VAROVANI in a dry run and KRITICKE otherwise, and
+  skips the ablation flag in a dry run (`qc.py:177-180`, `:247-249`). AIA has no dry mode; the port
+  takes `dry` as the caller's argument. RQC2's caller reads it from the dataset's origin: the
+  fixture's invented answers (`SYNTHETIC_FIXTURE`) alone, which no model gave; fictional AI respondents
+  are not a dry run (`aia_executors.research.unit_dry`), unless the methodology owner says otherwise.
+- *Severity.* KRITICKE stopped the unit's client report (`prototype_server.py:385`); in AIA nothing
+  gates (MVP-24). The unit's level is kept as data, a warning on screen.
+- *Ablation.* The unit flags every live run whose persona effect no ablation verified. AIA has none;
+  the respondent system's holdout validation is the nearest thing and is not the same test. Ported as
+  the unit flags it (`ablation=False`), which is true of every AIA run today.
+- *A choice without "nevím".* The unit flags every choice question whose answers hold under 2 %
+  "Nevím / neodpovím", so a question that offers no such option (Ano / Ne) is flagged on every run
+  (`qc.py:126`; the fixture's `q_plain` in every case). Ported as the unit flags it.
+- *Tracked sets.* The unit's straight-lining reads scale questions only; AIA's tracked-set ratings are
+  not questions there (`dotaznik.py` has no sets). Ported over scale questions only, the unit's scope
+  (F-RQC1-1 in `run-qc-and-checkpoint`).
+
+**2a, delivered (2026-10-28, branch `feature/ei2-run-qc`, stacked on RQC1's `feature/rqc1-straight-lining`).**
+- `packages/aia_core/src/aia_core/domain/run_qc.py`: `run_qc(questions, answers, *, dry, ablation,
+  thresholds=UNIT_THRESHOLDS)` and `dataset_qc(spec, dataset, *, dry)`, pure. Each finding carries
+  its level (the unit's word), a stable `QcCheck` id (what RQC4a's flags and the screens will name),
+  where and the value, never the unit's sentence: the screens word a finding by its check, and the
+  test pins each of the unit's sentences to its id (`CHECK_OF_TEXT`); the domain naming the word
+  "verbatimy" would also trip `test_open_answers_stay_internal.py`, which keeps the aggregate the only
+  module that names raw open answers; `metrics` keeps the unit's keys, its NaN as `None`;
+  `not_applicable` names the five checks without an input and why. Straight-lining counts a
+  respondent through RQC1's `answer_spread` (`ONE` or `NO_SPREAD`, the unit's `nunique == 1`).
+  Version `aia-run-qc-1`. Nothing calls it yet: RQC2 wires it behind `AIA_RUN_QC_ENABLED`.
+- `tools/run_qc_capture.py`: `inputs` (19 fictional runs, every 2a check and both levels reached),
+  `capture` (the unit's unmodified `kontrola`, in a venv with pandas 3.1.0 and NumPy 2.5.4, on
+  `detail` built as `run_dotaznik` allocates it), `verify`; pinned in
+  `tests/fixtures/run_qc/index.json` with `qc.py`'s SHA-256.
+- `docs/migration/parity-matrix.json` `analysis.qc`: PARTIAL, gated by `test_run_qc.py` and
+  `test_straight_lining.py`; `module-dispositions.json` `qc.py`: partial
+  (`test_module_inventory.py`'s list, with the evidence named).
+- Tests (`packages/aia_core/tests/test_run_qc.py`; each fails on the base, where the module does not
+  exist): every case finding for finding (level, where, text, value), level and verdict, and metric
+  for metric against the unit's run; the fixtures reach every ported check; the not-applicable checks
+  named and never among the findings; thresholds a parameter and recorded; an empty run refused; a
+  stored `FieldworkDataset` read through its compiled specification, a tracked set rated with one
+  value not a straight-liner.
+
+## Doc follow-up (2a)
+
+- `CLAUDE.md` §2, under `domain/`: `run_qc.py` -- a run's QC from its stored answers (evidence-integrity
+  2a, MVP-24): the unit's `qc.kontrola` checks that the dataset and specification answer, EXACT against
+  the unit (`tools/run_qc_capture.py`, fixtures `run_qc`); each finding a warning with its `QcCheck` id,
+  the unit's level kept as data; the checks without an input in AIA named not applicable
+  (`NOT_APPLICABLE`); thresholds the unit's `PRAHY` (`UNIT_THRESHOLDS`), a parameter. Under `tools/`:
+  `run_qc_capture.py` (`inputs` / `capture` in a venv with pandas / `verify`).
+- `.planning/open-items.md`: 2a's divergences above, for the methodology owner (dry mode, severity,
+  ablation, a choice without "nevím", tracked sets).

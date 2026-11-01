@@ -258,7 +258,7 @@ def _owned_organization(
     # every develop smoke fail with a bare "ScopeDenied: not found". The seed
     # is an operator command with the database's credentials, as the creation
     # of the organization above is; it does not widen what a request can do.
-    if organization_id not in scope_repo.memberships_for_user(owner_id):
+    if organization_id not in scope_repo.memberships_for_user(owner_id, include_deactivated=True):
         session.add(
             OrganizationMemberRow(
                 organization_id=organization_id,
@@ -291,6 +291,13 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         name="AIA develop (synthetic)",
         owner_email=email,
     )
+    if created["organization"]:
+        # A new world's operator holds the Metodik mark (D-14), so its Metodika can be edited
+        # at once; only when the world is created, never re-granted over an OWNER's revoke.
+        scope_repo.set_methodologist(admin, user_id=owner_id, methodologist=True)
+        admin = resolver.organization_context(
+            AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
+        )
     # The smoke acts on a world of its own. The operator's organization may hold
     # an archived `synthetic-client` from before this split: it is left as its
     # owner left it, and nothing below looks for it there.

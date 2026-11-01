@@ -88,25 +88,59 @@ def test_value_proxy_is_never_a_direct_measurement(decide: Any) -> None:
 
 
 def test_person_level_claim_on_aggregate_field_refuses(decide: Any) -> None:
+    individual = claim("has_savings", basis=D, level=ClaimLevel.INDIVIDUAL)
+    assert decide(individual) == {ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD}
+    assert decide(claim("has_savings", basis=D)) == frozenset()
+
+
+def test_a_calibrated_field_is_not_measured_evidence(decide: Any) -> None:
+    """The population contract's list (MVP-29): a calibrated, person-modelled value is not
+    measured, at any level; the reference's own derivation allowed it."""
+    assert decide(claim("has_savings")) == {ViolationCode.NOT_MEASURED_EVIDENCE}
     assert decide(claim("has_savings", level=ClaimLevel.INDIVIDUAL)) == {
-        ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD
+        ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD,
+        ViolationCode.NOT_MEASURED_EVIDENCE,
     }
-    assert decide(claim("has_savings")) == frozenset()
+
+
+#: A measured claim on a field the population contract does not count as client-measurable
+#: (MVP-29) is refused as such on every surface, beside any disclosure it lacks.
+_NOT_MEASURED = frozenset({ViolationCode.NOT_MEASURED_EVIDENCE})
 
 
 @pytest.mark.parametrize(
-    ("field", "missing", "code"),
+    ("field", "missing", "code", "measured"),
     [
-        ("vek", Disclosure.SCOPE, ViolationCode.SCOPE_DISCLOSURE_MISSING),
-        ("tv_daily_minutes", Disclosure.MODELED_VALUE, ViolationCode.MODELED_DISCLOSURE_MISSING),
-        ("vote_2021", Disclosure.HISTORICAL, ViolationCode.HISTORICAL_DISCLOSURE_MISSING),
+        ("vek", Disclosure.SCOPE, ViolationCode.SCOPE_DISCLOSURE_MISSING, frozenset()),
+        (
+            "tv_daily_minutes",
+            Disclosure.MODELED_VALUE,
+            ViolationCode.MODELED_DISCLOSURE_MISSING,
+            _NOT_MEASURED,
+        ),
+        (
+            "vote_2021",
+            Disclosure.HISTORICAL,
+            ViolationCode.HISTORICAL_DISCLOSURE_MISSING,
+            _NOT_MEASURED,
+        ),
     ],
 )
 def test_client_facing_disclosures(
-    decide: Any, field: str, missing: Disclosure, code: ViolationCode
+    decide: Any,
+    field: str,
+    missing: Disclosure,
+    code: ViolationCode,
+    measured: frozenset[ViolationCode],
 ) -> None:
-    assert decide(claim(field, disclosures=ALL_DISCLOSURES - {missing})) == {code}
-    assert decide(claim(field, disclosures=ALL_DISCLOSURES - {missing}, surface=INTERNAL)) == set()
+    assert decide(claim(field, disclosures=ALL_DISCLOSURES - {missing})) == {code} | measured
+    internal = claim(field, disclosures=ALL_DISCLOSURES - {missing}, surface=INTERNAL)
+    assert decide(internal) == measured
+
+
+def test_a_historical_field_needs_its_disclosure_on_a_modelled_claim_too(decide: Any) -> None:
+    request = claim("vote_2021", basis=D, disclosures=ALL_DISCLOSURES - {Disclosure.HISTORICAL})
+    assert decide(request) == {ViolationCode.HISTORICAL_DISCLOSURE_MISSING}
 
 
 def test_modelled_basis_is_itself_the_modelled_value_disclosure(decide: Any) -> None:
@@ -116,11 +150,15 @@ def test_modelled_basis_is_itself_the_modelled_value_disclosure(decide: Any) -> 
 
 def test_mandated_weight_scheme(decide: Any) -> None:
     field = "is_procurement_buyer_current"
-    assert decide(claim(field, weight_scheme="vaha_strukturalni_2025")) == frozenset()
-    assert decide(claim(field, weight_scheme="vaha_kalibrovana")) == {
+    assert decide(claim(field, basis=D, weight_scheme="vaha_strukturalni_2025")) == frozenset()
+    assert decide(claim(field, basis=D, weight_scheme="vaha_kalibrovana")) == {
         ViolationCode.WEIGHT_SCHEME_MISMATCH
     }
-    assert decide(claim(field)) == {ViolationCode.WEIGHT_SCHEME_MISMATCH}
+    assert decide(claim(field, basis=D)) == {ViolationCode.WEIGHT_SCHEME_MISMATCH}
+    # A derived value is not measured evidence (MVP-29), whatever its weight.
+    assert decide(claim(field, weight_scheme="vaha_strukturalni_2025")) == {
+        ViolationCode.NOT_MEASURED_EVIDENCE
+    }
 
 
 def test_cross_block_segment_is_joint_whatever_the_caller_says(decide: Any) -> None:

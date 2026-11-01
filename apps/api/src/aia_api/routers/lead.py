@@ -17,7 +17,7 @@ No route takes a client, organization or user id: the scope says whose it is.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -26,6 +26,10 @@ from aia_core.application.lead_chat_start import (
     AnalysisRetryTargetMoved,
     ChatStartRefused,
     newest_analysed_run,
+)
+from aia_core.application.lead_deep_research import (
+    DeepResearchCardSettings,
+    DeepResearchCardUnavailable,
 )
 from aia_core.application.research import (
     CostCeilingUnknown,
@@ -38,8 +42,14 @@ from aia_core.application.research_lead import (
     LeadCardStale,
     LeadContextTooLarge,
     LeadEditsStale,
+    LeadFileNotFound,
+    LeadHatchNotPending,
+    LeadHatchRefused,
+    LeadHatchUnavailable,
+    LeadMessageNotQueued,
     LeadNotHatched,
     LeadProfile,
+    LeadQueueFull,
     LeadRejected,
     LeadSelfUpdateDecided,
     LeadSelfUpdateNone,
@@ -49,10 +59,14 @@ from aia_core.application.research_lead import (
     NotAPaidRequest,
     ResearchLead,
     WorkspaceConflict,
+    worker_preflight,
     worker_readiness,
 )
+from aia_core.domain.client_sources import SourceRejected
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.lead_commands import COMMANDS
+from aia_core.domain.lead_files import FILES_PER_MESSAGE
+from aia_core.domain.lead_hatch import HatchInput
 from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.wallet import WalletChargeRefused
@@ -60,16 +74,21 @@ from aia_core.domain.workspace import WorkspaceRejected
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
+from ..config import Settings
 from ..dependencies import (
     ArtifactStoreDep,
     OrganizationDep,
     PanelSamplerDep,
+    PrincipalDep,
+    ResolverDep,
     RunPopulationDep,
     SessionDep,
     SettingsDep,
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .client_sources import SourceUpload, decoded
+from .deep_research import deep_research_mode, deep_research_start_errors, study_prices
 from .research import run_start_errors, run_start_settings
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -104,6 +123,34 @@ class TurnPost(BaseModel):
     text: str | None = Field(default=None, max_length=4000)
     stage: str = Field(min_length=1, max_length=32)
     focus: Focus | None = None
+    #: The study's client's sources the message carries to the Lead (lead-orchestration LO18a):
+    #: each kept first through ``POST …/lead/files``; another client's is 404.
+    files: list[Annotated[str, Field(pattern=r"^SRC-[0-9a-f]{16}$")]] = Field(
+        default_factory=list, max_length=FILES_PER_MESSAGE
+    )
+
+
+class LeadFile(BaseModel):
+    """A file a message carries to the Lead: the client's source, as the message stores it."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_id: str
+    sha256: str
+    reading_sha256: str | None
+    filename: str
+
+
+class LeadFileKept(BaseModel):
+    """The file kept as the client's source, and what reading it produced."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_id: str
+    filename: str
+    family: str
+    outcome: str
+    reason: str | None
+    segments: int
+    characters: int
 
 
 class EditDecision(BaseModel):
@@ -147,7 +194,8 @@ class RequestDecision(BaseModel):
     status: Literal["approved"]
     run_id: str | None
     #: A typed start approved on the job an earlier approval had already started for this
-    #: design: nothing started, the card is decided (LO5).
+    #: design, or a Deep Research card on a run another start had made (LO5a.2): nothing
+    #: started or charged, the card is decided (LO5).
     reused: bool = False
 
 
@@ -226,10 +274,25 @@ class LeadTurn(BaseModel):
     workspace_revision: int | None
     created_at: datetime
     created_by: str
+    #: The most the turn's prepared agent job can cost (lead-orchestration LO23, spec
+    #: lead/LP-4): a Lead card's ``agent_job`` request or a typed ``agent_job:`` command, at
+    #: the design job's reservation (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one
+    #: repair, what its start holds and its threshold reads). ``null`` when that reservation is
+    #: not configured (unknown, never 0) and for any other turn.
+    ceiling_usd: float | None = None
     #: The typed start the server matched in a person's message (lead-orchestration LO5:
     #: ``agent_job:<action>`` or ``research_run``); its card is approved through ``…/request``
     #: as the person's own, a ``chat_start``. ``null`` on every other turn.
     command: str | None = None
+    #: A person's message that waits for the Lead: no Lead turn was sent it and no withdrawal
+    #: names it (ADR 0041 decision 7). Derived from the rows, never stored.
+    queued: bool = False
+    #: A person's message the researcher withdrew before the Lead was sent it.
+    withdrawn: bool = False
+    #: The client's sources a person's message carried to the Lead (LO18a); none otherwise.
+    files: list[LeadFile] = Field(default_factory=list)
+    #: The messages a Lead turn was sent, in queue order (its answer rows).
+    answers: list[str] = Field(default_factory=list)
 
 
 class TypedCommand(BaseModel):
@@ -261,15 +324,22 @@ class LeadState(BaseModel):
     model_config = ConfigDict(extra="forbid")
     available: bool
     unavailable_reason: str | None
-    #: ``false`` only on evidence (the source says which); ``null``: unknown. Until the worker
-    #: publishes its composition (lead-orchestration LO12b) nothing here reports ``true``.
+    #: ``false`` only on evidence (the source says which); ``null``: unknown. ``true`` only from
+    #: the newest worker start's recorded composition (lead-orchestration LO12b): composed to
+    #: answer a turn, not proof that a worker runs now, so ``worker_composed_at`` and
+    #: ``worker_build`` say which start.
     worker_ready: bool | None
     #: Where ``worker_ready`` was read: ``newest_turn`` (this conversation's newest decided Lead
-    #: turn parked for a reason naming the worker's composition), or ``null`` with no source.
-    worker_ready_source: Literal["newest_turn"] | None
+    #: turn parked for a reason naming the worker's composition), ``composition`` (the newest
+    #: worker start's recorded AI route, with AIA_AI_ROUTE_PREFLIGHT_ENABLED), or ``null``.
+    worker_ready_source: Literal["newest_turn", "composition"] | None
     #: Why the worker is not ready (a park code, e.g. ``research_lead_unconfigured``); ``null``
     #: unless ``worker_ready`` is ``false``. The name ``lib/lead-availability.ts`` reads.
     worker_reason: str | None
+    #: With ``worker_ready_source: composition``: when that worker start was recorded (the
+    #: worker's clock) and its build; ``null`` otherwise.
+    worker_composed_at: datetime | None = None
+    worker_build: str | None = None
     #: The typed start commands the composer takes, with the Lead on or off (Q43).
     commands: list[TypedCommand]
     #: AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka.
@@ -303,6 +373,11 @@ class ApprovedRequest(BaseModel):
     run_id: str
     design_revision_id: str
     status: str
+    #: A Deep Research card's run: ``DESIGN_RESEARCH`` or ``INTERPRETATION_RESEARCH`` (LO5a.2),
+    #: so the client follows it where it is shown; ``None`` for any other approval.
+    purpose: str | None = None
+    #: An Interpretation card's: the research run its target is a result of, where it is shown.
+    research_run_id: str | None = None
 
 
 class OmittedId(BaseModel):
@@ -388,10 +463,25 @@ class ResearcherLead(BaseModel):
     preferences: LeadPreferences
 
 
+class PendingHatchResponse(BaseModel):
+    """A hatch waiting for its researcher (lead-identity LI1): what they wrote and, once the
+    model answered, the files it wrote. Nothing in it is a Lead file yet."""
+
+    model_config = ConfigDict(extra="forbid")
+    hatch_id: str
+    input: dict[str, Any]
+    output: dict[str, Any] | None
+    created_at: datetime
+
+
 class LeadProfileResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     hatched: bool
     lead: ResearcherLead | None
+    #: Before the Lead is hatched: the hatch waiting for the caller's yes, if any.
+    pending_hatch: PendingHatchResponse | None = None
+    #: On accepting a hatch: the Lead's first words.
+    greeting: str | None = None
 
 
 # --------------------------------------------------------------------------- errors
@@ -415,14 +505,28 @@ def _lead_errors() -> Iterator[None]:
         ) from exc
     except LeadTurnNotFound as exc:
         raise _error(status.HTTP_404_NOT_FOUND, exc.reason, "No such resource.") from exc
+    except LeadFileNotFound as exc:
+        raise _error(status.HTTP_404_NOT_FOUND, exc.reason, "No such source.") from exc
     except LeadUnavailable as exc:
         raise _error(409, exc.reason, "The Research Lead is not switched on here.") from exc
     except LeadNotHatched as exc:
         raise _error(409, exc.reason, "Hatch your Research Lead first.") from exc
     except LeadAlreadyHatched as exc:
         raise _error(409, exc.reason, "Your Research Lead is already hatched.") from exc
+    except LeadHatchUnavailable as exc:
+        raise _error(409, exc.reason, "Hatching cannot be asked of the model here yet.") from exc
+    except LeadHatchNotPending as exc:
+        raise _error(409, exc.reason, "No hatch of yours waits for that.") from exc
+    except LeadHatchRefused as exc:
+        raise _error(
+            422, exc.reason, "A personal file may not name a client or a number.", files=exc.files
+        ) from exc
     except LeadBusy as exc:
         raise _error(409, exc.reason, "The Lead is still answering your last message.") from exc
+    except LeadQueueFull as exc:
+        raise _error(409, exc.reason, str(exc)) from exc
+    except LeadMessageNotQueued as exc:
+        raise _error(409, exc.reason, str(exc)) from exc
     except LeadTurnNotReady as exc:
         raise _error(409, exc.reason, "The Lead has not finished this turn.") from exc
     except LeadSelfUpdateDecided as exc:
@@ -492,6 +596,8 @@ def _lead_errors() -> Iterator[None]:
         ) from exc
     except NotAPaidRequest as exc:
         raise _error(422, exc.reason, "This turn prepared no paid job.") from exc
+    except DeepResearchCardUnavailable as exc:
+        raise _error(409, exc.reason, "Deep Research cannot be started here.") from exc
     except LeadContextTooLarge as exc:
         raise _error(422, exc.reason, str(exc)) from exc
     except LeadRejected as exc:
@@ -512,14 +618,23 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
         lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
         retry_run = newest_analysed_run(ResearchRuns(session, scope))
+        preflight = (
+            worker_preflight(session, scope) if settings.ai_route_preflight_enabled else None
+        )
     on = settings.research_lead_on
-    ready, source, reason = worker_readiness(state["turns"])
+    ready, source, reason = worker_readiness(state["turns"], preflight)
     return LeadState(
         available=on,
         unavailable_reason=None if on else _DISABLED,
         worker_ready=ready,
         worker_ready_source=source,
         worker_reason=reason,
+        worker_composed_at=preflight.composed_at
+        if preflight is not None and source == "composition"
+        else None,
+        worker_build=preflight.build_sha
+        if preflight is not None and source == "composition"
+        else None,
         commands=[
             TypedCommand(
                 phrase=c.phrase,
@@ -538,15 +653,46 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
             phase=str(retry_run["phase"]),
         ),
         busy=state["busy"],
-        turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
+        turns=[LeadTurn.model_validate(t) for t in _public(state["turns"], settings)],
     )
 
 
-def _public(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _public(turns: list[dict[str, Any]], settings: Settings) -> list[dict[str, Any]]:
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
-    of what waits (the browser reads that from the turn's output)."""
-    hidden = {"data_class", "pending_self_update", "self_update_base", "awaiting_budget"}
-    return [{k: v for k, v in t.items() if k not in hidden} for t in turns]
+    of what waits (the browser reads that from the turn's output); with its prepared agent
+    job's ceiling (LO23)."""
+    hidden = {
+        "data_class",
+        "pending_self_update",
+        "self_update_base",
+        "awaiting_budget",
+        "decided_at",
+    }
+    return [
+        {
+            **{k: v for k, v in t.items() if k not in hidden},
+            "ceiling_usd": _job_ceiling(settings) if _prepares_job(t) else None,
+        }
+        for t in turns
+    ]
+
+
+def _job_ceiling(settings: Settings) -> float | None:
+    """A prepared agent job's ceiling: its reservation, or ``None`` when that is not
+    configured or not positive -- unknown, never 0, the rule ``analysis_ceiling_usd`` keeps."""
+    reserved = settings.ai_research_reservation_usd
+    return reserved if reserved is not None and reserved > 0 else None
+
+
+def _prepares_job(turn: Mapping[str, Any]) -> bool:
+    """Whether the turn's card starts an agent job: a Lead card's ``agent_job`` request or a
+    person's typed ``agent_job:`` command (LO5)."""
+    command = turn.get("command")
+    if isinstance(command, str) and command.startswith("agent_job:"):
+        return True
+    output = turn.get("output")
+    request = output.get("request") if isinstance(output, Mapping) else None
+    return isinstance(request, Mapping) and request.get("kind") == "agent_job"
 
 
 @router.post(
@@ -573,16 +719,70 @@ def post_turn(
     external = store if settings.ai_analysis_external_context else None
     with _lead_errors():
         turns = ResearchLead(
-            session, scope, enabled=settings.research_lead_on, external_store=external
+            session,
+            scope,
+            enabled=settings.research_lead_on,
+            external_store=external,
+            store=store,
         ).post(
             kind=body.kind,
             stage=body.stage,
             text=body.text,
             focus=body.focus.model_dump() if body.focus else None,
+            files=body.files,
         )
     if not turns:
         response.status_code = status.HTTP_200_OK
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
+
+
+@router.post(
+    "/lead/files",
+    response_model=LeadFileKept,
+    status_code=201,
+    responses={
+        404: {"model": ErrorResponse, "description": "Not a study of yours"},
+        409: {"model": ErrorResponse, "description": "The Lead is off, or not hatched"},
+        422: {
+            "model": ErrorResponse,
+            "description": "Empty, too large, not base64, or a format AIA does not take",
+        },
+    },
+)
+def add_lead_file(
+    body: SourceUpload,
+    scope: StudyScopeDep,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    store: ArtifactStoreDep,
+) -> LeadFileKept:
+    """Keep a file a person gives the Lead as the study's client's source (lead-orchestration
+    LO18a): listed under the client's Data, read as every source is; a message then carries it
+    by its ``source_id``. Needs ``EDIT_STUDY`` on an open study. The file is never served
+    here; the client's sources route serves it, as ``application/octet-stream`` only."""
+    try:
+        client = resolver.client_context(principal, client_id=scope.client_id)
+    except ScopeDenied as exc:
+        raise _error(status.HTTP_404_NOT_FOUND, "not_found", "No such resource.") from exc
+    data = decoded(body)
+    with _lead_errors():
+        try:
+            record = ResearchLead(
+                session, scope, enabled=settings.research_lead_on, store=store
+            ).attach(client, filename=body.filename, data=data)
+        except SourceRejected as exc:
+            raise _error(422, exc.reason, str(exc)) from exc
+    return LeadFileKept(
+        source_id=record.source_id,
+        filename=record.filename,
+        family=record.family.value,
+        outcome=record.outcome.value,
+        reason=record.reason,
+        segments=record.segments,
+        characters=record.characters,
+    )
 
 
 @router.get(
@@ -620,6 +820,54 @@ def read_omitted(
         total=total,
         omitted=[OmittedId.model_validate(o) for o in omitted],
     )
+
+
+@router.post(
+    "/lead/turns/queued",
+    response_model=LeadTurns,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Off, or not hatched"}},
+)
+def answer_queued(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    store: ArtifactStoreDep,
+    response: Response,
+) -> LeadTurns:
+    """Start the Lead's turn on the caller's messages that wait, once the conversation is free:
+    201 with the Lead turn, or 200 with none when nothing waits or the Lead is still at work.
+    Any tab may ask; two asks start one turn (ADR 0041 decision 7)."""
+    external = store if settings.ai_analysis_external_context else None
+    with _lead_errors():
+        turns = ResearchLead(
+            session,
+            scope,
+            enabled=settings.research_lead_on,
+            external_store=external,
+            store=store,
+        ).answer_queued()
+    if not turns:
+        response.status_code = status.HTTP_200_OK
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
+
+
+@router.post(
+    "/lead/turns/{turn_id}/withdraw",
+    response_model=LeadTurns,
+    responses={
+        404: {"model": ErrorResponse, "description": "Not the caller's own message"},
+        409: {"model": ErrorResponse, "description": "The message no longer waits"},
+    },
+)
+def withdraw_message(
+    turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep, settings: SettingsDep
+) -> LeadTurns:
+    """Withdraw one of the caller's messages that still waits for the Lead: it stays stored,
+    and no turn is ever sent it."""
+    with _lead_errors():
+        turns = ResearchLead(session, scope).withdraw(turn_id)
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.post(
@@ -695,8 +943,15 @@ def approve_request(
     run settings (the ones ``POST …/research/runs`` uses), held to the same threshold and, with
     ``AIA_STUDY_WALLET_ENABLED``, to the wallet (409 ``outside_wallet``, ``ceiling_unknown``),
     and recorded as ``chat_start``. A run start's refusals are that route's."""
-    with _lead_errors(), run_start_errors():
-        started = ResearchLead(session, scope, enabled=settings.research_lead_on).approve_request(
+    # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: a questionnaire job a card approves reads the Study's
+    # pinned Design Research findings, as the stage's start does (artifact-questionnaire QST13).
+    external = store if settings.ai_analysis_external_context else None
+    # A Deep Research card's start refusals are the stage routes' own (LO5a.2), outermost so
+    # the Lead's and a run start's own mappings answer first where they overlap.
+    with deep_research_start_errors(session), _lead_errors(), run_start_errors():
+        started = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
@@ -704,6 +959,12 @@ def approve_request(
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
             retry_run_id=body.retry_run_id,
+            deep_research=DeepResearchCardSettings(
+                prices=study_prices(settings, session, scope),
+                modes=(deep_research_mode(settings),),
+                store=store,
+                document_store=store if settings.deep_research_document_text else None,
+            ),
         )
     return ApprovedRequest.model_validate(started)
 
@@ -729,6 +990,54 @@ def hatch(org: OrganizationDep, session: SessionDep) -> LeadProfileResponse:
     chat, and the Lead changes its own files when asked."""
     with _lead_errors():
         return LeadProfileResponse.model_validate(LeadProfile(session, org).hatch())
+
+
+@profile_router.post(
+    "/hatches",
+    response_model=LeadProfileResponse,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Already hatched, or unavailable"}},
+)
+def request_hatch(
+    body: HatchInput, org: OrganizationDep, session: SessionDep
+) -> LeadProfileResponse:
+    """Ask the model to write the caller's Lead files from what they wrote (lead-identity LI1).
+    Refused by name (``lead_hatch_unavailable``) until the AIA organization exists to pay for
+    it: nothing is sent or charged, and no code writes the files instead."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(
+            LeadProfile(session, org).request_hatch(body.model_dump())
+        )
+
+
+@profile_router.post(
+    "/hatches/{hatch_id}/accept",
+    response_model=LeadProfileResponse,
+    responses={
+        409: {"model": ErrorResponse, "description": "No such pending hatch"},
+        422: {"model": ErrorResponse, "description": "A file names a client or a number"},
+    },
+)
+def accept_hatch(
+    org: OrganizationDep, session: SessionDep, hatch_id: str = Path(max_length=64)
+) -> LeadProfileResponse:
+    """ "Přijmout": the caller's pending hatch becomes their Lead (ADR 0030 decision 2), its
+    files checked again as they are kept. Answers the Lead and its first words."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(LeadProfile(session, org).accept_hatch(hatch_id))
+
+
+@profile_router.post(
+    "/hatches/{hatch_id}/discard",
+    response_model=LeadProfileResponse,
+    responses={409: {"model": ErrorResponse, "description": "No such pending hatch"}},
+)
+def discard_hatch(
+    org: OrganizationDep, session: SessionDep, hatch_id: str = Path(max_length=64)
+) -> LeadProfileResponse:
+    """ "Zadat znovu": the pending hatch is set aside; nothing of it became a Lead file."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(LeadProfile(session, org).discard_hatch(hatch_id))
 
 
 @profile_router.put(

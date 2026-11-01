@@ -29,6 +29,15 @@ API = "/api/v1"
 METHODOLOGY = f"{API}/methodology"
 
 
+@pytest.fixture
+def owner(owner: TestClient) -> TestClient:
+    """The organization OWNER holding the Metodik mark (D-14), granted through the route."""
+    me = owner.get(f"{API}/workspace/me").json()
+    marked = owner.put(f"{API}/members/{me['user_id']}/methodologist", json={"methodologist": True})
+    assert marked.status_code == 200 and marked.json()["methodologist"] is True
+    return owner
+
+
 def _values(body: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {v["reference"]: v for s in body["step_details"] for v in s["values"]}
 
@@ -175,14 +184,14 @@ SOCIOMAP = f"{METHODOLOGY}/sociomap"
 
 
 def _edit(formulas: dict[str, str] | None = None, **changes: Any) -> dict[str, Any]:
-    spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
+    spec = AIA_SOCIOMAP_V5.model_dump(mode="json")
     for path, value in changes.items():
         node = spec
         *parents, leaf = path.split("__")
         for p in parents:
             node = node[p]
         node[leaf] = value
-    return {"base_preset": "aia-sociomap-3", "spec": spec, "formulas": formulas or {}}
+    return {"base_preset": "aia-sociomap-5", "spec": spec, "formulas": formulas or {}}
 
 
 @pytest.mark.parametrize("who", ["lead", "researcher", "outsider"])
@@ -192,9 +201,24 @@ def test_a_member_reads_and_checks_but_cannot_change(who: str, as_user: Any) -> 
     assert versions.status_code == 200 and versions.json()["may_administer"] is False
     assert member.post(f"{SOCIOMAP}/check", json=_edit()).json()["valid"] is True
     proposed = member.post(f"{SOCIOMAP}/versions", json=_edit())
-    assert proposed.status_code == 403 and proposed.json()["code"] == "insufficient_role"
+    assert proposed.status_code == 403 and proposed.json()["code"] == "methodologist_required"
     put = member.put(f"{SOCIOMAP}/activation", json={"version_number": None})
-    assert put.status_code == 403
+    assert put.status_code == 403 and put.json()["code"] == "methodologist_required"
+
+
+def test_an_owner_without_the_metodik_mark_reads_but_cannot_change(as_user: Any) -> None:
+    unmarked: TestClient = as_user("owner")
+    versions = unmarked.get(f"{SOCIOMAP}/versions").json()
+    assert versions["may_administer"] is True and versions["may_edit"] is False
+    proposed = unmarked.post(f"{SOCIOMAP}/versions", json=_edit())
+    assert proposed.status_code == 403 and proposed.json()["code"] == "methodologist_required"
+    put = unmarked.put(f"{SOCIOMAP}/activation", json={"version_number": None})
+    assert put.status_code == 403 and put.json()["code"] == "methodologist_required"
+
+
+def test_the_marked_owner_may_edit(owner: TestClient) -> None:
+    assert owner.get(f"{SOCIOMAP}/versions").json()["may_edit"] is True
+    assert owner.get(f"{API}/workspace/me").json()["methodologist"] is True
 
 
 def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> None:
@@ -204,8 +228,11 @@ def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> 
         "preset": "aia-sociomap-5",
         "version_number": None,
         "name": "aia-sociomap-5",
+        # The register's answer for the method in force: the preset is approved for clients.
+        "register_status": "CLIENT_FACING",
     }
     assert (body["may_administer"], body["versions"], body["history"]) == (True, [], [])
+    assert body["code_register_status"] == "CLIENT_FACING"
 
 
 def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_preset(
@@ -216,9 +243,9 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
     )
     assert proposed.status_code == 201
     version = proposed.json()
-    assert (version["version_number"], version["name"]) == (1, "aia-sociomap-3+e1")
+    assert (version["version_number"], version["name"]) == (1, "aia-sociomap-5+e1")
     assert version["spec"]["terrain"]["sigma"] == 0.3
-    assert version["spec"]["methodology_version"] == "aia-sociomap-3+e1"
+    assert version["spec"]["methodology_version"] == "aia-sociomap-5+e1"
     assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["origin"] == "code"
 
     put = owner.put(f"{SOCIOMAP}/activation", json={"version_number": 1, "reason": "ověřeno"})
@@ -227,12 +254,22 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
         "origin": "stored",
         "preset": None,
         "version_number": 1,
-        "name": "aia-sociomap-3+e1",
+        "name": "aia-sociomap-5+e1",
+        # An edit is another method: internal until registered, never presumed approved.
+        "register_status": "INTERNAL_ONLY",
     }
+    assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["register_status"] == (
+        "INTERNAL_ONLY"
+    )
     back = owner.put(f"{SOCIOMAP}/activation", json={"version_number": None, "reason": "zpět"})
     assert back.json()["origin"] == "code"
+    assert back.json()["register_status"] == "CLIENT_FACING"
     body = owner.get(f"{SOCIOMAP}/versions").json()
     assert [v["version_number"] for v in body["versions"]] == [1]
+    # Verze a aktivace lists each version with the register's answer for it, and the code's
+    # preset beside them with its own.
+    assert body["versions"][0]["register_status"] == "INTERNAL_ONLY"
+    assert body["code_register_status"] == "CLIENT_FACING"
     assert [(a["version_number"], a["reason"]) for a in body["history"]] == [
         (None, "zpět"),
         (1, "ověřeno"),
@@ -242,13 +279,29 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
 def test_an_invalid_edit_is_422_with_every_problem_and_check_says_the_same(
     owner: TestClient,
 ) -> None:
-    edit = _edit({"f6.distance": "open('x')"}, relation__n_min=2)
+    edit = _edit({"f8.height": "open('x')"}, relation__n_min=2)
     checked = owner.post(f"{SOCIOMAP}/check", json=edit).json()
     assert checked["valid"] is False
-    assert {"spec.relation.n_min", "formula.f6.distance"} <= set(checked["problems"])
+    assert {"spec.relation.n_min", "formula.f8.height"} <= set(checked["problems"])
     refused = owner.post(f"{SOCIOMAP}/versions", json=edit)
     assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
     assert refused.json()["details"]["problems"] == checked["problems"]
+    assert owner.get(f"{SOCIOMAP}/versions").json()["versions"] == []
+
+
+def test_a_version_from_an_earlier_preset_is_422_and_nothing_is_stored(
+    owner: TestClient,
+) -> None:
+    """Metodika's Sociomap is edited from aia-sociomap-5 alone (MQ-23 (a)): an earlier preset
+    the versions route still serves is refused as a base, whole and valid as its spec is."""
+    edit = {
+        "base_preset": "aia-sociomap-3",
+        "spec": AIA_SOCIOMAP_V3.model_dump(mode="json"),
+        "formulas": {},
+    }
+    refused = owner.post(f"{SOCIOMAP}/versions", json=edit)
+    assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
+    assert set(refused.json()["details"]["problems"]) == {"base_preset"}
     assert owner.get(f"{SOCIOMAP}/versions").json()["versions"] == []
 
 
@@ -307,9 +360,7 @@ def test_a_member_compares_an_edit_with_what_is_in_force_on_fictional_panels(
 ) -> None:
     member: TestClient = as_user("researcher")
     # An edit of what is in force, aia-sociomap-5, with a stricter pair n_min.
-    edit = {**_edit(), "base_preset": "aia-sociomap-5"}
-    edit["spec"] = AIA_SOCIOMAP_V5.model_dump(mode="json")
-    edit["spec"]["relation"]["n_min"] = 34
+    edit = _edit(relation__n_min=34)
     body = member.post(f"{SOCIOMAP}/compare", json=edit).json()
     assert (body["valid"], body["in_force"]) == (True, "aia-sociomap-5")
     panels = {p["panel"]: p for p in body["panels"]}
@@ -317,8 +368,9 @@ def test_a_member_compares_an_edit_with_what_is_in_force_on_fictional_panels(
     small = panels["small"]
     assert small["status_changes"] and all(c["draft"] == "unknown" for c in small["status_changes"])
     assert set(small["heights"]) == set(small["objects"])
-    assert all(len(pair) == 2 for pair in small["k100"].values())
-    assert any("interval" in n for n in small["notes"])
+    # -5 computes no object scores (MQ-05): K100 is unknown, never "no change".
+    assert small["k100"] is None
+    assert not any("interval" in n for n in small["notes"])
 
 
 def test_compare_refuses_an_invalid_edit_with_its_problems_and_computes_nothing(
@@ -337,13 +389,13 @@ def test_compare_is_for_the_editable_modules(owner: TestClient) -> None:
 
 
 def test_compare_reads_the_stored_version_in_force(owner: TestClient) -> None:
-    number = owner.post(f"{SOCIOMAP}/versions", json=_edit(terrain__sigma=0.3)).json()[
+    number = owner.post(f"{SOCIOMAP}/versions", json=_edit(terrain__idw_power=2.0)).json()[
         "version_number"
     ]
     owner.put(f"{SOCIOMAP}/activation", json={"version_number": number})
     body = owner.post(f"{SOCIOMAP}/compare", json=_edit()).json()
-    assert body["in_force"] == "aia-sociomap-3+e1"
-    assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # 0.3 in force, 0.25 drafted
+    assert body["in_force"] == "aia-sociomap-5+e1"
+    assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # power 2 in force, 3 drafted
 
 
 # --------------------------------------------------------------------------- support (G1d)
@@ -361,7 +413,11 @@ def _support_edit(**lines: Any) -> dict[str, Any]:
 
 
 def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None:
-    presets = owner.get(f"{SUPPORT}/versions").json()["presets"]
+    support = owner.get(f"{SUPPORT}/versions").json()
+    # No register covers the support rules: the field says nothing rather than "approved".
+    assert support["in_force"]["register_status"] is None
+    assert support["code_register_status"] is None
+    presets = support["presets"]
     assert presets == {"aia-support-1": AIA_SUPPORT_V1.model_dump(mode="json")}
     looser = owner.post(f"{SUPPORT}/versions", json=_support_edit(results__min_layer_donors=10))
     stricter = owner.post(
@@ -371,6 +427,7 @@ def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None
     assert (looser.status_code, stricter.status_code) == (201, 201)
     assert stricter.json()["spec"]["results"]["min_cell"] == 80
     assert stricter.json()["spec"]["analysis"]["n_guard"] is None
+    assert stricter.json()["register_status"] is None  # no register covers the support rules
     put = owner.put(f"{SUPPORT}/activation", json={"version_number": 2, "reason": "přísněji"})
     assert put.json()["name"] == "aia-support-1+e2"
 
@@ -539,12 +596,17 @@ def _readiness_draft(n: int, items: int) -> dict[str, Any]:
             "title": "Fiktivní nápoje",
             "n": n,
             "sections": [
+                # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+                {
+                    "type": "questions",
+                    "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}],
+                },
                 {
                     "type": "object_battery",
                     "title": "Nápoje",
                     "object_family": "nápoje",
                     "objects": [f"Nápoj {i}" for i in range(1, items + 1)],
-                }
+                },
             ],
         },
         "base_revision": None,
@@ -563,6 +625,21 @@ def test_each_limit_says_what_crossing_it_does_and_the_rule_reads_with_its_value
     steps = {s["id"]: s for s in body["step_details"]}
     assert steps["sample_size"]["reading_cs"] == "{sample_size.min} ≤ n ≤ {sample_size.max}"
     assert "chybějící n blokuje vždy" in steps["sample_size"]["keeps_cs"]
+
+
+def test_each_bounded_field_carries_its_checks_range_and_an_unbounded_one_none(
+    owner: TestClient,
+) -> None:
+    values = _values(owner.get(READINESS).json())
+    assert values["sample_size.min"]["bound"] == {
+        "limits": [{"side": "low", "value": 1.0, "reference": None, "strict": False}],
+        "whole": True,
+    }
+    # A limit read from another field names it; the draft's value is the limit.
+    assert values["sample_size.max"]["bound"]["limits"] == [
+        {"side": "low", "value": None, "reference": "sample_size.min", "strict": True}
+    ]
+    assert values["methodology_version"]["bound"] is None
 
 
 def test_the_readiness_check_previews_the_lines_the_code_writes_under_the_draft(

@@ -12,9 +12,12 @@ Source:   https://github.com/ONLYOFFICE/DocumentServer (tag v9.4.0.1) and the
           https://github.com/ONLYOFFICE/Docker-DocumentServer
 
 AIA runs the program unmodified. It is configured only through the environment
-variables upstream documents (docker-compose.yml beside this file), and nothing
-in this repository changes, replaces or adds to its code. Its logo and notices
-stay as published (section 7 additional terms).
+variables upstream documents and one configuration file its own loader reads,
+local-production-linux.json (both beside this file), and started through
+start-fixed-cache-tag.sh, which runs the image's own entrypoint and then the
+image's own documentserver-flush-cache.sh with its own -h option; nothing in this
+repository changes, replaces or adds to its code. Its logo and notices stay as published
+(section 7 additional terms).
 
 If the image is ever patched or extended, this notice must instead offer the
 modified program's complete corresponding source to everyone who uses it over

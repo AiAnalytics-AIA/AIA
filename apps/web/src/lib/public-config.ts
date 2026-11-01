@@ -38,6 +38,10 @@ export type PublicConfig = {
   // option's and object's id beside it and follows a reworded research question's links.
   // AIA_WEB_STABLE_ITEM_IDS; unset or not a switch value, off (the server keys by ids either way).
   stableItemIds: boolean;
+  // Edits saved as operations (working-copy-edit-ops WCE3a): a stage's change in the working copy's
+  // vocabulary is sent as those operations (POST …/workspace/ops), each logged under its own name,
+  // instead of the copy whole. AIA_WEB_EDIT_OPS; unset or not a switch value, off.
+  editOps: boolean;
   // Display conditions (working-copy-edit-ops WCE13): Dotazník sets one at its question only
   // under AIA_ROUTING_ENABLED, one key for the API and the web alike (the API's readiness reads it
   // in WCE13 (d)), so a deployment sets it on both; off until fieldwork routes by it (RQC11).

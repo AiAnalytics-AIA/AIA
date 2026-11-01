@@ -2,8 +2,8 @@
 status: in-progress
 chunks:
   - "[x] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
-  - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
-  - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
+  - "[x] RQC1. One straight-liner definition in `domain/` (`straight_lining.answer_spread`), called by the Sociomap engine; the run QC (`evidence-integrity` 2) and the worker (RQC4a) call it when they land"
+  - "[x] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
   - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
@@ -14,14 +14,16 @@ chunks:
   - "[x] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[x] RQC7a. The contract as data (aia-fieldwork-events-1): fieldwork_progress (respondents of n, blocks sent and replayed) every few respondents and, behind a switch, as a 30 s heartbeat; the park reason code as STEP_RECOVERY's error_reason, for every executor; the web words the progress"
-  - "[ ] RQC7b. Quota-cell fill and the respondent grid: each panel respondent's quota cell (the RQC6a keys), fill per cell, a per-respondent row, under aia-fieldwork-events-2"
+  - "[x] RQC7b. Quota-cell fill: each panel respondent's quota cell (the RQC6a keys), fill per cell, under aia-fieldwork-events-2"
+  - "[ ] RQC7c. The respondent disc on Průběh, in counts: the pure model, the disc, its legend and truth note, mounted in Respondenti (spec sber D1-D4, P4; retitled 2026-10-27: V2 draws the disc, never a grid)"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[x] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
   - "[ ] RQC11. Routing in fieldwork (W1, after working-copy-edit-ops WCE13): a conditional question is asked only of respondents whose earlier answer meets its condition, and the dataset records who was not asked"
-  - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
+  - "[x] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
   - "[ ] RQC12. Weight identity over HTTP: weight_role and weight_column in the run's population note and in the report's method section (G78)"
   - "[ ] RQC13. Fieldwork shows a question's stimulus to each respondent before the question, recorded in the answer's provenance (D-45)"
+  - "[ ] RQC7d. The sector disc by one quota field, over RQC7b's quota-cell fill; the sectors sum to the answered total, a cell answered past its n drawn full and said, never clipped (spec sber D5; the sum rule added 2026-10-27; W2)"
 ---
 # Run QC and a fieldwork checkpoint
 
@@ -151,8 +153,35 @@ Written first by S2; consumed by the Fieldwork artifact (`research-lead-workbenc
   default; at most two feed writes a minute). The park reason: the engine's `STEP_RECOVERY` payload carries
   the attempt's own `error.reason` as `error_reason` when it differs from the waiting reason
   (`workflow_repository._apply_recovery`), so every executor's park names why in the feed.
-- RQC7b needs each panel respondent's quota cell: `SampledRespondent` carries none, so the sample's
-  `audit.quota_fields` are looked up at the respondent's row (as `holdout/run.py` `cell_of` does).
+- RQC7b: `SampledRespondent.quota_cell` holds the respondent's place in `PanelSample.quota_cells`, set
+  by `draw_panel_sample` from the same join the allotment used. This is out of `provenance()`, so no
+  recorded run changes; the Metodika steps pinned to `draw_panel_sample` (`weighting/sample_base`,
+  `weighting/kish_sample`) were re-read and re-pinned. `fieldwork_events` is version
+  `aia-fieldwork-events-2`:
+  - `fieldwork_sample` (`sample()`): the quota fields and the cells allotted respondents, `{key, values,
+    n}`; none without quota fields.
+  - `fieldwork_progress` gains `cells`: the respondents answered per cell since the attempt's previous
+    report, `None` when the attempt counts none.
+  `answer_plans(quota=)` writes the cells once the preflight passed (a park writes none) and counts them
+  for a panel run only, behind `AIA_AI_FIELDWORK_QUOTA_FILL` (off by default, false on develop).
+- Burst size (the stand-in review on #836): the first cut wrote a `fieldwork_respondent` row per
+  respondent. On an attempt replayed from the journal (RQC0) there is no model call between respondents,
+  so that was n lease-fenced writes back to back (n up to 10,000, `SAMPLE_SIZE_BOUNDS`). The counts now
+  ride the reports fieldwork writes anyway, one every `progress_every` (10) respondents and at the last,
+  so the switch adds one row per attempt (the cells) and nothing per respondent. A report's `cells`
+  holds at most `progress_every` keys. Test:
+  `test_each_report_counts_the_respondents_answered_per_cell_with_the_switch_on` (a replayed attempt
+  writes exactly as many rows as the first).
+- The web folds them (`step-activity.ts`: `quota`, each cell's `answered` summed from the reports; a new
+  attempt's claim clears it; an unreadable or empty list is no table). Průběh shows "Kvóty vzorku: X z Y
+  buněk naplněno" under the fieldwork step (`QuotaFillTable`), with the note that a quota is not pair
+  support.
+- Tests: `test_population_sampling.py::test_a_samples_quota_cells_are_the_units_largest_remainder` (each
+  respondent's cell, the event's cells and fill); `test_ai_fieldwork_answer_plans.py`'s RQC7b tests and
+  `::test_a_park_writes_no_cells`; `test_ai_fieldwork.py::test_a_panel_run_writes_its_quota_cells_and_fills_them_through_its_reports`
+  (the real worker); `step-activity.test.ts` and `ExecutionSteps.test.tsx` (RQC7b).
+- RQC7c: a respondent grid needs per-respondent rows the feed no longer carries; it waits for V2's
+  design, and would read the run's dataset rather than add a write per respondent.
 
 **RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks**  
 The panel default needs the route widened and the API reads no egress key. Shares the composition record of `lead-orchestration#LO12b`.
@@ -355,3 +384,211 @@ population. A live AC-05 run on develop reads the Czech LIVE, never this.
 - `.planning/open-items.md`: IA-1 closed by RQC9 (anchor `research/persona.ts` `setSampleSize`, test
   `PersonaStep.test.tsx` "the sample: a value outside the server's valid n is refused and said, never
   clamped (IA-1)").
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RQC7d. Sector disc** (spec `sber/D5`; follows RQC7b; W2, lane E). `AIA_AI_FIELDWORK_QUOTA_FILL` measured on develop before it is on.
+
+**Notes.**
+- RQC7c carries `sber/P4` and `sber/D1`-`D4`: the disc is now drawn, so RQC7c is re-scoped to the counts it shows (register contradiction 8).
+
+## ADR 0036's answered items (2026-10-26): what RQC5 is built to
+
+The product owner answered part of ADR 0036 in the Decision Review, 2026-10-26 (relayed by the PM
+coordinator; `docs/architecture/adr/0036-respondent-replacement-admission.md`, decision notes). The ADR
+stays Proposed; MQ-15a, MQ-15b, 0036-Q7, 0036-Q8 and the verdict are left for the methodology owner.
+RQC5 takes these as acceptance conditions:
+
+- **0036-Q4 (a) "By row":** the exclusion pin names population rows, not donors. Test: a substitute
+  may share a donor with a kept respondent, never a row with any original respondent.
+- **0036-Q5 (a) "Refuse when off":** `run.replace` refuses by name while `AIA_AI_FIELDWORK_CHECKPOINT`
+  is off (OI-64). Test: with the switch off the start answers the refusal and queues nothing.
+- **0036-Q6 (a) "Within the original's quota cells, not as an independent representative sample":**
+  substitutes are drawn within the original run's quota cells (`PanelSample.quota_cells`), never as a
+  fresh representative draw (OI-99); the sampler mode itself follows MQ-15a's method.
+- **MQ-15c (a) "Report Kish n of run 2, beside run 1's":** the side-by-side report (ADR 0036 decision 6)
+  prints both runs' Kish effective n.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**RQC7c retitled.** Its old title ("the respondent grid on Sběr dat, once V2 draws one (the prototype has none)") was
+stale: V2 draws a disc in counts (spec `sber/§3`, D1-D4), and the note under "From the research build spec" already
+re-scoped it. The title now says so.
+
+**RQC7d's sum rule.** The sectors are the quota cells grouped by one field; their answered counts sum to the run's
+answered total (the disc's `done`), and a cell answered past its n is drawn full and said. Test: two cells of one age
+band sum into one sector; the sectors' answered counts sum to `progress.done`.
+
+## RQC1, delivered (2026-10-28, branch `feature/rqc1-straight-lining`)
+
+**Ownership** (the product owner, relayed by the PM coordinator, 2026-10-28): RQC1 is the
+per-respondent rule alone; `evidence-integrity` 2 is the run-level QC port (the share, the unit's
+`straightline_max` 0.15, the ">= 3 scale questions" gate and the other `qc.kontrola` checks, EXACT
+against the unit, over this rule), built by the same session next; `evidence-integrity` 3 stores and
+shows it; RQC2 wires that function as the node. Order: RQC1, `evidence-integrity` 2, RQC2.
+
+**The rule.** `packages/aia_core/src/aia_core/domain/straight_lining.py` `answer_spread(answers)`:
+one respondent's answers over the items a caller names read `NONE`, `ONE`, `NO_SPREAD` or
+`SPREAD`; `None` is not answered; two answers are the same only when equal; a non-finite answer is
+refused, never dropped. Each caller keeps its item set and its reading of `ONE` (F-RQC1-1), so no
+stored number moves and no engine version changes.
+
+- The v2 engine's `_placeability` (`domain/sociomap/engine.py`) and the v3 rescaling's
+  `person_minmax` (`domain/sociomap/relations.py`, audit F2/F11) call it. Their Metodika steps
+  (`placeability`, `f2_person_minmax`, `f11_not_placed`) were re-read against the code (their
+  formulas still say exactly what it does) and re-pinned.
+- `aia-sociomap-5` is signed off and ported as written, so it is not changed; it is held to the rule
+  by test on every integer scale it is fed (rescaled to 0-1).
+- The unit's run QC rule (`qc.py:202-203`, `nunique(axis=1) == 1`) is `ONE` or `NO_SPREAD`, held by
+  test to a hand transcription of that line (the unit's own run needs its environment and is
+  `evidence-integrity` 2's EXACT fixture); `evidence-integrity` 2 ports the rest over it, and the
+  straight-liner worker (RQC4a) reads the same rule. Neither calls it yet.
+- Metodika pins `_placeability` and `person_minmax` by their source, and the rule moved out of them:
+  `answer_spread`'s own source is pinned
+  (`::test_the_rule_is_pinned_so_the_methodology_steps_that_read_it_are_re_read`), so a change to it
+  fails until the three steps are re-read. A text or boolean answer is refused, never parsed.
+
+**Tests** (`packages/aia_core/tests/test_straight_lining.py`; each fails on `origin/develop` @
+28406c46, where the module does not exist): the four readings and the refusal of a non-finite answer;
+`::test_the_units_run_qc_is_one_or_no_spread`, `::test_the_v2_engine_places_only_a_spread` and
+`::test_the_v3_rescaling_keeps_only_a_spread` over every row of up to four items on a three-point
+scale with gaps (341 rows); `::test_the_signed_off_tolerance_agrees_on_rescaled_integer_scales`
+(`centre` and `place_respondents` against the rule on 1-5, 1-7, 0-10, 1-10 and 0-100). The Sociomap,
+methodology and golden suites pass unchanged (2,465 passed; the parity suites need the reference
+checkouts and were not run here).
+
+## Findings
+
+- **F-RQC1-1 (for the methodology owner; not decided here).** Five functions in four places decided
+  who is a straight-liner (`-5` holds two of them), and they differ in three ways the code cannot settle:
+  - **Item scope.** The unit's QC reads every scale question of the run, and only when there are
+    three or more (`legacy/npc-panel-18.6.6/app/qc.py:200-207`). The v2 engine reads the mapped
+    objects (`domain/sociomap/engine.py:86-109 @ 28406c46`). The v3 rescaling reads every item the
+    respondent rated (`domain/sociomap/relations.py:323-360 @ 28406c46`). `aia-sociomap-5` reads the
+    mapped objects (`signed_off_inputs.py:55-66`, `signed_off_respondents.py:81 @ 28406c46`).
+  - **One answer.** The unit counts a respondent who answered one scale as a straight-liner. The v2
+    engine gives it its own reason ("fewer than 2"). The v3 rescaling and `-5` exclude it.
+  - **Exact or tolerance.** The unit, v2 and v3 compare exactly; `-5` reads a spread above `1e-12`.
+    On ratings rescaled from an integer scale the two agree
+    (`test_straight_lining.py::test_the_signed_off_tolerance_agrees_on_rescaled_integer_scales`); on a
+    continuous input they could differ by rounding.
+  RQC1 shares the rule and keeps each caller's scope and reading of one answer. Whether the scope and
+  the count rule become one is the methodology owner's (Aram's) question, on his list through the PM
+  coordinator (2026-10-28).
+
+## Doc follow-up (RQC1)
+
+- `CLAUDE.md` §2, under `domain/`: `straight_lining.py` -- the one straight-liner rule
+  (`answer_spread`: NONE / ONE / NO_SPREAD / SPREAD over the items a caller names, exact, a non-finite
+  answer refused), called by the Sociomap's v2 `_placeability` and v3 `person_minmax`, `-5` held to it by
+  test; the run QC (`evidence-integrity` 2) and the straight-liner worker read it (RQC1).
+- `.planning/open-items.md`: F-RQC1-1 (the three differences above), for the methodology owner.
+
+## RQC2, the design (2026-10-28, branch `feature/rqc2-qc-node`, stacked on `evidence-integrity` 2a)
+
+The node follows the experimental Sociomapping's pattern (`workflow_templates.py` `sociomapping_enabled`):
+the executor is always registered, and the switch decides only whether a newly started run includes the
+step, recorded on the run so a retry keeps it.
+
+- **Template.** `QC_STEP_KIND = "research_qc"`, node `qc`, depends on `run`, stage `FIELDWORK` (its
+  subject is the fieldwork's answers; EI#3 shows it on Fieldwork and Results), artifact `research_qc`,
+  three attempts (no model call, no money). No step depends on it: the report never waits on QC (MVP-24).
+- **Switch.** `AIA_RUN_QC_ENABLED` (API `Settings.run_qc_enabled`, off by default and on nowhere);
+  read at start by `POST …/research/runs` and the Lead's typed start (`RunStartSettings`).
+- **Run-key identity.** The run key gains `:qc`, so a run with the step is another run than one
+  without; the metadata records `qc_enabled: true`, and a retry keeps the original's (never re-read
+  from the switch), as `sociomapping_enabled` does.
+- **Executor.** `RunQcExecutor` (`aia_executors/research.py`): reads the run's specification and
+  dataset, `dataset_qc(spec, dataset, dry=dataset.is_synthetic)`, stores the result as JSON with its
+  inputs (specification and dataset ids, the dataset's SHA-256), the version and the thresholds. A QC
+  that cannot be read over this run (a conditional question, until RQC11) is stored as
+  `not_computed` with its reason, and the step succeeds: nothing QC finds fails a run. A dataset that does
+  not answer its specification fails the step as it fails aggregation, and a defect in the checks fails
+  it too (reported, never stored as a result). `dry` is the unit's run with no model call: the fixture's
+  invented answers (`SYNTHETIC_FIXTURE`) alone, never fictional AI respondents (`unit_dry`); on the
+  methodology owner's list with the other 2a divergences.
+- **Web.** Průběh names the step ("Kontrola kvality běhu") in the pipeline's order; the activity orb
+  reads it as code. Nothing else: EI#3 stores nothing more and shows the findings.
+- Tests: the template with and without the switch; a start with the switch carries `:qc` and the
+  metadata and a retry keeps it; the executor over a fictional run stores the QC the domain computes,
+  a conditional run stores `not_computed`, and the step never fails the run.
+
+**RQC2, delivered (2026-10-28).** As designed above, plus:
+- The reuse key of the QC artifact holds the dataset, the specification, `RUN_QC_VERSION`, `dry` and the
+  thresholds, so a QC under another rule is never handed back.
+- The report's coverage record names the step (`research_qc` -> "Kontrola kvality běhu") among the
+  outputs made beside the report (`report.py` `beside_outputs`, web `report-coverage.ts`).
+- `RunStartSettings.qc_enabled` is required, as `sociomapping_enabled` is: a composition that forgets it
+  fails the type check rather than forking the run key.
+- Develop's Compose passes `AIA_RUN_QC_ENABLED` to the API, `false` unless set; nothing turns it on.
+- Tests: `test_workflow_templates.py::test_the_research_graph_gains_the_run_qc_step_only_with_its_switch`;
+  `apps/executors/tests/test_run_qc_executor.py` (the graph without the switch; the key and the retry;
+  a fictional run completes and stores the domain's QC; a QC the domain cannot read is stored
+  `not_computed` and the run completes; `unit_dry` per origin);
+  `test_research_api.py::test_the_run_qc_switch_adds_its_step_to_a_new_run_only`;
+  `test_snapshot_executor.py` (the production registry carries `research_qc`);
+  `ExecutionSteps.test.tsx` (Průběh names the step after fieldwork), `activity-orb.test.ts`,
+  `report-coverage.test.ts`.
+
+## Doc follow-up (RQC2)
+
+- `CLAUDE.md` §2: under `config.py`, `AIA_RUN_QC_ENABLED` (`run_qc_enabled`, off; off on develop): a new
+  research run gains the `qc` step after fieldwork (`research_qc`, the unit's run QC over the stored
+  answers, warnings only, nothing waits on it), its key `:qc`, recorded on the run so a retry keeps it;
+  under `aia_executors/research.py`, `RunQcExecutor` (`not_computed` for a QC it cannot read; `unit_dry`:
+  the fixture's answers alone); under `domain/workflow_templates.py`, `QC_STEP_KIND`.
+- `deploy/develop/README.md`: `AIA_RUN_QC_ENABLED` among the API's switches, off until measured.
+
+
+## RQC4a, delivered (2026-10-29, branch `feature/rqc4a-qc-flags`, stacked on RQC2)
+
+**The flags.** `domain/qc_flags.py` `straight_liner_flags` / `dataset_flags`: each respondent the
+straight-liner rule names, by code, over the run QC's own scope (the scale questions, only where there
+are at least `straight_lining_min_scales`, `answer_spread` reading `ONE` or `NO_SPREAD`). The count is
+the run QC's `straightlining` share on every captured unit run
+(`test_qc_flags.py::test_the_flags_are_exactly_the_respondents_the_run_qc_counts`), so the share and the
+flags never disagree. No new methodology: the scope and the rule are 2a's and RQC1's, with their
+divergences already on the methodology owner's list (F-RQC1-1, `evidence-integrity` 2).
+
+**Ids and lineage.** A flag's id is `<kind>:<respondent id>` (`flag_id`), unique within its run's QC
+record. The record already pins its lineage (`inputs`: specification id and fingerprint, dataset id and
+SHA-256, RQC2), so the id carries no run. The QC step stores the flags beside the findings
+(`flags_payload`, `aia-qc-flags-1`); `read_flags` refuses another version or an id that does not name
+its kind and respondent. The QC artifact's reuse key gains `QC_FLAGS_VERSION`. A QC that cannot be read
+(a conditional question, RQC11) stores no flags, for the same reason (`routed_questions_refusal`, shared
+with `dataset_qc`).
+
+**The accept target.** A field of the run's QC record, `flag_decisions` (`ACCEPT_FIELD`), as RQC4 says.
+`FlagDecisionRecord` names the flag, the QC artifact, the dataset's SHA-256, who decided and, for W3, the
+worker's proposal. `check_decision` takes `keep` or `flag` and refuses by code: `replace_not_available`
+(a new linked run, RQC5, has no command until its ADR, ADR 0026 decision 4), `decision_unknown`,
+`other_record`, `stale_dataset`, `unknown_flag`. Nothing stores a decision yet: the write, its ledger
+row and the worker's proposal are RQC4 (W3, after LO9b's binding).
+
+- Tests: `packages/aia_core/tests/test_qc_flags.py` (19 captured runs, the reading and items, ids, the
+  stored round trip and its refusals, a dataset's flags, the conditional refusal, each decision and each
+  refusal); `apps/executors/tests/test_run_qc_executor.py` (a fictional run stores the flags the domain
+  names, one per straight-liner of the share; a QC it cannot read stores none).
+
+## Doc follow-up (RQC4a)
+
+- `CLAUDE.md` §2, under `domain/`: `qc_flags.py`, a run's deterministic QC flags (RQC4a): the
+  straight-liners the run QC counts, one flag each (`<kind>:<respondent id>`), stored in the run's
+  `research_qc` record as `aia-qc-flags-1`; the accept target, the record's `flag_decisions` field
+  (`FlagDecisionRecord`, `check_decision`: keep or flag, `replace` refused until RQC5).
+- `CLAUDE.md` §2, under `aia_executors/research.py`: `RunQcExecutor` stores the flags beside the findings.

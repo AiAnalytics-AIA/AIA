@@ -8,7 +8,7 @@ elements; nothing decides content.
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from typing import Any, Final
 
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -52,6 +52,12 @@ def locked_inline(paragraph: Paragraph, tag: str) -> Iterator[None]:
     written[0].addprevious(sdt)
     for child in written:
         content.append(child)
+
+
+def locked(paragraph: Paragraph, tag: str | None) -> AbstractContextManager[None]:
+    """:func:`locked_inline` when ``tag`` names a source, else nothing: for a block whose text
+    code may or may not have written whole (``Paragraph.control``)."""
+    return locked_inline(paragraph, tag) if tag else nullcontext()
 
 
 def insert_in_order(parent: etree._Element, child: etree._Element, later: Iterable[str]) -> None:

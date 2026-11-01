@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/object-map-signed-off.json";
 import legacy from "./fixtures/object-map.json";
 import {
+  allRelations,
   isSignedOffMap,
   objectDetail,
   objectsNotPlaced,
@@ -156,9 +157,7 @@ describe("what a click shows", () => {
   it("reads an object's stored numbers and its 5 strongest reliable relations, by |r| with sign", () => {
     for (let k = 0; k < CLEAR.object_ids.length; k++) {
       const o = objectDetail(clear, CLEAR, k);
-      const score = CLEAR.scores!.objects.find((s) => s.id === CLEAR.object_ids[k])!;
       expect(o).toMatchObject({ id: CLEAR.object_ids[k], label: labelOf(CLEAR.object_ids[k]), primary: true, height: CLEAR.heights.values[k], basis: null });
-      expect(o.connectedness).toBeCloseTo(100 * score.connectedness!, 12);
       const reliable = CLEAR.object_ids.flatMap((id, j) => (j !== k && CLEAR.relations.status[k][j] === "reliable" ? [{ id, r: CLEAR.relations.r[k][j]! }] : []));
       reliable.sort((x, y) => Math.abs(y.r) - Math.abs(x.r));
       expect(o.relations.map((x) => [x.id, x.r])).toEqual(reliable.slice(0, 5).map((x) => [x.id, x.r]));
@@ -169,19 +168,23 @@ describe("what a click shows", () => {
     expect(objectDetail(clear, { ...CLEAR, relations: { ...CLEAR.relations, status } }, 0).relations.map((x) => x.id)).not.toContain(strongest);
   });
 
-  it("leaves the alignment out when it says nothing, and shows it with a secondary object", () => {
-    // Each respondent's mean removed and every object PRIMARY: the alignment is ~0 by construction.
-    expect(CLEAR.spec.ratings?.person_normalization).toBe("person_mean_centring");
-    expect(objectDetail(clear, CLEAR, 0).alignment).toBeNull();
+  it("never shows alignment or connectedness, a map stored with them included (MQ-05)", () => {
+    // The fixture was stored before -5 left the F8 scores out: it still carries them.
+    expect(JSON.stringify(CLEAR)).toContain('"connectedness"');
+    for (let k = 0; k < CLEAR.object_ids.length; k++) {
+      expect(objectDetail(clear, CLEAR, k)).not.toHaveProperty("connectedness");
+      expect(objectDetail(clear, CLEAR, k)).not.toHaveProperty("alignment");
+    }
+  });
+
+  it("names a secondary object's basis: its strongest reliable |r| to a PRIMARY object", () => {
     const id = CLEAR.object_ids[3];
     const secondary = { ...CLEAR, roles: { ...CLEAR.roles, [id]: "secondary" } };
     const o = objectDetail(clear, secondary, 3);
     expect(o.primary).toBe(false);
-    expect(o.alignment).toBe(CLEAR.scores!.objects[3].alignment);
     // The secondary's basis: its strongest reliable |r| to a PRIMARY object.
     const toPrimary = CLEAR.object_ids.flatMap((_, j) => (j !== 3 && CLEAR.relations.status[3][j] === "reliable" ? [Math.abs(CLEAR.relations.r[3][j]!)] : []));
     expect(o.basis).toBe(Math.max(...toPrimary));
-    expect(objectDetail(clear, { ...CLEAR, spec: { ...CLEAR.spec, ratings: {} } }, 0).alignment).toBe(CLEAR.scores!.objects[0].alignment);
     // Only PRIMARY partners count: with its strongest partner secondary too, the basis is the next one.
     const top = objectDetail(clear, CLEAR, 3).relations[0].id;
     const two = { ...CLEAR, roles: { ...CLEAR.roles, [id]: "secondary", [top]: "secondary" } };
@@ -215,20 +218,33 @@ describe("what a click shows", () => {
     expect(relationDetail(clear, unknown(CLEAR.relations.n_min), 0, 2)).toMatchObject({ r: null, verdict: "noSpread" });
   });
 
-  it("reads a respondent's fit and segment: coloured in one, grey, or faded", () => {
-    expect(respondentDetail(CLEAR, "r0006")).toEqual({ id: "r0006", faded: false, explained: Math.round(100 * (1 - 0.25558)), segment: 0 });
+  it("lists every other object's stored relation, whatever its status: by |r|, the unknown ones last", () => {
+    const k = 0, lines = allRelations(clear, CLEAR, k);
+    expect(lines.map((x) => x.j).sort((a, b) => a - b)).toEqual(CLEAR.object_ids.map((_, j) => j).filter((j) => j !== k));
+    for (const x of lines) {
+      expect(x.r).toBe(CLEAR.relations.r[k][x.j]);
+      expect(x.n).toBe(CLEAR.relations.n[k][x.j]);
+      expect(x.verdict).toBe(relationDetail(clear, CLEAR, k, x.j).verdict);
+    }
+    const known = lines.filter((x) => x.r !== null).map((x) => Math.abs(x.r!));
+    expect(known).toEqual([...known].sort((a, b) => b - a));
+    // A weak pair is listed too, and an unknown one goes last.
+    const weak = CLEAR.object_ids.findIndex((_, j) => j !== k && CLEAR.relations.status[k][j] === "weak");
+    if (weak >= 0) expect(lines.some((x) => x.j === weak && x.verdict === "weak")).toBe(true);
+    const cell = <T,>(m: T[][], v: T) => m.map((row, a) => row.map((x, b) => (a === k && b === 2 ? v : x)));
+    const rel = CLEAR.relations;
+    const unknown = { ...CLEAR, relations: { ...rel, r: cell(rel.r, null), status: cell(rel.status, null), n: cell(rel.n, 3) } };
+    expect(allRelations(clear, unknown, k).at(-1)).toMatchObject({ j: 2, r: null, n: 3, verdict: "fewRatings" });
+  });
+
+  it("reads a respondent's segment: coloured in one, grey, or faded; never the misfit (MQ-05)", () => {
+    expect(respondentDetail(CLEAR, "r0006")).toEqual({ id: "r0006", faded: false, segment: 0 });
     // Clearly placed but not certain of one segment: grey, "not clearly in one".
     expect(respondentDetail(CLEAR, "r0016")).toMatchObject({ faded: false, segment: -1 });
     // A weakly placed respondent is never coloured, whatever its likeliest segment.
-    expect(respondentDetail(CLEAR, "r0008")).toMatchObject({ faded: true, explained: 6, segment: -1 });
+    expect(respondentDetail(CLEAR, "r0008")).toEqual({ id: "r0008", faded: true, segment: -1 });
     expect(respondentDetail(CLEAR, "nobody")).toBeNull();
     // A set that shows no segments says nothing about them.
     expect(respondentDetail(NOISE, NOISE.respondent_ids![10])!.segment).toBeNull();
-  });
-
-  it("rounds the share explained as the panel's payload rounds the misfit: 4 decimals first", () => {
-    const r = storedRespondents(CLEAR)!;
-    const misfit = r.misfit.map((m, k) => (k === 6 ? 0.03505 : m));
-    expect(respondentDetail({ ...CLEAR, respondents: { ...r, misfit } }, "r0006")!.explained).toBe(97);
   });
 });

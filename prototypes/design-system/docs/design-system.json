@@ -1,0 +1,761 @@
+{
+ "v": 3,
+ "layout": "files",
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-28T18:30:00Z"
+ },
+ "title": "AIA Design System v3",
+ "namespace": "AIA",
+ "libraries": [],
+ "sections": {},
+ "groups": [
+  "Brand",
+  "LeadMarks",
+  "Icons"
+ ],
+ "assetGroups": {
+  "Icons": {
+   "name": "Icons",
+   "tile": "xs",
+   "order": [
+    "archive.svg",
+    "arrow-clockwise.svg",
+    "arrow-counter-clockwise.svg",
+    "arrow-elbow-down-right.svg",
+    "arrow-left.svg",
+    "arrow-right.svg",
+    "arrow-square-out.svg",
+    "arrow-u-up-left.svg",
+    "arrow-up-right.svg",
+    "arrows-clockwise.svg",
+    "arrows-left-right.svg",
+    "arrows-out-simple.svg",
+    "at.svg",
+    "bell.svg",
+    "binoculars.svg",
+    "book-open.svg",
+    "bookmark-simple.svg",
+    "buildings.svg",
+    "calendar-blank.svg",
+    "caret-down.svg",
+    "caret-left.svg",
+    "caret-right.svg",
+    "chart-bar.svg",
+    "chat-circle.svg",
+    "chat-text.svg",
+    "check.svg",
+    "checks.svg",
+    "circle-dashed.svg",
+    "clock-counter-clockwise.svg",
+    "clock.svg",
+    "coins.svg",
+    "command.svg",
+    "copy.svg",
+    "cpu.svg",
+    "currency-dollar.svg",
+    "database.svg",
+    "dot-outline.svg",
+    "dot.svg",
+    "download-simple.svg",
+    "empty.svg",
+    "exclamation-mark.svg",
+    "eye-slash.svg",
+    "eye.svg",
+    "file-text.svg",
+    "flag.svg",
+    "floppy-disk.svg",
+    "folder-simple.svg",
+    "funnel-simple.svg",
+    "gauge.svg",
+    "globe.svg",
+    "heartbeat.svg",
+    "hourglass-medium.svg",
+    "house-simple.svg",
+    "info.svg",
+    "keyboard.svg",
+    "list-checks.svg",
+    "list-magnifying-glass.svg",
+    "list.svg",
+    "lock-simple.svg",
+    "magnifying-glass.svg",
+    "map-pin.svg",
+    "map-trifold.svg",
+    "minus.svg",
+    "paper-plane-right.svg",
+    "path.svg",
+    "pause-circle.svg",
+    "pause.svg",
+    "pencil-simple.svg",
+    "play.svg",
+    "plus.svg",
+    "power.svg",
+    "prohibit.svg",
+    "push-pin.svg",
+    "question.svg",
+    "quotes.svg",
+    "scales.svg",
+    "shield-check.svg",
+    "sidebar-simple.svg",
+    "sliders-horizontal.svg",
+    "sort-descending.svg",
+    "sparkle.svg",
+    "squares-four.svg",
+    "stack.svg",
+    "target.svg",
+    "trash.svg",
+    "tray.svg",
+    "upload-simple.svg",
+    "user-check.svg",
+    "user.svg",
+    "users.svg",
+    "wallet.svg",
+    "warning.svg",
+    "x.svg"
+   ],
+   "files": {
+    "archive.svg": {
+     "name": "archive.svg",
+     "blob": "2122741f3ef4017be75a3947a1696ad8",
+     "size": 340,
+     "type": "image/svg+xml"
+    },
+    "arrow-clockwise.svg": {
+     "name": "arrow-clockwise.svg",
+     "blob": "cd9d564bac542cad3ad0f7c958c87b1b",
+     "size": 297,
+     "type": "image/svg+xml"
+    },
+    "arrow-counter-clockwise.svg": {
+     "name": "arrow-counter-clockwise.svg",
+     "blob": "f130b611a6a98a5452a4cb6f6c44dda5",
+     "size": 326,
+     "type": "image/svg+xml"
+    },
+    "arrow-elbow-down-right.svg": {
+     "name": "arrow-elbow-down-right.svg",
+     "blob": "29c801b1b155f9026187c8fbdebd4bc4",
+     "size": 267,
+     "type": "image/svg+xml"
+    },
+    "arrow-left.svg": {
+     "name": "arrow-left.svg",
+     "blob": "4ec5992561f099402529e24e2b647260",
+     "size": 249,
+     "type": "image/svg+xml"
+    },
+    "arrow-right.svg": {
+     "name": "arrow-right.svg",
+     "blob": "d3a03cc08b7023aae7d58326ed88868c",
+     "size": 246,
+     "type": "image/svg+xml"
+    },
+    "arrow-square-out.svg": {
+     "name": "arrow-square-out.svg",
+     "blob": "0bde05bc5c3098bce1af8d0f20682dcb",
+     "size": 348,
+     "type": "image/svg+xml"
+    },
+    "arrow-u-up-left.svg": {
+     "name": "arrow-u-up-left.svg",
+     "blob": "b24b657b41dbaa28d828437cf0e6d7ae",
+     "size": 304,
+     "type": "image/svg+xml"
+    },
+    "arrow-up-right.svg": {
+     "name": "arrow-up-right.svg",
+     "blob": "545b31361dcb82687d8b54d58dfeaa83",
+     "size": 218,
+     "type": "image/svg+xml"
+    },
+    "arrows-clockwise.svg": {
+     "name": "arrows-clockwise.svg",
+     "blob": "bcbe86f19308142989ed19b5f684e9d5",
+     "size": 504,
+     "type": "image/svg+xml"
+    },
+    "arrows-left-right.svg": {
+     "name": "arrows-left-right.svg",
+     "blob": "2e6b758d037826cf38ccf9330eea0464",
+     "size": 373,
+     "type": "image/svg+xml"
+    },
+    "arrows-out-simple.svg": {
+     "name": "arrows-out-simple.svg",
+     "blob": "9bf48f53063c6e166d1368a9d68b5f2a",
+     "size": 336,
+     "type": "image/svg+xml"
+    },
+    "at.svg": {
+     "name": "at.svg",
+     "blob": "a0ef0689734b0fb43879431f2aa15677",
+     "size": 435,
+     "type": "image/svg+xml"
+    },
+    "bell.svg": {
+     "name": "bell.svg",
+     "blob": "86b46bc06ada605437a4c0ed7445a2d9",
+     "size": 401,
+     "type": "image/svg+xml"
+    },
+    "binoculars.svg": {
+     "name": "binoculars.svg",
+     "blob": "06a7576ab71359a29e9d8e7e7e96c43c",
+     "size": 613,
+     "type": "image/svg+xml"
+    },
+    "book-open.svg": {
+     "name": "book-open.svg",
+     "blob": "777dd74a607c1589d52bd862bd5d1d72",
+     "size": 397,
+     "type": "image/svg+xml"
+    },
+    "bookmark-simple.svg": {
+     "name": "bookmark-simple.svg",
+     "blob": "0af958545a4abea7e1d708d48d9260f6",
+     "size": 274,
+     "type": "image/svg+xml"
+    },
+    "buildings.svg": {
+     "name": "buildings.svg",
+     "blob": "e2f006d2fe7a75866d32dd1e70aa4ac4",
+     "size": 456,
+     "type": "image/svg+xml"
+    },
+    "calendar-blank.svg": {
+     "name": "calendar-blank.svg",
+     "blob": "1ca34a81a743e833b4a31a83668c62f1",
+     "size": 328,
+     "type": "image/svg+xml"
+    },
+    "caret-down.svg": {
+     "name": "caret-down.svg",
+     "blob": "f353f8682d68b6b0bf9619bd2f4b9189",
+     "size": 215,
+     "type": "image/svg+xml"
+    },
+    "caret-left.svg": {
+     "name": "caret-left.svg",
+     "blob": "cfd2f7a9166b2a91e4eefdd17635b810",
+     "size": 201,
+     "type": "image/svg+xml"
+    },
+    "caret-right.svg": {
+     "name": "caret-right.svg",
+     "blob": "1042092aa95f4a50cd87e5de8a5ea10e",
+     "size": 220,
+     "type": "image/svg+xml"
+    },
+    "chart-bar.svg": {
+     "name": "chart-bar.svg",
+     "blob": "11ab2b0fd9d758ccdbc18353c1578ec9",
+     "size": 283,
+     "type": "image/svg+xml"
+    },
+    "chat-circle.svg": {
+     "name": "chat-circle.svg",
+     "blob": "f98f3ec28664322ed31ce7d75ea9df0c",
+     "size": 320,
+     "type": "image/svg+xml"
+    },
+    "chat-text.svg": {
+     "name": "chat-text.svg",
+     "blob": "9cd7fbb18bf5324c964c77d52f06bf9e",
+     "size": 449,
+     "type": "image/svg+xml"
+    },
+    "check.svg": {
+     "name": "check.svg",
+     "blob": "8dad89a2323207a90871ccfc55ae131b",
+     "size": 216,
+     "type": "image/svg+xml"
+    },
+    "checks.svg": {
+     "name": "checks.svg",
+     "blob": "f8aeef152f1dfcb4232ceddd58446a04",
+     "size": 347,
+     "type": "image/svg+xml"
+    },
+    "circle-dashed.svg": {
+     "name": "circle-dashed.svg",
+     "blob": "1a802148d47bc957a5f80b1f939a8e4c",
+     "size": 775,
+     "type": "image/svg+xml"
+    },
+    "clock-counter-clockwise.svg": {
+     "name": "clock-counter-clockwise.svg",
+     "blob": "ad038a6480ba312bda34ac1ad4637bb9",
+     "size": 410,
+     "type": "image/svg+xml"
+    },
+    "clock.svg": {
+     "name": "clock.svg",
+     "blob": "e7701429794aa452779cb1a6003a9c79",
+     "size": 288,
+     "type": "image/svg+xml"
+    },
+    "coins.svg": {
+     "name": "coins.svg",
+     "blob": "c8f65d30c7f30419e1362fe87a6bc0b9",
+     "size": 1071,
+     "type": "image/svg+xml"
+    },
+    "command.svg": {
+     "name": "command.svg",
+     "blob": "216ff2067b664d8fe12c1bb148f5e1af",
+     "size": 395,
+     "type": "image/svg+xml"
+    },
+    "copy.svg": {
+     "name": "copy.svg",
+     "blob": "2c3e9abb9ce69d8c8f00d5c3491890d5",
+     "size": 280,
+     "type": "image/svg+xml"
+    },
+    "cpu.svg": {
+     "name": "cpu.svg",
+     "blob": "d8fd667e0c9aa77256de5867c6a45928",
+     "size": 542,
+     "type": "image/svg+xml"
+    },
+    "currency-dollar.svg": {
+     "name": "currency-dollar.svg",
+     "blob": "14ac0824c5b975350c9ce2c5a3c62e5e",
+     "size": 395,
+     "type": "image/svg+xml"
+    },
+    "database.svg": {
+     "name": "database.svg",
+     "blob": "6c2ddbc343e19fcf6c4960a82a3dbf77",
+     "size": 811,
+     "type": "image/svg+xml"
+    },
+    "dot-outline.svg": {
+     "name": "dot-outline.svg",
+     "blob": "3e2a3c2245559e5b3c36afd0106a2f00",
+     "size": 190,
+     "type": "image/svg+xml"
+    },
+    "dot.svg": {
+     "name": "dot.svg",
+     "blob": "a925a02c7fd2289e59d9913b8548ea3f",
+     "size": 148,
+     "type": "image/svg+xml"
+    },
+    "download-simple.svg": {
+     "name": "download-simple.svg",
+     "blob": "4b3fb77e2c8817d4b5ab93ecefeede2d",
+     "size": 318,
+     "type": "image/svg+xml"
+    },
+    "empty.svg": {
+     "name": "empty.svg",
+     "blob": "cf92ae1ec336ba4d489930cb82108744",
+     "size": 412,
+     "type": "image/svg+xml"
+    },
+    "exclamation-mark.svg": {
+     "name": "exclamation-mark.svg",
+     "blob": "a88a0d6160a460f39a77bca4b62e6de1",
+     "size": 210,
+     "type": "image/svg+xml"
+    },
+    "eye-slash.svg": {
+     "name": "eye-slash.svg",
+     "blob": "bec83ef11de0205c91c5f2aa7efa6710",
+     "size": 1001,
+     "type": "image/svg+xml"
+    },
+    "eye.svg": {
+     "name": "eye.svg",
+     "blob": "a3c98082baf9b8ab19d505944503c165",
+     "size": 702,
+     "type": "image/svg+xml"
+    },
+    "file-text.svg": {
+     "name": "file-text.svg",
+     "blob": "08888ed6921593ebdc806394140b2a4a",
+     "size": 417,
+     "type": "image/svg+xml"
+    },
+    "flag.svg": {
+     "name": "flag.svg",
+     "blob": "344fa9e3c2e412759f52757c16370252",
+     "size": 501,
+     "type": "image/svg+xml"
+    },
+    "floppy-disk.svg": {
+     "name": "floppy-disk.svg",
+     "blob": "59da29fe33427221f2a1c50f172c1303",
+     "size": 407,
+     "type": "image/svg+xml"
+    },
+    "folder-simple.svg": {
+     "name": "folder-simple.svg",
+     "blob": "6c5ccb595dc9952dc7bd7f0ac78d6034",
+     "size": 305,
+     "type": "image/svg+xml"
+    },
+    "funnel-simple.svg": {
+     "name": "funnel-simple.svg",
+     "blob": "23dd0151cf7093ae9725873c321be9da",
+     "size": 253,
+     "type": "image/svg+xml"
+    },
+    "gauge.svg": {
+     "name": "gauge.svg",
+     "blob": "23330877a396fc36367d2cefaf7f87d8",
+     "size": 500,
+     "type": "image/svg+xml"
+    },
+    "globe.svg": {
+     "name": "globe.svg",
+     "blob": "72961cd3ddf67d1839ffd71bcf73b506",
+     "size": 857,
+     "type": "image/svg+xml"
+    },
+    "heartbeat.svg": {
+     "name": "heartbeat.svg",
+     "blob": "14a03e1a13251287b7237f7c4fcd2ca8",
+     "size": 743,
+     "type": "image/svg+xml"
+    },
+    "hourglass-medium.svg": {
+     "name": "hourglass-medium.svg",
+     "blob": "2d506722c28fc317a5aee31245f29e66",
+     "size": 474,
+     "type": "image/svg+xml"
+    },
+    "house-simple.svg": {
+     "name": "house-simple.svg",
+     "blob": "6be1cb0e7afc151a0ac94c54449bfe8d",
+     "size": 274,
+     "type": "image/svg+xml"
+    },
+    "info.svg": {
+     "name": "info.svg",
+     "blob": "3ff562d7661f7e85e2da0af40b7bff13",
+     "size": 349,
+     "type": "image/svg+xml"
+    },
+    "keyboard.svg": {
+     "name": "keyboard.svg",
+     "blob": "0f2024a03af4c97353fdf29c8d692228",
+     "size": 514,
+     "type": "image/svg+xml"
+    },
+    "list-checks.svg": {
+     "name": "list-checks.svg",
+     "blob": "6e5cd2029cc28b9d870bdbca4c939431",
+     "size": 568,
+     "type": "image/svg+xml"
+    },
+    "list-magnifying-glass.svg": {
+     "name": "list-magnifying-glass.svg",
+     "blob": "80599a78dbea4237fa8da7c62a4544cf",
+     "size": 392,
+     "type": "image/svg+xml"
+    },
+    "list.svg": {
+     "name": "list.svg",
+     "blob": "ff3357d0db08c716906b290858cc573c",
+     "size": 254,
+     "type": "image/svg+xml"
+    },
+    "lock-simple.svg": {
+     "name": "lock-simple.svg",
+     "blob": "43980b300efb35b68c358ced894aa7c4",
+     "size": 276,
+     "type": "image/svg+xml"
+    },
+    "magnifying-glass.svg": {
+     "name": "magnifying-glass.svg",
+     "blob": "758be9e73d361afb3ae15d4402f216e3",
+     "size": 244,
+     "type": "image/svg+xml"
+    },
+    "map-pin.svg": {
+     "name": "map-pin.svg",
+     "blob": "d562086d4250ae493068f19511df1bba",
+     "size": 460,
+     "type": "image/svg+xml"
+    },
+    "map-trifold.svg": {
+     "name": "map-trifold.svg",
+     "blob": "1fe10dce5e08dcf98af7c84a7bdf868f",
+     "size": 431,
+     "type": "image/svg+xml"
+    },
+    "minus.svg": {
+     "name": "minus.svg",
+     "blob": "6fe79fedb9b18e5188e8657d6162aa7f",
+     "size": 164,
+     "type": "image/svg+xml"
+    },
+    "paper-plane-right.svg": {
+     "name": "paper-plane-right.svg",
+     "blob": "9b4d7aafbe239378679378d553c16a0c",
+     "size": 355,
+     "type": "image/svg+xml"
+    },
+    "path.svg": {
+     "name": "path.svg",
+     "blob": "ff9f123b8a22f8b305da2a52ff314eae",
+     "size": 297,
+     "type": "image/svg+xml"
+    },
+    "pause-circle.svg": {
+     "name": "pause-circle.svg",
+     "blob": "2b1eff082c29200252e7048e4b45e2ad",
+     "size": 293,
+     "type": "image/svg+xml"
+    },
+    "pause.svg": {
+     "name": "pause.svg",
+     "blob": "817b3af4461904e3fa8c94a99006549b",
+     "size": 321,
+     "type": "image/svg+xml"
+    },
+    "pencil-simple.svg": {
+     "name": "pencil-simple.svg",
+     "blob": "2924c156cbfcc8f134c3831db4c8835c",
+     "size": 349,
+     "type": "image/svg+xml"
+    },
+    "play.svg": {
+     "name": "play.svg",
+     "blob": "fac55876a6616117bb1affbe5687061e",
+     "size": 294,
+     "type": "image/svg+xml"
+    },
+    "plus.svg": {
+     "name": "plus.svg",
+     "blob": "92f1b96d41b2ed139f0920a9c7f88d1e",
+     "size": 213,
+     "type": "image/svg+xml"
+    },
+    "power.svg": {
+     "name": "power.svg",
+     "blob": "b435d15fd22d2aa4e94a26d21f59f652",
+     "size": 358,
+     "type": "image/svg+xml"
+    },
+    "prohibit.svg": {
+     "name": "prohibit.svg",
+     "blob": "13af3db5bbb6a5926767e72fc30c7e81",
+     "size": 297,
+     "type": "image/svg+xml"
+    },
+    "push-pin.svg": {
+     "name": "push-pin.svg",
+     "blob": "75d9a13423026ec8f11b904a50feebc4",
+     "size": 609,
+     "type": "image/svg+xml"
+    },
+    "question.svg": {
+     "name": "question.svg",
+     "blob": "bf81cd54c4c210ff726ee18952be92e2",
+     "size": 443,
+     "type": "image/svg+xml"
+    },
+    "quotes.svg": {
+     "name": "quotes.svg",
+     "blob": "19e62728136a3e227ebae1a3eca6a5c2",
+     "size": 401,
+     "type": "image/svg+xml"
+    },
+    "scales.svg": {
+     "name": "scales.svg",
+     "blob": "b959409ace640f26282eb79ff860749f",
+     "size": 662,
+     "type": "image/svg+xml"
+    },
+    "shield-check.svg": {
+     "name": "shield-check.svg",
+     "blob": "e54d6c75208796ecf17659ef89fadd8f",
+     "size": 537,
+     "type": "image/svg+xml"
+    },
+    "sidebar-simple.svg": {
+     "name": "sidebar-simple.svg",
+     "blob": "70550681ee838894c6fa378732173687",
+     "size": 236,
+     "type": "image/svg+xml"
+    },
+    "sliders-horizontal.svg": {
+     "name": "sliders-horizontal.svg",
+     "blob": "7178f22ae0f8f8ccda023ca4f0323ab3",
+     "size": 361,
+     "type": "image/svg+xml"
+    },
+    "sort-descending.svg": {
+     "name": "sort-descending.svg",
+     "blob": "443d8cf933e5174dbbea2eeccc534bfa",
+     "size": 386,
+     "type": "image/svg+xml"
+    },
+    "sparkle.svg": {
+     "name": "sparkle.svg",
+     "blob": "78d82510ca9cee1a6d0da095f7546e6d",
+     "size": 667,
+     "type": "image/svg+xml"
+    },
+    "squares-four.svg": {
+     "name": "squares-four.svg",
+     "blob": "5606a16ba651464610be90debc04b138",
+     "size": 553,
+     "type": "image/svg+xml"
+    },
+    "stack.svg": {
+     "name": "stack.svg",
+     "blob": "92f70035d4579b135604b0e2fca51559",
+     "size": 484,
+     "type": "image/svg+xml"
+    },
+    "target.svg": {
+     "name": "target.svg",
+     "blob": "73c32ac21bbf1fef8d90ee9c06927ddb",
+     "size": 344,
+     "type": "image/svg+xml"
+    },
+    "trash.svg": {
+     "name": "trash.svg",
+     "blob": "2c96805aeb5320e5626c17f5626788e4",
+     "size": 392,
+     "type": "image/svg+xml"
+    },
+    "tray.svg": {
+     "name": "tray.svg",
+     "blob": "c505201f88d12c1801d011f3744452f9",
+     "size": 415,
+     "type": "image/svg+xml"
+    },
+    "upload-simple.svg": {
+     "name": "upload-simple.svg",
+     "blob": "17e0486b27fd23a1309a1dc83f6a368f",
+     "size": 325,
+     "type": "image/svg+xml"
+    },
+    "user-check.svg": {
+     "name": "user-check.svg",
+     "blob": "d753f05d4378ade3143f0df91d82db56",
+     "size": 466,
+     "type": "image/svg+xml"
+    },
+    "user.svg": {
+     "name": "user.svg",
+     "blob": "722eac8eb8b11797d8ee6104d8aad5f6",
+     "size": 341,
+     "type": "image/svg+xml"
+    },
+    "users.svg": {
+     "name": "users.svg",
+     "blob": "85c3f22a312a02df2657026f0690a080",
+     "size": 507,
+     "type": "image/svg+xml"
+    },
+    "wallet.svg": {
+     "name": "wallet.svg",
+     "blob": "37abb78fa32a243471e2e5e87683d420",
+     "size": 337,
+     "type": "image/svg+xml"
+    },
+    "warning.svg": {
+     "name": "warning.svg",
+     "blob": "5712c889d93f492f7d5db7f182fce231",
+     "size": 544,
+     "type": "image/svg+xml"
+    },
+    "x.svg": {
+     "name": "x.svg",
+     "blob": "612214fef621b09838fa52f8b547fda2",
+     "size": 285,
+     "type": "image/svg+xml"
+    }
+   }
+  },
+  "LeadMarks": {
+   "name": "LeadMarks",
+   "tile": "m",
+   "order": [
+    "lissajous.svg",
+    "fourier.svg",
+    "slunecnice.svg",
+    "interference.svg",
+    "gauss.svg"
+   ],
+   "files": {
+    "lissajous.svg": {
+     "name": "lissajous.svg",
+     "blob": "ba00d0ce046e61c5f43a1910a7f325f1",
+     "size": 2123,
+     "type": "image/svg+xml"
+    },
+    "fourier.svg": {
+     "name": "fourier.svg",
+     "blob": "0109e876cc933be46ab9591494c6900a",
+     "size": 4855,
+     "type": "image/svg+xml"
+    },
+    "slunecnice.svg": {
+     "name": "slunecnice.svg",
+     "blob": "8cc175c9d26dcbac9f172e252287b269",
+     "size": 5385,
+     "type": "image/svg+xml"
+    },
+    "interference.svg": {
+     "name": "interference.svg",
+     "blob": "b62992949f8d377b4cf8529433bab0fe",
+     "size": 6071,
+     "type": "image/svg+xml"
+    },
+    "gauss.svg": {
+     "name": "gauss.svg",
+     "blob": "b5df4062487b47a352b7a401a9449698",
+     "size": 2802,
+     "type": "image/svg+xml"
+    }
+   }
+  },
+  "Brand": {
+   "name": "Brand",
+   "tile": "l",
+   "order": [
+    "aia-mark.svg",
+    "aia-mark-on-graphite.svg",
+    "lattice-field.svg"
+   ],
+   "files": {
+    "aia-mark.svg": {
+     "name": "aia-mark.svg",
+     "blob": "9520c2e1ef5b8b52db6771c2ce3e55a9",
+     "size": 1779,
+     "type": "image/svg+xml"
+    },
+    "aia-mark-on-graphite.svg": {
+     "name": "aia-mark-on-graphite.svg",
+     "blob": "7c3787d5ac05396591f1efeb95a3d72b",
+     "size": 1839,
+     "type": "image/svg+xml"
+    },
+    "lattice-field.svg": {
+     "name": "lattice-field.svg",
+     "blob": "fc5bb2bcc55b259b1a6cb1ab1fe5db44",
+     "size": 58468,
+     "type": "image/svg+xml"
+    }
+   }
+  }
+ },
+ "blobs": {},
+ "docs": {
+  "readme": "project/README.md",
+  "sections": []
+ },
+ "lastChange": {
+  "by": "Nigel Blount",
+  "at": "2026-10-28T18:30:00Z",
+  "via": "Claude Code · AiAnalytics-AIA/aia (rebuilt from prototypes/design-system/)",
+  "note": "v3.4: rebuilt in the second account; Hero, hero-title and lede follow core v4.3 (28/34, 14/20, 68ch)"
+ }
+}

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import math
 
+from ..straight_lining import AnswerSpread, answer_spread
 from .layout import (
     LayoutAlgorithm,
     UnfoldingParameters,
@@ -92,14 +93,16 @@ def _placeability(ratings: RatingsMatrix, scale_top: float) -> dict[str, str]:
     density terrain would grow a ridge where nobody has a preference. The unit
     invented a ring for them (audit F11); AIA placed one below the top of the
     scale (finding F-2 of plan sociomap-formula-corrections, chunk 1c). The rule
-    is ``max == min`` over the rated objects, at any score.
+    is the one straight-liner rule (``domain/straight_lining.py``, RQC1) over the rated
+    objects, at any score.
     """
     excluded: dict[str, str] = {}
     for rid, row in zip(ratings.respondent_ids, ratings.values, strict=True):
         observed = [v for v in row if v is not None]
-        if len(observed) < 2:
+        spread = answer_spread(observed)
+        if spread in (AnswerSpread.NONE, AnswerSpread.ONE):
             excluded[rid] = f"rated {len(observed)} object(s); a position needs at least 2"
-        elif max(observed) == min(observed):
+        elif spread is AnswerSpread.NO_SPREAD:
             where = "at the top of the scale" if observed[0] == scale_top else f"{observed[0]:g}"
             excluded[rid] = (
                 f"rated every object the same ({where}): a straight-liner prefers no object "

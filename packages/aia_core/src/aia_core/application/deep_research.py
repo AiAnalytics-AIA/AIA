@@ -58,6 +58,8 @@ from typing import Any, Final
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
+from ..domain.client_rules import DataPosture
+from ..domain.client_sources import ReadingOutcome, SourceFamily
 from ..domain.deep_research.budgets import (
     ROUTE_ALLOWANCES,
     CallKind,
@@ -72,7 +74,9 @@ from ..domain.deep_research.contracts import (
     FrozenKnowledge,
     ResearchSubject,
     SourceSnapshot,
+    SubjectKind,
     digest,
+    subject_key,
 )
 from ..domain.deep_research.coverage import CoverageLedger, coverage_ledger
 from ..domain.deep_research.integration import (
@@ -106,7 +110,13 @@ from ..domain.deep_research.interpretation import (
     interpretation_mission,
     require_interpretation_mission,
 )
-from ..domain.deep_research.knowledge_access import client_terms, freeze_knowledge
+from ..domain.deep_research.knowledge_access import (
+    ITEM_TEXT_CHARS,
+    DocumentReader,
+    DocumentText,
+    client_terms,
+    freeze_knowledge,
+)
 from ..domain.deep_research.planning import (
     PRESET_TABLE_VERSION,
     brief_digest,
@@ -122,6 +132,8 @@ from ..domain.deep_research.settings import (
 )
 from ..domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolUsageEvent
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
+from ..domain.item_ids import list_ids, with_item_ids
+from ..domain.knowledge import KnowledgeItem, KnowledgeKind, source_ref
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.research import phase_of, retryable
 from ..domain.run_cost import (
@@ -131,9 +143,11 @@ from ..domain.run_cost import (
     deep_research_cost_ceiling,
 )
 from ..domain.scope import Permission, StudyContext
+from ..domain.source_proposals import NotExtractable, require_extractable
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..infrastructure.artifact_repository import ArtifactNotFound, ArtifactStatus
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from ..infrastructure.client_source_repository import ClientSourceRepository, StudySource
 from ..infrastructure.deep_research_settings_repository import (
     settings_in_force_for_study,
     test_approval_receipt_for_study,
@@ -159,6 +173,7 @@ __all__ = [
     "DeepResearchRunNotFound",
     "DeepResearchRunNotRetryable",
     "DeepResearchRuns",
+    "FrozenStart",
     "GovernedRecord",
     "InterpretationMissionMismatch",
     "LineageChanged",
@@ -196,6 +211,48 @@ class DeepResearchRunNotRetryable(Exception):
 
 class NothingToResearch(Exception):
     """The Design Revision holds no research question, goal or tracked object."""
+
+
+class FocusUnknown(ValueError):
+    """A focus names a research question the Design Revision does not hold (``focus_unknown``,
+    lead-orchestration LO5a.1, Q45); ``unknown`` names each id."""
+
+    reason: Final = "focus_unknown"
+
+    def __init__(self, unknown: Sequence[str]) -> None:
+        super().__init__("the design holds no research question " + ", ".join(unknown))
+        self.unknown = tuple(unknown)
+
+
+def focused_subjects(
+    focus: Sequence[str],
+) -> Callable[[dict[str, Any], FrozenKnowledge], tuple[ResearchSubject, ...]]:
+    """The subjects of a design focused on the research questions ``focus`` names, by the ids the
+    design gives them (``item_ids``): only those questions, no object, none of the rest. Every id
+    is checked against the revision before anything is built (:class:`FocusUnknown`)."""
+    wanted = list(dict.fromkeys(focus))
+
+    def subjects_of(
+        content: dict[str, Any], knowledge: FrozenKnowledge
+    ) -> tuple[ResearchSubject, ...]:
+        plan = with_item_ids(content)[0].get("research_plan")
+        plan = plan if isinstance(plan, dict) else {}
+        ids = list_ids(plan, "research_questions", "research_question_ids") or []
+        unknown = [i for i in wanted if i not in ids]
+        if unknown:
+            raise FocusUnknown(unknown)
+        texts = plan.get("research_questions") or []
+        keys = {
+            subject_key(SubjectKind.QUESTION, " ".join(str(texts[ids.index(i)]).split()))
+            for i in wanted
+        }
+        return tuple(
+            s
+            for s in extract_subjects(content, knowledge)
+            if s.kind is SubjectKind.QUESTION and s.key in keys
+        )
+
+    return subjects_of
 
 
 class ResearchTargetNotFound(LookupError):
@@ -325,11 +382,109 @@ def ceiling_metadata(ceiling: DeepResearchCeiling | None) -> dict[str, Any]:
 
 
 @dataclass(frozen=True, slots=True)
+class FrozenStart:
+    """A Deep Research start frozen and not yet enqueued: the spec, how its purpose was stated,
+    the run it retries and the focus it records. What :meth:`DeepResearchRuns.start_frozen`
+    enqueues, after the caller has quoted the same spec."""
+
+    spec: DeepResearchRunSpec
+    purpose_source: PurposeSource = PurposeSource.EXPLICIT
+    retry_of: str | None = None
+    focus: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class _StudyDocuments:
+    """A DOCUMENT or SOURCE item's file text, as a run enqueued from the study freezes it
+    (client-knowledge-lifecycle K8b): its source's row read in the study's scope (one query for
+    every item, at enqueue), its size from that row, its reading fetched only when asked and
+    verified against the row's hash. Only what may be sent to a model is read
+    (``require_extractable``): a DATASET-family source never, nor one without text; a DATASET
+    item is not asked. Segments are joined only up to what the item bound can hold."""
+
+    scope: StudyContext
+    sources: ClientSourceRepository
+    found: dict[str, StudySource]
+
+    @classmethod
+    def of(
+        cls, scope: StudyContext, sources: ClientSourceRepository, items: Sequence[KnowledgeItem]
+    ) -> _StudyDocuments:
+        named: dict[str, str] = {}
+        for item in items:
+            if item.kind not in (KnowledgeKind.DOCUMENT, KnowledgeKind.SOURCE):
+                continue
+            try:
+                ref = source_ref(item.kind, item.content)
+            except ValueError:
+                continue  # a source id stored before the check: held as it was, never refused
+            if ref is not None:
+                named[item.item_id] = ref
+        rows = sources.for_study(scope, sorted(set(named.values())))
+        # What the row already says holds no text is never fetched; the reading, once fetched,
+        # is still held to require_extractable.
+        return cls(
+            scope,
+            sources,
+            {
+                item_id: rows[ref]
+                for item_id, ref in named.items()
+                if ref in rows
+                and rows[ref].family is SourceFamily.DOCUMENT
+                and rows[ref].outcome in (ReadingOutcome.READ, ReadingOutcome.PARTIAL)
+                and rows[ref].segments > 0
+                and rows[ref].reading_sha256 is not None
+            },
+        )
+
+    def _source(self, item: KnowledgeItem) -> StudySource | None:
+        return self.found.get(item.item_id)
+
+    def size(self, item: KnowledgeItem) -> int | None:
+        found = self._source(item)
+        return found.characters if found is not None else None
+
+    def read(self, item: KnowledgeItem) -> DocumentText | None:
+        found = self._source(item)
+        if found is None or found.reading_sha256 is None:
+            return None
+        reading = self.sources.study_reading(
+            self.scope, found.source_id, reading_sha256=found.reading_sha256
+        )
+        if reading is None:
+            return None
+        try:
+            require_extractable(found.family, reading)
+        except NotExtractable:
+            return None
+        parts: list[str] = []
+        length = 0
+        for segment in reading.segments:
+            if length > 2 * ITEM_TEXT_CHARS:
+                break
+            parts.append(segment.text)
+            length += len(segment.text) + 1
+        return DocumentText(
+            text="\n".join(parts),
+            reading_sha256=found.reading_sha256,
+            internal=found.internal,
+            complete=len(parts) == len(reading.segments),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class DeepResearchRuns:
-    """The Deep Research runs of the Study in scope. The caller owns the transaction."""
+    """The Deep Research runs of the Study in scope. The caller owns the transaction.
+
+    ``document_store``: where a DOCUMENT or SOURCE item's source reading is read from, so a
+    run freezes the file's text and its "Interní dokument" mark (client-knowledge-lifecycle
+    K8b); the API passes it only under ``AIA_DEEP_RESEARCH_DOCUMENT_TEXT``. ``None``: no
+    document text is read, and the frozen request is the one it always was.
+    """
 
     session: Session
     scope: StudyContext
+    document_store: ArtifactStore | None = None
 
     def _designs(self) -> StudyDesignRepository:
         return StudyDesignRepository(self.session, self.scope)
@@ -373,10 +528,14 @@ class DeepResearchRuns:
         design_revision_id: str,
         preset_name: str,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
+        focus: Sequence[str] = (),
+        retry_of: str | None = None,
     ) -> DeepResearchRequest:
         """The request a run over this revision would be frozen to. Writes nothing.
 
-        Raises ``DesignRevisionNotFound`` for a revision that is not this Study's,
+        ``focus``: the research questions' ids the run is limited to (Q45); empty, the whole
+        design. Raises ``DesignRevisionNotFound`` for a revision that is not this Study's,
+        :class:`FocusUnknown` for a focus id the revision does not hold,
         :class:`~aia_core.domain.deep_research.planning.UnknownPreset` for a depth
         that does not exist (there is no default depth, DR-5), and
         :class:`NothingToResearch` for a design with no subject yet.
@@ -385,8 +544,9 @@ class DeepResearchRuns:
             design_revision_id=design_revision_id,
             preset_name=preset_name,
             channels=channels,
-            subjects_of=extract_subjects,
+            subjects_of=focused_subjects(focus) if focus else extract_subjects,
             nothing="the design has no research question, goal or tracked object",
+            retry_of=retry_of,
         )
 
     def _frozen_request(
@@ -397,6 +557,7 @@ class DeepResearchRuns:
         channels: Sequence[Channel],
         subjects_of: Callable[[dict[str, Any], FrozenKnowledge], tuple[ResearchSubject, ...]],
         nothing: str,
+        retry_of: str | None = None,
     ) -> DeepResearchRequest:
         """The engine request over one revision, with the subjects ``subjects_of`` builds.
 
@@ -410,7 +571,8 @@ class DeepResearchRuns:
         content = designs.content(revision.revision_id)
         # The study's own client's approved knowledge, never another's (ADR 0015):
         # the client comes from the issued scope, not from any argument.
-        knowledge = freeze_knowledge(ClientKnowledgeRepository(self.session).for_study(self.scope))
+        items = ClientKnowledgeRepository(self.session).for_study(self.scope)
+        knowledge = freeze_knowledge(items, self._documents(items))
         subjects = subjects_of(content, knowledge)
         if not subjects:
             raise NothingToResearch(nothing)
@@ -439,7 +601,18 @@ class DeepResearchRuns:
             # Harness 3: the approved method settings are part of what the run is, so a
             # changed one is another request, another run, and reuses nothing of the old.
             settings_method=settings_in_force_for_study(self.session, self.scope).approved_method(),
+            # ADR 0032 decision 2: the client's posture, in the request a retry re-freezes; a
+            # retry keeps its original's, never the client row's now.
+            posture="OPEN" if self._posture(retry_of) == DataPosture.OPEN.value else None,
         )
+
+    def _documents(self, items: Sequence[KnowledgeItem]) -> DocumentReader | None:
+        """What ``freeze_knowledge`` asks of an item's file text; ``None`` without a document
+        store (the switch off)."""
+        if self.document_store is None:
+            return None
+        sources = ClientSourceRepository(self.session, self.document_store)
+        return _StudyDocuments.of(self.scope, sources, items)
 
     def freeze_design(
         self,
@@ -448,15 +621,23 @@ class DeepResearchRuns:
         preset_name: str,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
         title: str | None = None,
+        focus: Sequence[str] = (),
+        retry_of: str | None = None,
     ) -> DeepResearchRunSpec:
         """The ``DESIGN_RESEARCH`` spec over one Design Revision. Writes nothing.
 
         The engine request is exactly :meth:`freeze`'s; the target is the revision and the
         lineage its id, number and content hash. Running it changes no design: what it
-        finds can only become a proposal a person accepts into a new revision.
+        finds can only become a proposal a person accepts into a new revision. A ``focus``
+        is in the engine request's subjects, so a focused run is a request and a spec of its
+        own and never reuses the whole design's run (its tracks still reuse by fingerprint).
         """
         request = self.freeze(
-            design_revision_id=design_revision_id, preset_name=preset_name, channels=channels
+            design_revision_id=design_revision_id,
+            preset_name=preset_name,
+            channels=channels,
+            focus=focus,
+            retry_of=retry_of,
         )
         revision = self._designs().get(request.design_revision_id)
         return DeepResearchRunSpec(
@@ -483,6 +664,7 @@ class DeepResearchRuns:
         store: ArtifactStore,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
         title: str | None = None,
+        retry_of: str | None = None,
     ) -> DeepResearchRunSpec:
         """The ``INTERPRETATION_RESEARCH`` spec over one result of this Study. Writes nothing.
 
@@ -520,6 +702,7 @@ class DeepResearchRuns:
             channels=channels,
             subjects_of=lambda _content, _knowledge: mission,
             nothing=f"{target.kind}: the target's result has nothing to research",
+            retry_of=retry_of,
         )
         return DeepResearchRunSpec(
             contract_version=RUN_SPEC_CONTRACT,
@@ -607,8 +790,10 @@ class DeepResearchRuns:
         confirm_cost_usd: float | None = None,
         purpose_source: PurposeSource = PurposeSource.EXPLICIT,
         title: str | None = None,
+        focus: Sequence[str] = (),
     ) -> StartedRun:
-        """Start ``DESIGN_RESEARCH`` over one Design Revision (:meth:`freeze_design`).
+        """Start ``DESIGN_RESEARCH`` over one Design Revision (:meth:`freeze_design`), on the
+        research questions ``focus`` names, or the whole design.
 
         ``purpose_source`` records how the purpose was stated: the deployed start API
         names none, and a new request through it is Design Research by ADR 0021's
@@ -621,6 +806,8 @@ class DeepResearchRuns:
             preset_name=preset_name,
             channels=channels,
             title=title,
+            focus=focus,
+            retry_of=retry_of,
         )
         return self._enqueue(
             spec,
@@ -629,6 +816,7 @@ class DeepResearchRuns:
             prices=prices,
             modes=modes,
             confirm_cost_usd=confirm_cost_usd,
+            focus=focus,
         )
 
     def start_interpretation(
@@ -654,7 +842,12 @@ class DeepResearchRuns:
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         spec = self.freeze_interpretation(
-            target=target, preset_name=preset_name, store=store, channels=channels, title=title
+            target=target,
+            preset_name=preset_name,
+            store=store,
+            channels=channels,
+            title=title,
+            retry_of=retry_of,
         )
         return self._enqueue(
             spec,
@@ -674,8 +867,13 @@ class DeepResearchRuns:
         prices: DeepResearchPrices | None,
         modes: Collection[ResearchMode],
         confirm_cost_usd: float | None,
+        focus: Sequence[str] = (),
     ) -> StartedRun:
         """Enqueue a run of ``spec``, idempotently.
+
+        ``focus``: the research questions a Design Research spec was frozen to, recorded in the
+        run's metadata (only when given) so a retry freezes the same focus again; it is in the
+        spec's subjects already, and never part of the run's identity beyond them.
 
         Idempotent per spec: the same purpose, target, lineage and engine request start
         one run, so a double submission gets the run that exists; an approval in between
@@ -762,10 +960,16 @@ class DeepResearchRuns:
                 "preset": request.preset,
                 "channels": [c.value for c in request.channels],
                 "subjects": len(request.subjects),
+                **({"focus": list(focus)} if focus else {}),
                 "knowledge_items": len(request.knowledge.items),
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
                 "preset_table": PRESET_TABLE_VERSION,
                 "settings_pin": settings_pin,
+                # The client's data posture at enqueue (settings-backends SB7): what the run
+                # was started under; a retry keeps the original's, as with its settings.
+                "client_posture": (
+                    DataPosture.OPEN if request.open_posture else DataPosture.CLASSIFIED
+                ).value,
                 # ADR 0021: why, what and on which immutable state. The engine request
                 # itself is the plan step's input, below.
                 **run_spec_metadata(spec, purpose_source=purpose_source),
@@ -850,6 +1054,7 @@ class DeepResearchRuns:
         *,
         prices: DeepResearchPrices | None,
         modes: Collection[ResearchMode] = tuple(ResearchMode),
+        retry_of: str | None = None,
     ) -> DeepResearchQuote:
         """What starting ``spec`` would cost and what its start would answer. Writes nothing.
 
@@ -860,7 +1065,8 @@ class DeepResearchRuns:
         """
         self.require_start()
         require_interpretation_mission(spec)
-        admission = self._admit(spec, retry_of=None, prices=prices, modes=modes)
+        # A retry's run is keyed with the run it retries (``_admit``): quoted under the same key.
+        admission = self._admit(spec, retry_of=retry_of, prices=prices, modes=modes)
         budget = (
             self._workflows().budget_position() if self.scope.has(Permission.VIEW_COSTS) else None
         )
@@ -877,6 +1083,22 @@ class DeepResearchRuns:
             budget=budget,
         )
 
+    def _posture(self, retry_of: str | None) -> str:
+        """The posture a new run pins: a retry's original's, else the client's now (CLASSIFIED
+        when never set, never open).
+
+        A retry's is what its original's engine request carried (ADR 0032 decision 2), the
+        posture its egress ran under, never the client row now and never the run's metadata
+        label: a run frozen before chunk 53 carries none, ran CLASSIFIED, and retries
+        CLASSIFIED whatever its client was set to since."""
+        if retry_of is not None:
+            self.get(retry_of)  # the original is this Study's, or not found
+            stored = self._workflows().step_input(retry_of, "plan") or {}
+            request = stored.get("request")
+            pinned = request.get("posture") if isinstance(request, dict) else None
+            return (DataPosture.OPEN if pinned == "OPEN" else DataPosture.CLASSIFIED).value
+        return ScopeRepository(self.session).client_posture(self.scope).value
+
     def retry(
         self,
         run_id: str,
@@ -886,22 +1108,34 @@ class DeepResearchRuns:
         confirm_cost_usd: float | None = None,
         store: ArtifactStore | None = None,
     ) -> StartedRun:
-        """Start a failed or cancelled run again, as a new run linked to it.
+        """Start a failed or cancelled run again, as a new run linked to it: the spec
+        :meth:`retry_spec` freezes, enqueued as :meth:`start_frozen` enqueues it."""
+        return self.start_frozen(
+            self.retry_spec(run_id, store=store),
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
+        )
+
+    def retry_spec(self, run_id: str, *, store: ArtifactStore | None = None) -> FrozenStart:
+        """What a retry of ``run_id`` would start, frozen now. Writes nothing.
 
         Frozen afresh, as before ADR 0021: what changed since -- an approval, a revoked
         item -- is in the new engine request, and what the earlier run stored is found
         by fingerprint, so a track, a snapshot or a verification it completed is not
         bought again. The *target* is never re-chosen: a design run retries over its
-        revision. A run stored before ADR 0021 retries as a new Design Research run through
-        the legacy rule. An ``INTERPRETATION_RESEARCH`` run re-freezes its **stored target**
-        with ``store`` (required for it): the stored lineage is resolved first, pin for pin
-        (:meth:`resolve_lineage`), and the fresh freeze's lineage must equal it, or the retry
-        is :class:`LineageChanged` and starts nothing. A retry can spend again, so it asks
-        again, as :meth:`start` does.
+        revision, on the focus it recorded. A run stored before ADR 0021 retries as a new
+        Design Research run through the legacy rule. An ``INTERPRETATION_RESEARCH`` run
+        re-freezes its **stored target** with ``store`` (required for it): the stored lineage
+        is resolved first, pin for pin (:meth:`resolve_lineage`), and the fresh freeze's
+        lineage must equal it, or the retry is :class:`LineageChanged` and starts nothing. A
+        retry can spend again, so its start asks again, as :meth:`start` does. A Lead card
+        quotes this spec before it is enqueued (lead-orchestration LO5a.2).
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
             raise DeepResearchRunNotRetryable(run["status"])
+        self.require_start()
         metadata = run["metadata"]
         record = governed_record(metadata)
         channels = [Channel(c) for c in metadata["channels"]]
@@ -911,8 +1145,6 @@ class DeepResearchRuns:
                     "an Interpretation Research retry re-reads its pinned results: "
                     "the artifact store is required"
                 )
-            self.scope.require(Permission.RUN_WORKFLOW)
-            self.scope.require_open_study()
             self.resolve_lineage(run_id, store=store)  # every pin read and verified, or refused
             spec = self.freeze_interpretation(
                 target=record.target,
@@ -920,31 +1152,55 @@ class DeepResearchRuns:
                 store=store,
                 channels=channels,
                 title=record.title,
+                retry_of=run_id,
             )
             if spec.lineage != record.lineage:
                 raise LineageChanged(f"{run_id}'s target no longer freezes to its stored lineage")
-            return self._enqueue(
-                spec,
-                purpose_source=record.purpose_source,
-                retry_of=run_id,
-                prices=prices,
-                modes=modes,
-                confirm_cost_usd=confirm_cost_usd,
-            )
-        return self.start(
+            return FrozenStart(spec, purpose_source=record.purpose_source, retry_of=run_id)
+        # A focused run retries on the same research questions, never the whole design
+        # (review of #925): its focus is the one it recorded.
+        focus = tuple(str(f) for f in metadata.get("focus") or ())
+        spec = self.freeze_design(
             design_revision_id=str(metadata["design_revision_id"]),
             preset_name=str(metadata["preset"]),
             channels=channels,
+            title=record.title if record is not None else None,
+            focus=focus,
             retry_of=run_id,
-            prices=prices,
-            modes=modes,
-            confirm_cost_usd=confirm_cost_usd,
+        )
+        return FrozenStart(
+            spec,
             purpose_source=(
                 PurposeSource.LEGACY_DEFAULT
                 if record is None
                 else PurposeSource(str(metadata.get("purpose_source", "EXPLICIT")))
             ),
-            title=record.title if record is not None else None,
+            retry_of=run_id,
+            focus=focus,
+        )
+
+    def start_frozen(
+        self,
+        frozen: FrozenStart,
+        *,
+        prices: DeepResearchPrices | None = None,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+        confirm_cost_usd: float | None = None,
+    ) -> StartedRun:
+        """Enqueue exactly the spec ``frozen`` holds, as :meth:`start`,
+        :meth:`start_interpretation` and :meth:`retry` do after freezing it: so the spec a
+        caller quoted (:meth:`quote`) is the one that runs, never one frozen again
+        (lead-orchestration LO5a.2). Needs ``RUN_WORKFLOW`` on an open Study."""
+        self.require_start()
+        require_interpretation_mission(frozen.spec)
+        return self._enqueue(
+            frozen.spec,
+            purpose_source=frozen.purpose_source,
+            retry_of=frozen.retry_of,
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
+            focus=frozen.focus,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

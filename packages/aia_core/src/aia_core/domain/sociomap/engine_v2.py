@@ -95,6 +95,8 @@ from .signed_off_segments import (
     taste_segments,
 )
 from .slots import (
+    ALIGNMENT,
+    CONNECTEDNESS,
     DISTANCE,
     EFFECT_FLOOR,
     EFFECTIVE_N,
@@ -110,6 +112,8 @@ from .slots import (
     Slots,
 )
 from .specification import (
+    FRAMED_TERRAIN_METHODS,
+    IDW_TERRAIN_METHODS,
     LEGACY_MIN_OBJECTS,
     ObjectHeightMetric,
     PairEvidenceBasis,
@@ -125,6 +129,8 @@ from .terrain import (
     EnvelopeTerrain,
     fit_frame,
     object_envelope,
+    object_idw,
+    object_idw_falloff,
 )
 from .view import stress_quality
 
@@ -215,6 +221,15 @@ CONNECTEDNESS_NOT_IN_METHOD: Final = {
         "relation; the baseline-corrected relation of this method has no such interval"
     ),
 }
+#: The alignment and connectedness scores (audit F8) are not part of the signed-off methodology:
+#: neither computed nor shown for its map (the methodology owner, 2026-10-28, MQ-05 (i)).
+SCORES_NOT_IN_METHOD: Final = {
+    "status": "not_computed",
+    "reason": (
+        "the object scores (audit F8) are not part of this method: the methodology owner "
+        "(2026-10-28, MQ-05) leaves them, and connectedness, out of aia-sociomap-5"
+    ),
+}
 #: The formulas a version may replace that the baseline-corrected relation and its signed-off
 #: layout never read: a replacement would be stored and silently do nothing, so it is refused.
 _UNREAD_BY_BASELINE_CORRECTED: Final = (
@@ -223,6 +238,8 @@ _UNREAD_BY_BASELINE_CORRECTED: Final = (
     INTERVAL_LOW,
     INTERVAL_HIGH,
     EFFECT_FLOOR,
+    ALIGNMENT,
+    CONNECTEDNESS,
     K100,
     DISTANCE,
     STRESS_1,
@@ -371,9 +388,9 @@ def _terrain(
         return TERRAIN_NOT_COMPUTED
     if layout is None:
         return TERRAIN_NOT_MAPPED
-    if declared.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+    if declared.method in FRAMED_TERRAIN_METHODS:
         if declared.frame_fill is None or heights.relative is None:
-            raise ValueError("the framed envelope is declared whole (require_supported)")
+            raise ValueError("the framed terrain is declared whole (require_supported)")
         centre, half = fit_frame(
             [p for p, f in zip(layout.points, framing, strict=True) if f], declared.frame_fill
         )
@@ -390,21 +407,35 @@ def _terrain(
             )
             if t is not None and h is not None
         ]
-        relative = object_envelope(
-            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled],
-            grid,
-            slots=slots,
-            method="framed_relative_envelope",
-        )
+
+        def framed(hills: list[EnvelopeHill], method: str) -> EnvelopeTerrain:
+            if method in IDW_TERRAIN_METHODS:
+                if declared.idw_power is None:
+                    raise ValueError("the framed terrain is declared whole (require_supported)")
+                if method == TerrainMethod.FRAMED_RELATIVE_IDW:
+                    return object_idw(hills, grid, declared.idw_power)
+                return object_idw_falloff(hills, grid, declared.idw_power, slots=slots)
+            return object_envelope(hills, grid, slots=slots, method="framed_relative_envelope")
+
+        relative_hills = [
+            EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled
+        ]
+        relative = framed(relative_hills, declared.method)
         # The panel's Absolutní view: the same hills at their heights on the declared 0-1 scale,
         # stored so that no reader evaluates a kernel of its own.
-        absolute = object_envelope(
-            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled],
-            grid,
-            slots=slots,
-            method="framed_relative_envelope",
-        )
-        return relative.model_copy(update={"absolute_height": absolute.height})
+        absolute_hills = [
+            EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled
+        ]
+        update: dict[str, object] = {
+            "absolute_height": framed(absolute_hills, declared.method).height
+        }
+        if declared.method in IDW_TERRAIN_METHODS:
+            # The map's terrain switch: the other inverse-distance terrain of the same hills.
+            other = next(m for m in IDW_TERRAIN_METHODS if m != declared.method)
+            update["alternate_method"] = other.value
+            update["alternate_height"] = framed(relative_hills, other).height
+            update["alternate_absolute_height"] = framed(absolute_hills, other).height
+        return relative.model_copy(update=update)
     if declared.half_extent is None or declared.kernel_cutoff is None:
         raise ValueError("the envelope is declared whole (require_supported)")
     hills = [
@@ -996,7 +1027,11 @@ def compute_object_map(
                 start_fill=fit.start_fill,
             )
 
-    scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots)
+    scores = (
+        SCORES_NOT_IN_METHOD
+        if corrected
+        else primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots).to_payload()
+    )
     heights = _heights(scaled, weights, columns, slots)
     terrain = spec.terrain
     if layout is not None and terrain is not None and terrain.relative_height_floor is not None:
@@ -1076,7 +1111,7 @@ def compute_object_map(
         outcome=(MapOutcome.MAPPED if layout is not None else MapOutcome.NOT_MAPPABLE).value,
         not_mappable=not_mappable,
         layout=layout,
-        scores=scores.to_payload(),
+        scores=scores,
         heights=heights,
         connectedness_100=connectedness,
         support=_support(

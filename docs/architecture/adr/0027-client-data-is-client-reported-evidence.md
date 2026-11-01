@@ -1,6 +1,6 @@
 # ADR 0027 — A client's own data is client-reported evidence: its own origin, computed by code, shown beside modelled results, never mixed into them
 
-**Status:** Proposed — 2026-10-19, from the product owner's answers of the same day (`overview.md`
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (a), now that MQ-16 to MQ-18 are answered; relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — 2026-10-19, from the product owner's answers of the same day (`overview.md`
 § MVP roadmap, MVP-19). **Builds on** [ADR 0015](0015-client-first-product-interface.md) (Client
 Knowledge, scoped before it is read), [ADR 0016](0016-research-execution-and-model-transmission.md)
 (a run executes a Design Revision), [ADR 0019](0019-two-roles-and-human-ai-gates.md) (a person
@@ -9,6 +9,20 @@ decides what the AI produced), [ADR 0024](0024-panel-grounded-respondents-are-mo
 **Changes** the closed set of data origins (decision 1) and the claims a report may print (decision 6).
 **Leaves unchanged** the AI respondents' origins, the Sociomap register, the methodology in force and
 every existing run.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
+**Decision note, 2026-10-26** (the product owner, Decision Review, relayed by the PM coordinator):
+Q2 is answered, MQ-17 (a) "Never" (see *Open questions*). Still open, left for the methodology owner: Q1
+(MQ-16), Q4 (MQ-18) and the verdict; the status is unchanged.
+
+**Decision note, 2026-10-26, later** (the product owner in chat, 26 Oct 2026 ~12:20 UTC, relayed by the PM coordinator):
+- **0027-Q5 (a):** `APPROVE_GATE` accepts a data contract (`client-data-in-analysis` chunk 2).
+- **0027-Q6 (b):** besides the person's classification, any column the hints flag as personal is refused
+  unless the person overrides it explicitly, on record (`client-data-in-analysis` chunk 3).
+
 **Date:** 2026-10-19. **Amended 2026-10-20** with the product owner's MVPQ-05 answer (decisions 3, 6 and
 Q3; `mvp-owner-decisions.md`) and the support question the cross-check found (Q4, master plan G51).
 
@@ -106,8 +120,11 @@ Three facts of the code frame it:
 
 - **Q1.** How a benchmark states its gap when the two supports differ greatly (a modelled n of 300
   against a client's 40,000 rows): one interval rule, or each side's own?
-- **Q2.** Whether a client's survey answers may also ground AI respondents later (decision 7's
-  calibration), and who decides it: the methodology owner.
+- ~~**Q2.** Whether a client's survey answers may also ground AI respondents later (decision 7's
+  calibration), and who decides it: the methodology owner.~~ Answered 2026-10-26 (MQ-17 (a), "Never",
+  the product owner in the Decision Review, relayed by the PM coordinator; shared with ADR 0037): a
+  client's survey answers never condition the personas; client data stays a separate comparison,
+  never mixed in (decision 7).
 - ~~**Q3.** The exact label words beside each number in the report.~~ Answered 2026-10-20 (MVPQ-05):
   *z dat klienta* beside each number; source and period once (decision 6).
 - **Q4** (the cross-check, master plan G51). A client number has no respondent n or effective n, so
@@ -115,4 +132,17 @@ Three facts of the code frame it:
   amount or rate. Decide the support a client aggregate or record count carries (exact counts or
   row count as n, or an explicit "not a sample" status, never an invented effective n), the metric
   and unit set a client number may take, and when an interval is required
-  (`client-data-in-analysis#0`). Q1, Q2 and Q4 are the methodology owner's.
+  (`client-data-in-analysis#0`). Q1 and Q4 are the methodology owner's.
+
+## Amendment, 2026-10-29
+
+Accepted on the methodology owner's verdict (a), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. Its open questions as answered on
+2026-10-28 (MQ-16 to MQ-18):
+
+- **Q1 (MQ-16 (a)):** a benchmark shows both intervals and claims no difference when the supports
+  differ; modelled is not observed, until validation (ADR 0024's P1 to P8) lifts modelled answers.
+- **Q2 (MQ-17):** never in the MVP, as recorded above.
+- **Q4 (MQ-18), own rule:** survey rows: n is the row count, or Kish n when weighted, with an interval.
+  Records or census counts: labelled "not a sample", the exact figure, no interval, no tests. Supplied
+  aggregates without rows: as reported, no interval. Allowed metrics: mean, pct, n, plus count, amount
+  and rate.

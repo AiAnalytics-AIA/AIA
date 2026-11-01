@@ -13,6 +13,7 @@ from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.item_ids import derived_id
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
@@ -35,6 +36,7 @@ from aia_core.infrastructure.study_design_repository import StudyDesignRepositor
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow, PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.recorded_models import DESIGN_ANSWERS, RecordedModels
 from aia_executors.registry import registry_for
@@ -268,6 +270,12 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         assert after.content["research_plan"]["objectives"] == ["Test appeal"]
         assert after.analysis is not None and after.analysis["objectives"] == ["Test appeal"]
         assert after.analysis["_brief_signature"].startswith('{"goal":"Test concept"')
+        # Logged as the person who accepted, citing the job (working-copy-edit-ops WCE2e).
+        logged = WorkspaceEditRepository(session, scope).rows(after_revision=before.revision)
+        assert logged and {r.result_revision for r in logged} == {after.revision}
+        assert {r.by for r in logged} == {
+            WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.PROPOSAL_ACCEPT, run_id)
+        }
         with pytest.raises(DesignRejected):
             jobs.accept(
                 run_id,
@@ -699,26 +707,12 @@ def test_a_queued_job_keeps_the_prompt_it_was_queued_with(
     assert system_sent(transport2) == FIXED_PREFIX + CUSTOM_TASK
 
 
-def test_a_draft_runs_only_when_an_administrator_asks_for_it(
-    world: Any, database_url: str, store: Any, build: Any
-) -> None:
-    with world.sessions() as session:
-        admin = world.admin_context(session)
-        PromptRepository(session, admin).create_version(
-            "aia.research.analyze_brief", CUSTOM_TASK, declares_no_client_data=True
-        )
-        revision, _ = StudyDesignRepository(
-            session, world.lead_scope(session)
-        ).submit_as_working_copy(content=DESIGN, source_stage="brief")
-        lead_jobs = ResearchAgentJobs(session, world.lead_scope(session))
-        with pytest.raises(DesignRejected) as refused:
-            lead_jobs.start(
-                design_revision_id=revision.revision_id,
-                action=ResearchAction.ANALYZE,
-                prompt_version=1,
-            )
-        assert refused.value.reason == "prompt_test_requires_administrator"
-        session.rollback()
+def test_a_job_can_no_longer_be_asked_to_run_a_draft(world: Any) -> None:
+    """D-15: ``ResearchAgentJobs.start`` takes no prompt version; a job runs the active
+    prompt."""
+    import inspect
+
+    assert "prompt_version" not in inspect.signature(ResearchAgentJobs.start).parameters
 
 
 def test_a_job_whose_pin_was_altered_or_misplaced_is_refused_not_guessed() -> None:
@@ -905,7 +899,10 @@ def edit_working_copy(world: Any, change: dict[str, Any]) -> int:
         workspaces = StudyWorkspaceRepository(session)
         now = workspaces.content(scope)
         saved = workspaces.save(
-            scope, content={**(now.content or {}), **change}, base_revision=now.revision
+            scope,
+            content={**(now.content or {}), **change},
+            base_revision=now.revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -949,6 +946,8 @@ def test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revi
         assert refused.value.details() == {
             "reason": "items_changed",
             "conflicting_items": ["content:plan:problem_summary"],
+            # Both added it: an item's existence is its field (D-06).
+            "conflicting_fields": ["content:plan:problem_summary#item"],
             "conflicting_wording": {},  # a plan field, said by its name
         }
         # Nothing was written: the design and the working copy are as the person left them.
@@ -977,6 +976,86 @@ def test_an_edit_to_an_item_the_proposal_does_not_touch_survives_the_accept(
         assert now.content["research_plan"]["objectives"] == ["Test appeal"]
         designed = StudyDesignRepository(session, scope).content(accepted.revision.revision_id)
         assert designed == now.content
+
+
+def test_an_accepted_proposal_is_not_accepted_again(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """A newer Design Revision no longer stales a proposal (WCE5), so the first accept's own
+    revision does not refuse a second one: the decision does, and nothing more is written."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        first = jobs.accept(
+            run_id,
+            store=store,
+            expected_revision_id=d1,
+            expected_workspace_revision=working_revision(session, world),
+        )
+        session.commit()
+        with pytest.raises(DesignRejected) as refused:
+            jobs.accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_already_accepted"
+        assert StudyDesignRepository(session, scope).latest() == first.revision
+        assert working_revision(session, world) == first.working.revision
+        assert len(ledger(session, run_id)) == 1
+
+
+def test_a_proposal_a_rebuild_replaces_is_not_accepted(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        jobs.rebuild(run_id, design_revision_id=d1)
+        session.commit()
+        with pytest.raises(DesignRejected) as refused:
+            jobs.accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_superseded"
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert ledger(session, run_id) == []
+
+
+def test_a_rebuild_outside_the_job_listing_still_replaces_its_proposal(
+    world: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex on #1108: the listing projection reads the Study's newest 200 jobs, so a rebuild
+    followed by 200 more jobs fell out of it and the original read as pending. With no head
+    check (WCE5) nothing else refused it; the accept looks the rebuild up for this run alone."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        ResearchAgentJobs(session, scope).rebuild(run_id, design_revision_id=d1)
+        session.commit()
+    # The 200-job window holding none of this run's rebuilds, as after 200 later jobs.
+    monkeypatch.setattr(ResearchAgentJobs, "jobs", lambda self, *, limit=20: [])
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        with pytest.raises(DesignRejected) as refused:
+            ResearchAgentJobs(session, scope).accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_superseded"
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert ledger(session, run_id) == []
 
 
 def test_an_older_working_copy_is_refused_as_stale(
@@ -1094,3 +1173,91 @@ def test_a_dismissal_takes_the_study_lock_before_it_reads_the_decision(
     with world.sessions() as session:
         assert ResearchAgentJobs(session, world.lead_scope(session)).dismiss(run_id) is True
     assert order[0] == "lock" and "decisions" in order
+
+
+# --------------------------------------------------------------------------- #
+# A refused answer is kept for diagnosis (brief-analysis-schema-repair chunk 5)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class RefusingBedrock(RecordedBedrock):
+    """Answers every request with tracked_sets as a string holding JSON: refused twice."""
+
+    async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+        response = await super().send(request, timeout_s=timeout_s)
+        content = response.body["output"]["message"]["content"][0]["toolUse"]
+        content["input"] = {**ANSWER, "tracked_sets": "[]"}
+        return response
+
+
+def test_a_refused_answer_is_kept_on_the_jobs_own_project_with_its_requests_class(
+    world: Any,
+    database_url: str,
+    store: Any,
+    build: Any,
+) -> None:
+    from aia_core.application.research import research_artifacts
+    from aia_core.infrastructure.tables import (
+        AIUsageEventRow,
+        ProjectArtifactRow,
+        StepAttemptRow,
+        StepRunRow,
+        WorkflowRunRow,
+    )
+
+    run_id = start(world)
+    transport = RefusingBedrock()
+    w = worker(world, database_url, store, build, transport)
+    assert w.run_once()
+    assert len(transport.requests) == 2  # the primary and its one repair
+    with world.sessions() as session:
+        step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).one()
+        project_id = session.get(WorkflowRunRow, run_id).project_id  # type: ignore[union-attr]
+        attempt = session.scalars(
+            select(StepAttemptRow).where(StepAttemptRow.step_id == step.step_id)
+        ).one()
+        assert attempt.error_json["reason"] == "structured_output_invalid"
+        assert "[]" not in json.dumps(attempt.error_json)  # no answer text in error_json
+        sent_as = {
+            row.data_class
+            for row in session.scalars(
+                select(AIUsageEventRow).where(AIUsageEventRow.run_id == run_id)
+            )
+        }
+        kept = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.artifact_type == "refused_answer",
+            )
+        ).all()
+        assert len(kept) == 1
+        # Operator-only (W1Q4): the routes serve what a step's output names, and none names it.
+        outputs = [r.output_json for r in session.scalars(select(StepRunRow))]
+        assert kept[0].artifact_id not in json.dumps(outputs)
+        record = research_artifacts(session, world.lead_scope(session), store).read_json(
+            kept[0].artifact_id
+        )
+    assert record["violations"] == ["tracked_sets: Input should be a valid array, received string"]
+    assert json.loads(record["rejected_output"])["tracked_sets"] == "[]"
+    assert record["call_ids"] == sorted(record["call_ids"]) and len(record["call_ids"]) == 2
+    assert sent_as == {record["data_class"]} == {"CLASS_B_DERIVED_CLIENT"}
+    assert record["class_source"] == "rule:refused_answer"
+    assert record["agent_id"] and record["prompt_version"]
+
+
+def test_a_job_that_succeeds_keeps_no_refused_answer(
+    world: Any,
+    database_url: str,
+    store: Any,
+    build: Any,
+) -> None:
+    from aia_core.infrastructure.tables import ProjectArtifactRow
+
+    start(world)
+    w = worker(world, database_url, store, build, RecordedBedrock())
+    assert w.run_once()
+    with world.sessions() as session:
+        assert not session.scalars(
+            select(ProjectArtifactRow).where(ProjectArtifactRow.artifact_type == "refused_answer")
+        ).all()
