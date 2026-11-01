@@ -1,6 +1,6 @@
 # The AIA Build Map
 
-One page for the MVP build: every plan by page and enabler, its progress, how the plans reference each other, the
+One page for the MVP build: the plan in plain words for people (what each wave delivers and how the work happens), then every plan by page and enabler, its progress, how the plans reference each other, the
 research stages' inputs and outputs, the build sequence by wave, what must be switched on, and the open questions.
 It is published as a claude.ai artifact; this directory is what builds it.
 
@@ -25,7 +25,7 @@ merge that changes a plan.
 
 | File | Holds | Update when |
 |---|---|---|
-| `curated.json` | Categories (epics), which plan sits in which, stage purposes, the board's queue, proposed chunks, the open questions, the agile mapping | A plan is added, a question is answered or asked, the queue moves |
+| `curated.json` | Categories (epics), which plan sits in which, stage purposes, the board's queue, proposed chunks, the open questions, the agile mapping, and `story`: the plan in plain words (the process, each wave's outcomes, the parallel tracks) | A plan is added, a question is answered or asked, the queue moves, a wave's outcomes change |
 | `develop_state.json` | Develop's state from the infra audit: each switch and resource, MATCH / PARTIAL / MISSING, with evidence | A new audit, or a switch is thrown |
 | `stagemap.json` | Each research stage's hand-offs, what is built and the backend and frontend gaps, at its develop sha | The stages are mapped again |
 | `page.tpl.html` | The page; `build.py` puts the data where `/*__DATA__*/null` stands | The layout changes |

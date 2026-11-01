@@ -21,6 +21,7 @@ from aia_core.application.deep_research import BundleNotReady, DeepResearchRuns,
 from aia_core.application.report import (
     RESEARCH_SUBTITLE,
     ReportCompositionRefused,
+    WovenFindings,
     beside_outputs,
     compose_internal_report,
     sourced,
@@ -47,7 +48,17 @@ from aia_core.domain.deep_research.document_types import (
     document_type,
 )
 from aia_core.domain.deep_research.gaps import AcquisitionReason
-from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
+from aia_core.domain.deep_research.integration import (
+    AnalysisModuleTarget,
+    DeepResearchPurpose,
+    InterpretationLineage,
+    ResearchTargetRef,
+    ResultBatteryObjectTarget,
+    ResultQuestionTarget,
+    SociomapObjectTarget,
+    SociomapRelationshipTarget,
+    SociomapTarget,
+)
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
 from aia_core.domain.deep_research.settings import Origin, SettingsPinCorrupt
 from aia_core.domain.deep_research.topicality import (
@@ -63,7 +74,7 @@ from aia_core.domain.deep_research.workflow import ARTIFACT_TYPES
 from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.control_tags import source_tag
-from aia_core.domain.report.controls import under
+from aia_core.domain.report.controls import under, under_blocks
 from aia_core.domain.report.model import (
     ArtifactSource,
     Block,
@@ -104,7 +115,9 @@ from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, Objec
 # -13: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
 # -14: the design and method chapters' numbers locked under their sources (design:, run:).
 # -15: the literature chapter locked under its bundle, the audit under the run (P14, P15).
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-15"
+# -16: the accepted findings woven into the body section the review's target bears on, labelled
+# external context; the chapter keeps the scope, sources and limits (artifact-chain CHN8).
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-16"
 #: The sealed Deep Research bundle the literature chapter is read from.
 BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
@@ -250,15 +263,67 @@ def todays_topic_rules(
     return topic_screen(bundle.subjects, client_terms=request.client_terms)
 
 
-def literature_sections(
+@dataclass(frozen=True, slots=True)
+class WovenLiterature:
+    """A review read for weaving (artifact-chain CHN8): its accepted findings, each claim with its
+    citation and quote, for the body section the review's target bears on; and the literature
+    chapter without them, which keeps the scope, the sources and the limits."""
+
+    findings: tuple[Block, ...]
+    chapter: Section
+
+
+def woven_literature(
     bundle: EvidenceBundle,
     *,
     research_run_id: str,
     origin: OriginKind | None = None,
     tiers_approved: bool | None = None,
     topics: TopicScreen | TopicRulesUnread | None = None,
-) -> tuple[Section, ...]:
+) -> WovenLiterature:
+    """The review read for weaving: its findings apart from the chapter (:func:`_literature`)."""
+    chapter, findings = _literature(
+        bundle,
+        research_run_id=research_run_id,
+        origin=origin,
+        tiers_approved=tiers_approved,
+        topics=topics,
+    )
+    return WovenLiterature(findings, chapter)
+
+
+def woven_into(target: ResearchTargetRef, map_chapters: Mapping[str, str]) -> str | None:
+    """The body section an Interpretation Research target bears on (CHN8): a module's own
+    chapter, a question's the research questions', an object's the objects' comparison, a map's
+    (or its object's or pair's) its battery's map chapter. ``map_chapters``: battery id -> section
+    id; a battery with none answers ``None``, and the literature chapter keeps the findings."""
+    if isinstance(target, AnalysisModuleTarget):
+        return _module_chapter(target.module_id)
+    if isinstance(target, ResultQuestionTarget):
+        return _module_chapter(AnalysisModuleId.RESEARCH_QUESTIONS)
+    if isinstance(target, ResultBatteryObjectTarget):
+        return _module_chapter(AnalysisModuleId.OBJECTS)
+    if isinstance(target, SociomapTarget | SociomapObjectTarget | SociomapRelationshipTarget):
+        return map_chapters.get(target.battery_id)
+    return None
+
+
+def _module_chapter(module_id: AnalysisModuleId) -> str:
+    return next(f"ch-{m.ordinal}" for m in ANALYSIS_MODULES if m.module_id is module_id)
+
+
+def _literature(
+    bundle: EvidenceBundle,
+    *,
+    research_run_id: str,
+    origin: OriginKind | None,
+    tiers_approved: bool | None,
+    topics: TopicScreen | TopicRulesUnread | None,
+) -> tuple[Section, tuple[Block, ...]]:
     """Publish accepted source claims; citation checks do not approve model inferences.
+
+    The accepted findings come back apart from the chapter, for the body section the review's
+    target bears on (artifact-chain CHN8); the chapter says where they are.
 
     The chapter keeps credibility and relevance apart (research-integrity-report chunk 2).
     Code checked that each quote is verbatim in its captured source and that the claim's
@@ -506,8 +571,16 @@ def literature_sections(
             )
         )
 
+    findings: list[Block] = []
     if accepted:
-        blocks.append(Heading("Přijatá zjištění a jejich citace", 2))
+        blocks.append(
+            Paragraph(
+                text(
+                    "Přijatá zjištění rešerše jsou uvedena v kapitole, které se týkají, "
+                    "označená jako externí kontext; zde jsou jejich zdroje a meze."
+                )
+            )
+        )
         if not synthesis or not synthesis.findings:
             blocks.append(
                 Paragraph(
@@ -520,8 +593,8 @@ def literature_sections(
             e = a.evidence
             subject = subjects.get(e.subject_key)
             label = labels[e.evidence_id]
-            blocks.append(cited(e.claim, (e.evidence_id,)))
-            blocks.append(
+            findings.append(cited(e.claim, (e.evidence_id,)))
+            findings.append(
                 Quote(
                     text=e.quote,
                     attribution=f"[{label}] {by_label[label]['title']}"
@@ -531,7 +604,7 @@ def literature_sections(
             )
             thesis = theses.get(e.evidence_id)
             if thesis is not None:
-                blocks.append(
+                findings.append(
                     Paragraph(
                         text(
                             f"Dnešní pravidla typů dokumentů ({DOCUMENT_RULES_VERSION}) by toto "
@@ -548,7 +621,7 @@ def literature_sections(
                     if rejected_now.verdict is TopicVerdict.OFF_TOPIC
                     else "topic_undetermined"
                 )
-                blocks.append(
+                findings.append(
                     Paragraph(
                         text(
                             f"Dnešní kontrola tématu ({TOPICALITY_VERSION}) by toto zjištění "
@@ -717,8 +790,9 @@ def literature_sections(
         )
     )
     # Written whole from the sealed bundle: its numbers print locked under it (RPT8a, part 3, P14).
+    tag = source_tag("bundle", research_run_id)
     section = Section("Literární rešerše a externí kontext", tuple(blocks), id="literature")
-    return (under(section, source_tag("bundle", research_run_id)),)
+    return under(section, tag), under_blocks(findings, tag)
 
 
 def _composed_type(evidence: EvidenceItem, snapshots: Mapping[str, SnapshotRef]) -> DocumentTyping:
@@ -1095,27 +1169,29 @@ def _compose(
             ("Kontrakt", CONTEXT_REPORT_CONTRACT),
         ),
     )
+    # The sealed bundle the chapter and the woven findings are read from (artifact-chain CHN1).
+    bundle_source = ArtifactSource(
+        BUNDLE_ARTIFACT,
+        provenance.evidence_bundle_artifact_id,
+        provenance.evidence_bundle_artifact_sha256,
+    )
+    literature = woven_literature(
+        bundle,
+        research_run_id=deep_research_run_id,
+        origin=origin_kind(first.record.labels.data_origin),
+        tiers_approved=tiers_approved,
+        topics=topics,
+    )
     document = compose_internal_report(
         analysis,
         meta,
         map_sections=chapters.maps,
-        # The chapter names the sealed bundle it is read from (artifact-chain CHN1).
-        context_sections=tuple(
-            sourced(
-                section,
-                ArtifactSource(
-                    BUNDLE_ARTIFACT,
-                    provenance.evidence_bundle_artifact_id,
-                    provenance.evidence_bundle_artifact_sha256,
-                ),
-            )
-            for section in literature_sections(
-                bundle,
-                research_run_id=deep_research_run_id,
-                origin=origin_kind(first.record.labels.data_origin),
-                tiers_approved=tiers_approved,
-                topics=topics,
-            )
+        context_sections=(sourced(literature.chapter, bundle_source),),
+        # Each accepted finding in the body section the review's target bears on (CHN8).
+        woven=WovenFindings(
+            into=woven_into(provenance.target, chapters.map_chapters),
+            blocks=literature.findings,
+            source=bundle_source,
         ),
         question_tables=chapters.questions,
         design=chapters.design,

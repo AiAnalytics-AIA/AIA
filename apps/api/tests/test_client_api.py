@@ -960,6 +960,12 @@ def test_a_person_files_the_clients_knowledge_in_folders_and_labels(
     assert taken.status_code == 409 and taken.json()["code"] == "name_taken"
     label = researcher.post(f"{base}/labels", json={"name": "2025", "colour": "BLUE"}).json()
     assert researcher.post(f"{base}/labels", json={"name": "x", "colour": "RED"}).status_code == 422
+    # CPR16: green belongs to the version in force alone, never to a label.
+    assert (
+        researcher.post(f"{base}/labels", json={"name": "x", "colour": "GREEN"}).status_code == 422
+    )
+    green = researcher.put(f"{base}/labels/{label['label_id']}", json={"colour": "GREEN"})
+    assert green.status_code == 422
 
     placed = researcher.put(
         f"{base}/placement",
@@ -1126,7 +1132,7 @@ def test_a_member_lifts_the_clients_budget_for_its_own_waiting_work(
     from aia_core.application.client_work import start_client_work
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
     from aia_core.domain.workflow import StepRunStatus
-    from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
+    from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
     from aia_core.infrastructure.db import create_session_factory
     from aia_core.infrastructure.tables import StepRunRow
     from sqlalchemy import select
@@ -1137,7 +1143,7 @@ def test_a_member_lifts_the_clients_budget_for_its_own_waiting_work(
         )
         work = ScopeResolver(session).client_work_context(principal, client_id=world.client_id())
         started = start_client_work(
-            session, work, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="api-lift"
+            session, work, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="api-lift"
         )
         step = session.scalars(
             select(StepRunRow).where(StepRunRow.run_id == started.run_id)

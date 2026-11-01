@@ -85,7 +85,7 @@ from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT, read_document_payload
-from aia_core.domain.report.model import Callout
+from aia_core.domain.report.model import Callout, Heading, Paragraph
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.residency import DataClass
 from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
@@ -812,6 +812,37 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     deep_research_run_id=interpreted.run_id,
                 )
                 assert any(s.id == "literature" for s in combined.sections)
+                # Woven (CHN8): each accepted finding stands in the section its target bears on,
+                # under the external-context heading, the bundle among that section's sources;
+                # the literature chapter keeps the sources, not the findings.
+                woven = [
+                    s
+                    for s in combined.sections
+                    if any(
+                        isinstance(b, Heading) and b.text == "Externí kontext z literární rešerše"
+                        for b in s.blocks
+                    )
+                ]
+                assert [s.id for s in woven] == (
+                    ["ch-3"] if result_target is module_target else [woven[0].id]
+                )
+                assert (woven[0].id or "").startswith(("ch-3", "ch-native-map-"))
+                said = {
+                    s.id: " ".join(
+                        i.text
+                        for b in s.blocks
+                        if isinstance(b, Paragraph)
+                        for i in b.content
+                        if hasattr(i, "text")
+                    )
+                    for s in combined.sections
+                }
+                for found in evidence.accepted:
+                    assert found.evidence.claim in said[woven[0].id]
+                    assert found.evidence.claim not in said["literature"]
+                assert provenance.evidence_bundle_artifact_id in {
+                    getattr(x, "artifact_id", None) for x in woven[0].sources
+                }
                 # The report with literature takes the same recorded gaps (review 3).
                 assert any(
                     isinstance(b, Callout) and b.title == "Bez doložené odpovědi"

@@ -489,7 +489,7 @@ def test_filing_is_all_or_nothing_and_never_crosses_clients(
     lead = client_scope(scoped, "lead")
     a, _ = _two_items(knowledge, lead)
     mine = knowledge.create_folder(lead, name="Moje")
-    label = knowledge.create_label(lead, name="moje", colour=LabelColour.GREEN)
+    label = knowledge.create_label(lead, name="moje", colour=LabelColour.TEAL)
     globex = client_scope(scoped, "other_lead", "other")
     knowledge.add(globex, kind=KnowledgeKind.FACT, title="Globex only")
     [theirs] = knowledge.items(globex)

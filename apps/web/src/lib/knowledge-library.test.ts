@@ -76,10 +76,10 @@ describe("an edit refused because the item moved on (F-K1)", () => {
 describe("a new label's colour (input-interactions I5)", () => {
   it("is the first colour no label uses, else the next in turn", () => {
     expect(nextLabelColour([])).toBe("BLUE");
-    expect(nextLabelColour([{ colour: "BLUE" }, { colour: "GREEN" }])).toBe("TEAL");
-    const six = (["BLUE", "TEAL", "GREEN", "ORANGE", "VIOLET", "SLATE"] as const).map((colour) => ({ colour }));
-    expect(nextLabelColour(six)).toBe("BLUE");
-    expect(nextLabelColour([...six, { colour: "BLUE" as const }])).toBe("TEAL");
+    expect(nextLabelColour([{ colour: "BLUE" }, { colour: "ORANGE" }])).toBe("TEAL");
+    const all = (["BLUE", "TEAL", "ORANGE", "VIOLET", "SLATE"] as const).map((colour) => ({ colour }));
+    expect(nextLabelColour(all)).toBe("BLUE");
+    expect(nextLabelColour([...all, { colour: "BLUE" as const }])).toBe("TEAL");
   });
 });
 

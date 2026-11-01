@@ -1085,18 +1085,31 @@ describe("a typed analysis retry (the PM on #744)", () => {
 
 describe("a stage's \"Požádat Vedoucího\" (the Zadání owner's review on #986)", () => {
   let turnPosts: string[] = [];
+  let greetings = 0;
   let release: (() => void) | null = null;
   function Asker() {
     const ask = useAskLead();
     return <button type="button" onClick={() => ask?.("Aktualizuj návrh podle mých komentářů.")}>Požádat Vedoucího</button>;
   }
+  // The pane hands the workbench its stage send in an effect (LeadPane registerSend), flushed with
+  // the one that greets: an enabled composer is in the DOM before that effect runs, and a click in
+  // between reaches the previous render's send, which saw no session and sends nothing. The greeting
+  // having gone is what says the pane's ready render has run its effects.
+  const leadReady = async () => {
+    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i, hidden: true }) as HTMLTextAreaElement).disabled).toBe(false));
+    await waitFor(() => expect(greetings).toBe(1));
+  };
   beforeEach(() => {
     turnPosts = [];
+    greetings = 0;
     release = null;
     const base = fetch as unknown as (url: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
     vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const body = init?.method === "POST" && String(url).endsWith("/lead/turns") ? (JSON.parse(String(init.body)) as { kind: string; text?: string }) : null;
-      if (body?.kind === "greeting") return new Response(JSON.stringify({}));
+      if (body?.kind === "greeting") {
+        greetings++;
+        return new Response(JSON.stringify({}));
+      }
       if (body?.kind === "message") {
         turnPosts.push(String(body.text));
         await new Promise<void>((r) => (release = r));
@@ -1109,7 +1122,7 @@ describe("a stage's \"Požádat Vedoucího\" (the Zadání owner's review on #98
   it("opens the conversation below 1100 px, where its answer and card are", async () => {
     bench(<Asker />);
     setWidth(900);
-    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i, hidden: true }) as HTMLTextAreaElement).disabled).toBe(false));
+    await leadReady();
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
     expect(screen.getByRole("dialog", { name: "Vedoucí výzkumu" })).toBeTruthy();
@@ -1129,7 +1142,7 @@ describe("a stage's \"Požádat Vedoucího\" (the Zadání owner's review on #98
 
   it("asks once however many times it is clicked while the same ask is on its way", async () => {
     bench(<Asker />);
-    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i }) as HTMLTextAreaElement).disabled).toBe(false));
+    await leadReady();
     const ask = screen.getByRole("button", { name: "Požádat Vedoucího" });
     fireEvent.click(ask);
     await waitFor(() => expect(turnPosts).toHaveLength(1));

@@ -277,6 +277,7 @@ data = {
     "proposed": cur["proposed_chunks"],
     "questions": cur["questions"],
     "agile": cur["agile"],
+    "story": cur.get("story"),
     "prs": prs,
     "groups": groups,
     "loose": loose,

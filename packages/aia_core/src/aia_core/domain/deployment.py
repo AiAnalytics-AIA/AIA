@@ -19,13 +19,13 @@ __all__ = [
     "DATA_CLASS_GATES_ENV",
     "DataClassGates",
     "DeploymentEnvironment",
-    "data_class_gates_problem",
     "fictional_material_problem",
     "parse_data_class_gates",
     "parse_environment",
 ]
 
-#: The switch that makes a data class advisory (plan ``develop-class-advisory``).
+#: The switch that makes a data class advisory (plan ``develop-class-advisory``; allowed in every
+#: environment since ADR 0008, Amendment 2026-10-28).
 DATA_CLASS_GATES_ENV = "AIA_DATA_CLASS_GATES"
 
 
@@ -91,9 +91,11 @@ class DataClassGates(StrEnum):
     The value of ``AIA_DATA_CLASS_GATES``.
 
     ``ENFORCE`` (the default) refuses, as every gate always has. ``ADVISORY`` -- the product
-    owner's develop-only decision of 2026-10-21 (plan ``develop-class-advisory``) -- records the
-    refusal it would have made (``residency.ClassAdvisory``) and lets the call proceed. EU
-    residency, licences, budgets and scope are not class-only refusals and hold in both.
+    owner's decision of 2026-10-21 for develop (plan ``develop-class-advisory``), allowed in every
+    environment for the MVP on 2026-10-28 (ADR 0008, Amendment 2026-10-28) -- records the refusal
+    it would have made (``residency.ClassAdvisory``) and lets the call proceed. A deployment runs
+    advisory only where its own configuration says so. EU residency, licences, budgets and scope
+    are not class-only refusals and hold in both.
     """
 
     ENFORCE = "enforce"
@@ -118,22 +120,3 @@ def parse_data_class_gates(raw: str | None) -> DataClassGates:
     except ValueError as exc:
         allowed = ", ".join(m.value for m in DataClassGates)
         raise ValueError(f"{DATA_CLASS_GATES_ENV}={raw!r} is not one of {allowed}") from exc
-
-
-def data_class_gates_problem(
-    environment: DeploymentEnvironment | None, gates: DataClassGates
-) -> str | None:
-    """Why ``gates`` may not be used here, or ``None`` when it may.
-
-    Advisory is allowed where fictional material is (local, test, develop) and nowhere else;
-    an unknown environment refuses it. The API and the worker both ask this one function.
-    """
-    if not gates.advisory:
-        return None
-    if environment is not None and environment.allows_fictional_material:
-        return None
-    where = environment.value if environment is not None else "an unknown environment"
-    return (
-        f"{DATA_CLASS_GATES_ENV}=advisory is refused in {where}: data class gates are "
-        "advisory only in local, test and develop"
-    )

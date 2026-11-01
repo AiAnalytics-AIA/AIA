@@ -413,8 +413,10 @@ def test_every_lead_target_candidate_of_a_completed_run_is_one_the_start_freezes
             user_id=world.users["researcher"], organization_id=world.organization_id
         )
         scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
-        assert ResearchLead(session, scope)._targets() is None  # no store: no target offered
-        layer = ResearchLead(session, scope, store=store)._targets()
+        assert (
+            ResearchLead(session, scope).interpretation_targets() is None
+        )  # no store: no target offered
+        layer = ResearchLead(session, scope, store=store).interpretation_targets()
         assert layer is not None
         candidates = layer["candidates"]
         kinds = {c["kind"] for c in candidates}
@@ -448,7 +450,7 @@ def test_every_lead_target_candidate_of_a_completed_run_is_one_the_start_freezes
                 json={"design_revision_id": newer.json()["revision_id"]},
             )
             assert queued.status_code == 201, queued.text
-        behind = ResearchLead(session, scope, store=store)._targets()
+        behind = ResearchLead(session, scope, store=store).interpretation_targets()
         assert behind is not None
         assert {c["run_id"] for c in behind["candidates"]} == {results["run_id"]}
 
@@ -463,7 +465,7 @@ def test_every_lead_target_candidate_of_a_completed_run_is_one_the_start_freezes
         row = session.get(ProjectArtifactRow, compile_step.output_json["artifact_id"])
         assert row is not None
         store.delete(row.storage_key)
-        broken = ResearchLead(session, scope, store=store)._targets()
+        broken = ResearchLead(session, scope, store=store).interpretation_targets()
         assert broken == {
             "candidates": [],
             "default": None,

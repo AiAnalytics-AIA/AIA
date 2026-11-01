@@ -8,7 +8,7 @@ chunks:
   - "[x] CHN5. The audience in full: the specification keeps the stated description and filters, and `ch-design` prints them"
   - "[x] CHN6. The report's audit names every artifact it stands on: the aggregate, the map, the specification, the dataset (#579); the experimental Sociomapping draft goes in CHN1's manifest instead (PM decision, 2026-10-21)"
   - "[x] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
-  - "[ ] CHN8. Interpretation Research woven into the body (CQ4 = Q58 b): when literature is chosen, each accepted finding in the body section it bears on, labelled external (L class), never respondent evidence; one document, the separate with-research DOCX retired for new reports"
+  - "[ ] CHN8. Interpretation Research woven into the body (CQ4 = Q58 b): when literature is chosen, each accepted finding in the body section it bears on, labelled external (L class), never respondent evidence; one document in the product, the with-research type holding the woven version (amended 2026-10-29, option R; the composition landed, the one document on Zpráva with artifact-report RPT3c)"
   - "[x] CHN9. Metodika a způsob interpretace (`methodology`) from the run's pins: aggregation methodology, support rule and Sociomap method, the reading guidance kept and labelled (#589)"
   - "[ ] CHN9b. The run's QC warnings in `methodology` (after `evidence-integrity#3`): split from CHN9, which was ticked without them"
   - "[ ] CHN10. A module with no supported finding blocks the draft (MVPQ-04): composition, approval and export refuse; the module's diagnostic shown on Analýza and Výsledky and in the refusal's own words"
@@ -245,10 +245,56 @@ G12-G17 are added by this plan.
   seal. Unmarking the run composes the next draft without it.
 - `research_internal_docx_with_research` (`contextual_report.py:864`) is retired for new reports:
   nothing composes one after this lands. Stored ones stay downloadable and approvable as they are.
+- *Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): the run is marked by "Použít ve zprávě" on
+  Analýza's finished card (ANL15); nothing else changes here.
 - Tests: a draft with a marked run holds each accepted finding in its target's section, labelled L,
   with no ledger ref; a rejected finding does not print; no `research_internal_docx_with_research` is
   stored for a new report; a stored one still downloads by its artifact id; the census (CHN11a)
   refuses a number in a woven statement that is not the bundle's own quote.
+
+*Amended 2026-10-29 (option R, the PM coordinator's call).* The line "the separate with-research DOCX retired"
+now reads "no separate document in the product; the type holds the woven version". Why R over S:
+- The internal draft is the artifact the run's report step recorded as its output, not the newest
+  `research_internal_docx` (`apps/api/src/aia_api/routers/research.py:2643 @ ca9eb9f2`, `_report_for_run`, read by
+  9 callers: status, download, PDF, document, approval and the editor at `routers/report_editor.py:156, :573`).
+  Its PDF is the worker's (`step_pdf`).
+- S (one type: an API recompose stored as `research_internal_docx`) would change that identity in all 9 readers and add a
+  PDF path for a draft no step made: the Zpráva lane's core.
+- R weaves inside the existing literature path (`stored_contextual_report`): composed in the API, stored, with its own
+  PDF (`request_pdf`), approval and editor line ("context" in `EDITABLE_VARIANTS`). The product shows one document:
+  Zpráva shows the woven version once a run is marked, the base draft otherwise, and approval and download act on
+  the one shown (`artifact-report#RPT3c`, step 4 of `artifact-analysis.md` § "Interpretation Research lives on
+  Analýza").
+- S stays the cleaner end state, for a later chunk if anyone wants it.
+
+*Composition landed (`feature/chn8-literature-woven`).*
+- `contextual_report.woven_literature` reads a review into its accepted findings (claim, citation, quote, each
+  printing under `bundle:<run>`) and the literature chapter without them. The chapter keeps scope, counts, sources,
+  limits and the seal, and says where the findings are.
+- `woven_into(target, map_chapters)` names the body section:
+  - ANALYSIS_MODULE → its `ch-N`;
+  - RESULT_QUESTION → `ch-2`;
+  - RESULT_BATTERY_OBJECT → `ch-3`;
+  - a map, its object or its pair → its battery's `ch-native-map-<n>` (`report_maps.map_chapter_ids`, carried as
+    `ReportChapters.map_chapters`);
+  - none → the literature chapter.
+- `compose_internal_report(woven=WovenFindings(...))` puts them at the end of that section, after the respondent
+  findings, under "Externí kontext z literární rešerše" and a note that they are not the study's evidence. The bundle
+  is added to that section's sources (CHN1). They carry no ledger ref. A rejected finding never prints.
+- `CONTEXT_REPORT_CONTRACT` is `aia-contextual-report-16`, so a prepared -15 draft reads as earlier and the next
+  preparation composes the woven one.
+- Tests:
+  - `test_analysis_results.py` "woven findings stand in their target section labelled external", "findings with no
+    body section stay in the literature chapter", "woven findings need the literature chapter";
+  - `test_contextual_report.py` "woven findings leave the chapter …", "each target is woven into the section it
+    bears on", "an empty review weaves nothing";
+  - `test_report_map_snapshots.py` "each battery names the map chapter drawn for it";
+  - `test_analysis_executor.py` (the worker to the stored report, a map target and a module target).
+- Still open, with RPT3c (step 4):
+  - `POST …/report/context` composes woven; no "Zpráva s rešerší";
+  - Zpráva shows one report;
+  - "Použít ve zprávě" on Analýza marks it.
+- The census check is CHN11a's.
 
 **CHN9. The methodology chapter (`methodology`) from the run's pins.**
 - It prints the aggregation's `RoundingSpec` and methodology version, the support rule (Kish n

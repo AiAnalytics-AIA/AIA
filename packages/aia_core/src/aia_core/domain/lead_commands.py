@@ -11,8 +11,10 @@ The normalisation: Unicode NFC, case folded, surrounding whitespace and one trai
 ``!`` removed, inner whitespace collapsed, and an optional leading ``/``. Diacritics are kept
 exactly: "spust vyzkum" is not "spusť výzkum", because a near-match is a guess. A design job
 may carry the person's own instruction after a colon ("Navrhni dotazník: krátce, do 10
-otázek"); the research run and the analysis retry take none, since nothing in their starts
-reads one.
+otázek"); the research run, the analysis retry and Deep Research take none, since nothing in
+their starts reads one. A Deep Research start names its preset in its words ("rychlou": QUICK,
+else STANDARD, Q46); an Interpretation start's target is never in the text, but chosen from the
+server's code-built list when the card is approved (lead-orchestration LO5a.3).
 
 The vocabulary is pinned in ``tests/fixtures/lead_commands/commands.json``, which the web's
 composer reads too, so the two cannot drift.
@@ -30,7 +32,12 @@ from .research_agents import ResearchAction
 __all__ = [
     "ANALYSIS_RETRY",
     "COMMANDS",
+    "DEEP_RESEARCH_RETRY",
+    "DEEP_RESEARCH_STARTS",
+    "DEEP_RESEARCH_STOP",
+    "DESIGN_RESEARCH_STARTS",
     "INSTRUCTION_MAX_CHARS",
+    "INTERPRETATION_RESEARCH_STARTS",
     "RESEARCH_RUN",
     "Command",
     "MatchedCommand",
@@ -44,6 +51,18 @@ __all__ = [
 RESEARCH_RUN: Final = "research_run"
 #: The card registry's name of a finished run's failed analysis asked again over its own data.
 ANALYSIS_RETRY: Final = "analysis_retry"
+#: Deep Research's typed starts (LO5a.3), each in the card registry's words, the quick preset
+#: a start of its own so a stored turn names its preset by its command alone.
+DESIGN_RESEARCH_STARTS: Final = ("design_research", "design_research_quick")
+INTERPRETATION_RESEARCH_STARTS: Final = ("interpretation_research", "interpretation_research_quick")
+DEEP_RESEARCH_RETRY: Final = "deep_research_retry"
+DEEP_RESEARCH_STOP: Final = "deep_research_stop"
+DEEP_RESEARCH_STARTS: Final = (
+    *DESIGN_RESEARCH_STARTS,
+    *INTERPRETATION_RESEARCH_STARTS,
+    DEEP_RESEARCH_RETRY,
+    DEEP_RESEARCH_STOP,
+)
 #: An instruction typed after a design job's command, at most (the job's own bound is 8 KB).
 INSTRUCTION_MAX_CHARS: Final = 2000
 
@@ -60,10 +79,12 @@ class Command:
     phrase: str
     start: str
     label: str
-    #: The design job this starts; ``None`` for the research run and the analysis retry.
+    #: The design job this starts; ``None`` for every other start.
     action: ResearchAction | None
     #: Whether the phrase may be followed by ``: <instruction>``.
     takes_instruction: bool
+    #: A Deep Research start's preset (``QUICK`` / ``STANDARD``); ``None`` for every other.
+    preset: str | None = None
 
 
 def _job(phrase: str, action: ResearchAction, label: str) -> Command:
@@ -83,6 +104,35 @@ COMMANDS: Final[tuple[Command, ...]] = (
     _job("Zeptej se na klientské znalosti", ResearchAction.MEMORY, "Klientské znalosti"),
     Command("Spusť výzkum", RESEARCH_RUN, "Spuštění výzkumu", None, False),
     Command("Zopakuj analýzu", ANALYSIS_RETRY, "Opakování analýzy", None, False),
+    Command(
+        "Spusť rešerši k návrhu", "design_research", "Rešerše k návrhu", None, False, "STANDARD"
+    ),
+    Command(
+        "Spusť rychlou rešerši k návrhu",
+        "design_research_quick",
+        "Rychlá rešerše k návrhu",
+        None,
+        False,
+        "QUICK",
+    ),
+    Command(
+        "Spusť rešerši výsledků",
+        "interpretation_research",
+        "Rešerše k výsledkům",
+        None,
+        False,
+        "STANDARD",
+    ),
+    Command(
+        "Spusť rychlou rešerši výsledků",
+        "interpretation_research_quick",
+        "Rychlá rešerše k výsledkům",
+        None,
+        False,
+        "QUICK",
+    ),
+    Command("Zopakuj rešerši", DEEP_RESEARCH_RETRY, "Opakování rešerše", None, False),
+    Command("Zastav rešerši", DEEP_RESEARCH_STOP, "Zastavení rešerše", None, False),
 )
 
 _WHITESPACE: Final = re.compile(r"\s+")

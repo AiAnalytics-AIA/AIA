@@ -30,7 +30,7 @@ from aia_core.application.report import (
     upstream_artifacts,
 )
 from aia_core.application.report_design import DesignSections, compose_design_sections
-from aia_core.application.report_maps import compose_map_sections
+from aia_core.application.report_maps import compose_map_sections, map_chapter_ids
 from aia_core.application.report_method import (
     METHOD_SOURCES,
     compose_method_section,
@@ -68,6 +68,8 @@ class ReportChapters:
     #: Each research question the run recorded as a gap at start, in words, by its text: the
     #: chapter that answers the research questions marks those answers (research_question_gaps).
     gaps: Mapping[str, str]
+    #: Each battery's id -> its map chapter's section id (``map_chapter_ids``; CHN8).
+    map_chapters: Mapping[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,4 +204,5 @@ def report_chapters(
         map_artifact_id=mapped.artifact_id,
         map_sha256=mapped.sha256,
         gaps=research_question_gaps(meta),
+        map_chapters=map_chapter_ids(body),
     )

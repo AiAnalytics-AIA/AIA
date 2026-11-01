@@ -16,6 +16,8 @@ chunks:
   - "[ ] ANL11. Finding review on the server: ledger subject analysis_finding, its routes and migration (spec szz A7; W3)"
   - "[ ] ANL12. Finding review on the web: Přijmout / Upravit / Vyřadit / Vrátit, 'Přijato N z M' (spec szz A8; W3)"
   - "[ ] ANL13. Evidence grades on Analýza: each finding's cited numbers carry the report's glyph, with the legend (Nigel, 27 Oct 2026; W3, with artifact-results#RES13)"
+  - "[ ] ANL14. The Interpretation Research offer: once a run's analysis is complete, Analýza shows by itself 'Rešerše k výsledkům: <target> · STANDARD · cena nejvýše X', Spustit (the person's typed start, LO5a.3) / Teď ne (Nigel, 29 Oct 2026; W1)"
+  - "[ ] ANL15. Interpretation Research's running and finished states on Analýza: the run card, its findings in the Externí kontext register, 'Ověřeno, přidat zdroj' and 'Použít ve zprávě' (Nigel, 29 Oct 2026; W1)"
 ---
 # Artifact: Analýza (Analysis)
 
@@ -77,7 +79,9 @@ V2: `AnalysisArt` (`InterpretStages.tsx:37-101`).
   - the analysis retry as a run card (a new round over the frozen dataset, `retry_failed_modules`);
   - Interpretation Research over a module (Q44: the research-questions module by default;
     `lead-orchestration#LO5a.1`), with cards 23b and 23c, whose "Použít ve zprávě" weaves its findings into the
-    internal draft's body (CQ4 = Q58, `artifact-chain-to-draft-report#CHN8`);
+    internal draft's body (CQ4 = Q58, `artifact-chain-to-draft-report#CHN8`). Since 2026-10-29 it lives here and
+    only here: offered by itself once the analysis completes (ANL14), run and read here (ANL15); see the section
+    "Interpretation Research lives on Analýza" below;
   - the coder (`assumptions-and-open-answer-coding#AOC7`), if AOC4 lets a model propose codes.
 - **Inline proposals:** coding themes as change blocks (V2 `:82`), accepted by a person into the
   coding review.
@@ -192,6 +196,10 @@ has an outcome. A pin that no longer names its bundle refuses the view (409 `sou
 without the switch), and the journey (no register without a pin). Still open: the labelled-interpretation
 register, which waits on `lead-orchestration#LO9b`.
 
+*Amended 2026-10-29 (§ "Interpretation Research lives on Analýza" below):* the external register also holds the
+findings of the run's own Interpretation Research (ANL15), as a block of its own beside the pinned Design
+Research, labelled external, never with a claim chip and never respondent evidence (ADR 0021).
+
 **ANL6. Modules and the retry.**
 - `ExecutionSteps.tsx:1077-1089`'s starts move to the Lead's run card or a typed start; the list stays.
 - Test: the 26f guard.
@@ -294,3 +302,66 @@ added, never renumbered; a ticked chunk a decision reopens gets a follow-up chun
 
 **ANL13. Grades on Analýza** (W3, lane G). RES13's component beside each number a finding cites. Test: a cited
 modelled number carries the modelled glyph.
+
+## Interpretation Research lives on Analýza (Nigel, 2026-10-29)
+
+**The decision.** The product owner, in the PM coordinator's chat, 29 Oct 2026, between ~14:30 and
+~14:42 UTC, in this order:
+- "i want it to automatically pop up after the sber dat, so the document can be created with teh
+  literature from the deep research"
+- "or have it a part of the analyza step, i guess that makes the most sense"
+- "yeah lets have it as apart of the analyza step"
+
+Interpretation Research (ADR 0021's second checkpoint) belongs to Analýza: it is offered there once a run's
+analysis is complete, it runs and is read there, and its findings reach the ONE internal report through
+"Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`; his 26 Oct P3 decision: no third document).
+
+What develop did before (`@ ca9eb9f2`): the workbench's Zpráva showed "Zpráva s rešerší" as a third document
+with "Připravit zprávu s rešerší"; `InterpretationResearch.tsx` kept its own start (`:145`) and retry (`:161`),
+mounted in the analysis view (`ExecutionSteps.tsx:1487`); `lib/lead.ts` `deepResearchStage` sent an
+Interpretation card to Zpráva (`"report"`).
+
+**"Pop up" is an offer, not a start** (the PM coordinator's call on Nigel's "automatically pop up", 2026-10-29;
+he may overrule). The card appears by itself; paid work starts only on the researcher's one click. ADR 0019, the
+confirmation threshold, the live-settings gate (ADR 0022) and the ledger row all stay. The card is built by code,
+with no model in its path, so it appears with the Lead off (Q43) and does not wait on the continuation turn.
+`lead-orchestration#LO6` (DRL-10) later adds the Lead's own card, with its why, in the conversation; both start
+through the same typed start.
+
+**ANL14. The offer** (W1). Once a run's analysis is complete (every module has an outcome) and the run has no
+Interpretation Research run, Analýza shows one card: "Rešerše k výsledkům: <target> · STANDARD · cena nejvýše X",
+with "Spustit" and "Teď ne".
+- The target is LO5a.1's default code-built candidate (Q44: the research-questions module), in words, never an id;
+  a module stored BLOCKED is never offered (LO5a.1 leaves it out). The depth is STANDARD (Q46).
+- The price is `POST …/deep-research/quote`'s ceiling, "horní mez, ne odhad"; unknown is said, never 0. Missing
+  live settings disable the card before a click and say who fixes them (LO12a's pattern).
+- "Spustit" sends the person's typed "Spusť rešerši výsledků" with that target (`lead-orchestration#LO5a.3`:
+  `chat_start` row, threshold, wallet when on), as ANL4's "Opakovat analýzu" sends "Zopakuj analýzu".
+- "Teď ne" hides it for that run on this device; the Lead can still offer it.
+- Tests: no card before the analysis completes or once a run exists; Spustit sends exactly the typed command and
+  target; an unknown price is not 0; missing live settings disable it.
+- Depends on `lead-orchestration#LO5a.1` (done), `#LO5a.3`, `deep-research-web-search#55` (done).
+
+**ANL15. Its states on Analýza** (W1). The run's Interpretation Research is shown on Analýza and nowhere else:
+- running: 23b's running card (orb, steps, waits with resume and budget lift, "Zrušit rešerši");
+- finished: 23c's finished card for the interpretation kind (coverage and counts, the first accepted findings,
+  "Ověřeno, přidat zdroj", "Použít ve zprávě"); its accepted findings in ANL5's "Externí kontext" register;
+- `InterpretationResearch.tsx` becomes this reader; its start and retry go with
+  `research-lead-workbench#26f.1`.
+- Test: a finished run's findings are labelled "Externí kontext" with no claim chip; "Použít ve zprávě" marks the
+  run for the internal draft (CHN8).
+- Depends on ANL14 and `research-lead-workbench#23b`, `#23c` (their interpretation kind).
+
+**What moves with it.**
+- `research-lead-workbench#23b`, `#23c`: the interpretation kind's cards stand on Analýza;
+  `deepResearchStage` answers `"analysis"` for INTERPRETATION_RESEARCH.
+- `research-lead-workbench#26f.1`: unchanged, but the reader panel lives on Analýza.
+- `artifact-results#RES6`, `artifact-sociomap#SOC5`: narrowed to pointing here: a measure, set or pair offers
+  "Zeptat se Vedoucího" with that target; no Interpretation Research panel or start of their own.
+- `artifact-report#RPT10`: the card moves here; Zpráva shows only the woven text.
+- `artifact-report#RPT3c`: "Zpráva s rešerší" and its "Připravit" leave Zpráva when CHN8 lands.
+- `artifact-chain-to-draft-report#CHN8`: unchanged in substance; its trigger is "Použít ve zprávě" here.
+- `lead-orchestration#LO6`: its analysis-complete wake writes the Lead's version of ANL14's card.
+
+**Order.** CHN8 (in parallel), `lead-orchestration#LO5a.3`, ANL14 + ANL15 (with 23b/23c's interpretation kind),
+then `research-lead-workbench#26f.1` + `artifact-report#RPT3c`. LO6's wake stays with its own lane.

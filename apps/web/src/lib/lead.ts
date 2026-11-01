@@ -14,6 +14,7 @@ import type { ResearchAgentJob } from "./api";
 import { parseAudienceId } from "./artifacts/audience";
 import type { MapFilter } from "./artifacts/sociomap";
 import { JOB_STAGE } from "./lead-cards";
+import { usdWords } from "./spend";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
@@ -109,8 +110,13 @@ export type LeadRequest =
    *  (a candidate id of the turn's targets layer). LO5a.2: started on the server by its approval,
    *  under the stage start's gates (isDeepResearchCard). */
   | { kind: "design_research"; why: string; preset?: "QUICK" | "STANDARD"; focus?: string[] }
-  | { kind: "interpretation_research"; why: string; target?: string | null; preset?: "QUICK" | "STANDARD" }
-  | { kind: "deep_research_retry"; why: string; run_id: string };
+  /** `target_ref`: a typed card's chosen candidate's reference (LO5a.3), what its approval sends. */
+  | { kind: "interpretation_research"; why: string; target?: string | null; target_ref?: Record<string, unknown>; preset?: "QUICK" | "STANDARD" }
+  /** The Lead's card names the run it retries; a person's typed "Zopakuj rešerši" (LO5a.3) names
+   *  the one GET /lead says it retries, absent while there is none. */
+  | { kind: "deep_research_retry"; why: string; run_id?: string }
+  /** A person's typed "Zastav rešerši" (LO5a.3): stops the run GET /lead names; costs nothing. */
+  | { kind: "deep_research_stop"; why: string; run_id?: string };
 
 export type DeepResearchCard = Extract<LeadRequest, { kind: "design_research" | "interpretation_research" | "deep_research_retry" }>;
 
@@ -134,18 +140,62 @@ const PRESET_WORDS = { QUICK: "Rychlý", STANDARD: "Standardní" } as const;
 /** A Deep Research card's facts as label/value rows: what starts, its preset, focus or target,
  *  and how it is paid. A preset the card did not name is the stage's default, said so; a target
  *  it did not name is the turn's default candidate, never guessed here. */
-export function deepResearchFacts(r: DeepResearchCard, s: { walletOn: boolean; decided: boolean }): { label: string; value: string; sub?: string }[] {
+export function deepResearchFacts(r: DeepResearchCard, s: { walletOn: boolean; decided: boolean; typed?: TypedResearchFacts }): Fact[] {
   const what = r.kind === "design_research"
     ? { label: "Co se stane", value: "Spustí se hloubkový výzkum nad návrhem, jak je teď", sub: "Návrh se uloží jako nová verze; kontroluje se jako spuštění u Dotazníku." }
     : r.kind === "interpretation_research"
     ? { label: "Co se stane", value: "Spustí se literární rešerše k výsledku běhu", sub: "Nad zmrazeným výsledkem; data respondentů ani výpočty nemění." }
-    : { label: "Co se stane", value: `Zopakuje se hloubkový výzkum ${r.run_id}`, sub: "Se stejným zadáním; co už proběhlo, se neplatí znovu." };
-  const rows: { label: string; value: string; sub?: string }[] = [what];
+    // A typed retry names its run in a row of its own (Který běh), by its time.
+    : { label: "Co se stane", value: s.typed || !r.run_id ? "Zopakuje se hloubkový výzkum" : `Zopakuje se hloubkový výzkum ${r.run_id}`, sub: "Se stejným zadáním; co už proběhlo, se neplatí znovu." };
+  const rows: Fact[] = [what];
   if (r.kind !== "deep_research_retry") rows.push({ label: "Rozsah", value: r.preset ? PRESET_WORDS[r.preset] : "Výchozí rozsah kroku" });
   if (r.kind === "design_research" && r.focus?.length) rows.push({ label: "Zaměření", value: `${r.focus.length} ${r.focus.length === 1 ? "výzkumná otázka" : r.focus.length < 5 ? "výzkumné otázky" : "výzkumných otázek"}` });
-  if (r.kind === "interpretation_research") rows.push({ label: "Výsledek", value: r.target ? `Vybraný výsledek (${r.target})` : "Výchozí výsledek, který Vedoucí viděl" });
+  // A typed card's target is chosen on the card from the server's list; a Lead card's is the one its turn was shown.
+  if (r.kind === "interpretation_research" && !s.typed) rows.push({ label: "Výsledek", value: r.target ? `Vybraný výsledek (${r.target})` : "Výchozí výsledek, který Vedoucí viděl" });
+  if (r.kind === "deep_research_retry" && s.typed && !s.decided) rows.push({ label: "Který běh", value: s.typed.runWords ?? "Studie nemá hloubkový výzkum, který by šel zopakovat" });
+  if (s.typed && !s.decided) rows.push(priceFact(s.typed.price));
   rows.push({ label: "Platba", value: "z rozpočtu studie", ...walletSub(s) });
   return rows;
+}
+
+type Fact = { label: string; value: string; sub?: string; key?: boolean };
+
+/** What a person's typed Deep Research card (LO5a.3) knows beyond its command: the run a retry or a
+ *  stop names, in words, and the price the server quoted for exactly what it would start. */
+export type TypedResearchFacts = { runWords?: string; price?: TypedPrice };
+
+/** A typed card's price: `quoted` the server's ceiling (null: a price it needs is unknown), `later`
+ *  when only the start can price it (a design's revision is made at the click, a retry's run is
+ *  re-frozen), `reading` while the quote is asked. Unknown is said in words, never 0. */
+export type TypedPrice = { kind: "quoted"; usd: number | null } | { kind: "later" } | { kind: "reading" };
+
+export function priceFact(p: TypedPrice | undefined): Fact {
+  if (!p || p.kind === "later") return { label: "Cena nejvýše", value: "Spočte se při spuštění", sub: "Nad prahem potvrzení se zeptáme na částku, než se cokoli spustí." };
+  if (p.kind === "reading") return { label: "Cena nejvýše", value: "Zjišťuje se…" };
+  return p.usd === null
+    ? { label: "Cena nejvýše", value: "Neznámá", sub: "Některá cena, kterou běh potřebuje, není nastavená; nespustí se jako zdarma.", key: true }
+    : { label: "Cena nejvýše", value: usdWords(p.usd), sub: "Horní mez, ne odhad.", key: true };
+}
+
+/** The candidates a typed "Spusť rešerši výsledků" chooses from (GET …/lead/interpretation-targets):
+ *  built by code on the server, which takes back only an id it holds. */
+export type InterpretationTargets = { candidates: { id: string; kind: string; words: string; ref: Record<string, unknown> }[]; default: string | null; omitted: number };
+
+/** The candidate a typed card starts on: the person's choice while the list still holds it, else
+ *  the list's default; `null` when there is nothing to interpret. */
+export function chosenTarget(list: InterpretationTargets | null, chosen: string | null): InterpretationTargets["candidates"][number] | null {
+  if (!list) return null;
+  return list.candidates.find((c) => c.id === chosen) ?? list.candidates.find((c) => c.id === list.default) ?? null;
+}
+
+/** Why a typed Deep Research card cannot start yet, in words, before the click; null when it can.
+ *  `missing`: the quote's live settings not approved (ADR 0022), fixed by the organization's admin. */
+export function typedResearchBlocked(r: LeadRequest, s: { hasRun: boolean; hasTarget: boolean; canChoose?: boolean; missing: readonly string[] }): string | null {
+  if ((r.kind === "deep_research_retry" || r.kind === "deep_research_stop") && !s.hasRun) return r.kind === "deep_research_stop" ? "Žádný hloubkový výzkum teď neběží." : "Studie nemá hloubkový výzkum, který by šel zopakovat.";
+  if (r.kind === "interpretation_research" && !s.hasTarget && s.canChoose) return "Vyberte, k čemu má rešerše hledat.";
+  if (r.kind === "interpretation_research" && !s.hasTarget) return "Zatím není dokončený běh s výsledkem, ke kterému by se rešerše dala spustit.";
+  if (s.missing.length) return `Chybí schválená nastavení hloubkového výzkumu (${s.missing.join(", ")}). Opraví je správce organizace v Nastavení → Hloubkový výzkum.`;
+  return null;
 }
 
 function walletSub(s: { walletOn: boolean; decided: boolean }): { sub?: string } {
@@ -165,6 +215,11 @@ export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadReque
   const said = t.text?.split(":").slice(1).join(":").trim() || TYPED_UNDECIDED_WHY;
   if (t.command === "research_run") return { kind: "research_run", why: said };
   if (t.command === "analysis_retry") return { kind: "analysis_retry", why: said };
+  // Deep Research (LO5a.3): the preset is the command's own; the target and the run are chosen on the card.
+  if (t.command === "design_research" || t.command === "design_research_quick") return { kind: "design_research", why: said, preset: t.command.endsWith("_quick") ? "QUICK" : "STANDARD" };
+  if (t.command === "interpretation_research" || t.command === "interpretation_research_quick") return { kind: "interpretation_research", why: said, preset: t.command.endsWith("_quick") ? "QUICK" : "STANDARD" };
+  if (t.command === "deep_research_retry") return { kind: "deep_research_retry", why: said };
+  if (t.command === "deep_research_stop") return { kind: "deep_research_stop", why: said };
   const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
   return action ? { kind: "agent_job", action, why: said } : null;
 }
@@ -290,6 +345,9 @@ export type LeadState = {
   wallet_enabled?: boolean;
   /** The run a typed "Zopakuj analýzu" retries: the study's newest that ran analysis. */
   analysis_retry_run?: RetryRun | null;
+  /** The Deep Research runs a typed "Zopakuj rešerši" retries and "Zastav rešerši" stops (LO5a.3). */
+  deep_research_retry_run?: RetryRun | null;
+  deep_research_stop_run?: RetryRun | null;
 };
 export type RetryRun = { run_id: string; created_at: string | null; phase: string };
 
@@ -895,6 +953,11 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
   live_settings_unapproved: "Hloubkový výzkum s placeným vyhledáváním čeká na schválení nastavení v Nastavení → Hloubkový výzkum; nic se nespustilo.",
   outside_wallet: "Strop ceny se nevejde do toho, co zbývá v Peněžence; nic se nespustilo. Peněženku můžete navýšit.",
+  // A typed Deep Research start, retry or stop with nothing to act on (LO5a.3).
+  no_default_target: "Zatím není dokončený běh s výsledkem, ke kterému by se rešerše dala spustit; nic se nespustilo.",
+  no_retryable_deep_research: "Studie nemá hloubkový výzkum, který by šel zopakovat; nic se nespustilo.",
+  no_running_deep_research: "Žádný hloubkový výzkum teď neběží; nic se nezastavilo.",
+  research_target_not_found: "Vybraný výsledek už v seznamu není; nic se nespustilo. Vyberte ho znovu.",
   ceiling_unknown: "Cenu nelze odhadnout, a tak se nic nespustilo: neznámá cena se nikdy nečte jako nulová.",
   no_wallet: "Studie nemá otevřenou Peněženku; nic se nespustilo.",
   deep_research_start_unavailable: "Hloubkový výzkum se v tomto prostředí z karty spustit nedá.",
@@ -917,6 +980,9 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
 /** Asked when a card is approved after the design moved past what its turn read (LO10). */
 export const STALE_CARD_QUESTION = "Od chvíle, kdy Vedoucí kartu připravil, se studie změnila. Spustit úlohu nad studií, jak je teď?";
 /** A typed analysis retry whose run is no longer the newest analysed one (409 analysis_retry_target_moved). */
+/** A typed Deep Research retry or stop whose run is no longer the one it names (LO5a.3). */
+export const DEEP_RETRY_MOVED_QUESTION = "Od chvíle, kdy jste kartu viděli, skončil novější hloubkový výzkum. Zopakovat tento novější?";
+export const DEEP_STOP_MOVED_QUESTION = "Od chvíle, kdy jste kartu viděli, běží jiný hloubkový výzkum. Zastavit ten?";
 export const ANALYSIS_RETRY_MOVED_QUESTION = "Od chvíle, kdy jste kartu viděli, doběhl novější běh s AI analýzou. Zopakovat analýzu tohoto novějšího běhu?";
 
 export function leadReasonWords(code: string | null | undefined): string {

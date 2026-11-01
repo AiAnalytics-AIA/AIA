@@ -207,6 +207,9 @@ Depends on `research-lead-workbench#14`, `#16`.
 **SOC5. Interpretation.** Test: an interpretation is labelled "Výklad · od Vedoucího" and absent from
 the map's numbers. Depends on `lead-orchestration#LO9b`, `report-delivery#RD6`,
 `research-lead-workbench#23b`, `#23c`.
+*Narrowed 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): a pair's Interpretation Research is asked
+from the map ("Zeptat se Vedoucího" with the pair as target) and stands on Analýza; the map shows no
+Interpretation Research panel or start. The map interpreter's labelled output (LO9b) stays here.
 
 **SOC6. Segments and drill-down.** Depends on `segment-maps-and-drilldown#8`, and on `#0` (the
 method owner).

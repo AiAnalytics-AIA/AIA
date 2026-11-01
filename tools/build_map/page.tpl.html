@@ -194,6 +194,25 @@ table.cfg td:first-child{color:var(--ink);font-family:var(--mono);font-size:12px
 .st-PARTIAL,.st-MISMATCH{background:var(--warnwash);color:var(--warn)}
 .st-MISSING{background:var(--faultwash);color:var(--fault)}
 .st-UNKNOWN{background:var(--planwash);color:var(--plan)}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;counter-reset:st}
+.steps li{background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:12px 14px;counter-increment:st}
+.steps li b{display:block;font:600 14px/20px var(--sans);margin-bottom:2px}
+.steps li b::before{content:counter(st) ". ";color:var(--signal)}
+.steps li span{color:var(--muted);font-size:13px}
+.wavecards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.wcard{background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.wcard.now{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal)}
+.wcard .wh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.wcard .wid{font:600 12px/16px var(--mono);color:var(--faint)}
+.wcard h4{font:600 17px/22px var(--serif);margin:0;flex:1;min-width:0}
+.wcard .goal{color:var(--ink);margin:0}
+.wcard ul{margin:0;padding-left:18px;color:var(--muted)}
+.wcard ul li+li{margin-top:3px}
+.wcard .gate{font-size:12px;color:var(--faint);border-top:1px solid var(--border);padding-top:8px}
+.wcard .prog{display:flex;align-items:center;gap:8px;font:11px var(--mono);color:var(--faint)}
+.wcard .prog .bar-o{flex:1}
+.track{margin-top:12px;border-style:dashed}
+@media (max-width:760px){.steps,.wavecards{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -207,8 +226,19 @@ table.cfg td:first-child{color:var(--ink);font-family:var(--mono);font-size:12px
     <div class="stamp" id="stamp"></div>
   </header>
   <nav class="bar" aria-label="Sections">
-    <a href="#overview">Overview</a><a href="#flow">Research flow</a><a href="#sequence">Build sequence</a><a href="#config">Configuration</a><a href="#plans">Plans by page</a><a href="#links">Connections</a><a href="#board">Board</a><a href="#questions">Open questions</a><a href="#read">How to read</a>
+    <a href="#plain">The plan</a><a href="#overview">Overview</a><a href="#flow">Research flow</a><a href="#sequence">Build sequence</a><a href="#config">Configuration</a><a href="#plans">Plans by page</a><a href="#links">Connections</a><a href="#board">Board</a><a href="#questions">Open questions</a><a href="#read">How to read</a>
   </nav>
+
+  <section id="plain">
+    <h2>The plan in plain words</h2>
+    <p class="sub" id="plainintro"></p>
+    <h3 style="margin:14px 0 8px">How the work happens</h3>
+    <ol class="steps" id="plainsteps"></ol>
+    <h3 style="margin:18px 0 8px">The waves and what each one delivers</h3>
+    <p class="small" style="margin:0 0 10px">Progress is counted live from the plans on develop: merged chunks out of all the chunks in the wave.</p>
+    <div class="wavecards" id="wavecards"></div>
+    <div id="tracks"></div>
+  </section>
 
   <section id="overview">
     <h2>Where the MVP stands</h2>
@@ -370,6 +400,35 @@ $("#stamp").append(el("div",{text:"Built "+D.built_at}),el("div",{text:"develop 
   }
   function list(xs){if(!xs.length)return el("p",{class:"gap",text:"Nothing recorded."});const ul=el("ul",{class:"plainlist"});for(const x of xs)ul.append(el("li",{text:String(x).replace(/\s*\(([^)]*@[^)]*)\)/g,"")}));return ul}
   select("Sběr dat");
+})();
+
+// The plan in plain words
+(function(){
+  const S=D.story;if(!S){$("#plain").hidden=true;return}
+  $("#plainintro").textContent=S.intro;
+  for(const p of S.process)$("#plainsteps").append(el("li",{},el("b",{text:p.t}),el("span",{text:p.d})));
+  const isDone=c=>!!(c.state&&c.state.done);const tally={};
+  for(const g of D.groups)for(const c of g.chunks){const t=tally[g.wave]=tally[g.wave]||[0,0];t[1]++;if(isDone(c))t[0]++}
+  for(const c of D.loose){const t=tally[c.wave]=tally[c.wave]||[0,0];t[1]++;if(isDone(c))t[0]++}
+  const cur=S.waves.find(w=>{const t=tally[w.id];return t&&t[0]<t[1]});
+  const box=$("#wavecards");
+  for(const w of S.waves){const t=tally[w.id]||[0,0];const done=t[1]>0&&t[0]===t[1];const now=cur&&cur.id===w.id;
+    const state=done?chip("r-done","done"):now?chip("r-core","now"):chip("r-support","later");
+    box.append(el("div",{class:"wcard"+(now?" now":"")},
+      el("div",{class:"wh"},el("span",{class:"wid",text:w.id}),el("h4",{text:w.name}),state),
+      el("p",{class:"goal",text:w.goal}),
+      el("ul",{},...w.outcomes.map(o=>el("li",{text:o}))),
+      t[1]?el("div",{class:"prog"},bar(t[0],t[1]),el("span",{text:`${t[0]} / ${t[1]}`})):el("div",{class:"prog",text:"no chunks recorded yet"}),
+      w.gate?el("div",{class:"gate",text:"Gate: "+w.gate}):null))}
+  const byslug={};for(const p of D.plans)byslug[p.slug]=p;
+  for(const tr of S.tracks||[]){let d=0,n=0;const found=[];
+    for(const s of tr.plans){const p=byslug[s];if(!p)continue;found.push(s);d+=p.done;n+=p.total}
+    $("#tracks").append(el("div",{class:"wcard track"},
+      el("div",{class:"wh"},el("span",{class:"wid",text:"Track"}),el("h4",{text:tr.name})),
+      el("div",{class:"small",text:tr.when}),
+      el("p",{class:"goal",text:tr.goal}),
+      el("ul",{},...tr.outcomes.map(o=>el("li",{text:o}))),
+      n?el("div",{class:"prog"},bar(d,n),el("span",{text:`${d} / ${n} · ${found.join(", ")}`})):el("div",{class:"prog",text:"plans not on develop yet"})))}
 })();
 
 // Build sequence

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Any, Final
 
 from aia_core.application.analysis_results import (
@@ -66,6 +66,22 @@ INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_internal_document"
 INTERNAL_REPORT_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
+
+
+@dataclass(frozen=True, slots=True)
+class WovenFindings:
+    """An Interpretation Research run's accepted findings, woven into the body (artifact-chain
+    CHN8): printed at the end of the section ``into`` names, after the respondent findings and
+    labelled external context, never respondent evidence; without that section, in the
+    literature chapter. ``source`` is the sealed bundle they are read from (CHN1)."""
+
+    into: str | None
+    blocks: tuple[Block, ...]
+    source: SectionSource
+
+
+#: The literature chapter (``contextual_report.woven_literature``).
+LITERATURE_SECTION: Final = "literature"
 
 
 class ReportCompositionRefused(ValueError):
@@ -168,6 +184,7 @@ def compose_internal_report(
     map_source: tuple[str, str] | None = None,
     methodology_rules: tuple[Block, ...] = (),
     outputs: tuple[RunOutput, ...] = (),
+    woven: WovenFindings | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -186,6 +203,8 @@ def compose_internal_report(
     printed in the methodology chapter after its reading guidance.
     ``outputs``: the run's other stored outputs; every section names what it was composed from
     and the audit prints the outputs no section read (artifact-chain CHN1).
+    ``woven`` (:class:`WovenFindings`, CHN8): literature findings woven into the body; it needs
+    the literature chapter among ``context_sections``, which keeps their sources and limits.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -534,7 +553,14 @@ def compose_internal_report(
             sources=tuple(read),
         )
     )
-    sections[0] = _with_contents(sections[0], sections, literature=bool(context_sections))
+    if woven is not None and woven.blocks:
+        _weave(sections, woven)
+    sections[0] = _with_contents(
+        sections[0],
+        sections,
+        literature=bool(context_sections),
+        woven=woven is not None and bool(woven.blocks),
+    )
     named = {(a.artifact_id, a.sha256) for a in read}
     document = ReportDocument(
         meta,
@@ -597,14 +623,52 @@ def sourced(section: Section, *sources: SectionSource) -> Section:
     return replace(section, sources=(*section.sources, *sources))
 
 
-def _with_contents(intro: Section, sections: list[Section], *, literature: bool) -> Section:
+#: What heads the woven findings in a body section: external context, never the study's evidence.
+_WOVEN_TITLE: Final = "Externí kontext z literární rešerše"
+_WOVEN_LABEL: Final = (
+    "Následující zjištění pocházejí z veřejných zdrojů, které vyhledala literární rešerše "
+    "(Deep Research) nad výsledky tohoto běhu. Nejsou odpověďmi respondentů této studie ani "
+    "její evidencí; odkazy L vedou ke zdrojům v kapitole Literární rešerše a externí kontext."
+)
+
+
+def _weave(sections: list[Section], woven: WovenFindings) -> None:
+    """Put ``woven``'s findings at the end of the section it names, labelled, else in the
+    literature chapter; that chapter must be there, since it holds their sources."""
+    ids = [s.id for s in sections]
+    if LITERATURE_SECTION not in ids:
+        raise ReportCompositionRefused("woven findings need the literature chapter")
+    at = ids.index(woven.into if woven.into in ids else LITERATURE_SECTION)
+    section = sections[at]
+    label: tuple[Block, ...] = (
+        Heading(_WOVEN_TITLE, 2),
+        Callout(
+            CalloutKind.NOTE, text(_WOVEN_LABEL), title="Externí kontext, nikoli evidence studie"
+        ),
+    )
+    sections[at] = replace(
+        section,
+        blocks=(*section.blocks, *label, *woven.blocks),
+        sources=section.sources
+        if woven.source in section.sources
+        else (*section.sources, woven.source),
+    )
+
+
+def _with_contents(
+    intro: Section, sections: list[Section], *, literature: bool, woven: bool = False
+) -> Section:
     """The introduction with what this variant of the report holds (research-integrity-report
     chunk 3): a reader of a downloaded file -- DOCX or its PDF -- sees whether the literature
     review is in it and which chapters and appendices it has, without the screen it came from."""
     chapters = [s.title for s in sections[1:] if not s.appendix]
     appendices = [s.title for s in sections if s.appendix]
     variant = (
-        "Tato varianta zprávy obsahuje literární rešerši vybranou k tomuto běhu."
+        "Tato varianta zprávy obsahuje literární rešerši vybranou k tomuto běhu: její přijatá "
+        "zjištění stojí v kapitole, které se týkají, označená jako externí kontext, a kapitola "
+        "o literatuře uvádí jejich zdroje a meze."
+        if woven
+        else "Tato varianta zprávy obsahuje literární rešerši vybranou k tomuto běhu."
         if literature
         else "Tato varianta je základní zprávou běhu: literární rešerše není její součástí. "
         "Zpráva s vybranou rešerší je samostatná varianta: vychází z týchž uložených výsledků "

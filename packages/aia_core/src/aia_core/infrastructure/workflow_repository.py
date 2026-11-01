@@ -93,6 +93,7 @@ from ..domain.workflow import (
     runtime_park_can_resume,
     validate_dag,
 )
+from ..domain.workflow_templates import CLIENT_WORK_TYPES, NotClientWork
 from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
@@ -113,9 +114,12 @@ from .tables import (
 
 #: A typed start approved on a run another approval had already started (``record_chat_start``).
 CHAT_START_REUSE = "reuse"
+#: A typed "Zastav rešerši": the person stopped the run their card named (LO5a.3); no start.
+CHAT_START_STOP = "stop"
 
 __all__ = [
     "CHAT_START_REUSE",
+    "CHAT_START_STOP",
     "BudgetExceeded",
     "ClaimedWork",
     "LeaseLost",
@@ -593,7 +597,10 @@ class WorkflowRepository:
         if isinstance(scope, StudyContext):
             scope.require_open_study()
         else:
-            # The client's own work runs only in the client's own project.
+            # The client's own work is only what AC-02 excepts from the Lead (LO13), and it runs
+            # only in the client's own project.
+            if workflow_type not in CLIENT_WORK_TYPES:
+                raise NotClientWork(f"{workflow_type} runs inside a study, through the Lead")
             self._require_client_work_project(scope, project_id)
 
         existing = self._session.scalar(
@@ -2943,6 +2950,7 @@ class WorkflowRepository:
         ceiling_usd: float | None,
         design_revision_id: str,
         reused: bool = False,
+        stopped: bool = False,
     ) -> int:
         """Write a person's approval of their own typed start (lead-orchestration LO5, ADR 0028
         decision 3): a ``chat_start`` row naming the run it created, decision ``start``, and
@@ -2955,8 +2963,12 @@ class WorkflowRepository:
         job on the same design), and started nothing. Its row is decision ``reuse`` and names the
         run in its comment only, never in ``run_id``: the person decided their card, but neither
         started nor authorised that run, so it is no start approval of it (spend attribution
-        reads ``run_id``) and no charge authority (decision ``start``)."""
+        reads ``run_id``) and no charge authority (decision ``start``).
+
+        ``stopped``: a typed "Zastav rešerši" (LO5a.3) cancelled the run. Its row is decision
+        ``stop`` and, as a reuse, names the run in its comment only: a stop authorises no spend."""
         self.scope.require(Permission.APPROVE_GATE)
+        named_only = reused or stopped
         run = self._run(run_id)
         independence = observe_approval_independence(
             producer_user_id=run.triggered_by,
@@ -2969,18 +2981,22 @@ class WorkflowRepository:
             study_id=self.scope.study_id,
             subject_type=ApprovalSubject.CHAT_START,
             subject_id=run_id,
-            run_id=None if reused else run_id,
+            run_id=None if named_only else run_id,
             project_id=run.project_id,
             project_revision=run.project_revision,
             gate_type="chat_start",
-            decision=CHAT_START_REUSE if reused else CHARGE_DECISION,
+            decision=CHAT_START_STOP
+            if stopped
+            else CHAT_START_REUSE
+            if reused
+            else CHARGE_DECISION,
             comment=json.dumps(
                 {
                     "turn_id": turn_id,
                     "start": start,
                     "ceiling_usd": ceiling_usd,
                     "design_revision_id": design_revision_id,
-                    **({"run_id": run_id} if reused else {}),
+                    **({"run_id": run_id} if named_only else {}),
                 },
                 sort_keys=True,
             ),

@@ -345,7 +345,7 @@ export const cs = {
       labelColour: "Barva štítku",
       labelColourOf: "Barva štítku {name}",
       labelActions: "Akce štítku {name}",
-      colours: { BLUE: "Modrá", TEAL: "Tyrkysová", GREEN: "Zelená", ORANGE: "Oranžová", VIOLET: "Fialová", SLATE: "Šedá" },
+      colours: { BLUE: "Modrá", TEAL: "Tyrkysová", ORANGE: "Oranžová", VIOLET: "Fialová", SLATE: "Šedá" },
       deleteLabelConfirm: "Smazat štítek „{name}“? Zmizí z {n} znalostí; znalosti samy zůstanou. Smazání nepůjde vrátit.",
       labelDeleted: "Štítek „{name}“ smazán",
       deleteAction: "Smazat",
@@ -2322,6 +2322,8 @@ export const cs = {
           // An audit record's change in words (F10, lib/audit-change.ts).
           change: {
             noThreshold: "bez prahu",
+            // CPR16's migration: green left the label palette.
+            recoloured: { one: "zelený štítek přebarven na tyrkysový", few: "zelené štítky přebarveny na tyrkysové", many: "zelených štítků přebarveno na tyrkysové" },
             joinedAs: "nový člen: {role}",
             proposalVersion: "návrh {version}",
             // A refused change of an OWNER's membership (MEMBER_ROLE_DENIED payload.change).
@@ -3716,6 +3718,11 @@ export const cs = {
       populationRead: "Populace: {label} ({population}).",
       previous: "Předchozí běhy",
       noRuns: "Tato studie zatím nemá žádný běh.",
+      // Průběh with no run in the study (FLD21; Fieldwork.dc.html's empty Průběh). The board names the
+      // revision; Průběh shows the study's newest run of any revision, so "no run" is the study's.
+      noRunTitle: "Ve studii zatím běh není",
+      noRunBody: "Běh spustíte v pohledu Kontrola a spuštění, nebo kartou Vedoucího. Jakmile poběží, otevře se tento pohled sám.",
+      toCheck: "Kontrola a spuštění",
       toProgress: "Zobrazit průběh",
       toResults: "Zobrazit výsledky",
       startedAt: "Spuštěno {when}",

@@ -1316,6 +1316,8 @@ class ResearchLead:
         workspace_revision: int | None = None,
         retry_run_id: str | None = None,
         deep_research: DeepResearchCardSettings | None = None,
+        target: Mapping[str, Any] | None = None,
+        deep_research_run_id: str | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
@@ -1374,6 +1376,10 @@ class ResearchLead:
                 run_start=run_start,
                 wallet_enabled=wallet_enabled,
                 retry_run_id=retry_run_id,
+                deep_research=deep_research,
+                targets=self.interpretation_targets,
+                target_ref=target,
+                deep_research_run_id=deep_research_run_id,
             )
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
@@ -1823,7 +1829,7 @@ class ResearchLead:
             else []
         )
         digest, digest_classes = self._decision_digest(history, focus)
-        targets = self._targets()
+        targets = self.interpretation_targets()
         return freeze_context(
             prompt=prompt,
             lead={
@@ -1889,10 +1895,11 @@ class ResearchLead:
             return None
         return deep_research_layer([runs.get(r["run_id"]) for r in listed], candidates)
 
-    def _targets(self) -> dict[str, Any] | None:
+    def interpretation_targets(self) -> dict[str, Any] | None:
         """The ``targets`` layer: the Interpretation Research candidates over this Study's newest
         completed research runs, each read from its own pinned specification (verified by its
-        SHA-256 as it is read); ``None`` without a store or a completed run."""
+        SHA-256 as it is read); ``None`` without a store or a completed run. A turn's context
+        freezes it; a typed "Spusť rešerši výsledků" chooses from it, built at approval (LO5a.3)."""
         if self.store is None:
             return None
         research = ResearchRuns(self.session, self.scope)

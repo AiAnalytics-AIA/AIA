@@ -57,6 +57,13 @@ let withdrawn: string[] = [];
 let attachedFiles: { filename: string; data_b64: string }[] = [];
 let chosen: unknown[] = [];
 let releaseAttach: (() => void) | null = null;
+const TARGETS = { candidates: [
+  { id: "t1", kind: "ANALYSIS_MODULE", words: "Odpovědi na výzkumné otázky", ref: { kind: "ANALYSIS_MODULE", module_id: "research_questions" } },
+  { id: "t2", kind: "RESULT_QUESTION", words: "Otázka: Jak často pijete kávu?", ref: { kind: "RESULT_QUESTION", question_id: "q1" } },
+], default: "t1", omitted: 0 };
+let targetsAnswer: typeof TARGETS | { candidates: typeof TARGETS.candidates; default: null; omitted: number } = TARGETS;
+let quoteAnswer: { ceiling_usd: number | null; live_settings_missing: string[]; start_verdict: string } = { ceiling_usd: 1.25, live_settings_missing: [], start_verdict: "start" };
+let quoted: { target: { question_id?: string; module_id?: string }; preset_name: string }[] = [];
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
@@ -113,6 +120,11 @@ function api() {
       return new Response(JSON.stringify({ layer: "knowledge", after: 50, total: 51, omitted: [{ id: "K-51", reason: "over_budget" }] }));
     }
     if (u.endsWith("/manifest")) return new Response(JSON.stringify(MANIFEST));
+    if (u.endsWith("/lead/interpretation-targets")) return new Response(JSON.stringify(targetsAnswer));
+    if (u.endsWith("/deep-research/quote")) {
+      quoted.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify(quoteAnswer));
+    }
     if (u.endsWith("/lead")) {
       if (failStates > 0) {
         failStates -= 1;
@@ -134,6 +146,9 @@ beforeEach(() => {
   attachedFiles = [];
   chosen = [];
   releaseAttach = null;
+  quoted = [];
+  targetsAnswer = TARGETS;
+  quoteAnswer = { ceiling_usd: 1.25, live_settings_missing: [], start_verdict: "start" };
   failPosts = 0;
   failDrains = 0;
   failStates = 0;
@@ -434,6 +449,67 @@ describe("LeadPane", () => {
     expect(card.textContent).not.toContain("Peněženk");
     fireEvent.click(screen.getByRole("button", { name: "Zopakovat analýzu" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-10" }), { kind: "analysis_retry", why: "Spustí se až vaším potvrzením.", run_id: "RUN-a1" }));
+  });
+
+  it("shows a typed Interpretation start with its target chosen from the server's list and its price, and starts that target (LO5a.3)", async () => {
+    state = { ...state, turns: [turn({ turn_id: "LDT-20", actor: "person", text: "Spusť rešerši výsledků", command: "interpretation_research", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    const { container } = render(pane({ onRequest, cards: cards() }));
+    const select = await screen.findByLabelText("K čemu rešerše hledá") as HTMLSelectElement;
+    expect(select.value).toBe("t1");
+    const card = () => container.querySelector('[data-card="request"][data-typed]')!;
+    await waitFor(() => expect(card().textContent).toMatch(/Cena nejvýše.*1,25\sUSD/));
+    expect(quoted.at(-1)).toMatchObject({ target: { module_id: "research_questions" }, preset_name: "STANDARD" });
+    fireEvent.change(select, { target: { value: "t2" } });
+    await waitFor(() => expect(quoted.at(-1)?.target.question_id).toBe("q1"));
+    fireEvent.click(screen.getByRole("button", { name: "Spustit literární rešerši" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-20" }), expect.objectContaining({ kind: "interpretation_research", target: "t2", target_ref: { kind: "RESULT_QUESTION", question_id: "q1" }, preset: "STANDARD" })));
+  });
+
+  it("asks for a target when the server's list has no default, and starts the one picked (Codex P2 on #1145)", async () => {
+    targetsAnswer = { candidates: [TARGETS.candidates[1]], default: null, omitted: 0 };
+    state = { ...state, turns: [turn({ turn_id: "LDT-23", actor: "person", text: "Spusť rešerši výsledků", command: "interpretation_research", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest, cards: cards() }));
+    const select = await screen.findByLabelText("K čemu rešerše hledá") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    expect(await screen.findByText("Vyberte, k čemu má rešerše hledat.")).toBeTruthy();
+    const start = screen.getByRole("button", { name: "Spustit literární rešerši" }) as HTMLButtonElement;
+    expect(start.disabled).toBe(true);
+    fireEvent.change(select, { target: { value: "t2" } });
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-23" }), expect.objectContaining({ target: "t2", target_ref: { kind: "RESULT_QUESTION", question_id: "q1" } })));
+  });
+
+  it("says a typed start's unknown price in words, never 0, and holds a start whose live settings are missing (LO5a.3)", async () => {
+    quoteAnswer = { ceiling_usd: null, live_settings_missing: ["sources.tiers"], start_verdict: "live_settings_unapproved" };
+    state = { ...state, turns: [turn({ turn_id: "LDT-21", actor: "person", text: "Spusť rychlou rešerši výsledků", command: "interpretation_research_quick", run_id: null, output: null })] };
+    const { container } = render(pane({ onRequest: vi.fn(async () => {}), cards: cards() }));
+    const card = () => container.querySelector('[data-card="request"][data-typed]')?.textContent ?? "";
+    await waitFor(() => expect(card()).toMatch(/Cena nejvýše.*Neznámá/));
+    expect(card()).not.toMatch(/0,00\sUSD/);
+    expect(quoted.at(-1)?.preset_name).toBe("QUICK");
+    expect(card()).toContain("Nastavení → Hloubkový výzkum");
+    expect((screen.getByRole("button", { name: "Spustit literární rešerši" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("names the run a typed Deep Research stop stops, and holds it when nothing runs (LO5a.3)", async () => {
+    state = { ...state, deep_research_stop_run: { run_id: "RUN-d1", created_at: "2026-10-29T09:30:00Z", phase: "running" },
+      turns: [turn({ turn_id: "LDT-22", actor: "person", text: "Zastav rešerši", command: "deep_research_stop", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    const { container, unmount } = render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findByText("Zastavení hloubkového výzkumu")).toBeTruthy();
+    const card = container.querySelector('[data-card="request"][data-typed]')!;
+    expect(card.textContent).toMatch(/Který běh.*Rešerše z /);
+    expect(card.textContent).not.toContain("Cena");
+    fireEvent.click(screen.getByRole("button", { name: "Zastavit hloubkový výzkum" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-22" }), { kind: "deep_research_stop", why: "Spustí se až vaším potvrzením.", run_id: "RUN-d1" }));
+    unmount();
+    state = { ...state, deep_research_stop_run: null };
+    render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findByText("Žádný hloubkový výzkum teď neběží.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Zastavit hloubkový výzkum" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("says a typed start is not charged to the Peněženka only with the wallet on", async () => {

@@ -36,6 +36,7 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.report import (
     ReportCompositionRefused,
+    WovenFindings,
     compose_internal_report,
     upstream_artifacts,
 )
@@ -75,6 +76,7 @@ from aia_core.domain.report.model import (
     Callout,
     Classification,
     FixedSource,
+    Heading,
     NumberCell,
     Paragraph,
     ParagraphRole,
@@ -1675,3 +1677,80 @@ def test_a_brief_field_counts_as_stated_only_with_words_in_it() -> None:
     assert _stated("  Zjistit, co lidé pijí. ") == "Zjistit, co lidé pijí."
     assert _stated("") is None and _stated(" \n ") is None
     assert _stated(None) is None and _stated(["cíl"]) is None
+
+
+def _woven_run(world: World) -> Any:
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed, count=8)
+    return reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+
+
+_BUNDLE = ArtifactSource("deep_research_bundle", "ART-bundle", "b" * 64)
+_FINDING = Paragraph(text("Veřejný zdroj uvádí, že káva se pije hlavně ráno. "))
+_LITERATURE = Section(
+    "Literární rešerše a externí kontext", (Paragraph(text("Zdroje.")),), id="literature"
+)
+
+
+def test_woven_findings_stand_in_their_target_section_labelled_external(world: World) -> None:
+    """CHN8: an Interpretation Research run's accepted findings print in the body section its
+    target bears on, after the respondent findings, labelled external context, naming the
+    bundle among the section's sources; no ledger ref, nothing in the literature chapter."""
+    run = _woven_run(world)
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    plain = compose_internal_report(run, report_meta(first.method_status))
+    doc = compose_internal_report(
+        run,
+        report_meta(first.method_status),
+        context_sections=(_LITERATURE,),
+        woven=WovenFindings(into="ch-2", blocks=(_FINDING,), source=_BUNDLE),
+    )
+    sections = {s.id: s for s in doc.sections}
+    before = {s.id: s for s in plain.sections}["ch-2"]
+    target = sections["ch-2"]
+    assert target.blocks[: len(before.blocks)] == before.blocks
+    added = target.blocks[len(before.blocks) :]
+    assert added[-1] == _FINDING
+    assert any(isinstance(b, Heading) and "Externí kontext" in b.text for b in added)
+    assert any(isinstance(b, Callout) and "odpověďmi respondentů" in _words_of(b) for b in added)
+    assert _BUNDLE in target.sources
+    assert all(not getattr(b, "refs", ()) for b in added)
+    assert _FINDING not in sections["literature"].blocks
+    # No other section changed.
+    for sid, section in before_all(plain).items():
+        if sid not in ("ch-2", "intro", "app-audit"):
+            assert sections[sid].blocks == section.blocks
+
+
+def test_findings_with_no_body_section_stay_in_the_literature_chapter(world: World) -> None:
+    run = _woven_run(world)
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    for into in (None, "ch-native-map-9"):
+        doc = compose_internal_report(
+            run,
+            report_meta(first.method_status),
+            context_sections=(_LITERATURE,),
+            woven=WovenFindings(into=into, blocks=(_FINDING,), source=_BUNDLE),
+        )
+        literature = {s.id: s for s in doc.sections}["literature"]
+        assert literature.blocks[-1] == _FINDING
+
+
+def test_woven_findings_need_the_literature_chapter(world: World) -> None:
+    run = _woven_run(world)
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    with pytest.raises(ReportCompositionRefused, match="literature"):
+        compose_internal_report(
+            run,
+            report_meta(first.method_status),
+            woven=WovenFindings(into="ch-2", blocks=(_FINDING,), source=_BUNDLE),
+        )
+
+
+def before_all(doc: Any) -> dict[str | None, Section]:
+    return {s.id: s for s in doc.sections}
+
+
+def _words_of(block: Any) -> str:
+    return "".join(i.text for i in block.content if isinstance(i, Text))

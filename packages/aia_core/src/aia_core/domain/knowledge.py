@@ -351,12 +351,12 @@ def revision_sha256(title: str, summary: str, content: Mapping[str, Any]) -> str
 class LabelColour(StrEnum):
     """The closed set of label colours: the design system's wayfinding hues.
 
-    Never a status colour, so a label never reads as "failed" or "waiting".
+    Never a status colour, so a label never reads as "failed" or "waiting". No green: green
+    belongs to the version in force alone (client-pages-redesign CPR16, Q2).
     """
 
     BLUE = "BLUE"
     TEAL = "TEAL"
-    GREEN = "GREEN"
     ORANGE = "ORANGE"
     VIOLET = "VIOLET"
     SLATE = "SLATE"

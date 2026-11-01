@@ -52,6 +52,7 @@ export const ACTION_NAMES: Record<string, string> = {
   CLIENT_KNOWLEDGE_LABEL_CREATED: "Založení štítku znalostí",
   CLIENT_KNOWLEDGE_LABEL_CHANGED: "Úprava štítku znalostí",
   CLIENT_KNOWLEDGE_LABEL_DELETED: "Smazání štítku znalostí",
+  CLIENT_KNOWLEDGE_LABELS_RECOLOURED: "Přebarvení zelených štítků na tyrkysové",
   CLIENT_KNOWLEDGE_SELECTED: "Výběr znalosti pro studii",
   CLIENT_KNOWLEDGE_UNSELECTED: "Zrušení výběru znalosti pro studii",
   STUDY_CREATED: "Založení studie",
