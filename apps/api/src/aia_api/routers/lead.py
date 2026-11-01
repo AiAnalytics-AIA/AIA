@@ -68,6 +68,7 @@ from aia_core.application.research_lead import (
     worker_readiness,
 )
 from aia_core.domain.client_sources import SourceRejected
+from aia_core.domain.deep_research.integration import ResearchTargetRef
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.lead_commands import COMMANDS
 from aia_core.domain.lead_files import FILES_PER_MESSAGE
@@ -184,9 +185,10 @@ class RequestApproval(BaseModel):
     #: A typed analysis retry's run, as its card showed it (``analysis_retry_run``); another
     #: newest analysed run since is 409 ``analysis_retry_target_moved``.
     retry_run_id: str | None = Field(default=None, max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")
-    #: A typed "Spusť rešerši výsledků" (LO5a.3): the id of the candidate the person chose from
-    #: ``interpretation_targets``, rebuilt at approval; none, its default. Never the typed text.
-    target_id: str | None = Field(default=None, max_length=16, pattern=r"^t[0-9]{1,4}$")
+    #: A typed "Spusť rešerši výsledků" (LO5a.3): the ``ref`` of the candidate the person chose
+    #: from ``…/lead/interpretation-targets``, taken only while the list rebuilt at approval holds
+    #: it (never its position, which a newer completed run shifts); none, its default.
+    target: ResearchTargetRef | None = None
     #: A typed "Zopakuj rešerši" or "Zastav rešerši": the run its card showed
     #: (``deep_research_retry_run`` / ``deep_research_stop_run``); another one since is 409.
     deep_research_run_id: str | None = Field(
@@ -1032,7 +1034,7 @@ def approve_request(
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
             retry_run_id=body.retry_run_id,
-            target_id=body.target_id,
+            target=None if body.target is None else body.target.model_dump(mode="json"),
             deep_research_run_id=body.deep_research_run_id,
             deep_research=DeepResearchCardSettings(
                 prices=study_prices(settings, session, scope),

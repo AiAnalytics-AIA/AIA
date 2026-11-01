@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -166,11 +167,13 @@ def _wallet_on(app: FastAPI, client: TestClient, world: Any, cap: float) -> None
     assert client.put(f"{_study(world)}/wallet", json={"cap_usd": cap}).status_code == 200
 
 
-def _completed_run(app: FastAPI, client: TestClient, world: Any) -> str:
+def _completed_run(
+    app: FastAPI, client: TestClient, world: Any, design: dict[str, Any] = DESIGN
+) -> str:
     """A completed run with its analysis, answered by recorded models at zero price: its
     research-questions module is the Interpretation default (Q44)."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
-    revision = world.design(client, DESIGN)
+    revision = world.design(client, design)
     assert revision.status_code == 201, revision.text
     started = client.post(
         f"{_study(world)}/research/runs",
@@ -345,8 +348,9 @@ def test_a_typed_interpretation_starts_on_the_default_or_a_listed_target_never_a
 ) -> None:
     run_id = _completed_run(app, researcher, world)
     candidates = researcher.get(f"{_study(world)}/lead/interpretation-targets").json()["candidates"]
+    forged_ref = {**candidates[0]["ref"], "research_run_id": "RUN-0123456789abcdef"}
     forged = _approve(
-        researcher, world, _typed(researcher, world, "Spusť rešerši výsledků"), target_id="t99"
+        researcher, world, _typed(researcher, world, "Spusť rešerši výsledků"), target=forged_ref
     )
     assert forged.status_code == 404
     assert _written(app)["runs"] == 0
@@ -363,7 +367,7 @@ def test_a_typed_interpretation_starts_on_the_default_or_a_listed_target_never_a
         researcher,
         world,
         _typed(researcher, world, "Spusť rychlou rešerši výsledků"),
-        target_id=second["id"],
+        target=second["ref"],
     )
     assert chosen.status_code == 200, chosen.text
     run = researcher.get(f"{_study(world)}/deep-research/runs/{chosen.json()['run_id']}").json()
@@ -372,6 +376,27 @@ def test_a_typed_interpretation_starts_on_the_default_or_a_listed_target_never_a
         "interpretation_research",
         "interpretation_research_quick",
     ]
+
+
+def test_a_chosen_target_stays_the_result_it_named_when_a_newer_run_completes(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The card sends the candidate's reference, not its position: a run that completes between
+    the read and the approval moves "t1" to its own result, never the person's choice (Codex P1
+    on #1144)."""
+    first_run = _completed_run(app, researcher, world)
+    shown = researcher.get(f"{_study(world)}/lead/interpretation-targets").json()["candidates"]
+    chosen = shown[0]
+    assert chosen["ref"]["research_run_id"] == first_run
+    turn_id = _typed(researcher, world, "Spusť rešerši výsledků")
+    newer_run = _completed_run(app, researcher, world, {**DESIGN, "title": "Ranní nápoj 2"})
+    now = researcher.get(f"{_study(world)}/lead/interpretation-targets").json()["candidates"]
+    assert now[0]["ref"]["research_run_id"] == newer_run  # "t1" is the newer run's now
+    approved = _approve(researcher, world, turn_id, target=chosen["ref"])
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["research_run_id"] == first_run
+    run = researcher.get(f"{_study(world)}/deep-research/runs/{approved.json()['run_id']}").json()
+    assert run["target"] == chosen["ref"]
 
 
 def test_a_typed_interpretation_with_nothing_to_interpret_is_refused_by_name(
@@ -410,6 +435,54 @@ def test_a_typed_stop_cancels_the_running_run_and_charges_nothing(
     )
     assert _approve(researcher, world, turn_id).json()["run_id"] == run_id
     assert _written(app) == {"runs": 1, "chat_start": 2, "charges": 0}
+
+
+def _bury(app: FastAPI, run_id: str, status: str, count: int) -> None:
+    """``count`` newer Deep Research runs in ``status``, copied from ``run_id``'s row: what a
+    study with a long history looks like to the run listing."""
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run_id)
+        assert row is not None
+        for i in range(count):
+            session.add(
+                WorkflowRunRow(
+                    run_id=f"RUN-{i:016x}",
+                    organization_id=row.organization_id,
+                    client_id=row.client_id,
+                    study_id=row.study_id,
+                    project_id=row.project_id,
+                    project_revision=row.project_revision,
+                    workflow_type=row.workflow_type,
+                    status=status,
+                    idempotency_key=f"{row.idempotency_key}:buried:{i}",
+                    metadata_json=dict(row.metadata_json),
+                    created_at=row.created_at + timedelta(minutes=i + 1),
+                    updated_at=row.updated_at + timedelta(minutes=i + 1),
+                )
+            )
+        session.commit()
+
+
+def test_a_run_behind_fifty_newer_ended_runs_is_still_the_one_a_stop_or_retry_names(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Eligibility is read in the query, before its limit: 50 newer completed runs never hide
+    an older one still running, nor an older cancelled one (Codex P2 on #1144)."""
+    _save(app, world)
+    started = _approve(researcher, world, _typed(researcher, world, "Spusť rešerši k návrhu"))
+    run_id = started.json()["run_id"]
+    _bury(app, run_id, "COMPLETED", 50)
+    assert (
+        researcher.get(f"{_study(world)}/lead").json()["deep_research_stop_run"]["run_id"] == run_id
+    )
+    stopped = _approve(
+        researcher, world, _typed(researcher, world, "Zastav rešerši"), deep_research_run_id=run_id
+    )
+    assert stopped.status_code == 200, stopped.text
+    assert (
+        researcher.get(f"{_study(world)}/lead").json()["deep_research_retry_run"]["run_id"]
+        == run_id
+    )
 
 
 def test_a_typed_retry_retries_the_run_its_card_named(

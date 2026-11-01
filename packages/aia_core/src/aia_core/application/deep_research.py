@@ -1250,13 +1250,19 @@ class DeepResearchRuns:
         run["retryable"] = retryable(run["status"])
         return run
 
-    def runs(self, *, limit: int = 20) -> list[dict[str, Any]]:
-        """This Study's Deep Research runs, newest first, with their phases."""
+    def runs(
+        self, *, limit: int = 20, statuses: Collection[WorkflowRunStatus] | None = None
+    ) -> list[dict[str, Any]]:
+        """This Study's Deep Research runs, newest first, with their phases; ``statuses`` keeps
+        only runs in those states, in the query, before the limit."""
         project_id = self._designs().project_id()
         if project_id is None:
             return []
         runs = self._workflows().list_runs(
-            project_id=project_id, limit=limit, workflow_type=DEEP_RESEARCH
+            project_id=project_id,
+            limit=limit,
+            workflow_type=DEEP_RESEARCH,
+            statuses=None if statuses is None else tuple(statuses),
         )
         for r in runs:
             r["phase"] = phase_of(r["status"], attempted=r["attempted"])
