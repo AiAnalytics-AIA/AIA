@@ -25,6 +25,7 @@ from typing import Any
 
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from ..domain.attachments import (
     ATTACHMENT_ARTIFACT_TYPE,
@@ -651,9 +652,12 @@ class StudyWorkspaceRepository:
         row = self._row(scope)
         if row is None:
             return None
-        if (row.last_stage, row.last_workbench_stage) != (stage, workbench_stage):
-            row.last_stage, row.last_workbench_stage = stage, workbench_stage
-            self._session.flush()
+        # Both columns in one UPDATE, every time: the ORM writes only the columns it sees change,
+        # and a concurrent request's committed step would otherwise end beside this stage.
+        row.last_stage, row.last_workbench_stage = stage, workbench_stage
+        flag_modified(row, "last_stage")
+        flag_modified(row, "last_workbench_stage")
+        self._session.flush()
         return _to_domain(row)
 
 

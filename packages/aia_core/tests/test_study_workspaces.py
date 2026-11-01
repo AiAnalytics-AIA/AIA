@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from sqlalchemy import select, update
+from sqlalchemy.orm.attributes import set_committed_value
 
 from aia_core.domain.attachments import (
     ATTACHMENT_ARTIFACT_TYPE,
@@ -498,6 +500,40 @@ def test_the_workbench_stage_is_remembered_beside_its_step_and_never_disagrees_w
     # The step recorded alone clears the stage beside it, so the two never disagree.
     alone = workspaces.record_stage(lead, stage="plan")
     assert (alone.last_stage, alone.last_workbench_stage) == ("plan", None)
+
+
+def test_the_step_and_its_stage_are_written_together_even_over_a_stale_read(
+    scoped: Any, workspaces: StudyWorkspaceRepository, session: Any
+) -> None:
+    """CPR23 (Codex on #1147): another request committed a step this session has not re-read;
+    recording a stage must write the whole pair, never one column beside the other's step."""
+    lead = scoped.scope()
+    workspaces.save(
+        lead,
+        content=BRIEF,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, lead.actor_id, OpSource.UI),
+    )
+    workspaces.record_stage(lead, stage="results")
+    # The other request: the classic layout moved the study to Návrh and committed, while this
+    # session still holds the row as it read it, (results, None).
+    session.execute(
+        update(StudyWorkspaceRow)
+        .where(StudyWorkspaceRow.study_id == lead.study_id)
+        .values(last_stage="plan")
+        .execution_options(synchronize_session=False)
+    )
+    held = session.scalar(
+        select(StudyWorkspaceRow).where(StudyWorkspaceRow.study_id == lead.study_id)
+    )
+    set_committed_value(held, "last_stage", "results")
+    workspaces.record_stage(lead, stage="results", workbench_stage="report")
+    stored = session.execute(
+        select(StudyWorkspaceRow.last_stage, StudyWorkspaceRow.last_workbench_stage).where(
+            StudyWorkspaceRow.study_id == lead.study_id
+        )
+    ).one()
+    assert tuple(stored) == ("results", "report")
 
 
 def test_the_workbench_stages_are_the_webs_eleven_in_order() -> None:
