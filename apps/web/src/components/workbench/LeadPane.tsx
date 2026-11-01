@@ -10,13 +10,13 @@
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
+import { lead as leadApi, deepResearch as deepResearchApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { announceHatched } from "@/lib/rail-lead";
-import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
+import type { InterpretationTargets, LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision, TypedPrice, TypedResearchFacts } from "@/lib/lead";
 import { usdWords } from "@/lib/spend";
-import { commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { chosenTarget, commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, typedResearchBlocked, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -380,7 +380,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         )}
       </div>
       {seenTurn && seesOpen ? <LeadSees key={seenTurn.turn_id} studyId={studyId} turnId={seenTurn.turn_id} id="lead-sees" /> : null}
-      <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null }}>
+      <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null, deepRetryRun: session?.deep_research_retry_run ?? null, deepStopRun: session?.deep_research_stop_run ?? null }}>
       <ViewWords.Provider value={design ?? null}>
       <Conversation turns={(session?.turns ?? []).filter((t) => !t.queued && !t.withdrawn)} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
@@ -489,10 +489,60 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
 
 /** What a typed start's card says beside the request (GET /lead): whether the wallet is on, and the
  *  run a typed analysis retry would retry (the PM on #744). */
-const TypedCardFacts = createContext<{ walletOn: boolean; retryRun: RetryRun | null }>({ walletOn: false, retryRun: null });
+const TypedCardFacts = createContext<{ walletOn: boolean; retryRun: RetryRun | null; deepRetryRun: RetryRun | null; deepStopRun: RetryRun | null }>({ walletOn: false, retryRun: null, deepRetryRun: null, deepStopRun: null });
 
-const retryRunWords = (run: RetryRun) =>
-  run.created_at ? `Běh z ${new Date(run.created_at).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Poslední běh s AI analýzou";
+const runTime = (run: RetryRun) => new Date(run.created_at ?? "").toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+const retryRunWords = (run: RetryRun) => run.created_at ? `Běh z ${runTime(run)}` : "Poslední běh s AI analýzou";
+const deepRunWords = (run: RetryRun) => run.created_at ? `Rešerše z ${runTime(run)}` : "Poslední hloubkový výzkum";
+
+/** A person's typed Deep Research start, retry or stop (LO5a.3) as its card: the run a retry or a
+ *  stop names (GET /lead), an Interpretation start's target chosen from the server's list and its
+ *  quoted price, then RequestCard as for every typed start. Nothing here starts anything. */
+function TypedResearchCard({ t, r, studyId, canEdit, onRequest }: { t: LeadTurn; r: LeadRequest; studyId: string; canEdit: boolean; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void> }) {
+  const facts = useContext(TypedCardFacts);
+  const decided = !!t.request_decision;
+  const interpret = r.kind === "interpretation_research" && !decided;
+  const [targets, setTargets] = useState<InterpretationTargets | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
+  // The quote of the target it was asked for: another target's (or none yet) is still being read.
+  const [quote, setQuote] = useState<{ for: string; usd: number | null; missing: string[] } | null>(null);
+  useEffect(() => {
+    if (!interpret) return;
+    let live = true;
+    leadApi.interpretationTargets(studyId).then((l) => { if (live) setTargets(l); }, () => { if (live) setTargets({ candidates: [], default: null, omitted: 0 }); });
+    return () => { live = false; };
+  }, [interpret, studyId]);
+  const target = chosenTarget(targets, chosen);
+  const preset = r.kind === "interpretation_research" ? r.preset ?? "STANDARD" : "STANDARD";
+  useEffect(() => {
+    if (!interpret || !target) return;
+    let live = true;
+    const asked = target.id;
+    deepResearchApi.quoteInterpretation(studyId, target.ref, preset).then(
+      (q) => { if (live) setQuote({ for: asked, usd: q.ceiling_usd, missing: q.live_settings_missing }); },
+      // An unread quote is an unknown price, never 0; the start itself still prices and asks.
+      () => { if (live) setQuote({ for: asked, usd: null, missing: [] }); },
+    );
+    return () => { live = false; };
+  }, [interpret, studyId, target, preset]);
+  const current = quote && target && quote.for === target.id ? quote : null;
+  const price: TypedPrice = !interpret ? { kind: "later" } : current ? { kind: "quoted", usd: current.usd } : { kind: "reading" };
+  const missing = current?.missing ?? [];
+  const run = r.kind === "deep_research_retry" ? facts.deepRetryRun : r.kind === "deep_research_stop" ? facts.deepStopRun : null;
+  const typed: LeadRequest = r.kind === "interpretation_research" ? { ...r, target: target?.id ?? null }
+    : r.kind === "deep_research_retry" || r.kind === "deep_research_stop" ? { ...r, run_id: run?.run_id } : r;
+  const blocked = decided ? null : typedResearchBlocked(r, { hasRun: !!run, hasTarget: interpret ? !!target || targets === null : true, missing });
+  const typedFacts: TypedResearchFacts = { runWords: run ? deepRunWords(run) : undefined, price };
+  const picker = interpret && targets && targets.candidates.length ? (
+    <label className="field">
+      <span className="cap">K čemu rešerše hledá</span>
+      <select value={target?.id ?? ""} onChange={(e) => setChosen(e.target.value)} disabled={!canEdit} data-aia="lead.typed.target">
+        {targets.candidates.map((c) => <option key={c.id} value={c.id}>{c.words}</option>)}
+      </select>
+    </label>
+  ) : null;
+  return <RequestCard r={typed} typed typedFacts={typedFacts} extra={picker} blocked={blocked} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} />;
+}
 
 /** A person's message; a typed start (LO5) is followed by its card, theirs to approve, and then by
  *  the job or run it started. */
@@ -516,7 +566,9 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
         ) : null}
         <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
       </div>
-      {typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
+      {typed && (isDeepResearchCard(typed) || typed.kind === "deep_research_stop")
+        ? <TypedResearchCard t={t} r={typed} studyId={studyId} canEdit={canEdit} onRequest={onRequest} />
+        : typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
       {/* A job found already started is shown where it started, once; this card points to it. */}
       {job && !t.request_decision?.reused ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards && !t.request_decision?.reused ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
@@ -654,6 +706,7 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   design_research: { title: "Hloubkový výzkum k návrhu", action: "Spustit hloubkový výzkum" },
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Spustit literární rešerši" },
   deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Zopakovat hloubkový výzkum" },
+  deep_research_stop: { title: "Zastavení hloubkového výzkumu", action: "Zastavit hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
@@ -662,7 +715,9 @@ const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzku
 
 /** `ceiling`: the turn's `ceiling_usd` (LO23), the most its agent job can cost; undefined when
  *  the server did not say (an older API), null when it is unknown. */
-function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean; ceiling?: number | null }) {
+/** `typedFacts`, `extra`, `blocked`: a typed Deep Research card's run and price, its target picker,
+ *  and why it cannot start yet (said before the click, the button disabled). */
+function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling, typedFacts, extra, blocked }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean; ceiling?: number | null; typedFacts?: TypedResearchFacts; extra?: React.ReactNode; blocked?: string | null }) {
   const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
@@ -692,8 +747,11 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }
             ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
               ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
               { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
+            : r.kind === "deep_research_stop"
+            ? [{ label: "Co se stane", value: "Hloubkový výzkum se zastaví; co už zachytil, zůstane", sub: "Nic se nespouští ani neplatí." },
+              ...(decided ? [] : [{ label: "Který běh", value: typedFacts?.runWords ?? "Žádný hloubkový výzkum teď neběží" }])]
             : isDeepResearchCard(r)
-            ? deepResearchFacts(r, { walletOn, decided })
+            ? deepResearchFacts(r, { walletOn, decided, typed: typed ? typedFacts : undefined })
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid
@@ -702,9 +760,11 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }
               ...(ceiling === undefined ? [] : [{ label: "Cena nejvýše", value: usdWords(ceiling), key: true }]),
               { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
+          {state === "open" ? extra : null}
+          {state === "open" && blocked ? <p className="cap" data-aia="lead.typed.blocked">{blocked}</p> : null}
           {state === "open" ? (
             <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
-              <button type="button" className="btn btn--primary btn--sm" disabled={!canEdit} onClick={() => { setState("busy"); onApprove().then(() => setState("done"), () => setState("open")); }}>{w.action}</button></div>
+              <button type="button" className="btn btn--primary btn--sm" disabled={!canEdit || !!blocked} onClick={() => { setState("busy"); onApprove().then(() => setState("done"), () => setState("open")); }}>{w.action}</button></div>
           ) : null}
         </div>
       </div>

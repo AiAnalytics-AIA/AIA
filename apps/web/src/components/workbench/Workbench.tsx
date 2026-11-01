@@ -26,7 +26,7 @@ import { rovingIndex } from "@/lib/roving";
 import { announceDeepResearchStarted } from "@/lib/deep-research-started";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, deepResearchStage, isDeepResearchCard, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, DEEP_RETRY_MOVED_QUESTION, DEEP_STOP_MOVED_QUESTION, deepResearchStage, isDeepResearchCard, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -565,9 +565,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     // A typed analysis retry runs on the run its card named; a newer one only on the person's yes.
     let retryRunId = r.kind === "analysis_retry" ? r.run_id : undefined;
     let retryConfirmed = false;
+    // A typed Deep Research card (LO5a.3): the target chosen on it, or the run a retry or a stop
+    // names; a different run since only on the person's yes, as the analysis retry.
+    const typedDeep = turn.command ? (r.kind === "interpretation_research" ? { targetId: r.target ?? undefined }
+      : r.kind === "deep_research_retry" || r.kind === "deep_research_stop" ? { runId: r.run_id } : undefined) : undefined;
+    let deepConfirmed = false;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision, retryRunId);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision, retryRunId, typedDeep);
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
@@ -591,6 +596,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           const limit = Number(e.details.limit_usd);
           if (!(await confirmSpend({ summary: t("input.spend.research.job"), ceilingUsd: ceiling, thresholdUsd: limit, act: t("input.spend.research.startJob") }))) throw e;
           confirmUsd = ceiling;
+          continue;
+        }
+        if (e instanceof ApiError && (e.code === "deep_research_retry_target_moved" || e.code === "deep_research_stop_target_moved") && typedDeep && !deepConfirmed && typeof e.details.current_run_id === "string") {
+          if (!(await confirm(e.code === "deep_research_stop_target_moved" ? DEEP_STOP_MOVED_QUESTION : DEEP_RETRY_MOVED_QUESTION))) throw e;
+          typedDeep.runId = e.details.current_run_id;
+          deepConfirmed = true;
           continue;
         }
         if (e instanceof ApiError && e.code === "analysis_retry_target_moved" && !retryConfirmed && typeof e.details.current_run_id === "string") {

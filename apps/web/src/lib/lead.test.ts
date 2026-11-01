@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, commandRequest, deepResearchFacts, deepResearchStage, isDeepResearchCard, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
+  applyLeadEdit, autoAcceptIndices, chosenTarget, commandRequest, priceFact, typedResearchBlocked, deepResearchFacts, deepResearchStage, isDeepResearchCard, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -370,6 +370,53 @@ describe("commandRequest", () => {
     expect(commandRequest({ command: "research_run", text: "Spusť výzkum" })).toEqual({ kind: "research_run", why: "Spustí se až vaším potvrzením." });
     expect(commandRequest({ command: "analysis_retry", text: "Zopakuj analýzu" })).toEqual({ kind: "analysis_retry", why: "Spustí se až vaším potvrzením." });
     for (const command of [null, undefined, "", "agent_job:", "deep_research"]) expect(commandRequest({ command, text: "x" })).toBeNull();
+  });
+
+  it("reads a typed Deep Research start with the preset its command names and nothing chosen yet (LO5a.3)", () => {
+    const why = "Spustí se až vaším potvrzením.";
+    expect(commandRequest({ command: "design_research", text: "Spusť rešerši k návrhu" })).toEqual({ kind: "design_research", why, preset: "STANDARD" });
+    expect(commandRequest({ command: "design_research_quick", text: "Spusť rychlou rešerši k návrhu" })).toEqual({ kind: "design_research", why, preset: "QUICK" });
+    expect(commandRequest({ command: "interpretation_research", text: "Spusť rešerši výsledků" })).toEqual({ kind: "interpretation_research", why, preset: "STANDARD" });
+    expect(commandRequest({ command: "interpretation_research_quick", text: "Spusť rychlou rešerši výsledků" })).toEqual({ kind: "interpretation_research", why, preset: "QUICK" });
+    expect(commandRequest({ command: "deep_research_retry", text: "Zopakuj rešerši" })).toEqual({ kind: "deep_research_retry", why });
+    expect(commandRequest({ command: "deep_research_stop", text: "Zastav rešerši" })).toEqual({ kind: "deep_research_stop", why });
+  });
+});
+
+describe("a typed Deep Research card (LO5a.3)", () => {
+  const list = { candidates: [{ id: "t1", kind: "ANALYSIS_MODULE", words: "Výzkumné otázky", ref: {} }, { id: "t2", kind: "RESULT_QUESTION", words: "Otázka 1", ref: {} }], default: "t1", omitted: 0 };
+
+  it("starts on the person's choice while the list holds it, else its default, else nothing", () => {
+    expect(chosenTarget(list, null)?.id).toBe("t1");
+    expect(chosenTarget(list, "t2")?.id).toBe("t2");
+    expect(chosenTarget(list, "t9")?.id).toBe("t1");
+    expect(chosenTarget({ ...list, default: null }, null)).toBeNull();
+    expect(chosenTarget(null, "t1")).toBeNull();
+  });
+
+  it("says an unknown price in words and never as 0, and a price only the start can make as such", () => {
+    expect(priceFact({ kind: "quoted", usd: null }).value).toBe("Neznámá");
+    expect(priceFact({ kind: "quoted", usd: 0 }).value).toMatch(/^0,00\sUSD$/);
+    expect(priceFact({ kind: "quoted", usd: 1.25 })).toMatchObject({ label: "Cena nejvýše", sub: "Horní mez, ne odhad." });
+    expect(priceFact({ kind: "later" }).value).toBe("Spočte se při spuštění");
+    expect(priceFact({ kind: "reading" }).value).not.toMatch(/USD/);
+  });
+
+  it("holds a card with nothing to act on, or with live settings missing, saying who fixes them", () => {
+    const none = { hasRun: false, hasTarget: true, missing: [] as string[] };
+    expect(typedResearchBlocked({ kind: "deep_research_stop", why: "w" }, none)).toBe("Žádný hloubkový výzkum teď neběží.");
+    expect(typedResearchBlocked({ kind: "deep_research_retry", why: "w" }, none)).toMatch(/zopakovat/);
+    expect(typedResearchBlocked({ kind: "interpretation_research", why: "w" }, { ...none, hasTarget: false })).toMatch(/dokončený běh/);
+    expect(typedResearchBlocked({ kind: "interpretation_research", why: "w" }, { ...none, missing: ["sources.tiers"] })).toMatch(/správce organizace v Nastavení → Hloubkový výzkum/);
+    expect(typedResearchBlocked({ kind: "design_research", why: "w" }, none)).toBeNull();
+  });
+
+  it("names the run a typed retry retries in its own row, with the price, until it is decided", () => {
+    const open = deepResearchFacts({ kind: "deep_research_retry", why: "w", run_id: "RUN-1" }, { walletOn: false, decided: false, typed: { runWords: "Rešerše z 29. 10. 9:30", price: { kind: "later" } } });
+    expect(open.map((f) => f.label)).toEqual(["Co se stane", "Který běh", "Cena nejvýše", "Platba"]);
+    expect(open[0].value).not.toContain("RUN-1");
+    const done = deepResearchFacts({ kind: "deep_research_retry", why: "w", run_id: "RUN-1" }, { walletOn: false, decided: true, typed: {} });
+    expect(done.map((f) => f.label)).toEqual(["Co se stane", "Platba"]);
   });
 });
 
