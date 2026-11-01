@@ -85,7 +85,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě, na stejném místě a ve stejné šířce na cestě Výzkum i Model; na cestě Výzkum pak následuje Návrh výzkumu: Návrh, Dotazník. Stejné přeskupení se navrhuje i pro navigátor kroků v aplikaci (research-lead-workbench 35) a čeká na rozhodnutí D1–D7 o Zadání. Schválené desky výše mají dál svůj navigátor s 11 kroky.</div></div>
 </div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2160}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2290}}'>
 class Component extends DCLogic {
 renderVals() {
   const B = [
@@ -106,7 +106,11 @@ renderVals() {
     ['M1', 'KM1Data', 'Model · Data', 'Devět souborů, u každého, která část Zadání ho vyžádala; čísla se stránkou; kontrola dat a kapacity.', 'Velis · model'],
     ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Devatenáct předpokladů s rozsahem, zdrojem a ručitelem; dva z výzkumu.', 'Velis · model'],
     ['M3', 'KM3Model', 'Model · Model', 'Sedm variant, příspěvek po logistice, časování, kapacita, zůstatková hodnota a přechod.', 'Velis · model'],
-    ['M4', 'KM4Results', 'Model · Výsledky', 'Pravidlo pro sedm variant (P lepší než B, riziko ztráty, slib ve městech), rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace v Kč.', 'Velis · model'],
+    ['M4', 'KM4Results', 'Model · Výsledky: Rozhodnutí', 'Pravidlo pro sedm variant, rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace.', 'Velis · model'],
+    ['M4b', 'KM7Finance', 'Model · Výsledky: Finance', 'NPV, IRR, návratnost, ceny pro bod zvratu, cenová elasticita dopravy.', 'Velis · model'],
+    ['M4c', 'KM8Accounting', 'Model · Výsledky: Účetnictví', 'Výsledovka a rozvaha 2025, plán proti skutečnosti, ukazatele zdraví firmy v roce 2028.', 'Velis · model'],
+    ['M4d', 'KM9Operations', 'Model · Výsledky: Provoz', 'Předpověď po měsících proti kapacitě, lineární program pro špičky, pojistné zásoby.', 'Velis · model'],
+    ['M4e', 'KM10Market', 'Model · Výsledky: Trh', 'TAM, SAM a podíl Velis; je plán růstu realistický; výzkum jako vstup.', 'Velis · model'],
     ['M5', 'KM5Map', 'Model · Sociomapa strategií', 'Sedm variant v 800 scénářích, engine aia-sociomap-5; interní, metoda čeká na schválení.', 'Velis · model'],
     ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení C2 se zálohou B2, plán provedení s pilotem a hranice k hlídání; každé číslo se stupněm.', 'Velis · model'],
     ['O1', 'KO1Link', 'Obojí · výzkum do modelu', 'Dva výsledky výzkumu, zkalibrované daty klienta, navržené jako předpoklady; co se tím změnilo.', 'Velis']
