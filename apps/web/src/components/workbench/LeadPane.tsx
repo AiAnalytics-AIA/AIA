@@ -531,12 +531,14 @@ function TypedResearchCard({ t, r, studyId, canEdit, onRequest }: { t: LeadTurn;
   const run = r.kind === "deep_research_retry" ? facts.deepRetryRun : r.kind === "deep_research_stop" ? facts.deepStopRun : null;
   const typed: LeadRequest = r.kind === "interpretation_research" ? { ...r, target: target?.id ?? null, target_ref: target?.ref }
     : r.kind === "deep_research_retry" || r.kind === "deep_research_stop" ? { ...r, run_id: run?.run_id } : r;
-  const blocked = decided ? null : typedResearchBlocked(r, { hasRun: !!run, hasTarget: interpret ? !!target || targets === null : true, missing });
+  const blocked = decided ? null : typedResearchBlocked(r, { hasRun: !!run, hasTarget: interpret ? !!target || targets === null : true, canChoose: !!targets?.candidates.length, missing });
   const typedFacts: TypedResearchFacts = { runWords: run ? deepRunWords(run) : undefined, price };
   const picker = interpret && targets && targets.candidates.length ? (
     <label className="field">
       <span className="cap">K čemu rešerše hledá</span>
-      <select value={target?.id ?? ""} onChange={(e) => setChosen(e.target.value)} disabled={!canEdit} data-aia="lead.typed.target">
+      <select value={target?.id ?? ""} onChange={(e) => setChosen(e.target.value || null)} disabled={!canEdit} data-aia="lead.typed.target">
+        {/* No default (no completed research-questions module): nothing is chosen until the person picks. */}
+        {target ? null : <option value="">Vyberte výsledek…</option>}
         {targets.candidates.map((c) => <option key={c.id} value={c.id}>{c.words}</option>)}
       </select>
     </label>

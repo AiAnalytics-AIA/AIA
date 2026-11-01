@@ -407,6 +407,8 @@ describe("a typed Deep Research card (LO5a.3)", () => {
     expect(typedResearchBlocked({ kind: "deep_research_stop", why: "w" }, none)).toBe("Žádný hloubkový výzkum teď neběží.");
     expect(typedResearchBlocked({ kind: "deep_research_retry", why: "w" }, none)).toMatch(/zopakovat/);
     expect(typedResearchBlocked({ kind: "interpretation_research", why: "w" }, { ...none, hasTarget: false })).toMatch(/dokončený běh/);
+    // Candidates but no default: the person picks one (Codex P2 on #1145).
+    expect(typedResearchBlocked({ kind: "interpretation_research", why: "w" }, { ...none, hasTarget: false, canChoose: true })).toBe("Vyberte, k čemu má rešerše hledat.");
     expect(typedResearchBlocked({ kind: "interpretation_research", why: "w" }, { ...none, missing: ["sources.tiers"] })).toMatch(/správce organizace v Nastavení → Hloubkový výzkum/);
     expect(typedResearchBlocked({ kind: "design_research", why: "w" }, none)).toBeNull();
   });

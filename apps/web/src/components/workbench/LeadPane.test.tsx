@@ -60,6 +60,7 @@ const TARGETS = { candidates: [
   { id: "t1", kind: "ANALYSIS_MODULE", words: "Odpovědi na výzkumné otázky", ref: { kind: "ANALYSIS_MODULE", module_id: "research_questions" } },
   { id: "t2", kind: "RESULT_QUESTION", words: "Otázka: Jak často pijete kávu?", ref: { kind: "RESULT_QUESTION", question_id: "q1" } },
 ], default: "t1", omitted: 0 };
+let targetsAnswer: typeof TARGETS | { candidates: typeof TARGETS.candidates; default: null; omitted: number } = TARGETS;
 let quoteAnswer: { ceiling_usd: number | null; live_settings_missing: string[]; start_verdict: string } = { ceiling_usd: 1.25, live_settings_missing: [], start_verdict: "start" };
 let quoted: { target: { question_id?: string; module_id?: string }; preset_name: string }[] = [];
 function api() {
@@ -112,7 +113,7 @@ function api() {
       return new Response(JSON.stringify({ layer: "knowledge", after: 50, total: 51, omitted: [{ id: "K-51", reason: "over_budget" }] }));
     }
     if (u.endsWith("/manifest")) return new Response(JSON.stringify(MANIFEST));
-    if (u.endsWith("/lead/interpretation-targets")) return new Response(JSON.stringify(TARGETS));
+    if (u.endsWith("/lead/interpretation-targets")) return new Response(JSON.stringify(targetsAnswer));
     if (u.endsWith("/deep-research/quote")) {
       quoted.push(JSON.parse(String(init?.body)));
       return new Response(JSON.stringify(quoteAnswer));
@@ -138,6 +139,7 @@ beforeEach(() => {
   attachedFiles = [];
   releaseAttach = null;
   quoted = [];
+  targetsAnswer = TARGETS;
   quoteAnswer = { ceiling_usd: 1.25, live_settings_missing: [], start_verdict: "start" };
   failPosts = 0;
   failDrains = 0;
@@ -422,6 +424,22 @@ describe("LeadPane", () => {
     await waitFor(() => expect(quoted.at(-1)?.target.question_id).toBe("q1"));
     fireEvent.click(screen.getByRole("button", { name: "Spustit literární rešerši" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-20" }), expect.objectContaining({ kind: "interpretation_research", target: "t2", target_ref: { kind: "RESULT_QUESTION", question_id: "q1" }, preset: "STANDARD" })));
+  });
+
+  it("asks for a target when the server's list has no default, and starts the one picked (Codex P2 on #1145)", async () => {
+    targetsAnswer = { candidates: [TARGETS.candidates[1]], default: null, omitted: 0 };
+    state = { ...state, turns: [turn({ turn_id: "LDT-23", actor: "person", text: "Spusť rešerši výsledků", command: "interpretation_research", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest, cards: cards() }));
+    const select = await screen.findByLabelText("K čemu rešerše hledá") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    expect(await screen.findByText("Vyberte, k čemu má rešerše hledat.")).toBeTruthy();
+    const start = screen.getByRole("button", { name: "Spustit literární rešerši" }) as HTMLButtonElement;
+    expect(start.disabled).toBe(true);
+    fireEvent.change(select, { target: { value: "t2" } });
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-23" }), expect.objectContaining({ target: "t2", target_ref: { kind: "RESULT_QUESTION", question_id: "q1" } })));
   });
 
   it("says a typed start's unknown price in words, never 0, and holds a start whose live settings are missing (LO5a.3)", async () => {

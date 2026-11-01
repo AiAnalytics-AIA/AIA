@@ -190,8 +190,9 @@ export function chosenTarget(list: InterpretationTargets | null, chosen: string 
 
 /** Why a typed Deep Research card cannot start yet, in words, before the click; null when it can.
  *  `missing`: the quote's live settings not approved (ADR 0022), fixed by the organization's admin. */
-export function typedResearchBlocked(r: LeadRequest, s: { hasRun: boolean; hasTarget: boolean; missing: readonly string[] }): string | null {
+export function typedResearchBlocked(r: LeadRequest, s: { hasRun: boolean; hasTarget: boolean; canChoose?: boolean; missing: readonly string[] }): string | null {
   if ((r.kind === "deep_research_retry" || r.kind === "deep_research_stop") && !s.hasRun) return r.kind === "deep_research_stop" ? "Žádný hloubkový výzkum teď neběží." : "Studie nemá hloubkový výzkum, který by šel zopakovat.";
+  if (r.kind === "interpretation_research" && !s.hasTarget && s.canChoose) return "Vyberte, k čemu má rešerše hledat.";
   if (r.kind === "interpretation_research" && !s.hasTarget) return "Zatím není dokončený běh s výsledkem, ke kterému by se rešerše dala spustit.";
   if (s.missing.length) return `Chybí schválená nastavení hloubkového výzkumu (${s.missing.join(", ")}). Opraví je správce organizace v Nastavení → Hloubkový výzkum.`;
   return null;
