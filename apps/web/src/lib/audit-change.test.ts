@@ -71,6 +71,12 @@ describe("an audit record's change, in words (F10)", () => {
     expect(changeOf(rec("CLIENT_KNOWLEDGE_DECIDED", "REJECTED")).change).toBe("zamítnuto");
   });
 
+  it("counts the labels CPR16's migration recoloured, with no reason of a person's", () => {
+    expect(changeOf(rec("CLIENT_KNOWLEDGE_LABELS_RECOLOURED", "", { from: "GREEN", to: "TEAL", label_ids: ["KNL-1", "KNL-2"] })))
+      .toEqual({ change: "2 zelené štítky přebarveny na tyrkysové", why: null });
+    expect(changeOf(rec("CLIENT_KNOWLEDGE_LABELS_RECOLOURED", "", { label_ids: ["KNL-1"] })).change).toBe("1 zelený štítek přebarven na tyrkysový");
+  });
+
   it("keeps the reason of a record it knows no shape for, and invents no change", () => {
     expect(changeOf(rec("MEMBER_DEACTIVATED", "Odchod z agentury"))).toEqual({ change: null, why: "Odchod z agentury" });
     expect(changeOf(rec("SOMETHING_NEW", ""))).toEqual({ change: null, why: null });

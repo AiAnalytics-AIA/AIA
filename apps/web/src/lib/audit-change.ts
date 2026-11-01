@@ -6,6 +6,7 @@
 
 import { cs } from "@/i18n/cs";
 import { t, tv } from "@/i18n/t";
+import { plural } from "@/lib/format";
 
 /** Deep Research's rule names, keyed by the rule's dotted key (so not through t()'s dotted path). */
 const RULE_LABELS: Record<string, string> = cs.aia.settings.deepResearch.labels;
@@ -151,6 +152,12 @@ export function changeOf(e: Entry): AuditChange {
       return { change: typeof p.version === "number" ? tv(`${C}.proposalVersion`, { version: ruleVersion(p.version) }) : null, why };
     case "DR_SETTING_PROPOSED":
       return { change: "value" in p ? `${ruleVersion(p.version)}: ${scalar(p.value)}` : null, why: null };
+    case "CLIENT_KNOWLEDGE_LABELS_RECOLOURED": {
+      // Written by CPR16's migration, no person behind it: the labels it changed, counted.
+      const n = Array.isArray(p.label_ids) ? p.label_ids.length : null;
+      const w = (k: string) => t(`${C}.recoloured.${k}`);
+      return { change: n ? plural(n, w("one"), w("few"), w("many")) : null, why: null };
+    }
     case "CLIENT_KNOWLEDGE_DECIDED":
       return { change: reason ? named(`${C}.decision`, reason) : null, why: null };
     case "MEMBER_ROLE_DENIED":

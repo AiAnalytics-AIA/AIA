@@ -49,7 +49,6 @@ export const atCap = (items: readonly unknown[]) => items.length >= RESULT_CAP;
 export const LABEL_DOT: Record<LabelColour, string> = {
   BLUE: "bg-hue-blue",
   TEAL: "bg-hue-teal",
-  GREEN: "bg-hue-green",
   ORANGE: "bg-hue-orange",
   VIOLET: "bg-hue-violet",
   SLATE: "bg-hue-slate",

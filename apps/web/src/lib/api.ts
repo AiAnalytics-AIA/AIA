@@ -305,8 +305,9 @@ export type KnowledgeItem = {
   label_ids?: string[];
 };
 
-export type LabelColour = "BLUE" | "TEAL" | "GREEN" | "ORANGE" | "VIOLET" | "SLATE";
-export const LABEL_COLOURS: readonly LabelColour[] = ["BLUE", "TEAL", "GREEN", "ORANGE", "VIOLET", "SLATE"];
+/** No green: it belongs to the version in force alone (client-pages-redesign CPR16, Q2). */
+export type LabelColour = "BLUE" | "TEAL" | "ORANGE" | "VIOLET" | "SLATE";
+export const LABEL_COLOURS: readonly LabelColour[] = ["BLUE", "TEAL", "ORANGE", "VIOLET", "SLATE"];
 export type KnowledgeFolder = { folder_id: string; name: string; item_count: number };
 export type KnowledgeLabel = { label_id: string; name: string; colour: LabelColour; item_count: number };
 /** Which items to show: a folder ("unfiled": in none) and a label, beside section and search. */

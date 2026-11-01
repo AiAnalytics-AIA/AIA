@@ -27,7 +27,7 @@ const ITEMS = [
   item("KNW-3", "Pobočky se zmenší", { modified_at: "2024-03-01T10:00:00Z" }),
 ];
 const FOLDERS = [{ folder_id: "KNF-1", name: "Trh a konkurence", item_count: 1 }];
-const LABELS = [{ label_id: "KNL-1", name: "retail", colour: "GREEN", item_count: 1 }, { label_id: "KNL-2", name: "ověřit", colour: "ORANGE", item_count: 0 }];
+const LABELS = [{ label_id: "KNL-1", name: "retail", colour: "TEAL", item_count: 1 }, { label_id: "KNL-2", name: "ověřit", colour: "ORANGE", item_count: 0 }];
 const REVISIONS = [
   { revision: 1, context_revision: 3, title: "Konkurenti", summary: "", provenance: { origin: "STUDY" }, approved_by: "USR-1", approved_at: "2026-08-01T10:00:00Z" },
   { revision: 2, context_revision: 7, title: "Hlavní konkurenti", summary: "Dva hlavní.", provenance: { origin: "CLIENT", authored: "person" }, approved_by: "USR-1", approved_at: "2026-10-01T10:00:00Z" },
@@ -477,7 +477,7 @@ describe("folders and labels, organized where they are listed", () => {
     await nav().findByRole("button", { name: "retail 1" });
     fireEvent.click(nav().getByRole("button", { name: "Nový štítek" }));
     const row = nav().getByRole("textbox", { name: "Nový štítek" });
-    // GREEN and ORANGE are taken: the row starts on BLUE.
+    // TEAL and ORANGE are taken: the row starts on BLUE.
     expect(nav().getByRole("button", { name: "Barva nového štítku: Modrá" })).toBeTruthy();
     fireEvent.change(row, { target: { value: "priorita" } });
     fireEvent.keyDown(row, { key: "Enter" });
@@ -489,6 +489,8 @@ describe("folders and labels, organized where they are listed", () => {
     const pickColour = nav().getByRole("button", { name: /^Barva nového štítku/ });
     fireEvent.blur(next, { relatedTarget: pickColour });
     fireEvent.click(pickColour);
+    // No green: it belongs to the version in force alone (CPR16).
+    expect(nav().getAllByRole("option").map((o) => o.getAttribute("aria-label") ?? o.getAttribute("title"))).toEqual(["Modrá", "Tyrkysová", "Oranžová", "Fialová", "Šedá"]);
     fireEvent.click(nav().getByRole("option", { name: "Fialová" }));
     const still = nav().getByRole("textbox", { name: "Nový štítek" });
     fireEvent.change(still, { target: { value: "k ověření" } });
@@ -522,7 +524,7 @@ describe("folders and labels, organized where they are listed", () => {
     expect(sent("GET", "").some((c) => c.url.includes("label=KNL-1"))).toBe(true);
     fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
     await waitFor(() => expect(sent("PUT", "/placement")[0]?.body).toEqual({ item_ids: ["KNW-1"], add_labels: ["KNL-9"] }));
-    expect(sent("POST", "/labels")[0].body).toEqual({ name: "retail", colour: "GREEN" });
+    expect(sent("POST", "/labels")[0].body).toEqual({ name: "retail", colour: "TEAL" });
   });
 
   it("asks at the row, naming what goes, when the items filed there could not all be read", async () => {
