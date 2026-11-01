@@ -18,11 +18,11 @@ from aia_core.infrastructure.questionnaire_file import import_questionnaire
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import AIUsageEventRow, BudgetReservationRow
+from aia_executors.registry import registry_for
+from aia_executors.research_agents import ResearchAgentExecutor
+from aia_worker.settings import WorkerSettings
+from aia_worker.worker import Worker
 from sqlalchemy import func, select
-from test_research_agent_executor import (  # type: ignore[import-not-found]
-    RecordedBedrock,
-    worker,
-)
 
 TABLE = (
     Path(__file__).resolve().parents[3]
@@ -37,6 +37,24 @@ EXISTING = {
         {"id": "my_q", "text": "Jak pravděpodobné je, že byste produkt koupil/a?", "typ": "skala"}
     ],
 }
+
+
+def worker(world: Any, database_url: str, store: Any, build: Any) -> Worker:
+    """A worker whose design jobs are switched off: no gateway and no configuration."""
+    executor = ResearchAgentExecutor(store=store, build=build, gateway=None, config=None)
+    return Worker(
+        session_factory=world.sessions,
+        executors=registry_for(store=store, build=build, research_agent=executor),
+        settings=WorkerSettings(
+            database_url=database_url,
+            worker_id="from-file-test",
+            executors="aia_executors.registry:build_registry",
+            lease_seconds=30,
+            heartbeat_seconds=0.1,
+            poll_seconds=0.05,
+            maintenance_seconds=0.2,
+        ),
+    )
 
 
 def _file(world: Any, content: dict[str, Any], mode: ImportMode, key: str = "k") -> str:
@@ -83,7 +101,7 @@ def test_a_table_on_an_empty_study_is_built_with_no_model_and_accepted_as_import
 ) -> None:
     run_id = _file(world, {"title": "S", "sections": []}, ImportMode.REPLACE)
     # Design jobs switched off: the worker has no gateway and still answers the table's job.
-    assert worker(world, database_url, store, build, RecordedBedrock(), enabled=False).run_once()
+    assert worker(world, database_url, store, build).run_once()
     with world.sessions() as session:
         scope = world.lead_scope(session)
         run = ResearchAgentJobs(session, scope).get(run_id)
@@ -103,7 +121,7 @@ def test_doplnit_adds_only_the_questions_not_there(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
     run_id = _file(world, {"title": "S", "sections": [EXISTING]}, ImportMode.ADD)
-    assert worker(world, database_url, store, build, RecordedBedrock(), enabled=False).run_once()
+    assert worker(world, database_url, store, build).run_once()
     sections = _accept(world, store, run_id)
     texts = [q["text"] for s in sections for q in s.get("questions", [])]
     assert texts.count("Jak pravděpodobné je, že byste produkt koupil/a?") == 1
@@ -118,7 +136,7 @@ def test_nahradit_replaces_the_questions(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
     run_id = _file(world, {"title": "S", "sections": [EXISTING]}, ImportMode.REPLACE)
-    assert worker(world, database_url, store, build, RecordedBedrock(), enabled=False).run_once()
+    assert worker(world, database_url, store, build).run_once()
     sections = _accept(world, store, run_id)
     assert "mine" not in [s["id"] for s in sections]
     assert [s["title"] for s in sections] == ["Nákupní záměr", "Bariéry", "Média"]

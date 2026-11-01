@@ -338,6 +338,21 @@ describe("LeadPane", () => {
     expect(chosen).toEqual([]);
   });
 
+  it("reads the jobs again for a table's proposal filed at once that the list does not hold yet (Codex on #1149)", async () => {
+    const file = { source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "dotaznik.xlsx" };
+    const filed = { ...file, questionnaire: { status: "filed" as const, questions: 2, tracked_sets: 1, run_id: "RUN-Q" } };
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [filed] })] };
+    const onJobsChanged = vi.fn();
+    const { rerender } = render(pane({ cards: cards({ onJobsChanged }) }));
+    await waitFor(() => expect(onJobsChanged).toHaveBeenCalledTimes(1));
+    // Once the list holds it, nothing is read again.
+    const job = { run_id: "RUN-Q", design_revision_id: "REV-1", action: "build_questionnaire" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-11-01T08:01:00Z", steps: [], actual_cost_usd: 0 };
+    rerender(pane({ cards: cards({ onJobsChanged }), jobs: [job] }));
+    rerender(pane({ cards: cards({ onJobsChanged }), jobs: [job], epoch: 1 }));
+    await screen.findByText(/čeká na kontrolu jako návrh/);
+    expect(onJobsChanged).toHaveBeenCalledTimes(1);
+  });
+
   it("says a refused questionnaire table in the import's words, and offers no choice", async () => {
     const file = { source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "dotaznik.csv" };
     state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [{ ...file, questionnaire: { status: "refused", reason: "invalid_row", message: "q3: neznámý typ x.", questions: 0, tracked_sets: 0 } }] })] };

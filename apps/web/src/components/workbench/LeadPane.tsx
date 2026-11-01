@@ -428,6 +428,13 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
   const atBottom = useRef(true);
   const [away, setAway] = useState(false);
   const runs = cards?.runs ?? [];
+  // A table's proposal the server filed at once (LO18b) is a job the list does not hold yet: read
+  // the jobs again, once per such run, so its card and its review show without a reload.
+  const unseen = turns.flatMap((t) => (t.files ?? []).flatMap((f) => (f.questionnaire?.run_id && !jobs.some((j) => j.run_id === f.questionnaire?.run_id) ? [f.questionnaire.run_id] : []))).join(",");
+  const onJobsChanged = cards?.onJobsChanged;
+  useEffect(() => {
+    if (unseen) onJobsChanged?.();
+  }, [unseen, onJobsChanged]);
   const sig = `${turns.length}:${turns.at(-1)?.status ?? ""}:${busy}:${jobs.map((j) => j.status).join(",")}:${runs.map((r) => r.phase).join(",")}`;
   useLayoutEffect(() => {
     const el = box.current;
