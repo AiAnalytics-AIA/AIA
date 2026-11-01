@@ -206,3 +206,11 @@ In flight:
   - LO13 go; flaky-test fix go; Sociomapa MQ-23 server-side scope.
 - Open on the page: W1Q12-W1Q18. Actions: N17-N24.
 - Relays refused by session checks: Sociomapa (MQ-23/S-2), E08 (the flaky fix). Nigel types those words in the sessions.
+## 2026-11-01 — direction change (Nigel, coordinator chat, ~16:50 UTC; answers 18:22 UTC)
+
+- Quote: "The lane where we defined the obchodni model is now the primary research lane. Treating business and economies as functions of systems will be the new focus … we remove the AI respondents and build out the obchodni model … It's not about people rating people."
+- Remove AI respondents: switch off now (kill switch, no screens/runs), delete once the new lane ships.
+- People side kept: only Deep Research and literature. Out: expert scoring, imported surveys, questionnaire design.
+- In-flight respondent work paused (held: #1149 LO18b+QST12, #1147 CPR23 + CPR10; paused lanes: FLD, E08, IR/ANL14-15, LO18). Platform work continues.
+- Re-plan owner: cost-model design session (session_013Njzbwj2dsK9muCZthKegM): new ADR, switch-off chunk, rewritten MVP, deletion chunk, decision page. Outline first.
+- Merged today (1 Nov): #1038, #1088? no (open), #1091, #1125, #1127, #1128, #1129, #1130, #1135, #1136, #1137, #1138, #1139, #1140, #1141, #1142, #1143, #1144, #1145, #1146, #1148. Closed: #928.
