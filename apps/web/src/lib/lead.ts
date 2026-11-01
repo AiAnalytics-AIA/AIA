@@ -189,6 +189,17 @@ export type LeadOutput = {
   dropped?: { edit?: unknown; reason: string }[];
 };
 
+/** What a questionnaire table a message carried became (LO18b): its proposal filed (the run once
+ *  filed), Nahradit or Doplnit asked of the person, or refused in the import's words. */
+export type FileQuestionnaire = {
+  status: "filed" | "choose" | "refused";
+  reason?: string | null;
+  message?: string | null;
+  questions: number;
+  tracked_sets: number;
+  run_id?: string | null;
+};
+
 export type LeadTurn = {
   turn_id: string;
   sequence_no: number;
@@ -205,7 +216,7 @@ export type LeadTurn = {
   created_at: string;
   created_by: string | null;
   /** The client's sources a person's message carried to the Lead (LO18a); read only in the turn answering it. */
-  files?: { source_id: string; sha256: string; reading_sha256: string | null; filename: string }[];
+  files?: { source_id: string; sha256: string; reading_sha256: string | null; filename: string; questionnaire?: FileQuestionnaire | null }[];
   /** The most the turn's prepared agent job can cost, before it starts (LO23): its reservation;
    *  null when unknown (never 0) or when the turn prepares no agent job. */
   ceiling_usd?: number | null;

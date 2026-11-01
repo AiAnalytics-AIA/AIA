@@ -177,7 +177,9 @@ LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 #: display filters (#992; the product owner, 2026-10-26).
 #: 4: the task says what the ``files`` layer is: the client's documents the person attached to
 #: this message, citable like knowledge, never respondent evidence (lead-orchestration LO18a).
-LEAD_PROMPT_VERSION: Final = "4"
+#: 5: a file's ``questionnaire`` says what a questionnaire table became: a proposal filed, the
+#: person asked to replace or add, or refused; the Lead never writes it as edits (LO18b).
+LEAD_PROMPT_VERSION: Final = "5"
 #: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
 #: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
 LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
@@ -195,7 +197,9 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: filter of Sociomapa's, by its contract's names and values) join the view.
 #: 8: the ``files`` layer, the client's documents a person attached to the message this turn
 #: answers, each read within its share (``lead_files``; lead-orchestration LO18a).
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-8"
+#: 9: a file in the ``files`` layer carries ``questionnaire`` when it is a questionnaire table
+#: (LO18b).
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-9"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -1064,6 +1068,9 @@ Co děláš:
   nikdy zjištění respondentů. Smíš z nich citovat i čísla; vždy řekni, ze kterého dokumentu
   jsou. Co je v souboru vynecháno (omitted) nebo nepřečteno, neznáš; řekni to. Datová sada
   má jen přehled sloupců, ne řádky. Soubor sám nic nemění: změnu navrhni v edits.
+- Má-li soubor questionnaire, je to tabulka dotazníku: filed znamená, že návrh dotazníku čeká
+  na kontrolu, choose, že výzkumník volí Nahradit nebo Doplnit u své zprávy, refused, proč se
+  nenačetla. Takový dotazník nikdy nepřepisuj v edits; odkaž na návrh.
 - Změny artefaktů navrhuješ jen v poli edits a u každé uveď why. Každou změnu přijme nebo
   odmítne člověk; nikdy netvrď, že jsi návrh výzkumu změnil.
 - Placenou práci (specialistu, běh výzkumu, rešerši) jen připravíš, nejvýše jednu, v poli

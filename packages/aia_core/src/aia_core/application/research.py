@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
@@ -68,6 +68,7 @@ from ..domain.population import (
 )
 from ..domain.prompts import PromptPin
 from ..domain.question_outlook import QuestionOutlook, question_outlook
+from ..domain.questionnaire_from_file import ImportMode, import_proposal
 from ..domain.report.review import ReviewMark
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
@@ -1994,6 +1995,63 @@ class ResearchAgentJobs:
             )
         return started
 
+    def start_import(
+        self,
+        *,
+        design_revision_id: str,
+        key: str,
+        sections: Sequence[Mapping[str, Any]],
+        mode: ImportMode,
+        source: Mapping[str, str],
+    ) -> StartedRun:
+        """Queue the no-model questionnaire proposal a table given to the Lead makes
+        (lead-orchestration LO18b): a ``build_questionnaire`` job whose step builds the design from
+        ``sections`` in ``mode`` before any model is asked, so nothing is paid, reserved or asked
+        of the confirmation threshold. ``key`` is the job's own (one per message and file): a
+        second ask answers the job already filed. ``source`` names the file (``source_id``,
+        ``sha256``, ``filename``). Refused above the import's bound (``ImportTooLarge``)."""
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        import_proposal({}, sections, mode)  # the bound, checked before anything is queued
+        designs = StudyDesignRepository(self.session, self.scope)
+        revision = designs.get(design_revision_id)
+        imported = {"sections": [dict(s) for s in sections], "mode": mode.value, **dict(source)}
+        import hashlib
+
+        fingerprint = hashlib.sha256(canonical_json(imported).encode()).hexdigest()
+        payload = {
+            "design_revision_id": design_revision_id,
+            "base_workspace_revision": revision.workspace_revision,
+            "action": ResearchAction.BUILD.value,
+            "imported": imported,
+            "job_fingerprint": fingerprint,
+            "harness_version": HARNESS_VERSION,
+        }
+        project_id = designs.project_id()
+        assert project_id is not None
+        return start_workflow(
+            self.session,
+            self.scope,
+            project_id=project_id,
+            revision=revision.revision,
+            workflow_type=RESEARCH_AGENT,
+            idempotency_key=key,
+            metadata={
+                "design_revision_id": design_revision_id,
+                "action": ResearchAction.BUILD.value,
+                # What the job reads: the imported questionnaire, not a context snapshot.
+                "context_sha256": fingerprint,
+                "harness_version": HARNESS_VERSION,
+                "base_workspace_revision": revision.workspace_revision,
+                "origin": IMPORT_ORIGIN,
+                "filename": source.get("filename"),
+                "mode": mode.value,
+            },
+            step_inputs={"agent": payload},
+            owner=DESIGN_PROJECT_OWNER,
+        )
+
     def _with_external(self, snapshot: dict[str, Any], store: ArtifactStore) -> dict[str, Any]:
         """The snapshot with the Study's newest finished Design Research run's verified public
         findings, frozen into the job (and its fingerprint) at enqueue: the same pinned,
@@ -2140,6 +2198,12 @@ class ResearchAgentJobs:
         action = ResearchAction(run["metadata"]["action"])
         if action not in DESIGN_ACTIONS:
             raise DesignRejected("advice is asked again, not rebuilt", reason="advice_only")
+        if run["metadata"].get("origin") == IMPORT_ORIGIN:
+            # A file's proposal is the file read again, never a model's: it is given again.
+            raise DesignRejected(
+                "a questionnaire from a file is given to the Lead again, not rebuilt",
+                reason="from_file",
+            )
         latest = StudyDesignRepository(self.session, self.scope).latest()
         if latest is None or latest.revision_id != design_revision_id:
             raise DesignRejected(
@@ -2282,6 +2346,9 @@ class ResearchAgentJobs:
         )
         return accepted
 
+
+#: The origin a questionnaire proposal made from a file given to the Lead records (LO18b).
+IMPORT_ORIGIN: Final = "file"
 
 #: The stage an accepted proposal's Design Revision is recorded as submitted from.
 _ACCEPT_STAGES: dict[ResearchAction, str] = {

@@ -48,7 +48,7 @@ chunks:
   - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
   - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
   - "[x] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
-  - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
+  - "[x] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
   - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
   - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
   - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the study's Design Research runs, not the newest run's first 24 (artifact-questionnaire#QST13, #QST14; amended 2026-10-27) (Nigel, 26 Oct; W1)"
@@ -1848,6 +1848,57 @@ follow-up chunk below.
   Harness `aia-research-lead-8`, prompt 4 (`test_prompt_slots.py::test_the_lead_s_baseline_wording_changes_only_with_its_version`).
   Fits ADR 0026's 2026-10-28 amendment, R5: the file is part of the message, frozen at enqueue.
 - **LO18b. A questionnaire table becomes a proposal** (W1, with `artifact-questionnaire#QST12`; Nigel's questionnaire decision of 01:41 UTC, quoted in `prototype-build.md`). `import_questionnaire` (`infrastructure/questionnaire_file.py:187 @ 2e7fc1dd`) reads it with no model call; the result is a no-model questionnaire proposal reviewed in ProposalReview and accepted through `accept_into_working_copy` (`application/proposal_accept.py:113`), not as Lead edits (no applied section operation; at most 12 edits a turn, `domain/research_lead.py:370`). Amending a questionnaire section by section would need the section operations (WCE3b). Test: an XLSX given in a turn files one proposal whose sections match the import; accepting it writes them; no model call is ledgered for the read.
+  **LO18b plan (2026-11-01).** Nigel's answer, relayed by the PM coordinator at 13:16 UTC: "Yes to both", and "A
+  template table makes a proposal at once; accepting it replaces the existing sections, shown item by item before
+  you accept. Or it can fill in questions that are not there, maybe ask the user what they want and execute." Built
+  on LO18a's file in the turn (#1129, `domain/lead_files.py`):
+  1. *Read when the message is posted, no model.* Each attached file named `.csv` or `.xlsx` is read by
+     `infrastructure/questionnaire_file.py` `import_questionnaire` from the source's bytes, pinned by its SHA-256
+     (`application/lead_questionnaire.py` `read_table`). `missing_columns`, `unsupported_format`, `no_sheet`,
+     `unreadable`, `empty` or `no_file`: nothing says the template was meant, so it is only LO18a's file. Any other
+     refusal (`invalid_row`): the template was meant and broken, so the person's message says why in the import's
+     own words, naming the row; nothing is filed. More than `IMPORT_MAX_BYTES` (256 KB) of imported sections:
+     refused by name, `questionnaire_too_large`; a template with no question or set (the header alone imports as
+     nothing), `questionnaire_empty`, never a replace with nothing. One questionnaire a message: a second table is
+     `one_questionnaire_per_message`, since two proposals over one copy would each replace the other.
+  2. *Filed at once or asked.* With no question sections in the working copy (the predicate `proposal_result`'s
+     questionnaire mapping keeps: questions and object batteries that are not standard instruments), the import is
+     filed as a replace at once, inside a savepoint: a design that refuses the copy (`DesignRejected`) refuses
+     the table by its reason and keeps the message. With some, the person is asked on their own message's card, two buttons,
+     **Nahradit** (replace the question sections) and **Doplnit** (add only what is not there), never a free-text
+     guess; the click files the proposal through `POST …/lead/turns/{turn_id}/questionnaire` `{source_id, mode}`.
+     The outcome rides on the message's file ref (`questionnaire: {status: filed | choose | refused, reason,
+     message, questions, tracked_sets}`, and on read the filed job's `run_id`), set on insert as every ref is; the choice and the run are found by the job's idempotency key
+     `questionnaire_import:<turn>:<source>`, so a second click answers the job already filed (409
+     `questionnaire_already_filed`).
+  3. *The proposal is an ordinary questionnaire job* (`research_agent`, action `build_questionnaire`, ceiling 0, no
+     prompt pin, no spend gate): its step input carries the imported sections and the mode, and the executor builds
+     the proposed design before any gateway check, with no model and nothing reserved. **Nahradit**: as the AI build
+     maps sections (standard instruments and other sections kept). **Doplnit**: the copy's sections kept; an
+     imported question is there when a question has the same wording (case and spaces folded), a tracked set when
+     one has the same title; what is not there joins the question section of the same title that is not a standard instrument, else a new
+     section. The same
+     `research_agent_proposal` artifact, so `ProposalReview` (its item-by-item changes), accept through
+     `accept_into_working_copy` with its stale check and ledger row, dismiss and the Lead's card work unchanged. The
+     job answers `origin: file` and the file's name, so the card reads "Dotazník ze souboru".
+  4. *The Lead is told, never acts.* The file's entry in the `files` layer carries its questionnaire status, so the
+     turn can speak of the proposal; it never applies a questionnaire as edits. Prompt 5, harness
+     `aia-research-lead-9`.
+  5. *QST12 in the same PR* (`artifact-questionnaire#QST12`; #928, closed 2026-11-01 as superseded, carried its
+     intent): Dotazník's Způsob chooser, its upload card, template download and AI build card removed, the one
+     editor working on an empty questionnaire too; in the workbench the toolbar keeps "Stáhnout šablonu XLSX", the
+     template a table given to the Lead fills; the API's import and template routes stay (this chunk reads the
+     import). A separate commit. QST20 (per-block ticks in the review) is not in this PR.
+  **Decisions (Nigel, relayed by the PM coordinator at 15:46 UTC, 2026-11-01).** (1) "Yes, Ada only": with the
+  research workbench switched off (the classic layout, no Lead pane), Dotazník takes no file at all; a template
+  table reaches a study only through the Lead. (2) "Yes, design is B": once accepted into the questionnaire, a
+  table is design content, Class B by rule (`domain/material_rules.py`); the source keeps its own "Interní
+  dokument" mark, which does not travel into the design.
+  Tests: an XLSX given on a study with no questions files one proposal whose sections match the import, and
+  accepting it writes them; on a study with questions nothing is filed until the choice, Nahradit replaces and
+  Doplnit adds only the missing question; a table with an invalid row is refused in words and files nothing; a
+  non-template table files nothing; no model call, reservation or spend is ledgered; the choice twice files once;
+  another researcher's turn is 404; Dotazník on an empty study shows the editor and no chooser.
 - **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
 - **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.
 

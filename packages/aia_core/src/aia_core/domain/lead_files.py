@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,6 +37,7 @@ __all__ = [
     "FILES_PER_TURN",
     "FileForTurn",
     "LeadFileRef",
+    "QuestionnaireOutcome",
     "files_layer",
 ]
 
@@ -60,6 +61,21 @@ FILES_NOTE: Final = (
 _SHA256 = r"^[0-9a-f]{64}$"
 
 
+class QuestionnaireOutcome(BaseModel):
+    """What a table in the questionnaire template given to the Lead became (LO18b): a proposal
+    ``filed`` at once, the person asked to ``choose`` Nahradit or Doplnit, or ``refused`` with
+    the import's reason. Counted from the import, before anything is filed."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: Literal["filed", "choose", "refused"]
+    reason: str | None = None
+    #: A refusal in the import's own words, naming its row (``domain/questionnaire_import``).
+    message: str | None = Field(default=None, max_length=500)
+    questions: int = Field(default=0, ge=0)
+    tracked_sets: int = Field(default=0, ge=0)
+
+
 class LeadFileRef(BaseModel):
     """A file a person's message carries: the client's source, as they attached it."""
 
@@ -71,6 +87,8 @@ class LeadFileRef(BaseModel):
     #: The SHA-256 of its reading when attached; ``None`` when nothing was read.
     reading_sha256: str | None = Field(default=None, pattern=_SHA256)
     filename: str = Field(min_length=1, max_length=400)
+    #: A questionnaire table's outcome when the message was posted; none for any other file.
+    questionnaire: QuestionnaireOutcome | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -195,7 +213,7 @@ def _segments(entry: dict[str, Any], reading: SourceReading, room: int) -> None:
 def _stub(file: FileForTurn, outcome: str) -> dict[str, Any]:
     """A file named with nothing of it sent, and why."""
     ref = file.ref
-    return {
+    stub: dict[str, Any] = {
         "source_id": ref.source_id,
         "sha256": ref.sha256,
         "name": ref.filename,
@@ -203,6 +221,10 @@ def _stub(file: FileForTurn, outcome: str) -> dict[str, Any]:
         "internal": file.internal,
         "outcome": outcome,
     }
+    if ref.questionnaire is not None:
+        # The Lead is told what the table became; it never applies a questionnaire itself.
+        stub["questionnaire"] = ref.questionnaire.model_dump(mode="json", exclude_none=True)
+    return stub
 
 
 def _entry(file: FileForTurn, room: int) -> dict[str, Any]:

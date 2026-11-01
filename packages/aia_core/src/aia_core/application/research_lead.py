@@ -39,12 +39,18 @@ from ..domain.ai_route_reach import AiRouteReach, lead_preflight
 from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.client_sources import SourceFamily, SourceOrigin, SourceRecord
-from ..domain.design import DESIGN_PROJECT_OWNER
+from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
-from ..domain.lead_files import FILES_PER_MESSAGE, FileForTurn, LeadFileRef, files_layer
+from ..domain.lead_files import (
+    FILES_PER_MESSAGE,
+    FileForTurn,
+    LeadFileRef,
+    QuestionnaireOutcome,
+    files_layer,
+)
 from ..domain.lead_hatch import HatchInput, HatchOutput, hatch_refusals
 from ..domain.lead_research_targets import (
     DEEP_RESEARCH_RUNS,
@@ -54,6 +60,8 @@ from ..domain.lead_research_targets import (
     deep_research_layer,
     targets_layer,
 )
+from ..domain.questionnaire_from_file import ImportMode, has_question_sections
+from ..domain.questionnaire_import import ImportedQuestionnaire
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
@@ -130,6 +138,7 @@ from .lead_deep_research import (
     DeepResearchCardUnavailable,
     approve_deep_research_card,
 )
+from .lead_questionnaire import ONE_QUESTIONNAIRE, questionnaire_key, read_table
 from .research import (
     ResearchAgentJobs,
     ResearchRuns,
@@ -137,7 +146,7 @@ from .research import (
     readiness_in_force,
     research_artifacts,
 )
-from .workflows import start_workflow
+from .workflows import StartedRun, start_workflow
 from .working_copy import apply_edit_ops
 
 __all__ = [
@@ -162,6 +171,7 @@ __all__ = [
     "LeadTurnStale",
     "LeadUnavailable",
     "NotAPaidRequest",
+    "QuestionnaireAlreadyFiled",
     "ResearchLead",
     "WorkspaceConflict",
     "release_lead_budget_waits",
@@ -303,6 +313,16 @@ class LeadFileNotFound(LookupError):
     """A file a message names is not a source of the study's own client."""
 
     reason = "unknown_source"
+
+
+class QuestionnaireAlreadyFiled(Exception):
+    """The table's proposal is already filed: its run is named."""
+
+    reason = "questionnaire_already_filed"
+
+    def __init__(self, run_id: str) -> None:
+        super().__init__(run_id)
+        self.run_id = run_id
 
 
 class LeadBusy(Exception):
@@ -674,7 +694,8 @@ class ResearchLead:
 
     def _annotated(self, turns: Sequence[LeadTurn]) -> list[dict[str, Any]]:
         """``turns`` with each Lead turn's run state, output and ledger decisions: one query
-        for the runs with their steps, one for the steps' last attempts, one for the ledger."""
+        for the runs with their steps, one for the steps' last attempts, one for the ledger, one
+        for the questionnaire tables' proposals."""
         run_ids = [t.run_id for t in turns if t.run_id]
         runs: dict[str, dict[str, Any]] = {}
         project_id = StudyDesignRepository(self.session, self.scope).project_id()
@@ -704,6 +725,14 @@ class ResearchLead:
         released_turn, released = self._released() if turns else (None, [])
         queued = {t.turn_id for t in [*released, *self._turns().queued()]} if person_ids else set()
         withdrawn = self._turns().withdrawn(person_ids)
+        filed = self._workflows().find_runs_by_idempotency_keys(
+            [
+                questionnaire_key(t.turn_id, f.source_id)
+                for t in turns
+                for f in t.files
+                if f.questionnaire is not None
+            ]
+        )
         views = []
         for turn in turns:
             run = runs.get(turn.run_id) if turn.run_id else None
@@ -720,6 +749,11 @@ class ResearchLead:
             view["queued"] = turn.turn_id in queued
             view["withdrawn"] = turn.turn_id in withdrawn
             view["answers"] = answers.get(turn.turn_id, [])
+            # Each table's proposal, once filed (LO18b): found by its key, never stored twice.
+            for f in view["files"]:
+                if f.get("questionnaire") is not None:
+                    key = questionnaire_key(turn.turn_id, f["source_id"])
+                    f["questionnaire"]["run_id"] = filed.get(key)
             views.append(view)
         return views
 
@@ -859,8 +893,13 @@ class ResearchLead:
         # Against the copy this message is stored with, read once: a focus valid on an earlier
         # read could name a filter another tab removed since (Codex on #624).
         self._focus_shown(focus_, content)
+        refs, tables = self._questionnaires(refs, content)
         stored: list[LeadTurn] = []
         if kind == "message":
+            message_id = new_turn_id()
+            # A table in the questionnaire template, the copy holding no questions: its proposal
+            # is filed at once, as a replace (LO18b); with questions, the person is asked first.
+            refs = [self._filed_at_once(message_id, r, tables.get(r.source_id)) for r in refs]
             stored.append(
                 turns.append(
                     actor="person",
@@ -869,6 +908,7 @@ class ResearchLead:
                     text=message,
                     focus=focus_,
                     workspace_revision=workspace_revision,
+                    turn_id=message_id,
                     files=refs,
                 )
             )
@@ -1564,6 +1604,113 @@ class ResearchLead:
                 reading=None,
                 unread="source_unavailable",
             )
+
+    def _questionnaires(
+        self, refs: Sequence[LeadFileRef], content: Mapping[str, Any]
+    ) -> tuple[list[LeadFileRef], dict[str, ImportedQuestionnaire]]:
+        """Each ref with what its table became when it is a questionnaire table (LO18b), and the
+        tables to file at once: those read while the copy holds no question sections."""
+        if not refs:
+            return [], {}
+        sources = self._sources()
+        ask = has_question_sections(content)
+        out: list[LeadFileRef] = []
+        tables: dict[str, ImportedQuestionnaire] = {}
+        found = False
+        for ref in refs:
+            read = read_table(sources, self.scope, ref)
+            if read is not None and found:
+                # One questionnaire a message: two would be two proposals over the same copy,
+                # each replacing the other, and nobody asked how they combine.
+                read = QuestionnaireOutcome(status="refused", reason=ONE_QUESTIONNAIRE)
+            found = found or read is not None
+            if isinstance(read, QuestionnaireOutcome):
+                ref = ref.model_copy(update={"questionnaire": read})
+            elif read is not None:
+                ref = ref.model_copy(
+                    update={
+                        "questionnaire": QuestionnaireOutcome(
+                            status="choose" if ask else "filed",
+                            questions=read.summary.question_count,
+                            tracked_sets=read.summary.tracked_sets,
+                        )
+                    }
+                )
+                if not ask:
+                    tables[ref.source_id] = read
+            out.append(ref)
+        return out, tables
+
+    def _filed_at_once(
+        self, turn_id: str, ref: LeadFileRef, table: ImportedQuestionnaire | None
+    ) -> LeadFileRef:
+        """``ref`` once its table, when there is one to file at once, is filed. A copy the design
+        refuses (``DesignRejected``) files nothing and refuses the table by the design's reason:
+        the message is kept all the same."""
+        if table is None:
+            return ref
+        try:
+            with self.session.begin_nested():
+                self._file_questionnaire(turn_id, ref, table, ImportMode.REPLACE)
+        except DesignRejected as exc:
+            return ref.model_copy(
+                update={"questionnaire": QuestionnaireOutcome(status="refused", reason=exc.reason)}
+            )
+        return ref
+
+    def _file_questionnaire(
+        self, turn_id: str, ref: LeadFileRef, table: ImportedQuestionnaire, mode: ImportMode
+    ) -> StartedRun:
+        """The no-model questionnaire proposal of a message's table, on the working copy as it
+        is now, submitted as a Design Revision naming it, as a Lead card's job is."""
+        content, _analysis, workspace_revision = self._working_content()
+        revision = self._submit_design(content, workspace_revision, source_stage="questionnaire")
+        return ResearchAgentJobs(self.session, self.scope).start_import(
+            design_revision_id=revision.revision_id,
+            key=questionnaire_key(turn_id, ref.source_id),
+            sections=table.sections,
+            mode=mode,
+            source={"source_id": ref.source_id, "sha256": ref.sha256, "filename": ref.filename},
+        )
+
+    def choose_questionnaire(self, turn_id: str, *, source_id: str, mode: str) -> str:
+        """The person's answer to a questionnaire table their message carried (LO18b): Nahradit
+        (``replace``) or Doplnit (``add``), filed as the table's proposal; the run's id. Asked
+        again, the proposal already filed is named (:class:`QuestionnaireAlreadyFiled`)."""
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        try:
+            chosen = ImportMode(mode)
+        except ValueError as exc:
+            raise LeadRejected("the mode is replace or add", reason="invalid_mode") from exc
+        message = self._turns().get(turn_id)
+        if message is None or message.actor != "person":
+            raise LeadTurnNotFound(turn_id)
+        ref = next((f for f in message.files if f.source_id == source_id), None)
+        if ref is None:
+            raise LeadFileNotFound(source_id)
+        if ref.questionnaire is None or ref.questionnaire.status != "choose":
+            raise LeadRejected(
+                "this file asked for no choice", reason="questionnaire_not_choosable"
+            )
+        found = WorkflowRepository(self.session, self.scope).find_run_by_idempotency_key(
+            questionnaire_key(turn_id, source_id)
+        )
+        if found is not None:
+            raise QuestionnaireAlreadyFiled(found)
+        try:
+            read = read_table(self._sources(), self.scope, ref)
+        except ScopeDenied as exc:
+            if exc.reason != "unknown_source":
+                raise
+            raise LeadFileNotFound(source_id) from exc
+        if not isinstance(read, ImportedQuestionnaire):
+            raise LeadRejected("the file no longer reads as it did", reason="source_changed")
+        started = self._file_questionnaire(turn_id, ref, read, chosen)
+        if not started.created:
+            raise QuestionnaireAlreadyFiled(started.run_id)
+        return started.run_id
 
     def attach(self, client: ClientContext, *, filename: str, data: bytes) -> SourceRecord:
         """Keep a file a person gives the Lead as the study's client's source, from this study

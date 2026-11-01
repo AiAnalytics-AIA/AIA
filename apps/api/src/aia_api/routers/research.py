@@ -4142,6 +4142,11 @@ class AgentJobResponse(BaseModel):
     proposal_state: Literal["pending", "accepted", "dismissed", "superseded"] | None = None
     #: The job this one rebuilt, which it supersedes; null for a job a person asked first.
     rebuild_of: str | None = None
+    #: ``file`` for a questionnaire made from a table given to the Lead (LO18b), with its name
+    #: and the mode chosen (``replace`` | ``add``); null for a model's job.
+    origin: str | None = None
+    filename: str | None = None
+    mode: str | None = None
 
 
 class AgentProposalRebuild(BaseModel):
@@ -4202,6 +4207,9 @@ def _agent_response(
         actual_cost_usd=run_cost(session, scope, run["run_id"], page),
         proposal_state=state,
         rebuild_of=meta.get("rebuild_of"),
+        origin=meta.get("origin"),
+        filename=meta.get("filename"),
+        mode=meta.get("mode"),
     )
 
 

@@ -398,6 +398,7 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest/omitted",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/request",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/self-update",
+        "/api/v1/studies/{study_id}/lead/turns/{turn_id}/questionnaire",
         "/api/v1/lead",
         "/api/v1/lead/preferences",
         "/api/v1/lead/hatches",

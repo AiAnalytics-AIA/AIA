@@ -2981,6 +2981,11 @@ export const cs = {
           "Použití nahradí vaše vlastní bloky otázek a sady objektů ({replaced}) bloky z návrhu; ostatní sekce a nástroje z knihovny ({preserved}) zůstanou. Otázek a položek beze změny znění: {kept}.",
         footer:
           "Použití vytvoří novou revizi návrhu a nahradí vaše vlastní bloky dotazníku bloky z návrhu, jak je uvedeno výše; sekce a nástroje z knihovny zůstanou. Předchozí revize zůstane uložená.",
+        // A table given to the Lead, Doplnit (lead-orchestration LO18b): only what is not there is added.
+        addSummary: "Doplnění přidá jen otázky a sady, které v dotazníku ještě nejsou ({added}). Vaše bloky zůstanou, jak jsou.",
+        addFooter: "Použití vytvoří novou revizi návrhu a přidá do dotazníku položky uvedené výše; nic se neodebere. Předchozí revize zůstane uložená.",
+        fromFile: "Zkontrolujte dotazník ze souboru",
+        fromFileStale: "Návrh je starší než dotazník. Dejte soubor Vedoucímu znovu.",
       },
       // Plan run-recovery-and-truth 3e: the links a questionnaire proposal brings with it.
       proposed: {

@@ -1655,6 +1655,8 @@ export type ResearchAgentJob = {
   proposal_state?: "pending" | "accepted" | "dismissed" | "superseded" | null;
   /** The job this one rebuilt, which it supersedes. */
   rebuild_of?: string | null;
+  /** "file": a questionnaire made from a table given to the Lead (LO18b), with its name and the mode. */
+  origin?: string | null; filename?: string | null; mode?: "replace" | "add" | null;
 };
 export type ResearchAgentResult = {
   result: { project: Record<string, unknown>; proposal: Record<string, unknown>; analysis?: unknown } & Record<string, unknown>;
@@ -1684,6 +1686,9 @@ export const lead = {
   /** `files`: the client's sources the message carries, each kept first through attachFile (LO18a). */
   post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null; files?: string[] }) =>
     request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
+  /** Nahradit or Doplnit, for a questionnaire table the caller's message carried (LO18b); once. */
+  chooseQuestionnaire: (studyId: string, turnId: string, body: { source_id: string; mode: "replace" | "add" }) =>
+    request<{ run_id: string }>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/questionnaire`, body),
   /** Keep a file given to the Lead as the study's client's source (listed under the client's Data; LO18a). */
   attachFile: (studyId: string, body: { filename: string; data_b64: string }) =>
     request<LeadFileKept>("POST", `${studyPath(studyId)}/lead/files`, body),

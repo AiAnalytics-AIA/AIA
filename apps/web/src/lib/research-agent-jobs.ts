@@ -16,6 +16,9 @@ export const ACTIONS = {
   personaSuggest: "suggest_dimensions",
 } as const satisfies Record<string, ResearchAgentAction>;
 export type ResearchJobKey = keyof typeof ACTIONS;
+/** Who made a questionnaire proposal from a table given to the Lead: code, never a model (LO18b). */
+export const FROM_FILE_AGENT = "aia.research.questionnaire_from_file";
+
 export const ACTION_LABELS: Record<ResearchAgentAction, string> = {
   analyze_brief: "Analýza zadání", build_questionnaire: "Návrh dotazníku",
   optimize_questionnaire: "Úprava dotazníku", propose_audience: "Návrh audience",

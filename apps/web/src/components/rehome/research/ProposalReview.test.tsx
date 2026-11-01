@@ -136,4 +136,20 @@ describe("ProposalReview", () => {
     expect(document.querySelector("[data-audience-proposal]")).toBeNull();
     expect(screen.getByRole("heading", { name: "Zkontrolujte návrh AI" })).toBeTruthy();
   });
+
+  it("reads a table given to the Lead as the file's questionnaire: Doplnit adds, and the file is given again, never rebuilt (LO18b)", () => {
+    const fromFile = (mode: string): ResearchAgentResult => ({
+      result: { project, proposal: { sections: project.sections, mode } },
+      provenance: { agent_id: "aia.research.questionnaire_from_file", design_revision_id: "REV-1", context_sha256: "x", status: "PROPOSED" },
+    });
+    const { unmount } = render(<ProposalReview result={fromFile("add")} state={state} onDecision={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: t("research.questionnaire.replacement.fromFile") })).toBeTruthy();
+    expect(screen.getByText(/^Doplnění přidá jen otázky a sady/)).toBeTruthy();
+    expect(screen.getByText(t("research.questionnaire.replacement.addFooter"))).toBeTruthy();
+    unmount();
+    render(<ProposalReview result={fromFile("replace")} state={state} onDecision={vi.fn()} stale={{ message: "Zastaralé." } as never} />);
+    expect(screen.queryByRole("button", { name: "Navrhnout znovu" })).toBeNull();
+    expect(screen.getByText(t("research.questionnaire.replacement.fromFileStale"))).toBeTruthy();
+  });
 });
+
