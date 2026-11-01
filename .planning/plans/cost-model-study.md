@@ -10,7 +10,7 @@ chunks:
   - "[ ] CP7. The web platform: the area \"Modely\" beside Výzkumy (Q8), list and create with a model type, the study frame with Data, Předpoklady, Model, Výsledky and Zpráva; Data (each dataset's contract state) and Předpoklady (every input with unit and provenance, edited in place) generic over the type's schema"
   - "[ ] CP8. The report frame and grades: PrintGrade CALCULATED (výpočet) and its admission beside admit_numeric_claims, the platform template frame (question, type blocks, inputs table, method, sources), report kind business_model approvable through approve_report, three chart kinds (absolute stacked bar, tornado, line with marked points) in the model and the renderer"
   - "[ ] CP9. The Lead: lead_artifacts rows for the five stages, a model read tool, MaterialRule.BUSINESS_MODEL (Class A), per-change proposal operations generic over a type's declared operations, accepted through the Lead's edit path"
-  - "[ ] CM1. Cost scenarios, its types: Driver (input, or a × b / a ÷ b), the four cost-line kinds (FIXED, VARIABLE, STEP, CAPITAL annuity), at most five scenarios; registered as model type cost_scenarios v1"
+  - "[ ] CM1. Cost scenarios, its types: Driver (input, or a × b / a ÷ b), the four cost-line kinds (FIXED, VARIABLE, STEP, CAPITAL annuity), at most twelve scenarios (Q4, raised 2026-10-30); registered as model type cost_scenarios v1"
   - "[ ] CM2. Cost scenarios, compute: totals per year, exact break-even on one driver in a stated range (where the driver enters through one monotone form, else refused by name), one-way sensitivity, cumulative cost over N stated years with capital in year 0 and the payback year; unknown propagated by name; the warehouse golden fixture"
   - "[ ] CM3. Cost scenarios, the Model stage: lines, drivers and scenarios edited in place (input standard I1-I11)"
   - "[ ] CM4. Cost scenarios, charts: scenario comparison stacked by line, cumulative cost with the payback year, break-even lines with the crossing marked, the sensitivity tornado; the same drawing on Výsledky and in the DOCX"
@@ -61,7 +61,8 @@ Written 2026-10-29. The rules are [ADR 0044](../../docs/architecture/adr/0044-qu
 - Q1, Q2, Q4 and Q5 at this plan's recommendations:
   - Q1: CZK, one currency per model.
   - Q2: (a) + (c), the year plus a cumulative N-year view with the payback year.
-  - Q4: the four line kinds, at most five scenarios, the four results.
+  - Q4: the four line kinds and the four results; at most twelve scenarios, raised from five by "Raise to
+    about 12" (2026-10-30), so a decision map has up to twelve objects.
   - Q5: the warehouse fixture and a proposed AC-16. The fixture now holds 24 months of orders and
     invoices, so seasonality can be tested and a forecast backtested.
 
@@ -115,7 +116,7 @@ depends on another plan's shape.
 | CP9 | 3-4 | CP6; `lead-orchestration#LO8d`, `#LO21`, `#LO12a`; `working-copy-edit-ops#WCE6` | W4 |
 | CM1 | 1 | CP2 | W2 |
 | CM2 | 3-3.5 | CM1 | W2 |
-| CM3 | 2-2.5 | CM1, CP7 | W3 |
+| CM3 | 2.5-3.5 | CM1, CP7 | W3 |
 | CM4 | 1-1.5 | CM2, CP8 | W3 |
 | CM5 | 1-1.5 | CM2, CP8 | W3 |
 | CM6 | 2 | every chunk above | W4 |
@@ -128,7 +129,7 @@ depends on another plan's shape.
 | CR5 | 5-7 | CP10, CP4, CR1 | W3 |
 | CR6 | 3-4 | CR3; CP6 for the Výzkum offer | W3 |
 | CR7 | 1-1.5 | CR3, CR4, CR6; the Brief's rule (Zadání Z3, R2) | W3 |
-| CR8 | 4-5 | CP7, CR1-CR7 | W3/W4 |
+| CR8 | 4.5-5.5 | CP7, CR1-CR7 | W3/W4 |
 | CR9 | 2-2.5 | CP8, CR1-CR7 | W4 |
 | CR10 | 2 | CR3-CR6 | W3/W4 |
 | CS1 | 1.5-2 | CM2, CR3 (P(cheapest)), CP2 | W3 |
@@ -137,10 +138,13 @@ depends on another plan's shape.
 | CS4 | 3-4.5 | CS3; `sociomapping-engine#4b` (its WIND part built here, ticked there) | W3 |
 | CS5 | 3-4.5 | CS4, CP7, CP8; `sociomapping-engine#11` (its WIND view built here) | W4 |
 | **Platform core (CP1-CP10)** | **24-29** | | |
-| **Cost scenarios (CM1-CM7)** | **11.5-14** | | |
-| **The robust method (CR1-CR10)** | **31.5-40.5** | | |
+| **Cost scenarios (CM1-CM7)** | **12-15** | | |
+| **The robust method (CR1-CR10)** | **32-41** | | |
 | **The model's WIND map (CS1-CS5)** | **11.5-17** | | |
-| **MVP total** | **78.5-100.5** | | |
+| **MVP total** | **79.5-102** | | |
+
+The twelve-scenario cap (Q4, 2026-10-30) adds about 1-1.5 to CM3 and CR8: a Model stage and a
+results view that stay readable at twelve scenarios, showing the named pair and the cheapest first.
 
 **The platform's added cost.** The cost model built alone was estimated at 27-31 session-days (types,
 compute with the cumulative view, kind, bindings, run, API, stages, charts, Lead, report, journey). The
@@ -158,8 +162,13 @@ the MVP total was 30-36.
 
 | Lane | Chunks | Session-days | Starts |
 |---|---|---|---|
-| **S4**: platform, data, UI, Lead, report, cost type | CP1-CP9, CM1-CM7, CR1, CR8, CR9, CS5 | 44-54.5 | W2, on the merged ADR and plan |
+| **S4**: platform, data, UI, Lead, report, cost type | CP1-CP9, CM1-CM7, CR1, CR8, CR9, CS5 | 45-56 | W2, on the merged ADR and plan |
 | **S5**: the method, pure domain code | CP10, CR2-CR7, CR10, CS1-CS4 | 34.5-46 | W2, once S4's CP1 and CP2 have merged; CR2 also after CM2 |
+| **S6**: reports, fieldwork, market sizing (approved 2026-10-30) | `situation-reports` RC2-RC6, MM1, MM2, FW1; `quantitative-families` MKT1-MKT5 | 42.5-58 | W2, once RC1 has merged |
+
+With `situation-reports` (all in the MVP, Q16) and market sizing, S4 also takes RC1 and EX1's form and S5
+takes EX1's domain part, EX2 and EX3. The three lanes total 134-176 session-days, about 10-12 weeks; the
+lanes and their split are in `situation-reports` § Lanes.
 
 S5's chunks need no UI, data, Lead or route. They read CP1's types and CP2's contract, CM2's compute
 (for CR2) and CP4's bindings (for CR5's data). S4 consumes S5's results in CR8 and CR9. Both lanes run
@@ -192,7 +201,7 @@ scenarios, budget vs actual, ratios, NPV/IRR/payback, EOQ), at about 38-48 sessi
   - `Stated(by, at, revision, note)`;
   - `PublicSource(knowledge_item_id, revision, quote)`;
   - `ResearchResult(...)`, declared and refused `provenance_not_available` until built.
-- `Scenario`: the baseline plus at most four.
+- `Scenario`: the baseline plus at most eleven (twelve in all, Q4).
 - `ModelRevision`: type id, type version, elements, inputs, scenarios, its canonical JSON and SHA-256.
 - Refusals, each by name: `unit_mismatch`, `currency_mismatch` (CZK by default, Q1), `no_provenance`,
   `too_many_scenarios`.
@@ -200,7 +209,8 @@ scenarios, budget vs actual, ratios, NPV/IRR/payback, EOQ), at about 38-48 sessi
 **Tests:** `packages/aia_core/tests/test_business_model_types.py`:
 - each refusal by name;
 - the hash is stable under key order;
-- a `research_result` input is refused until built.
+- a `research_result` input is refused until built;
+- twelve scenarios accepted and a thirteenth refused `too_many_scenarios`.
 
 ### CP2. The model-type contract (`domain/business_model/registry.py`)
 
@@ -373,9 +383,10 @@ All `CALCULATED`, in `Decimal`.
 ### CM3. Cost scenarios: the Model stage
 
 Lines, drivers and scenarios are edited in place. A scenario is its overrides of the baseline, shown
-against it.
+against it. Up to twelve scenarios, laid out so that the baseline and the scenario being edited stay
+side by side at every width.
 
-**Tests:** component tests, and the journey (CM6).
+**Tests:** component tests at one, five and twelve scenarios; the journey (CM6).
 
 ### CM4. Cost scenarios: charts
 
@@ -643,7 +654,7 @@ entry, a method's numbers stay internal (Q10).
 | S6 | Forecasting and backtesting (`aia-cost-forecast-1`) | projects a volume over the horizon, tested on held-out months | methods: naive, seasonal naive (m = 12), drift, Holt-Winters additive (α, β, γ in [0, 1] by L-BFGS-B on in-sample squared error from a fixed start of 0.3 / 0.1 / 0.1); rolling origin over the last 6 months with ≥ 3 origins; MASE scaled by the in-sample seasonal naive (the naive below 24 months); the candidate and the baseline scored on the same held-out origins, the candidate used only if its held-out MAE is strictly below the baseline's, otherwise the baseline used and said; MASE (in-sample naive scale) and MAPE (no zero actual) reported, not the gate; interval from the backtest errors' 5th-95th percentiles | MASE on Hyndman's published worked example; a series where Holt-Winters must lose to the naive |
 | S7 | Value of information (`aia-cost-evppi-1`) | what knowing an input exactly could save | EVPPI by binning the Monte Carlo draws on the input into 20 equal-frequency bins; material when ≥ 5 % of the absolute expected difference, which offers the Výzkum path | a two-option toy with a closed-form EVPPI; an input with no effect gives ≈ 0 |
 | S8 | The decision rule's default confidence, Z3 (`aia-cost-decision-1`) | judges a person's stated rule against P(A cheaper) | the person's stated confidence decides; when the rule states none, the default is 0.90 for A and 0.10 for B, said on the page; no rule, no recommendation | a stated 0.8 judged at 0.8; the default used and said; each verdict at its boundary |
-| S9 | The model's WIND map (`aia-cost-map-1`) | places the options by their property profiles, with one property as height | the similarity measure (Euclidean, Manhattan, or correlation above 15 properties) and its conversion to 0-1; scale extremes and direction declared per property; the layout (the H-Model candidate, or the `-5` layout from 4 objects); the fit as Spearman accuracy, and its significance null; the WIND exponent, radius and grid; the minimum number of objects | SOMECS Input fig. 6; SOMECS fig. 22 accuracy; E7's three-element WIND when it exists; the respondent map's terrain unchanged |
+| S9 | The model's WIND map (`aia-cost-map-1`) | places the options by their property profiles, with one property as height | the similarity measure (Euclidean, Manhattan, or correlation above 15 properties) and its conversion to 0-1; scale extremes and direction declared per property; the layout (the H-Model candidate, or the `-5` layout from 4 objects); the fit as Spearman accuracy, and its significance null; the WIND exponent, radius and grid; the minimum number of objects (3 for the H-Model candidate, 4 for `-5`) and the maximum: twelve for cost scenarios, up to 30 for other model types (about 20 recommended; Q20, decided) | SOMECS Input fig. 6; SOMECS fig. 22 accuracy; E7's three-element WIND when it exists; the respondent map's terrain unchanged |
 
 **The `CALCULATED` definitions he also signs** (Q9, "Aram signs these too"), one definitions page each,
 checked against published worked examples:

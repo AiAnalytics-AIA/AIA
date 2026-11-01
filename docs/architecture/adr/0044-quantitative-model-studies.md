@@ -155,8 +155,20 @@ The platform's shared types:
   it is used is refused by name, never coerced.
 - **Input.** A named quantity a model type reads, with one provenance (decision 3) and an optional
   per-scenario override.
-- **Scenario.** A baseline and at most four alternatives. A scenario is a set of input overrides and,
-  where the type allows, the elements it includes.
+- **Scenario.** A baseline and at most eleven alternatives: **twelve scenarios in a study** (Q4, raised
+  from five by the product owner, "Raise to about 12", 2026-10-30), so a decision map has at most twelve
+  objects. A scenario is a set of input overrides and, where the type allows, the elements it includes.
+- **What twelve costs:**
+  - **Totals, ranges and break-even** are computed per scenario or per named pair, so they grow
+    linearly in the number of scenarios.
+  - **The Monte Carlo** evaluates every scenario on each draw: 12 × 20,000 element-wise evaluations
+    per stream. It is expected to stay well under a second per stream, measured in CR3 before it
+    merges.
+  - **Global sensitivity and value of information** run on the comparison the person names (a pair, or
+    "which is cheapest") and not on all 66 pairs, so their cost does not grow with the square.
+  - **People's time:** a twelve-scenario comparison is harder to read and review. The screen and the
+    report show the named pair and the cheapest first, with the rest behind them.
+  - **Build:** about 1-1.5 more session-days (CM3, CR8).
 - **The type's own elements** (cost lines, accounts, cash flows, constraints): declared by the model
   type (decision 5), validated by it, carried inside the revision.
 
@@ -351,7 +363,9 @@ Distance) "keeps the same horizontal positions and interpolates one object varia
 - the layout (the H-Model, or the `-5` layout reused);
 - the fit (Spearman accuracy) and its significance null;
 - the WIND exponent, radius and grid;
-- the minimum number of objects.
+- the minimum number of objects (3 for the H-Model candidate, 4 for the `-5` layout) and the maximum:
+  twelve for cost scenarios (the scenario cap, Q4), and up to 30 for other model types' and expert
+  maps, about 20 recommended (Q20, "Up to 30", 2026-10-30).
 
 The map is `ESTIMATED` (its layout is a fit). It is **internal until he registers it**, like every
 `ESTIMATED` method (Q10). Before then, Výsledky and the internal report show it marked *odhad
@@ -582,7 +596,7 @@ The checks are tests, and their report is what the method owner signs.
   - A report frame and three chart kinds.
   - Five generic stages.
 
-  The MVP builds all of that once, with one model type and decision 14's method, in about 78.5-100.5
+  The MVP builds all of that once, with one model type and decision 14's method, in about 79.5-102
   session-days (the model's WIND map included, decision 12), on the fourth build session and a fifth
   for the method chunks: about 9-11 weeks
   (`cost-model-study`). The platform costs about 3-5 session-days more than a cost
@@ -624,7 +638,7 @@ The checks are tests, and their report is what the method owner signs.
 
 Every question is answered.
 
-Answered on 2026-10-29: Q1 (CZK), Q2 ((a)+(c)), Q3 (two kinds, linked later), Q4 (the minimum set), Q5
+Answered on 2026-10-29: Q1 (CZK), Q2 ((a)+(c)), Q3 (two kinds, linked later), Q4 (the minimum set; its cap raised to twelve scenarios on 2026-10-30), Q5
 (the warehouse case and AC-16), Q6 (a fourth build session; `client-data-in-analysis` 2-3b to W2), Q7
 (yes, *výpočet*). Answered on 2026-10-30: the robust method in the MVP (decision 14); Q9, "aram owns statistical
 models". By 09:15 UTC: Q9 "Aram signs these too", Q10 "Yes, once Aram registers it", Q13
