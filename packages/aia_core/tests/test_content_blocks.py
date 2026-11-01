@@ -28,6 +28,7 @@ from aia_core.domain.ai_contracts import (
     ReasoningBlock,
     TextBlock,
     ToolResultBlock,
+    ToolSpec,
     ToolUseBlock,
     canonical_json,
     input_fingerprint,
@@ -35,7 +36,6 @@ from aia_core.domain.ai_contracts import (
 from aia_core.domain.providers import Provider
 from aia_core.infrastructure.model_adapters import (
     AnthropicMessagesAdapter,
-    BedrockConverseAdapter,
     ClaudeCodeCliAdapter,
     OpenAIChatAdapter,
     RecordedCliRunner,
@@ -244,19 +244,13 @@ def test_a_response_holds_no_block_a_user_sends() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# No adapter carries blocks yet (Bedrock from G2)
+# The adapters that carry no blocks or tools refuse them
 # --------------------------------------------------------------------------- #
 
 
 def _adapters() -> dict[str, Any]:
     credentials = StaticCredentials({"k": "secret"})
     return {
-        "bedrock": BedrockConverseAdapter(
-            transport=RecordedTransport(),
-            signer=_NoSigner(),
-            region="eu-central-1",
-            model_id="m",
-        ),
         "anthropic": AnthropicMessagesAdapter(
             transport=RecordedTransport(),
             credentials=credentials,
@@ -273,12 +267,8 @@ def _adapters() -> dict[str, Any]:
     }
 
 
-class _NoSigner:
-    def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
-        raise AssertionError("a block message must be refused before it is signed")
-
-
-@pytest.mark.parametrize("name", ["bedrock", "anthropic", "openai", "claude_code"])
+# Bedrock carries both from G2 (test_bedrock_tool_use.py).
+@pytest.mark.parametrize("name", ["anthropic", "openai", "claude_code"])
 def test_an_adapter_refuses_a_message_of_blocks_unsent(name: str) -> None:
     adapter = _adapters()[name]
     request = AdapterRequest(
@@ -437,3 +427,93 @@ def test_the_gateway_hands_on_the_answering_responses_blocks(scoped: Any) -> Non
     result = asyncio.run(gateway.invoke(request, context))
     assert result.blocks == blocks
     assert [c.tool_use_id for c in result.tool_calls] == ["tu_1"]
+
+
+# --------------------------------------------------------------------------- #
+# Tools offered beside the output contract (G2)
+# --------------------------------------------------------------------------- #
+
+READ = ToolSpec.of(
+    "run_results",
+    "Admitted results of one run.",
+    {"type": "object", "properties": {"run_id": {"type": "string"}}, "required": ["run_id"]},
+)
+
+
+def test_a_tool_spec_is_a_named_object_schema() -> None:
+    assert READ.schema["type"] == "object"
+    with pytest.raises(ValueError, match="name"):
+        ToolSpec.of("run results", "x", {"type": "object"})
+    with pytest.raises(ValueError, match="says what"):
+        ToolSpec.of("x", " ", {"type": "object"})
+    with pytest.raises(ValueError, match="object"):
+        ToolSpec.of("x", "y", {"type": "string"})
+    assert ToolSpec("x", "y", '{ "type": "object" }') == ToolSpec.of("x", "y", {"type": "object"})
+
+
+def test_an_offered_tool_is_named_once_and_never_as_the_output() -> None:
+    with pytest.raises(ValueError, match="once"):
+        AdapterRequest(
+            call_id="c",
+            provider=Provider.AWS_BEDROCK,
+            model="m",
+            system="s",
+            messages=(Message(role="user", content="m"),),
+            max_output_tokens=1024,
+            tools=(READ, READ),
+        )
+    with pytest.raises(ValueError, match="output contract"):
+        AdapterRequest(
+            call_id="c",
+            provider=Provider.AWS_BEDROCK,
+            model="m",
+            system="s",
+            messages=(Message(role="user", content="m"),),
+            max_output_tokens=1024,
+            output_schema={"type": "object"},
+            schema_name="run_results",
+            tools=(READ,),
+        )
+
+
+def _offering(*tools: ToolSpec) -> AdapterRequest:
+    return AdapterRequest(
+        call_id="c",
+        provider=Provider.AWS_BEDROCK,
+        model="m",
+        system="s",
+        messages=(Message(role="user", content="Co běh zjistil?"),),
+        max_output_tokens=1024,
+        tools=tools,
+    )
+
+
+def test_the_fingerprint_and_the_bound_count_the_offered_tools() -> None:
+    assert input_fingerprint(_offering(READ)) != input_fingerprint(_offering())
+    grown = input_token_bound(_offering(READ)) - input_token_bound(_offering())
+    assert grown >= len(canonical_json(READ.wire()).encode("utf-8"))
+
+
+# Bedrock carries both from G2 (test_bedrock_tool_use.py).
+@pytest.mark.parametrize("name", ["anthropic", "openai", "claude_code"])
+def test_an_adapter_refuses_an_offered_tool_unsent(name: str) -> None:
+    adapter = _adapters()[name]
+    request = AdapterRequest(
+        call_id="c",
+        provider=adapter.provider,
+        model="m",
+        system="s",
+        messages=(Message(role="user", content="Ahoj"),),
+        max_output_tokens=1024,
+        tools=(READ,),
+    )
+    with pytest.raises(ProviderError) as refused:
+        asyncio.run(adapter.send(request))
+    assert refused.value.delivery is Delivery.NOT_SENT
+    assert "tools" in str(refused.value)
+
+
+def test_a_tool_result_says_something() -> None:
+    # Converse refuses a blank text block; an empty read answers with a JSON value, never "".
+    with pytest.raises(ValueError, match="result"):
+        ToolResultBlock("t", " ")

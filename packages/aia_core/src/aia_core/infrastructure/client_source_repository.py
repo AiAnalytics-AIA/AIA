@@ -15,6 +15,11 @@ Reading the sources needs ``VIEW_CLIENT_KNOWLEDGE``; adding one needs
 ``PROPOSE_CLIENT_KNOWLEDGE``: it brings material, and accepts nothing. Marking a source
 "Interní dokument", or unmarking it, needs the same, as re-reading does; who and when are on
 the row and every change is audited.
+
+A file a person gives the Lead in a study is kept here too (``SourceOrigin.LEAD``, the study
+named on its audit row), and read for the turn through the study's own scope
+(:meth:`ClientSourceRepository.lead_ref`, :meth:`ClientSourceRepository.lead_file`):
+the client is the study's, never an argument (lead-orchestration LO18a).
 """
 
 from __future__ import annotations
@@ -43,6 +48,7 @@ from ..domain.client_sources import (
     new_occurrence_id,
     new_source_id,
 )
+from ..domain.lead_files import FileForTurn, LeadFileRef
 from ..domain.scope import (
     ClientContext,
     ClientPermission,
@@ -156,7 +162,7 @@ class ClientSourceRepository:
 
     def _row(
         self,
-        scope: ClientContext | ClientWorkContext,
+        scope: ClientContext | ClientWorkContext | StudyContext,
         source_id: str,
         *,
         for_update: bool = False,
@@ -332,6 +338,45 @@ class ClientSourceRepository:
         scope.require(Permission.RUN_WORKFLOW)
         return self._row(scope, source_id).internal_marked_by is not None
 
+    def lead_ref(self, scope: StudyContext, source_id: str) -> LeadFileRef:
+        """A source of the study's own client as a message to the Lead carries it: its bytes'
+        and its reading's hash as they stand now, read from the row, never from the browser, and
+        the name it was last added under (the one the person just attached it as). A source of
+        another client is not found (``ScopeDenied``)."""
+        if not isinstance(scope, StudyContext):
+            raise ScopeDenied("a Lead file requires a study context", reason="forged_scope")
+        scope.require(Permission.VIEW_STUDY)
+        row = self._row(scope, source_id)
+        return LeadFileRef(
+            source_id=row.source_id,
+            sha256=row.sha256,
+            reading_sha256=row.reading_sha256,
+            filename=self._records([row])[0].filename or row.source_id,
+        )
+
+    def lead_file(self, scope: StudyContext, ref: LeadFileRef) -> FileForTurn:
+        """A file a message carries, as the turn answering it reads it: its reading verified
+        against the hash kept, ``reading=None`` when the reading moved since the message was
+        stored (never a reading the person did not attach), and whether it is marked
+        "Interní dokument" now."""
+        if not isinstance(scope, StudyContext):
+            raise ScopeDenied("a Lead file requires a study context", reason="forged_scope")
+        scope.require(Permission.VIEW_STUDY)
+        row = self._row(scope, ref.source_id)
+        if row.sha256 != ref.sha256:
+            raise ScopeDenied("not found", reason="unknown_source")
+        family = SourceFamily(row.family)
+        internal = row.internal_marked_by is not None
+        if row.reading_sha256 != ref.reading_sha256:
+            return FileForTurn(ref=ref, family=family, internal=internal, reading=None)
+        if row.reading_key is None:
+            # Nothing was read: the row says all there is.
+            reading = SourceReading(outcome=ReadingOutcome(row.outcome), reason=row.reason)
+        else:
+            data = self._store.get(row.reading_key, expected_sha256=row.reading_sha256)
+            reading = SourceReading.model_validate_json(data)
+        return FileForTurn(ref=ref, family=family, internal=internal, reading=reading)
+
     def original(self, scope: ClientContext, source_id: str) -> tuple[str, bytes]:
         """The original's bytes, verified, and the name it was last added under."""
         record = self.source(scope, source_id)
@@ -347,8 +392,12 @@ class ClientSourceRepository:
         filename: str,
         data: bytes,
         origin: SourceOrigin = SourceOrigin.UPLOAD,
+        study_id: str | None = None,
     ) -> tuple[SourceRecord, bool]:
         """Keep a source, or record another occurrence of one kept; ``True`` when new.
+
+        ``study_id``: the study it was added from (a file given to the Lead), named on the
+        audit row; the occurrence names no study (study-files SF4 adds that).
 
         Refused before anything is stored (``SourceRejected``): an empty file
         (``empty``), one over ``SOURCE_MAX_BYTES`` (``too_large``), and a format
@@ -397,6 +446,7 @@ class ClientSourceRepository:
             AccessAuditRow(
                 organization_id=scope.organization_id,
                 client_id=scope.client_id,
+                study_id=study_id,
                 actor_id=scope.actor_id,
                 action="CLIENT_SOURCE_ADDED",
                 reason="",

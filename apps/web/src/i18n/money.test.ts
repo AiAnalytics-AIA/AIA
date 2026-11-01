@@ -41,7 +41,5 @@ describe("money names", () => {
     expect(cs.aia.settings.panel.studies.ceiling).toBe(money.studyBudget);
     expect(cs.aia.settings.panel.items.study_budget).toBe(money.studyBudget);
     expect(cs.aia.profile.budget.title).toBe(money.clientBudget);
-    expect(cs.research.exec.cost.limit).toBe(money.confirmThreshold);
-    expect(cs.research.exec.cost.legendLimit).toBe(money.confirmThreshold);
   });
 });
