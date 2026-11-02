@@ -20,6 +20,7 @@ chunks:
   - "[x] MP16. The scope baseline signed by the owner (§ The scope baseline); its open items answered or carried, each answer applied to the plans it moves"
   - "[ ] MP17. The acceptance criteria redefined for the pivot (ADR 0046): docs/migration/mvp-acceptance.md, parity-matrix.json and their tests, the frozen criteria parked and the business-decision criteria written, the tier B allocation re-cut; the owner approves (its own pull request)"
   - "[x] MP18. The pivot recorded (ADR 0046): this register, the execution contracts' waves and the new plans for business decisions, the survey lane parked (2026-11-02)"
+  - "[ ] MP19. The survey lane decommissioned once the new MVP passes its acceptance (ADR 0046 decision 2, the owner's \"Archive to a branch\" and \"MVP accepted\"): the lane's code, routes, tests and stored data moved to an archive branch and removed from develop; the panel and the population retired; the parts the new work reuses kept (the Sociomap layout, terrain and determinism, the report engine, the evidence model); the docs PR that follows rewrites CLAUDE.md's map"
 ---
 # The MVP master plan
 
@@ -72,7 +73,9 @@ kind wins, and the others are stale until fixed.
 (Proposed until he approves this record).** He shared the research
 [`pivot-research-2026-11-02.md`](../evidence/pivot-research-2026-11-02.md) and said "we are pivoting".
 AIA now researches business decisions. The AI-respondent survey lane is frozen: "Freeze it now". The
-first deliverable is this replan, approved before any build work.
+first deliverable is this replan, approved before any build work. Later the same day he answered the
+record's six open questions and nine more (ADR 0046 § The owner's answers, later on 2 Nov, A1-A14); this
+section carries them.
 
 **What changes in this register.**
 
@@ -92,7 +95,9 @@ first deliverable is this replan, approved before any build work.
 
   `panel-grounded-respondents` moves there from §3.2, and `scenario-respondent-bridge` joins it. In the
   plans that stay core, the survey chunks are parked by name in the execution contracts (§ The pivot's
-  critical path). Nothing is deleted, unticked or skipped. Develop keeps running all of it.
+  critical path). Nothing is deleted, unticked or skipped, and develop keeps running all of it, until the
+new MVP passes its acceptance. Then the lane is archived to a branch and removed from develop, the panel
+and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
 - **Core, new or newly core:**
   - `client-data-in-analysis`'s data contracts, re-waved to W1;
   - `cost-model-study`, the model platform and cost scenarios (ADR 0044, which stays Proposed at the
@@ -107,11 +112,15 @@ first deliverable is this replan, approved before any build work.
     validated spec and the server renders (the owner, 2 Nov);
   - five new plans: `research-findings-stage`, `sociomapa-systemu`, `deep-research-v2`,
     `public-data-routes` and `register-personal-data`.
-- **A research study** keeps Zadání, Návrh with Design Research, and Zpráva. Between them come the new
-  report X-ray (the report's outline with its prose taken out: every point, number and visual, each
-  number and claim linked to its source or method; one stop or several, built with the Lead) and a
-  Sociomapa stage (`research-findings-stage`; the owner's words
-  are in ADR 0046). New studies don't show the survey stages. Old ones show them read-only.
+- **One study for a business decision** (A2: "One merged study"), as on the canvas "AIA Obchodní model –
+  prototyp": Zadání → Data → Rešerše (Design Research) → Předpoklady → Model → Výsledky → Sociomapa → the
+  report X-ray → Zpráva. The model steps appear only when Zadání says a model is needed; there is no
+  separate "Modely" area (`cost-model-study` CP3, CP6, CP7). The X-ray is the report's outline with its
+  prose taken out: every point, number and visual, each number and claim linked to its source or method;
+  one stop or several, built with the Lead (`research-findings-stage`; the owner's words are in ADR 0046).
+  New studies don't show the survey stages. Old ones show them read-only until the lane is archived.
+- **Everything above stays in the MVP** (A1: "Keep all in MVP"), the six diagram stacks included (A13).
+  A framework point may be the researcher's own judgement, labelled with its grade and author (A3).
 - **The acceptance criteria** AC-01 to AC-15 stay registered until `mvp-master-plan#MP17` redefines
   them in their own pull request. AC-16, the cost-model journey, is proposed now.
 - **The MVP's acceptance, proposed for MP17** (drawn on the "AIA Obchodní model – prototyp" canvas, board MV0,
@@ -128,7 +137,8 @@ first deliverable is this replan, approved before any build work.
   - M-7: a Deep Research finding is a quote in a captured source. Citation accuracy is at least 90 % and
     unsupported statements are under 10 %.
   - M-8: a map draws an edge only when it beats its surrogate null after FDR and survives the block
-    bootstrap. Its never-claim list is on screen and in the report.
+    bootstrap. Its never-claim list is on screen and in the report. The scenario and expert maps show
+    which options win in the same futures and which hedge each other (A6).
   - M-9: the report says only what the closed X-ray holds. An unverified point cannot enter it.
   - M-10: the whole fictional Velis journey runs over HTTP and in a browser on recorded doubles, with zero
     paid calls, within the study's spend limit.
@@ -150,15 +160,20 @@ build and production keep their waves, minus their parked chunks.
 - The evidence capability, the report engine with locked numbers, Deep Research's verbatim rule.
 - Every settled decision of §11.1 that is not about the survey lane.
 
-**Open, with recommendations** (ADR 0046 § Open):
-- **The owner:**
-  - Q1, one grade vocabulary;
-  - Q2, whether class gates enforce before client data flows;
-  - Q3, the frozen panel and market counts;
-  - Q4, the SOMECS name and licence;
-  - Q5, whether a defect in the frozen lane is fixed;
-  - Q6, market sizing's top-down chunks.
-- **The methodology owner:** the research's ten statistical questions (`sociomapa-systemu#SYS0`).
+**Answered by the owner on 2 Nov** (ADR 0046 § Open):
+- Q1, the grades: the code's grades stay, `CALCULATED` and `ESTIMATED` added, one mapping table
+  (`cost-model-study#CP8`).
+- Q2, class gates: enforced in any deployment that holds a real client's data; develop advisory
+  (`client-data-in-analysis#9`).
+- Q3, the panel: retired with the lane.
+- Q4, the name: Sociomapa systémů, never SOMECS; A. Bahbouh checks the name and licence
+  (`sociomapa-systemu#SYS0`, `#SYS12`).
+- Q5, frozen-lane defects: the lane is archived after the MVP's acceptance (`mvp-master-plan#MP19`).
+- Q6, market size: top-down (MKT2, MKT4, MKT5).
+- Deep Research's engine freeze is lifted for v2's listed capabilities only (A14).
+
+**Open:** the methodology owner's ten statistical questions, with the SOMECS check
+(`sociomapa-systemu#SYS0`).
 
 ## The scope baseline (2026-10-20), for the owner's signature
 

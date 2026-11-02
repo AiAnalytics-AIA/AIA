@@ -18,6 +18,10 @@ Written 2026-11-02 under [ADR 0046](../../docs/architecture/adr/0046-business-de
 decision 6. It comes from the research's § Deep Research v2 spec and section B
 ([`../evidence/pivot-research-2026-11-02.md`](../evidence/pivot-research-2026-11-02.md)).
 
+**The engine's freeze** (CLAUDE.md: "frozen after #166") is lifted for this plan's capabilities only
+(ADR 0046 decision 6, the owner's "Lift for v2 only", 2 Nov). Retrieval, grounding and the sealed bundle
+stay frozen, changed only on a defect or an evaluation finding.
+
 **What stays as built.** These are not reopened:
 - the six steps;
 - `RetrievalGate`;

@@ -2,7 +2,7 @@
 status: planned
 chunks:
   - "[ ] FND0. The report X-ray as data, and the ADR it needs: the report's outline (chapters and sections in the report's own order) where each section holds points, not prose; a point is a claim or a number with its kind (finding, data point, method point, conclusion, recommendation), its visual (table, graph, process diagram, map or none) and its provenance link; the stage after Návrh and before Sociomapa and Zpráva on the study's working project (revision-checked saves); a stop as a named checkpoint the researcher closes; the ADR 0026 decision-4 record for this new kind of report material (W1, a contract before any code)"
-  - "[ ] FND1. The survey stages left out of new research studies (Dotazník to Analýza) and read-only on a study that holds survey content or runs: the stage track, the routes refusing a write by name (survey_lane_frozen), nothing deleted (ADR 0046 decisions 2-3)"
+  - "[ ] FND1. The one study's stage track (ADR 0046 decision 3, A2 \"One merged study\"): the canvas's nine steps in five groups (Zadání; Data, Rešerše, Předpoklady; Model; Výsledky, Sociomapa; Rentgen zprávy, Zpráva), the model steps shown only when Zadání says a model is needed; the survey stages (Dotazník to Analýza) left out of new studies and read-only on a study that holds survey content or runs, the routes refusing a write by name (survey_lane_frozen), nothing deleted before the lane is archived (mvp-master-plan#MP19)"
   - "[ ] FND2. The provenance link: every number and claim in the X-ray is a hyperlink to what stands behind it, resolved by code from stored ids: a Deep Research finding's quote in its captured snapshot, a typed value and its route response, a client dataset's column under its accepted contract version, a model run's result and its method entry in Metodika, a map and its method; a point whose link does not resolve shows as unverified and cannot reach Zpráva"
   - "[ ] FND3. Findings in: every accepted Design Research and Interpretation Research finding and every typed value (deep-research-v2 DRV3) offered as a point; the researcher's check per finding (kept, set aside, needs checking) recorded in the approval ledger, never changing the sealed bundle; a point whose source is set aside goes stale, named"
   - "[ ] FND4. Tables: built from accepted points, every cell a ref with its link, units and periods carried; never a number written by a model or typed without a source"
@@ -11,7 +11,7 @@ chunks:
   - "[ ] FND7. The Lead in the stage: it reads the X-ray, the findings and the data through its read tools, proposes the outline, a point, a visual or a move per change, and a person accepts (ADR 0026); a paid lookup only through the card (lead-orchestration)"
   - "[ ] FND8. Stops: the researcher opens, names and closes each; the closed stops are what Zpráva receives; reopening one marks the report draft stale and names the points that moved"
   - "[ ] FND9. Zpráva written from the X-ray: the report's prose around the closed points in the same outline, every printed number and claim keeping its provenance link (with artifact-report RPT8a's tagged content controls); the report states no point the X-ray does not hold, checked before approval; an external finding labelled as external context"
-  - "[ ] FND10. The Sociomapa stage of a research study: an expert map (situation-reports EX1-EX2), or a unit or period map once sociomapa-systemu SYS11 passes, its points and method link in the X-ray"
+  - "[ ] FND10. The Sociomapa stage, before the X-ray: the scenario map (cost-model-study CS1-CS5) when the study has a model, an expert map (situation-reports EX1-EX2), or a unit or period map once sociomapa-systemu SYS11 passes; its option clusters and hedges (ADR 0046 A6) offered to the X-ray as points with their method link"
   - "[ ] FND11. The journey: a fictional research study from the brief to an approved report through an X-ray holding one table, one graph, one process diagram and an expert map, every link resolving, over recorded Deep Research; zero paid calls"
 ---
 # The report X-ray: every point of the report, its visual and its source, before the prose
@@ -47,9 +47,11 @@ The X-ray is the report with its prose taken out:
 The researcher and the Lead build it in one stop or several. Zpráva then writes the prose around exactly
 these points.
 
-**The order of a research study:** Zadání → Návrh (with Design Research) → **the X-ray** (one stop or
-several) → **Sociomapa** (Sociomapa systémů, FND10) → Zpráva. The Czech name is the owner's to give.
-The proposal is "Kostra zprávy".
+**The order of the study** (the owner's later answer, A2: "One merged study", as on the canvas "AIA
+Obchodní model – prototyp"): Zadání → Data → Rešerše (Design Research) → Předpoklady → Model → Výsledky →
+**Sociomapa** (Sociomapa systémů, FND10) → **the X-ray** (one stop or several) → Zpráva. The model steps
+appear only when Zadání says a model is needed. Sociomapa comes before the X-ray, so the map's points can
+enter it. The canvas calls the stage "Rentgen zprávy".
 
 ## Rules
 

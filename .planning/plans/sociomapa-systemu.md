@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] SYS0. The methodology owner's ten questions (the pivot research's § Questions for the methodology lead) sent to A. Bahbouh as one message with each recommendation; each answer recorded here as it comes; no replaced statistic built before its answer"
+  - "[ ] SYS0. The methodology owner's ten questions (the pivot research's § Questions for the methodology lead) sent to A. Bahbouh as one message with each recommendation, with the SOMECS name and the published method's licence for him to check (ADR 0046 Q4); each answer recorded here as it comes; no replaced statistic built before its answer"
   - "[ ] SYS1. The synthetic validation suite, generators only: null worlds (independent random walks, AR(1) at 0.3, 0.7 and 0.95, seasonal series with no cross-relation), known factors (12 KPIs from 3 factors), a sparse VAR(1), contamination (10 % outliers, one level shift), compositional shares, 40 units × 10 drivers, 800 scenarios × 7 options from a cost model with a known Iman-Conover correlation; 1,000 seeded replicates at T or n 24, 36, 60, 120; fixtures pinned by SHA-256 like F1-F9"
   - "[ ] SYS1b. The suite run over today's -5 statistics, as the baseline the replacements are judged against; the spike's three sets (36 × 12, 40 × 10, 800 × 7) re-run with planted ground truth and its script committed"
   - "[ ] SYS2. Declared preprocessing per variable before results are seen: unit, transformation (log, log-ratio for shares), detrend or difference, deseasonalise only with two cycles, robust standardisation; reported beside every relation (answers 2, 6)"
@@ -14,7 +14,7 @@ chunks:
   - "[ ] SYS9. The scenario mode: rows a model's Monte Carlo scenarios (>= 800, cost-model-study CR3), the imposed correlation as the baseline, grade MODELLED, the claim 'in this model, A and B move together'; consumed by cost-model-study CS1-CS5"
   - "[ ] SYS10. The expert mode: options or competitors scored by named people on criteria, grade MODELLED with the inputs stated; consumed by situation-reports EX1-EX2"
   - "[ ] SYS11. The unit and period modes, only after the suite passes at the methodology owner's thresholds (answer 7): units placed with density above a stated n, periods as a trajectory, failing edges not drawn, regimes only from a declared break; ESTIMATED, INTERNAL_ONLY until registered"
-  - "[ ] SYS12. Each mode a Metodika register entry of its own (ADR 0023), INTERNAL_ONLY until approved; the never-claim list as copy on screen and in the report; the SOMECS name and licence checked by the owner before the name is used anywhere a client reads (ADR 0046 Q4)"
+  - "[ ] SYS12. Each mode a Metodika register entry of its own (ADR 0023), INTERNAL_ONLY until approved; the never-claim list as copy on screen and in the report; the name Sociomapa systémů, never SOMECS, and A. Bahbouh's check of the name and the published method's licence recorded before any client reads it (ADR 0046 Q4, A12)"
 ---
 # Sociomapa systémů: the Sociomap on business systems
 
@@ -31,6 +31,14 @@ order:
 
 **Owner:** S2 with the methodology owner, A. Bahbouh, who decides every statistical choice. Proposed;
 the session that takes it reviews this plan first.
+
+## What the MVP's maps must do
+
+The owner, 2 Nov (ADR 0046 A6, "Show option clusters"): the scenario and expert maps show which options
+win in the same futures, and which hedge each other. A map explains a decision; it never makes one.
+SYS9 and SYS10 are judged by this: the clusters and the hedges it draws must be the ones the synthetic
+suite planted (SYS1), and each reaches the X-ray as a point with its method link
+(`research-findings-stage#FND10`).
 
 ## What is reused
 

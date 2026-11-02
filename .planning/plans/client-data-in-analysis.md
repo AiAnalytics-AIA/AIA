@@ -13,7 +13,7 @@ chunks:
   - "[ ] 6. A client's own survey: its own Sociomap through the existing engine, never merged"
   - "[ ] 7. The Lead and the analysis modules see only admitted client-reported results, never rows"
   - "[ ] 8. Brief materials pick a client dataset; `brief_signature` and `design_material` carry the source id and the contract version, with one fixture for Python and TypeScript"
-  - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model"
+  - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model, the class gates enforcing in any deployment that holds a real client's data (ADR 0046 Q2, A4)"
   - "[x] 8a. W0 proposed Brief-material/signature interface and shared fixture; uploaded datasets remain ineligible until an accepted data contract exists"
   - "[ ] 10. The data contract accepted in the study's Brief drawer with its quality report; the Data tab shows the accepted contract read-only (D-37)"
 ---

@@ -3,12 +3,12 @@ status: planned
 chunks:
   - "[ ] CP1. Platform types: Quantity (Amount, Rate, Count, Ratio, Duration; Decimal, currency, period), Input with its provenance (client_dataset, stated, public_source; research_result declared and refused until built), Scenario, the Model Revision envelope and its canonical hash; reject-not-coerce validation"
   - "[ ] CP2. The model-type contract: ModelTypeSpec (elements schema, inputs, compute, results schema with each output's grade, charts, report blocks, proposal operations), the registry, a run's pin of type id and version; the determinism test harness"
-  - "[ ] CP3. StudyKind.BUSINESS_MODEL and the working copy: the kind, the CHECK constraint migration, a model content kind on the study's owned working project (revision-checked saves, the operation log), the immutable Model Revision; every kind != RESEARCH refusal tested against the new kind"
+  - "[ ] CP3. The model inside the one study and its working copy (ADR 0046 decision 3, A2 \"One merged study\": no StudyKind.BUSINESS_MODEL): a model content kind on the research study's owned working project (revision-checked saves, the operation log), present only when Zadání says a model is needed, and the immutable Model Revision"
   - "[ ] CP4. Data bindings: an input from a dataset's analysis copy under its accepted contract (sum, count, mean over a stated filter and period), admitted CLIENT_REPORTED with MQ-18's support, the contract version and copy SHA-256 pinned"
   - "[ ] CP5. The run: workflow type business_model (prepare, compute, report), inputs frozen by artifact id and SHA-256, a known 0.00 USD ceiling for a CALCULATED type, results stored as artifacts; the ledger subject business_model for a submitted revision"
   - "[ ] CP6. The API: /studies/{id}/model content, revisions, submit, runs, results; study-scoped, refused for any other kind; the client page's count"
-  - "[ ] CP7. The web platform: the area \"Modely\" beside Výzkumy (Q8), list and create with a model type, the study frame with Data, Předpoklady, Model, Výsledky and Zpráva; Data (each dataset's contract state) and Předpoklady (every input with unit and provenance, edited in place) generic over the type's schema"
-  - "[ ] CP8. The report frame and grades: PrintGrade CALCULATED (výpočet) and its admission beside admit_numeric_claims, the platform template frame (question, type blocks, inputs table, method, sources), report kind business_model approvable through approve_report, three chart kinds (absolute stacked bar, tornado, line with marked points) in the model and the renderer"
+  - "[ ] CP7. The web platform: the model steps inside the one study (ADR 0046 decision 3; no \"Modely\" area, Q8 superseded), the model type chosen in Zadání, Data, Předpoklady, Model and Výsledky in the study's stage track (research-findings-stage FND1); Data (each dataset's contract state) and Předpoklady (every input with unit and provenance, edited in place) generic over the type's schema"
+  - "[ ] CP8. The report frame and grades: PrintGrade CALCULATED (výpočet) and its admission beside admit_numeric_claims, and the one table mapping every grade to its Czech label and admission rule (the code's grades kept, CALCULATED and ESTIMATED added, the researcher's labelled judgement a grade of its own; ADR 0046 Q1), the platform template frame (question, type blocks, inputs table, method, sources), report kind business_model approvable through approve_report, three chart kinds (absolute stacked bar, tornado, line with marked points) in the model and the renderer"
   - "[ ] CP9. The Lead: lead_artifacts rows for the five stages, a model read tool, MaterialRule.BUSINESS_MODEL (Class A), per-change proposal operations generic over a type's declared operations, accepted through the Lead's edit path"
   - "[ ] CM1. Cost scenarios, its types: Driver (input, or a × b / a ÷ b), the four cost-line kinds (FIXED, VARIABLE, STEP, CAPITAL annuity), at most twelve scenarios (Q4, raised 2026-10-30); registered as model type cost_scenarios v1"
   - "[ ] CM2. Cost scenarios, compute: totals per year, exact break-even on one driver in a stated range (where the driver enters through one monotone form, else refused by name), one-way sensitivity, cumulative cost over N stated years with capital in year 0 and the payback year; unknown propagated by name; the warehouse golden fixture"
@@ -224,12 +224,13 @@ scenarios, budget vs actual, ratios, NPV/IRR/payback, EOQ), at about 38-48 sessi
 **Tests:** a type missing any field is refused at registration; the harness fails a type that reads the
 clock.
 
-### CP3. The kind and the working copy
+### CP3. The model and the working copy
 
-- `StudyKind.BUSINESS_MODEL`, and one migration that extends the CHECK constraint and nothing else.
-- The model's working content lives on the study's owned working project, as a research study's does
-  (ADR 0018), with revision-checked saves (a stale save is 409) and every write logged as its writer's
-  (ADR 0029).
+- **Changed on 2026-11-02** (ADR 0046 decision 3, the owner's "One merged study"): no
+  `StudyKind.BUSINESS_MODEL` and no CHECK constraint migration. The model is part of the one study.
+- The model's working content lives on the study's owned working project (ADR 0018), with
+  revision-checked saves (a stale save is 409) and every write logged as its writer's (ADR 0029).
+  It exists only when Zadání says a model is needed.
 - Whether it reuses `study_workspaces` and `workspace_edit_ops` with a content-kind column, or has its
   own two tables, is decided here after reading `working-copy-edit-ops`'s state. The rule (one writer,
   stale refused, every write logged) is not open.
@@ -280,15 +281,16 @@ clock.
   - `GET/PUT /studies/{id}/model/content`;
   - `POST …/model/revisions` (submit, under `APPROVE_GATE`, the ledger row in the same transaction);
   - `POST/GET …/model/runs[/{run_id}]` and `GET …/runs/{run_id}/results`.
-- Study-scoped. Any other kind is refused `not_business_model`.
-- `GET /clients/{id}` counts `business_models`.
+- Study-scoped. A study whose Zadání says no model is needed refuses these routes by name (before the
+  one study of ADR 0046 decision 3, another kind was refused `not_business_model`).
 
 **Tests:** the cross-organization sweep; each refusal; OpenAPI regenerated.
 
 ### CP7. The web platform
 
-- The area "Modely" beside Výzkumy (Q8, 2026-10-30; `lib/app-routes.ts`); list, and create with a model type.
-- The study frame and its five stages.
+- **Changed on 2026-11-02** (ADR 0046 decision 3): no area "Modely" (Q8 of 2026-10-30 superseded). The
+  model type is chosen in Zadání, and Data, Předpoklady, Model and Výsledky join the one study's stage
+  track (`research-findings-stage#FND1`); Zpráva is the study's own.
 - **Data:** each dataset with its contract state. A dataset without an accepted contract is shown and
   cannot feed an input.
 - **Předpoklady:** every input with its unit, currency, provenance and label, edited in place with the

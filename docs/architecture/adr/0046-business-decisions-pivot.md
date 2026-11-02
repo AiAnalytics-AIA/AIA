@@ -1,9 +1,11 @@
 # ADR 0046 — AIA serves business decisions: the AI-respondent survey lane is frozen; client data contracts, then the quantitative model platform, come first
 
 **Status:** Proposed — 2026-11-02. Decisions 1 to 4 are the product owner's, given in the PM
-coordinator's chat on 2026-11-02 and quoted below. The rest are this record's proposals, which take
-effect when he approves this record. Whatever needs his or the methodology owner's answer is listed
-under § Open, and nothing here answers it.
+coordinator's chat on 2026-11-02 and quoted below. Later the same day he answered the six questions this
+record left open and nine more (§ The owner's answers, later on 2 Nov). Those answers settle parts of
+decisions 2, 3, 4, 5, 6 and 8, and each of those decisions says where. The rest are this record's
+proposals, which take effect when he approves this record. What still needs the methodology owner's
+answer is listed under § Open.
 
 **The product owner's words** (2026-11-02, in the PM coordinator's chat, coordinator 3):
 - On sharing the research document: "we are pivoting".
@@ -24,6 +26,26 @@ under § Open, and nothing here answers it.
 - ADR 0044: "Keep it Proposed".
 - The expert map: "Both maps in the MVP". The scenario map and the expert objects × properties map are
   both in the MVP.
+
+**The owner's answers, later on 2 Nov** (the PM coordinator's chat, coordinator 4, to questions the
+coordinator put to him; the label of the option he chose, or his own words where he typed them):
+
+| # | Question | His answer |
+|---|---|---|
+| A1 | Which single journey is the MVP's spine? | "Keep all in MVP": no spine; every core plan stays in the MVP |
+| A2 | One study kind, or a research study beside a "Modely" area? | "One merged study", as on the canvas "AIA Obchodní model – prototyp" (decision 3) |
+| A3 | How does a researcher's own judgement enter a framework? | "Allow, labelled": with its own grade and the author's name, never mixed with sourced points (decision 3) |
+| A4 | Do class gates enforce once a real client's data is held? (Q2) | "Enforce for real data": in any deployment holding a real client's data; develop stays advisory on fictional data (decision 8) |
+| A5 | One grade vocabulary (Q1) | "Add to the code's": the code's grades stay, `CALCULATED` and `ESTIMATED` are added as print grades, one table maps them (§ Open) |
+| A6 | What must Sociomapa systémů do for the MVP? | "Show option clusters": which options win in the same futures, and which hedge each other (decision 5) |
+| A7 | Frozen-lane defects (Q5) | "we will be decomissioning after fully defining the MVP" (decision 2) |
+| A8 | How is the lane decommissioned? | "Archive to a branch": moved to an archive branch and removed from develop, data included (decision 2) |
+| A9 | When does decommissioning start? | "MVP accepted": only once the new MVP passes its acceptance (decision 2) |
+| A10 | Market size (Q6) | "Top-down is enough": MKT2, MKT4 and MKT5 (decision 4) |
+| A11 | The panel and the population (Q3) | "Retire it too", with the lane (decision 2) |
+| A12 | The SOMECS name (Q4) | "Sociomapa systémů; Aram checks": never SOMECS; A. Bahbouh confirms the name and the method's licence before any client use (decision 5) |
+| A13 | How wide are the diagrams in the MVP? | "All six in MVP": every rendering stack of `diagrams` (decision 3) |
+| A14 | Deep Research's engine freeze and v2 | "Lift for v2 only": v2's listed capabilities are sanctioned; retrieval, grounding and the bundle stay frozen (decision 6) |
 
 **The evidence:** [`.planning/evidence/pivot-research-2026-11-02.md`](../../../.planning/evidence/pivot-research-2026-11-02.md),
 the owner's document "AIA pivot research: rebuilding for business decisions" (2 Nov 2026). Its
@@ -98,30 +120,53 @@ re-scope:
 The plans and chunks parked by this freeze are listed in the master plan (§ The pivot, and §3.3) and
 in the execution contracts (§ The pivot's critical path).
 
-- **The code stays and keeps running on develop.** Nothing is deleted, no test is removed, skipped or
-  loosened, and every built route keeps answering. A stored study or run keeps its data and stays
-  readable.
+- **The code stays and keeps running on develop until the MVP is accepted.** Until then nothing is
+  deleted, no test is removed, skipped or loosened, and every built route keeps answering. A stored study
+  or run keeps its data and stays readable.
 - **Open chunks are parked, not deleted.** A parked chunk keeps its text and its `[ ]`. It counts toward
   no wave's gate, and nothing waits on it. It moves only on the owner's word.
-- **A fix is not new work.** Proposed: a defect in the frozen lane that loses data, breaks security or
-  turns another lane red is fixed in the frozen lane. Anything else waits.
-- **Production does not provision the frozen lane.** Proposed: production gets no population import and
-  no panel route (`production-environment#PE6` is parked). Develop keeps its population.
+- **Then it is decommissioned** (A7-A9). Once the new MVP passes its acceptance, the lane is moved to an
+  archive branch and removed from develop, its stored data included (develop holds only fictional data).
+  The parts the new work reuses stay on develop: the Sociomap layout, terrain and determinism, the
+  report engine with its locked numbers, and the evidence model (decision 9; the coordinator's reading,
+  stated to the owner before he said "fold them into #1150"). The work is
+  `mvp-master-plan#MP19`.
+- **Until then, the lane is maintained only as far as develop needs.** Its code and tests keep running,
+  so a change elsewhere keeps them green; it gets no other fix.
+- **The panel and the population are retired with it** (A11). Production gets no population import and
+  no panel route (`production-environment#PE6` is parked), and never will.
 
 ### 3. A research study after the freeze
 
-A research study (Výzkum) has these stages:
+There is one study for a business decision (A2: "One merged study"). It replaces the separate "Modely"
+area that ADR 0044 and `cost-model-study` planned (Q8 of 2026-10-30). Its steps are the canvas's
+nine, in five groups:
 
-1. **Zadání**, the brief.
-2. **Návrh**, the design, with Design Research.
-3. **The report X-ray**, new and possibly more than one stop. It is the report's own outline with the
-   prose taken out: every finding, data point and point the report will make, each with its table,
-   graph, process diagram or other visual. Every number and claim is a link to its source or its method.
-   The researcher works through what Deep Research found with their Lead, checks it, and builds the
-   X-ray. A point whose link does not resolve cannot reach the report.
-4. **Sociomapa**: a Sociomapa systémů map (decision 5).
-5. **Zpráva**, the report: prose written around exactly the X-ray's closed points, each number and claim
-   keeping its link, composed and approved there.
+| Group | Step | What it holds |
+|---|---|---|
+| Zadání | **Zadání**, with its sub-steps | the decision, the rule, the frameworks (below), what the model needs |
+| Vstupy | **Data** | the client's files under their data contracts |
+| | **Rešerše** | Design Research: Deep Research's findings and typed values (decision 6) |
+| | **Předpoklady** | every input with its range, source and guarantor |
+| Výpočet | **Model** | the quantitative model (ADR 0044) |
+| Evidence | **Výsledky** | the model's results in their views |
+| | **Sociomapa** | a Sociomapa systémů map (decision 5) |
+| Předání | **Rentgen zprávy**, the report X-ray | see below |
+| | **Zpráva** | the report |
+
+- **The model steps appear when the decision needs a model.** Data, Předpoklady, Model and Výsledky
+  are shown when Zadání says a model is needed. A study whose decision needs none goes from Rešerše to
+  the X-ray.
+- **The report X-ray** is new and may have more than one stop. It is the report's own outline with the
+  prose taken out: every finding, data point and point the report will make, each with its table, graph,
+  process diagram or other visual. Every number and claim is a link to its source or its method. The
+  researcher works through what Deep Research found, the results and the map with their Lead, checks
+  them, and builds the X-ray. A point whose link does not resolve cannot reach the report.
+- **Zpráva** is prose written around exactly the X-ray's closed points, each number and claim keeping
+  its link, composed and approved there.
+
+This changes the order the owner's first words gave: Sociomapa now comes before the X-ray, as on the
+canvas, so the map's points can enter it.
 
 The owner's words on the X-ray (2026-11-02): "a stage where the bare bone findings are presented in a
 structure of the report … its almost as if you had the report but took out all hte claims and data and
@@ -141,16 +186,19 @@ researcher to include into the report"). The groups are strategy and market, fin
 operations, logistics, corporate governance and enterprise architecture, with the portfolio frameworks
 after the MVP. Ada proposes a set for each decision type ("Ada proposes per decision"), and every point a
 framework holds is a cited finding, a client-data number, a model result or a named expert's score
-("Sourced points only"). The selection drives Deep Research's plan, the model's views, the expert forms
+("Sourced points only"). The one exception is the researcher's own judgement (A3: "Allow, labelled"): a
+point may be it, printed with its own grade and its author's name, never mixed with sourced points. The selection drives Deep Research's plan, the model's views, the expert forms
 and the X-ray's outline. The work is
 [`analysis-frameworks`](../../../.planning/plans/analysis-frameworks.md).
 
 The X-ray's visuals are specs, never pictures: BPMN, data-flow, state and the other diagrams, every chart
 and every table are typed specs the Lead proposes, code validates, the researcher accepts and the server
 renders (the owner, 2026-11-02, "bpmn diagrams, data flow diagrams, state diagrasm, any type of graph,
-and table"). The work is [`diagrams`](../../../.planning/plans/diagrams.md).
+and table"). All six rendering stacks are in the MVP (A13: "All six in MVP"). The work is
+[`diagrams`](../../../.planning/plans/diagrams.md).
 
-Model studies (Modely, ADR 0044) are unchanged by this decision.
+ADR 0044's model platform runs inside this study, not in an area of its own. ADR 0044 stays Proposed;
+its "Modely" area is superseded here, and its amendment (decision 10) records that when it is accepted.
 
 ### 4. The order: data contracts, then the model platform
 
@@ -165,6 +213,10 @@ Model studies (Modely, ADR 0044) are unchanged by this decision.
 
 Deep Research v2, the public data routes and the register personal-data records run beside the
 platform.
+
+Everything in this order is in the MVP (A1: "Keep all in MVP"); no single journey is its spine. Market
+size is top-down (A10): public statistics (MKT2), the market-sizing Deep Research purpose (MKT4) and its
+stages (MKT5).
 
 ADR 0044 stays Proposed, at the owner's word. The platform is planned and waved here, and it is
 accepted separately.
@@ -197,6 +249,10 @@ The map has four modes, each with its own claim and grade:
   `cost-model-study` CS1-CS5 and `situation-reports` EX1-EX2.
 - **The unit and period maps ship only after the synthetic validation suite passes.** The suite plants
   structure and runs null worlds.
+- **What the MVP's maps must do** (A6: "Show option clusters"): show which options win in the same
+  futures, and which hedge each other. The map explains a decision; it never makes one.
+- **The name is Sociomapa systémů, never SOMECS** (A12). A. Bahbouh confirms the name and the published
+  method's licence before any client reads it.
 - **The never-claim list holds in every mode.** It is the method recommendation's § Never claim. A map
   never claims cause, never presents a scenario map as how the market behaves, and never reads a
   distance as an effect size.
@@ -226,6 +282,10 @@ Version 2 adds the following, in the research's rank order:
 6. as-of-date research through Memento and Wayback;
 7. scheduled monitoring;
 8. precedents, as candidates only.
+
+**The engine's freeze is lifted for these capabilities only** (A14: "Lift for v2 only"). Retrieval,
+grounding and the sealed bundle stay frozen, changed only on a defect or an evaluation finding, as
+before (ADR 0017, ADR 0021).
 
 The gate gains three checks before structured or archive routes go live:
 - per-source rate limits;
@@ -268,8 +328,10 @@ which agrees with these definitions.
 Advisory class gates have been allowed in every environment since commit `4959b1cb` (2026-10-29),
 on the owner's "Advisory everywhere" of 2026-10-28 (`prototype-build#PB6`). Develop runs advisory.
 `enforce` stays the default, so a deployment is advisory only where its configuration says so. The
-research reads this as "advisory everywhere". Whether a deployment that holds client data enforces
-before that data flows to a model is the owner's call (§ Open, Q2).
+research reads this as "advisory everywhere". The owner's answer (A4, Q2: "Enforce for real data"): a
+deployment that holds a real client's data enforces, staging and production included, so a client
+dataset's rows reach a model only over a route approved for their class. Develop stays advisory on
+fictional data.
 
 ### 9. The component verdicts
 
@@ -332,13 +394,14 @@ the ten). Until then the chunk's current text stands.
   cost-model journey (`cost-model-study#CM6`).
 - **USD 25 tier B is re-allocated** when MP17 lands. The survey lines go and the model and Deep
   Research v2 lines come in.
+- **The survey lane is decommissioned after the MVP's acceptance** (decision 2, `mvp-master-plan#MP19`).
 - **Nothing is switched on, called or deleted by this record.**
 
 ## Alternatives considered
 
-- **Delete the survey lane.** This was rejected by the owner ("Freeze it now"). The lane's code is
-  tested, its data is stored, and its engine parts (layout, terrain, the report's evidence model) are
-  reused.
+- **Delete the survey lane now.** Rejected by the owner ("Freeze it now"). It is archived only after
+  the new MVP is accepted (A8, A9), and its engine parts (layout, terrain, the report's evidence model)
+  stay, because the new work reuses them.
 - **Run both lanes at full speed.** There is no capacity for that. The research finds that the business
   lane needs the data contracts and the model platform first, and those are the work the survey lane
   would delay.
@@ -349,17 +412,17 @@ the ten). Until then the chunk's current text stands.
 
 ## Open
 
-**For the product owner.** Each question has a recommendation. Nothing here waits on an answer that
-another decision already settled.
+**For the product owner: answered.** The six questions this record first left open were answered on
+2 Nov (§ The owner's answers, later on 2 Nov). What each settled:
 
-| # | Question | Recommendation | Waits on it |
+| # | Question | Answer | Where it lands |
 |---|---|---|---|
-| Q1 | One grade vocabulary: ADR 0044's `CALCULATED` / `ESTIMATED` / `MODELLED`, against the code's `MEASURED` / `CALIBRATED` / `MODELLED` / `HOLDOUT_PENDING` (`domain/report/evidence.py:41-46 @ 57c133a`) | Keep the code's names for the survey evidence and add `CALCULATED` and `ESTIMATED` as print grades beside them. One table maps every grade to its Czech label and its admission rule, decided before the first quantitative result reaches a report | `cost-model-study#CP8`, `#CP10` |
-| Q2 | Do data-class gates enforce before client data flows to a model? (advisory allowed in every environment since `4959b1cb`; develop runs advisory) | Yes for Class A in staging and production: a client dataset's rows never leave without a route approved for Class A. Keep advisory on develop | `client-data-in-analysis#9`, `production-environment#PE5` |
-| Q3 | May the frozen panel ever feed market counts? | Not until its licence is read for that use. If it may, it feeds at most `ESTIMATED` counts, labelled (C4) | `quantitative-families#MKT3` (parked) |
-| Q4 | The SOMECS name and licence: may AIA use the name and the published method? | Check before any client-facing use. Until then the expert map is called Sociomapa systémů, never SOMECS | `situation-reports#EX2`, `sociomapa-systemu#SYS12` |
-| Q5 | Are defects in the frozen lane fixed (decision 2, proposed)? | Only data loss, security, or another lane turned red | every parked chunk |
-| Q6 | Market size is in the MVP (ADR 0045, 30 Oct; prototype v29, 1 Nov). With the survey frozen, MKT1 and MKT3 (survey-derived) are parked. Is top-down sizing from public statistics (MKT2), the market-sizing Deep Research purpose (MKT4) and the stages (MKT5) enough for the MVP? | Yes: they need only the public data routes and Deep Research v2 | `quantitative-families#MKT2`, `#MKT4`, `#MKT5` |
+| Q1 | One grade vocabulary | A5: the code's grades (`MEASURED`, `CALIBRATED`, `MODELLED`, `HOLDOUT_PENDING`; `domain/report/evidence.py:41-46 @ 57c133a`) stay, `CALCULATED` and `ESTIMATED` are added as print grades, and one table maps every grade to its Czech label and admission rule before the first quantitative result reaches a report. The researcher's judgement (A3) is a grade of its own in that table | `cost-model-study#CP8`, `#CP10` |
+| Q2 | Do class gates enforce before client data flows? | A4: yes, in any deployment holding a real client's data; develop advisory | `client-data-in-analysis#9`, `production-environment#PE5` |
+| Q3 | May the frozen panel feed market counts? | A11: no; the panel is retired with the lane | `quantitative-families#MKT3` stays parked |
+| Q4 | The SOMECS name and licence | A12: Sociomapa systémů, never SOMECS; A. Bahbouh checks the name and licence before client use | `sociomapa-systemu#SYS0`, `#SYS12`, `situation-reports#EX2` |
+| Q5 | Are frozen-lane defects fixed? | A7: the lane is decommissioned after the MVP's acceptance, and maintained only as far as develop needs until then | decision 2, `mvp-master-plan#MP19` |
+| Q6 | Is top-down market sizing enough? | A10: yes | `quantitative-families#MKT2`, `#MKT4`, `#MKT5` |
 
 **For the methodology owner, A. Bahbouh.** These are the research's ten questions (§ Questions for the
 methodology lead), each with its recommendation there:
@@ -374,5 +437,5 @@ methodology lead), each with its recommendation there:
 9. PERT inputs;
 10. forecast evaluation.
 
-They are sent to him as one message (`sociomapa-systemu#SYS0`). No replaced statistic is built before
-its question is answered.
+They are sent to him as one message (`sociomapa-systemu#SYS0`), with the SOMECS name and licence check
+(Q4). No replaced statistic is built before its question is answered.

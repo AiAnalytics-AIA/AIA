@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] AF0. The catalogue as data: every framework with its id, group, the question it answers, how it is produced (computed by code, cited Deep Research points, synthesis, named experts), its inputs (client data, Deep Research, experts), its grade, its X-ray chapter kind and its MVP flag; versioned, one fixture read by Python and TypeScript; a framework point is a typed reference (an accepted finding, an admitted client-data claim, a model result, an expert's score), never free text (W1)"
+  - "[ ] AF0. The catalogue as data: every framework with its id, group, the question it answers, how it is produced (computed by code, cited Deep Research points, synthesis, named experts), its inputs (client data, Deep Research, experts), its grade, its X-ray chapter kind and its MVP flag; versioned, one fixture read by Python and TypeScript; a framework point is a typed reference (an accepted finding, an admitted client-data claim, a model result, an expert's score) or the researcher's own judgement, labelled with its grade and author (ADR 0046 A3), never unlabelled free text (W1)"
   - "[ ] AF1. The default sets: decision type to the frameworks Ada proposes, as data the owner approves; the Lead proposes a set with one reason per framework, the researcher accepts per change (ADR 0026); a framework that needs register fields naming persons is never proposed before its balancing test (W2)"
   - "[ ] AF2. The Zadání picker (prototype board Z4): the groups, a toggle per framework, what each needs, the Deep Research cost ceiling of the selection, the X-ray chapters and the expert forms it creates; saved on the study's working copy; post-MVP frameworks shown and disabled (W2)"
   - "[ ] AF3. The selection drives Deep Research: each framework that needs research becomes subjects of the Design Research plan, its ceiling pinned at enqueue; a deselected framework takes its subjects out of the next run (W2, after deep-research-v2 DRV0)"
@@ -27,6 +27,7 @@ Written 2026-11-02 on the product owner's request, in the PM coordinator's chat:
   added "Corporate givernance, and corporate architecture frameworks, logistics too".
 - Qualitative frameworks take "Sourced points only".
 - How the frameworks are picked: "Ada proposes per decision".
+- Later the same day, on a researcher's own judgement: "Allow, labelled" (ADR 0046 A3).
 
 The design is drawn on the "AIA Obchodní model – prototyp" canvas: Z4 (the picker) and MV6 (the
 catalogue, 42 frameworks in seven groups, 36 in the MVP). The X-ray's SWOT chapter on MV4 is the worked
@@ -38,14 +39,17 @@ S4/S5 (the model views). Proposed; the session that takes it reviews this plan f
 
 ## The rule
 
-A framework point is a reference, never prose. It is one of four things:
+A framework point is a reference, never unlabelled prose. It is one of five things:
 - a Deep Research finding with its quote;
 - a client-data number under an accepted contract;
 - a model result with its method version;
-- a named expert's score.
+- a named expert's score;
+- the researcher's own judgement, printed with its own grade and its author's name, never mixed with the
+  sourced points (A3).
 
-The Lead proposes and sorts points; it never writes one without a source. The X-ray refuses an
-unsourced point, so it cannot reach the report.
+The Lead proposes and sorts points; it never writes one without a source, and it never writes a
+judgement point: a person does. The X-ray refuses an unsourced point that is not a labelled judgement,
+so it cannot reach the report.
 
 ## Out of the MVP
 

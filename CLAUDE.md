@@ -1397,7 +1397,7 @@ packages/aia_core/src/aia_core/
                             Class C, never citable for a number (harness aia-research-lead-4); the request's preset,
                             focus, target and deep_research_retry, grounded by request_ids / request_refusal;
                             harness 6, prompt 2
-    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
+    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166 (v2's capabilities excepted, ADR 0046):
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
                             settings_method (the approved method digest) and method_identity() in
@@ -2680,7 +2680,8 @@ authority over respondent data, aggregates, analysis or the canonical Sociomap. 
 carries its purpose, a typed target and a frozen lineage (exact artifacts, by SHA256) in an
 envelope around the unchanged engine request and sealed bundle; a pre-ADR run reads
 `legacy-unversioned`. The engine (retrieval, ladder, investigators, lead, fan-out, recovery,
-verification, grounding, confidence, the bundle) is frozen: change it only on a defect or
+verification, grounding, confidence, the bundle) is frozen but for Deep Research v2's listed capabilities
+(ADR 0046 decision 6, `deep-research-v2`): change it only on a defect or
 evaluation finding. Deep Research helps decide what to measure; respondents determine what we
 observed; deterministic analysis and Sociomapping determine the computed structure; Deep Research
 may then help interpret it. External research never manufactures respondent evidence and never
