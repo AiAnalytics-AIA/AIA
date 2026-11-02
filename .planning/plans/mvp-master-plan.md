@@ -121,6 +121,11 @@ and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
   New studies don't show the survey stages. Old ones show them read-only until the lane is archived.
 - **Everything above stays in the MVP** (A1: "Keep all in MVP"), the six diagram stacks included (A13).
   A framework point may be the researcher's own judgement, labelled with its grade and author (A3).
+- **The walkthrough** (ADR 0046 § The owner's walkthrough, W1-W28), the canvas gone through stage by stage
+  on 2 Nov: two new core plans, `decision-brief` (the business Zadání) and `legal-context` (Czech and EU
+  law as cited parameters and constraints); new chunks `client-data-in-analysis` 11-12 and
+  `research-findings-stage#FND12`; the composable cash-flow model (`cost-model-study` CP2, CM1); what
+  the maps draw left open (W24).
 - **The acceptance criteria** AC-01 to AC-15 stay registered until `mvp-master-plan#MP17` redefines
   them in their own pull request. AC-16, the cost-model journey, is proposed now.
 - **The MVP's acceptance, proposed for MP17** (drawn on the "AIA Obchodní model – prototyp" canvas, board MV0,
@@ -131,7 +136,9 @@ and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
     and its row or page, a public input with its response hash, or a model run with its method version.
   - M-3: the same inputs and seed give the same bytes, `CALCULATED` and `ESTIMATED` alike.
   - M-4: the decision rule is written before the results and judged as written.
-  - M-5: an `ESTIMATED` number reaches a client only after the methodology owner registers its method.
+  - M-5: an `ESTIMATED` number whose method the methodology owner has not registered reaches a client
+    only labelled "metoda čeká na schválení metodikem", and its report's approval records the warning
+    (W27).
   - M-6: a public value equals the source's response byte for byte. VIES is never stored. A field naming a
     person is not shown without a balancing test.
   - M-7: a Deep Research finding is a quote in a captured source. Citation accuracy is at least 90 % and
@@ -423,6 +430,8 @@ the disposition, and its owner closes it with a pointer when the receiving plan 
 | `public-data-routes` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decisions 6-7): `deep-research-v2#DRV0` first; person-naming fields after `register-personal-data#RPD2` |
 | `analysis-frameworks` | S1 with S2, S4 and S5 | I-2 to I-4 (proposed) | **new, 2026-11-02**: the owner's frameworks in Zadání (SWOT, PESTEL, Blue Ocean, TAM/SAM/SOM, finance, operations, logistics, governance, architecture), "Ada proposes per decision", "Sourced points only"; AF0's catalogue first; AF6 with `research-findings-stage#FND2`; portfolio frameworks after the MVP |
 | `diagrams` | S1 and S2 | I-2, I-3 (proposed) | **new, 2026-11-02**: the owner's "bpmn diagrams, data flow diagrams, state diagrasm, any type of graph, and table" for the Lead to control; DG0's spike and licences before any dependency; DG1's spec type before the report outline's visuals (`research-findings-stage#FND4` to `#FND6`) |
+| `decision-brief` | S1 with S4 | I-1, I-2 (proposed) | **new, 2026-11-02** (ADR 0046 W1-W4): the business Zadání; DB0's contract before any stage screen; reuses `artifact-brief`'s working copy and `cost-model-study#CR7`'s rule |
+| `legal-context` | S2 and the legal counsel the owner names | I-3, I-4 (proposed) | **new, 2026-11-02** (ADR 0046 W19, decision 7): LGL0's scope and disclaimer before any legal point reaches a study; routes through `public-data-routes` |
 | `register-personal-data` | S3 and the legal counsel the owner names | I-3 (proposed) | **new, 2026-11-02** (ADR 0046 decision 7): RPD0 written with counsel before any register field naming a person reaches a study |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.

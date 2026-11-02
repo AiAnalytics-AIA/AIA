@@ -254,7 +254,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
 | `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
 | `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
-| `client-data-in-analysis#10` | W1 | scope freeze, D-37: with 2 and 2a (E17); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
+| `client-data-in-analysis#10` | W1 | scope freeze, D-37, its place moved to the Data step by the walkthrough (ADR 0046 W6): with 2 and 2a (E17); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
 | `analysis-frameworks#AF0` | W1 | the catalogue and the sourced-point type before any picker or chapter; added 2026-11-02 (the owner's frameworks in Zadání) |
 | `analysis-frameworks#AF1` | W2 | after AF0 and the Lead's per-change accept (`lead-orchestration`); added 2026-11-02 (the owner's frameworks in Zadání) |
 | `analysis-frameworks#AF2` | W2 | after AF0; the prototype board Z4; added 2026-11-02 (the owner's frameworks in Zadání) |
@@ -266,6 +266,23 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `analysis-frameworks#AF8` | W3 | ownership structure after `register-personal-data#RPD2` (E43); added 2026-11-02 (the owner's frameworks in Zadání) |
 | `analysis-frameworks#AF9` | W4 | with `research-findings-stage#FND11` (E50); added 2026-11-02 (the owner's frameworks in Zadání) |
 | `analysis-frameworks#AF10` | POST | after the MVP (the owner, 2 Nov: portfolio frameworks "later"); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `client-data-in-analysis#11` | W2 | after 2 (E17); numbers from a client's documents, checked on their page; the owner's walkthrough, 2 Nov (ADR 0046 W7) |
+| `client-data-in-analysis#12` | W3 | after 4 and the methodology owner's register entry; the owner's walkthrough, 2 Nov (ADR 0046 W8) |
+| `decision-brief#DB0` | W1 | the business Zadání's contract before any stage screen; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB1` | W2 | after DB0 and `study-files#SF6`; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB2` | W2 | after DB0 and the Lead's per-change accept (`lead-orchestration`); the owner's walkthrough, 2 Nov (ADR 0046 W2, W3) |
+| `decision-brief#DB3` | W2 | after DB0, with `cost-model-study#CR7`; the owner's walkthrough, 2 Nov (ADR 0046 W4) |
+| `decision-brief#DB4` | W2 | after DB3; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB5` | W2 | after DB4 and the data contracts (E17); the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB6` | W3 | after DB5; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `legal-context#LGL0` | W1 | scope and disclaimer with counsel before any legal point; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL1` | W2 | with the public data routes (E43); the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL2` | W2 | after LGL1; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL3` | W3 | after LGL2 and the model platform (E36); the owner's walkthrough, 2 Nov (ADR 0046 W18, W19) |
+| `legal-context#LGL4` | W3 | after LGL2 and `deep-research-v2#DRV7`; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL5` | W3 | after LGL2 and `research-findings-stage#FND2` (E46); the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL6` | W4 | after LGL3-LGL5; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `research-findings-stage#FND12` | W3 | after FND8 (E47); the shared review; the owner's walkthrough, 2 Nov (ADR 0046 W26) |
 | `diagrams#DG0` | W1 | the spike and the licences, before any dependency is added; added 2026-11-02 (the owner's diagrams for the Lead) |
 | `diagrams#DG1` | W1 | after DG0; before `research-findings-stage#FND4` to `#FND6` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
 | `diagrams#DG2` | W2 | after DG1; added 2026-11-02 (the owner's diagrams for the Lead) |

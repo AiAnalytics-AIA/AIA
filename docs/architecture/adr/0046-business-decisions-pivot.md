@@ -3,7 +3,8 @@
 **Status:** Proposed — 2026-11-02. Decisions 1 to 4 are the product owner's, given in the PM
 coordinator's chat on 2026-11-02 and quoted below. Later the same day he answered the six questions this
 record left open and ten more (§ The owner's answers, later on 2 Nov). Those answers settle parts of
-decisions 2, 3, 4, 5, 6 and 8, and each of those decisions says where. The rest are this record's
+decisions 2, 3, 4, 5, 6 and 8, and each of those decisions says where. A stage-by-stage walkthrough of
+the canvas the same day gave 28 more (§ The owner's walkthrough, W1-W28). The rest are this record's
 proposals, which take effect when he approves this record. What still needs the methodology owner's
 answer is listed under § Open.
 
@@ -47,6 +48,41 @@ coordinator put to him; the label of the option he chose, or his own words where
 | A13 | How wide are the diagrams in the MVP? | "All six in MVP": every rendering stack of `diagrams` (decision 3) |
 | A14 | Deep Research's engine freeze and v2 | "Lift for v2 only": v2's listed capabilities are sanctioned; retrieval, grounding and the bundle stay frozen (decision 6) |
 | A15 | The stage's name | "i just called it an xray, lets change the name for that", then "Osnova zprávy": in English, the report outline (decision 3) |
+
+**The owner's walkthrough, 2 Nov** ([`pivot-walkthrough-2026-11-02.md`](../../../.planning/evidence/pivot-walkthrough-2026-11-02.md); the PM coordinator's chat, coordinator 4: the canvas "AIA Obchodní
+model – prototyp" gone through stage by stage; the option he chose, or his own words). Each decision lands
+in the plan named:
+
+| # | Stage | Decision | Where |
+|---|---|---|---|
+| W1 | Zadání | The business Zadání is built by a plan of its own | new plan [`decision-brief`](../../../.planning/plans/decision-brief.md) |
+| W2 | Zadání | Triage asks every question that matters, by importance; the first three open, the rest under "Další otázky" | `decision-brief#DB2` |
+| W3 | Zadání | No crown amount in triage; the value of information in Kč appears only on Výsledky, computed | `decision-brief#DB2` |
+| W4 | Zadání | "Potřebuje rozhodnutí výpočet?" is asked in the decision core; the model steps appear only on yes | `decision-brief#DB3`, `research-findings-stage#FND1` |
+| W5 | Zadání | The study's badge reads "Výzkum", with "Obchodní model" once the model is on | canvas v10 |
+| W6 | Data | A data contract and its quality report are accepted on the Data step (D-37's Zadání drawer superseded) | `client-data-in-analysis#10` |
+| W7 | Data | A number from a client's document: Ada proposes it with its page, code checks it is literally on that page, the researcher accepts | `client-data-in-analysis#11` |
+| W8 | Data | An estimate from client rows is a Metodika method, internal until registered | `client-data-in-analysis#12` |
+| W9 | Rešerše | A source's credibility tier is named Úřední / Oborový / Ostatní, never A/B/C | `deep-research-v2#DRV5` |
+| W10 | Rešerše | A rating beside a cited quote (Porter's force strength) is the researcher's labelled judgement | `analysis-frameworks` |
+| W11 | Rešerše | A run shows citation accuracy and unsupported claims; recall is the method's tested level, never per run | `deep-research-v2#DRV4` |
+| W12 | Rešerše | A paid Deep Research run starts only from the Lead's priced card, never from a stage | the workbench rule (#550) |
+| W13 | Předpoklady | Ada proposes inputs that move together, with a strength and a reason; the researcher accepts each; independence is stated | `cost-model-study#CR3` |
+| W14 | Předpoklady | Each input's distribution follows its source: client data, its estimate; a person's range, PERT; people who disagree, a mixture | `cost-model-study#CR3` |
+| W15 | Předpoklady | A guarantor is a person at the client; a value fixed by contract is fixed unless the contract allows a change | `cost-model-study#CR2` |
+| W16 | Předpoklady | The discount rate is a fixed study parameter with its guarantor; Výsledky shows the verdict at other rates | `cost-model-study#CR2` |
+| W17 | Model | One composable cash-flow model: line items from a closed set of kinds, formulas from a closed vocabulary; cost scenarios its first template | `cost-model-study#CP2`, `#CM1` |
+| W18 | Model | NPV before and after tax; the rule reads one, the other beside it | `cost-model-study#CM7` |
+| W19 | Model | Legal context: Czech and EU tax, contract and employment law as cited provisions that become parameters and constraints; never legal advice; the researcher accepts | decision 7; new plan [`legal-context`](../../../.planning/plans/legal-context.md) |
+| W20 | Výsledky | The headline is the median with its 90 % interval; the base case only as "v základu" | `cost-model-study#CP8` |
+| W21 | Výsledky | A result's grade follows its method: a deterministic formula is "výpočet", Monte Carlo and statistics "odhad" | `cost-model-study#CP8` |
+| W22 | Výsledky | A verdict such as "realistické" is the researcher's labelled judgement | `cost-model-study#CP8` |
+| W23 | Sociomapa | The earlier `-5` strategy map is kept for history, marked superseded, off the study's path | canvas |
+| W24 | Sociomapa | **Open:** what the maps draw is to be rethought ("lets leave this open for now"), with who scores on the expert map and how many | decision 5; `sociomapa-systemu` |
+| W25 | Osnova zprávy | An unverified point holds the hand-off until its source is found or it is removed | `research-findings-stage#FND8` |
+| W26 | Osnova zprávy | A closed stop may be shared with the client's decision-makers for comments; their agreement recorded | `research-findings-stage#FND12` |
+| W27 | Zpráva | An estimate whose method is not yet registered still reaches the client report, labelled, with an approval warning; never refused | decision 5; M-5; `cost-model-study#CM6` |
+| W28 | Zpráva | The report is Czech in the MVP; English after | `research-findings-stage#FND9` |
 
 **The evidence:** [`.planning/evidence/pivot-research-2026-11-02.md`](../../../.planning/evidence/pivot-research-2026-11-02.md),
 the owner's document "AIA pivot research: rebuilding for business decisions" (2 Nov 2026). Its
@@ -259,8 +295,13 @@ The map has four modes, each with its own claim and grade:
   distance as an effect size.
 - **The methodology owner decides before anything is built.** A. Bahbouh decides the research's ten
   statistical questions, or the subset each chunk needs, before any replaced statistic is built. Each
-  mode is registered separately in Metodika (ADR 0023), and a mode stays `INTERNAL_ONLY` until its entry
-  is approved.
+  mode is registered separately in Metodika (ADR 0023). Until its entry is approved a mode's result is
+  labelled "metoda čeká na schválení metodikem" wherever it appears, and in a client report its approval
+  shows a warning recorded on the ledger row, never a refusal (W27; as report-delivery RD0, 22 Oct).
+- **Open: what the maps draw** (W24). The owner: "i think we still have to rethink what the maps draw,
+  lets leave this open for now". Who scores on the expert map and how many raters wait on it, and the
+  maps' chunks (`sociomapa-systemu` SYS9-SYS10, `situation-reports` EX1-EX2) do not start before it is
+  answered.
 
 The work is the new plan [`sociomapa-systemu`](../../../.planning/plans/sociomapa-systemu.md).
 
@@ -313,6 +354,12 @@ source AIA may use, and how:
 - Financial statements (Sbírka listin) are the data gap. Proposed: extract them from PDF with a person's
   review first, and decide on buying structured data after measuring that review's cost
   (`public-data-routes` PDR7).
+- **The law itself** (W19). Czech law (e-Sbírka) and EU law (EUR-Lex) in tax, contract and employment:
+  a legal point is a verbatim quote of a specific provision in the version in force on a stated date,
+  captured from the official source, and it becomes a model parameter (tax rate, depreciation, notice
+  period, minimum wage) or a constraint the researcher accepts. AIA flags what applies and never gives
+  legal advice; every report that uses one says so. The work is
+  [`legal-context`](../../../.planning/plans/legal-context.md).
 
 ### 8. Data classes: the code's definitions stand
 
@@ -380,7 +427,8 @@ the ten). Until then the chunk's current text stands.
 ## Consequences
 
 - **The master plan's register changes.** The survey-lane plans move from §3.1 to §3.3 as PARKED, and
-  `cost-model-study`, `situation-reports`, `quantitative-families`, `analysis-frameworks`, `diagrams` and the five new plans become core.
+  `cost-model-study`, `situation-reports`, `quantitative-families`, `analysis-frameworks`, `diagrams`, the five new plans and,
+  from the walkthrough, `decision-brief` and `legal-context` become core.
   The goal sentence and § The pivot record the new MVP. `tools/master_check.py` passes on the result.
 - **The execution contracts change.**
   - The data contracts row (E17) moves from W3 to W1.

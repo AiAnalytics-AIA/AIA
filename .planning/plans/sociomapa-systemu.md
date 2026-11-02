@@ -32,6 +32,12 @@ order:
 **Owner:** S2 with the methodology owner, A. Bahbouh, who decides every statistical choice. Proposed;
 the session that takes it reviews this plan first.
 
+## Open: what the maps draw (ADR 0046 W24)
+
+The owner, 2 Nov, in the walkthrough: "i think we still have to rethink what the maps draw, lets leave
+this open for now". Who scores on the expert map and how many raters wait on it, and so do SYS9 and
+SYS10. The validation suite (SYS0-SYS1b) does not wait.
+
 ## What the MVP's maps must do
 
 The owner, 2 Nov (ADR 0046 A6, "Show option clusters"): the scenario and expert maps show which options

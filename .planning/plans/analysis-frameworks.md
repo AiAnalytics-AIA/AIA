@@ -45,7 +45,8 @@ A framework point is a reference, never unlabelled prose. It is one of five thin
 - a model result with its method version;
 - a named expert's score;
 - the researcher's own judgement, printed with its own grade and its author's name, never mixed with the
-  sourced points (A3).
+  sourced points (A3). A rating beside a cited quote, such as Porter's force strength, is such a judgement;
+  Ada may propose it with a reason (W10).
 
 The Lead proposes and sorts points; it never writes one without a source, and it never writes a
 judgement point: a person does. The report outline refuses an unsourced point that is not a labelled judgement,
