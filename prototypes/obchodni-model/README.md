@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 2 Nov 2026
+# AIA Obchodní model – prototyp, 2 Nov 2026 (version 9)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 7, artifact version `1793615062-3ab2` |
+| Version | version 9, artifact version `1793617625-643d` |
 | Exported | 2 Nov 2026, the first export |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -28,7 +28,7 @@ boards, their titles, sizes and positions, and their order.
 ## What it shows
 
 Every study board carries the same nine-step navigator: Zadání (with its sub-steps), Data, Rešerše, Předpoklady, Model,
-Výsledky, Sociomapa, Rentgen zprávy and Zpráva. Each also carries a collapsible Lead pane (Ada; a CSS checkbox, `#leadx`)
+Výsledky, Sociomapa, Osnova zprávy and Zpráva. Each also carries a collapsible Lead pane (Ada; a CSS checkbox, `#leadx`)
 and a ⋯ menu per stage. The canvas has three rows:
 
 - **Zadání (Z0–Z7).** Free text and files come first. Ada then triages the brief into eight parts. Next come the shared
@@ -38,11 +38,16 @@ and a ⋯ menu per stage. The canvas has three rows:
   Účetnictví, Provoz, Logistika and Trh. M5 is the earlier `aia-sociomap-5` strategy map, labelled internal. M6 is the
   report.
 - **The MVP (MV0–MV7).** The scope, the data contract, typed inputs and findings by framework from Rešerše, Sociomapa
-  systémů, the report X-ray, Metodika's validation set and questions, the framework catalogue, and a UX audit of open
-  items.
+  systémů, the report outline (Osnova zprávy), Metodika's validation set and questions, the framework catalogue, and a
+  UX audit of open items.
 
 The customer-research lane (Výzkum zákazníků, with AI respondents) was removed at the product owner's request: it is
 frozen (ADR 0046). The board numbering skips Z6.
+
+**Changed since version 7.** Version 8 was a save from the page: the boards' layout only (MV6's height and two
+title notes' widths). Version 9 renames the stage "Rentgen zprávy" (the report X-ray) to **Osnova zprávy**, the
+report outline, on every board and in MV4's title, at the product owner's word (2 Nov: "i just called it an xray,
+lets change the name for that"). MV4's file keeps its name, `MV4XRay.dc.html`, so every link still resolves.
 
 | # | File | Board |
 |---|---|---|
@@ -69,7 +74,7 @@ frozen (ADR 0046). The board numbering skips Z6.
 | 21 | `MV2PublicData.dc.html` | MV2 · Rešerše: typované vstupy |
 | 22 | `MV2bFindings.dc.html` | MV2b · Rešerše: zjištění podle analýz |
 | 23 | `MV3SystemMap.dc.html` | MV3 · Výsledky: Sociomapa systémů |
-| 24 | `MV4XRay.dc.html` | MV4 · Rentgen zprávy |
+| 24 | `MV4XRay.dc.html` | MV4 · Osnova zprávy |
 | 25 | `MV5Validation.dc.html` | MV5 · Metodika: validační sada a otázky |
 | 26 | `MV6Catalogue.dc.html` | MV6 · Katalog analýz |
 | 27 | `MV7UXAudit.dc.html` | MV7 · Kontrola UX |
@@ -78,7 +83,7 @@ frozen (ADR 0046). The board numbering skips Z6.
 
 `reference/` holds every board as drawn by `tools/prototype_renders/render.js` with the Design type's runtime: 27 images
 in WebP at quality 88, and `renders.json`. No board had a script error or a failed request. The images are numbered in
-`canvas.json`'s board order, not in the order of the table above.
+`canvas.json`'s board order (alphabetical since version 8), not in the order of the table above.
 
 ## Known wrong
 

@@ -82,7 +82,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
       <div class="sb"><sc-for list="{{keep}}" as="k" hint-placeholder-count="6"><div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx">{{k.t}}<span class="cap" style="display: block">{{k.d}}</span></div></div></sc-for></div></section>
   </div>
   <p class="cap">Vychází z návrhu koordinátora (zásady, katalog polí, R1–R7, D1–D7) a ze schválené desky 1 · Zadání. Ta zůstává beze změny, dokud nerozhodnete. Otázky D1–D7 jsou na stránce koordinátora.</p>
-  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Rentgen zprávy a Zpráva. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
+  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova zprávy a Zpráva. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
 </div></div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2290}}'>
@@ -109,8 +109,8 @@ renderVals() {
     ['MV1', 'MV1Contract', 'Data · datová smlouva', 'Sloupce, osobní údaje, zpráva o kvalitě; bez přijaté smlouvy nic do výpočtu.', 'MVP'],
     ['MV2', 'MV2PublicData', 'Veřejná data', 'Typované vstupy z rejstříků a statistik, rozpor řeší člověk, kvalita citací, GDPR.', 'MVP'],
     ['MV3', 'MV3SystemMap', 'Sociomapa systémů', 'Čtyři režimy, nové statistiky a testy věrohodnosti, expertní mapa.', 'MVP'],
-    ['MV4', 'MV4XRay', 'Rentgen zprávy', 'Body zprávy s odkazem u každého čísla, vizualizace a zastávky.', 'MVP'],
-    ['MV6', 'MV6Catalogue', 'Katalog analýz', 'Všechny analýzy v sedmi skupinách: z čeho vznikají, stupeň, kapitola rentgenu, MVP nebo později.', 'MVP'],
+    ['MV4', 'MV4XRay', 'Osnova zprávy', 'Body zprávy s odkazem u každého čísla, vizualizace a zastávky.', 'MVP'],
+    ['MV6', 'MV6Catalogue', 'Katalog analýz', 'Všechny analýzy v sedmi skupinách: z čeho vznikají, stupeň, kapitola osnovy, MVP nebo později.', 'MVP'],
     ['MV5', 'MV5Validation', 'Metodika', 'Validační sada, deset rozhodnutí pro metodika, registr metod.', 'MVP'],
   ];
   return {
