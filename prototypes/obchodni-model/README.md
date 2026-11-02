@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 2 Nov 2026 (version 9)
+# AIA Obchodní model – prototyp, 2 Nov 2026 (version 13)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,8 +16,8 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 9, artifact version `1793617625-643d` |
-| Exported | 2 Nov 2026, the first export |
+| Version | version 13, artifact version `1793627826-c9da` |
+| Exported | 2 Nov 2026 (versions 7, 9, 11 and 12 exported earlier the same day) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
 | Other assets | `assets/thinking-orbs.js`, the same bytes as research-stages' copy. Three uploaded images: the -5 strategy map's top, 3D and scenario views (`KM5Map`; `MV3SystemMap` reuses the top view) |
@@ -48,6 +48,33 @@ frozen (ADR 0046). The board numbering skips Z6.
 title notes' widths). Version 9 renames the stage "Rentgen zprávy" (the report X-ray) to **Osnova zprávy**, the
 report outline, on every board and in MV4's title, at the product owner's word (2 Nov: "i just called it an xray,
 lets change the name for that"). MV4's file keeps its name, `MV4XRay.dc.html`, so every link still resolves.
+
+**Changed in versions 10 and 11** (the product owner's stage-by-stage walkthrough, 2 Nov; ADR 0046 § The owner's
+walkthrough, W1-W28, the full record in `.planning/evidence/pivot-walkthrough-2026-11-02.md`):
+
+- **Zadání (v10):** six sub-steps; the badge "Výzkum", plus "Obchodní model" once the model is on; "Potřebuje
+  výpočet?" in the decision core (Z3); triage asks every question that matters, the first three open, with
+  no crown amount; Z7 hands to Data, Předpoklady, Model and Zpráva.
+- **Data and Rešerše (v11):** no data class on screen ("Důvěrný"); source tiers named Úřední / Oborový /
+  Ostatní; recall shown as the method's tested level; "Požádat Adu o Deep Research…" instead of a stage start.
+- **Předpoklady and Model (v11):** distributions by source, a "Souvislosti" table Ada proposes, people as
+  guarantors, a fixed contractual fee, the discount rate and tax as fixed parameters, wage growth, own
+  operations rising with wages.
+- **Výsledky, Osnova and Zpráva (v11):** the median with its interval leads; NPV after tax beside before tax;
+  verdicts labelled as the researcher's judgement; the full grade legend; estimates reach the client labelled
+  "metoda čeká na schválení metodikem" with an approval warning (MV0's M-5 too).
+- **M5 (v11):** marked "Nahrazeno", off the study's path. What the maps draw is still open (W24).
+
+- **No filler, labels that fit (v12; the owner: no "filler sections").** Removed the screens' text that only
+  explains how AIA works: Z1's "Co se stane potom" and its footnotes, the rule banners on Z4, Z5, M2, MV1,
+  MV2 and MV4, Z7's note on R1-R7, and the rule halves of MV1's, MV2's, MV2b's and MV4's footnotes. Kept what
+  states facts about the case: legends, provenance lines, M8's reading, MV3's never-claim list, the report's
+  grade legend. The "Obchodní model" and "Výzkum" tags wrap inside their pill instead of spilling out (Z1), and
+  Ada's mark sits before each framework's name on Z4, so every row lines up.
+
+- **v13:** the NPV median and interval labelled "odhad (interní)" on MV4 3.1, in M6's Finance paragraph and in M4b's header, apart from IRR and payback, which stay "výpočet" (W21; Codex's review of #1152).
+
+The new numbers (after-tax NPVs, correlations, wage growth) are fictional, like every number here.
 
 | # | File | Board |
 |---|---|---|

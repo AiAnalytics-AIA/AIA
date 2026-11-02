@@ -40,9 +40,9 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 .zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
 .zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
 .zm{box-shadow:inset 3px 0 0 var(--shviolet)}
-.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
-.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
 .zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
 .zseq a{font-weight:500}
@@ -63,11 +63,11 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 <div style="max-width: 1344px; display: flex; flex-direction: column; gap: 20px">
   <div><div class="cap">Návrh · Zadání a obchodní model · případ Velis Commerce s.r.o. (smyšlený) · 2. 11. 2026</div>
     <h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Zadání začíná rozhodnutím; obchodní model ho spočítá z dat klienta</h1>
-    <p class="muted" style="max-width: 860px; font-size: 14px; line-height: 21px">Studie <b>Obchodní model</b> říká, co která varianta firmě přinese: náklady, zisk, rizika a provedení, spočítané kódem z čísel klienta pod datovou smlouvou, z veřejných zdrojů a z předpokladů s ručitelem. Zadání vyplňuje výzkumník AIA podle klienta: nejdřív co se rozhoduje a jaký výsledek by rozhodnutí změnil. Pak předá každému dalšímu kroku jen to, co potřebuje. Desky se dají proklikat v pořadí; dole na každé je šipka dál. Klient i čísla jsou smyšlené.</p></div>
+    <p class="muted" style="max-width: 860px; font-size: 14px; line-height: 21px">Výzkum s <b>obchodním modelem</b> říká, co která varianta firmě přinese: náklady, zisk, rizika a provedení, spočítané kódem z čísel klienta pod datovou smlouvou, z veřejných zdrojů a z předpokladů s ručitelem. Zadání vyplňuje výzkumník AIA podle klienta: nejdřív co se rozhoduje a jaký výsledek by rozhodnutí změnil. Pak předá každému dalšímu kroku jen to, co potřebuje. Desky se dají proklikat v pořadí; dole na každé je šipka dál. Klient i čísla jsou smyšlené.</p></div>
 
-  <section class="sec" aria-labelledby="z0-flow"><div class="sh"><span class="num">01</span><h2 id="z0-flow">Pět kroků Zadání</h2><span class="grow"></span><span class="cap">kliknutím otevřete desku</span></div>
-    <div class="sb"><div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
-      <sc-for list="{{steps}}" as="s" hint-placeholder-count="5"><a class="zcard" href="{{s.href}}" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal)">{{s.n}}</span><h3>{{s.t}}</h3><p class="muted">{{s.d}}</p></a></sc-for>
+  <section class="sec" aria-labelledby="z0-flow"><div class="sh"><span class="num">01</span><h2 id="z0-flow">Šest kroků Zadání</h2><span class="grow"></span><span class="cap">kliknutím otevřete desku</span></div>
+    <div class="sb"><div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="6"><a class="zcard" href="{{s.href}}" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal)">{{s.n}}</span><h3>{{s.t}}</h3><p class="muted">{{s.d}}</p></a></sc-for>
     </div></div></section>
 
   <section class="sec" aria-labelledby="z0-boards"><div class="sh"><span class="num">02</span><h2 id="z0-boards">Desky v pořadí</h2><span class="grow"></span><span class="cap">{{boardCount}} desek</span></div>
@@ -90,11 +90,11 @@ class Component extends DCLogic {
 renderVals() {
   const B = [
     ['Z1', 'Z1Start', 'Začátek', 'Jedno povinné pole a podklady; Ada z textu vyčte, co už ví, a navrhne, které další podklady by pomohly a kam půjdou.', 'Velis'],
-    ['Z2', 'Z2Triage', 'Triáž', 'Ada rozepíše Zadání v 8 částech, každou se zdrojem a s tím, kam půjde; tři otázky seřazené podle toho, kolik změní doporučení.', 'Velis'],
+    ['Z2', 'Z2Triage', 'Triáž', 'Ada rozepíše Zadání v 8 částech, každou se zdrojem a s tím, kam půjde; otázky seřazené podle toho, jak moc mohou změnit doporučení, první tři otevřené.', 'Velis'],
     ['Z3', 'Z3Decision', 'Společné jádro', 'Rozhodnutí a cíl firmy, sedm možností a omezení, pravidlo s prahem a mezí rizika, cíle, provedení a výstup. Stav „chybí mez rizika“.', 'Velis'],
     ['Z4', 'Z4Analyses', 'Analýzy do zprávy', 'SWOT, PESTEL, Porter, Blue Ocean, TAM/SAM/SOM, finance, provoz, logistika, řízení a architektura: Ada navrhne podle rozhodnutí, výzkumník vybere; co každá potřebuje a kam ve zprávě půjde.', 'Velis'],
     ['Z5', 'Z5Model', 'Části modelu', 'Příspěvek po logistice, horizont a časování, hranice, data (soubor → číslo, dvě chybí), předpoklady s ručitelem, souvislosti, co může výsledek otočit.', 'Velis · model'],
-    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání drží chybějící mez rizika; co převezme Návrh, Vzorek, Data a Zpráva.', 'Velis'],
+    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání drží chybějící mez rizika; co převezmou Data, Předpoklady, Model a Zpráva.', 'Velis'],
     ['M1', 'KM1Data', 'Model · Data', 'Devět souborů, u každého, která část Zadání ho vyžádala; čísla se stránkou; kontrola dat a kapacity.', 'Velis · model'],
     ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Devatenáct předpokladů s rozsahem, zdrojem a ručitelem; dva z dat o zpožděních.', 'Velis · model'],
     ['M3', 'KM3Model', 'Model · Model', 'Sedm variant, příspěvek po logistice, časování, kapacita, zůstatková hodnota a přechod.', 'Velis · model'],
@@ -115,7 +115,7 @@ renderVals() {
   ];
   return {
     theme: this.props.theme ?? 'light',
-    steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada rozepíše Zadání', 'Osm částí se zdrojem a tři otázky podle hodnoty odpovědi. Rozhoduje výzkumník.', 'Z2Triage'], ['3 · Jádro', 'Rozhodnutí, cíl, riziko', 'Co se rozhoduje a proč, co chce firma získat, možnosti a omezení, pravidlo s mezí rizika, provedení.', 'Z3Decision'], ['4 · Analýzy a model', 'Co zpráva zahrne', 'Analýzy do zprávy podle rozhodnutí; pak veličina, data a předpoklady s ručitelem.', 'Z4Analyses'], ['5 · Předání', 'Připravenost', 'Kontrola R1–R7, pak Data a Předpoklady převezmou, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
+    steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada rozepíše Zadání', 'Osm částí se zdrojem a otázky podle toho, jak moc mohou změnit doporučení. Rozhoduje výzkumník.', 'Z2Triage'], ['3 · Rozhodnutí', 'Rozhodnutí, cíl, riziko', 'Co se rozhoduje a proč, zda je potřeba výpočet, možnosti a omezení, pravidlo s mezí rizika, provedení.', 'Z3Decision'], ['4 · Analýzy', 'Co zpráva zahrne', 'Analýzy do zprávy podle rozhodnutí: co potřebují a do které kapitoly půjdou.', 'Z4Analyses'], ['5 · Model', 'Jen s výpočtem', 'Veličina, horizont, hranice, data a předpoklady s ručitelem.', 'Z5Model'], ['6 · Připravenost', 'Předání', 'Kontrola R1–R7, pak Data a Předpoklady převezmou, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
     boards: B.map(([id, f, t, d, c]) => ({ id, t, d, c, href: f + '.dc.html' })), boardCount: B.length,
     prin: [
       ['ph ph-target', 'Začít rozhodnutím', 'Co se rozhoduje, kdo a do kdy, mezi čím. Studie bez rozhodnutí je zvědavost.'],

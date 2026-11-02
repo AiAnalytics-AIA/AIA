@@ -4,7 +4,7 @@
   "title": "M4e · Výsledky: Velikost trhu",
   "w": 1440,
   "h": 1100,
-  "text_chars": 2154,
+  "text_chars": 2181,
   "errors": [],
   "failed_requests": [],
   "image": "01-KM10Market.webp"
@@ -14,7 +14,7 @@
   "title": "M4f · Výsledky: Logistika",
   "w": 1440,
   "h": 1620,
-  "text_chars": 2856,
+  "text_chars": 2863,
   "errors": [],
   "failed_requests": [],
   "image": "02-KM11Logistics.webp"
@@ -24,7 +24,7 @@
   "title": "M1 · Model: Data",
   "w": 1440,
   "h": 2730,
-  "text_chars": 5168,
+  "text_chars": 5175,
   "errors": [],
   "failed_requests": [],
   "image": "03-KM1Data.webp"
@@ -34,7 +34,7 @@
   "title": "M2 · Model: Předpoklady",
   "w": 1440,
   "h": 1940,
-  "text_chars": 3711,
+  "text_chars": 4082,
   "errors": [],
   "failed_requests": [],
   "image": "04-KM2Assumptions.webp"
@@ -44,7 +44,7 @@
   "title": "M3 · Model: Model",
   "w": 1440,
   "h": 1820,
-  "text_chars": 3636,
+  "text_chars": 3667,
   "errors": [],
   "failed_requests": [],
   "image": "05-KM3Model.webp"
@@ -54,17 +54,17 @@
   "title": "M4 · Model: Výsledky",
   "w": 1440,
   "h": 2420,
-  "text_chars": 4416,
+  "text_chars": 4421,
   "errors": [],
   "failed_requests": [],
   "image": "06-KM4Results.webp"
  },
  {
   "board": "KM5Map.dc.html",
-  "title": "M5 · Dosavadní mapa (aia-sociomap-5)",
+  "title": "M5 · Nahrazeno: dosavadní mapa (aia-sociomap-5)",
   "w": 1440,
   "h": 2340,
-  "text_chars": 3604,
+  "text_chars": 3809,
   "errors": [],
   "failed_requests": [],
   "image": "07-KM5Map.webp"
@@ -74,7 +74,7 @@
   "title": "M6 · Model: Zpráva",
   "w": 1440,
   "h": 1840,
-  "text_chars": 4730,
+  "text_chars": 5211,
   "errors": [],
   "failed_requests": [],
   "image": "08-KM6Report.webp"
@@ -84,7 +84,7 @@
   "title": "M4b · Výsledky: Business case a finance",
   "w": 1440,
   "h": 1880,
-  "text_chars": 3461,
+  "text_chars": 4004,
   "errors": [],
   "failed_requests": [],
   "image": "09-KM7Finance.webp"
@@ -94,7 +94,7 @@
   "title": "M4c · Výsledky: Účetnictví",
   "w": 1440,
   "h": 1400,
-  "text_chars": 2628,
+  "text_chars": 2681,
   "errors": [],
   "failed_requests": [],
   "image": "10-KM8Accounting.webp"
@@ -104,7 +104,7 @@
   "title": "M4d · Výsledky: Operační výzkum",
   "w": 1440,
   "h": 1600,
-  "text_chars": 3157,
+  "text_chars": 3164,
   "errors": [],
   "failed_requests": [],
   "image": "11-KM9Operations.webp"
@@ -114,7 +114,7 @@
   "title": "MVP · Definované MVP: přehled",
   "w": 1440,
   "h": 3050,
-  "text_chars": 7926,
+  "text_chars": 8018,
   "errors": [],
   "failed_requests": [],
   "image": "12-MV0Scope.webp"
@@ -124,7 +124,7 @@
   "title": "MV1 · Data: datová smlouva",
   "w": 1440,
   "h": 1940,
-  "text_chars": 3978,
+  "text_chars": 3726,
   "errors": [],
   "failed_requests": [],
   "image": "13-MV1Contract.webp"
@@ -134,7 +134,7 @@
   "title": "MV2 · Rešerše: typované vstupy",
   "w": 1440,
   "h": 2260,
-  "text_chars": 3919,
+  "text_chars": 3611,
   "errors": [],
   "failed_requests": [],
   "image": "14-MV2PublicData.webp"
@@ -144,7 +144,7 @@
   "title": "MV2b · Rešerše: zjištění podle analýz",
   "w": 1440,
   "h": 1700,
-  "text_chars": 3212,
+  "text_chars": 3163,
   "errors": [],
   "failed_requests": [],
   "image": "15-MV2bFindings.webp"
@@ -154,7 +154,7 @@
   "title": "MV3 · Výsledky: Sociomapa systémů",
   "w": 1440,
   "h": 2430,
-  "text_chars": 4018,
+  "text_chars": 4025,
   "errors": [],
   "failed_requests": [],
   "image": "16-MV3SystemMap.webp"
@@ -164,7 +164,7 @@
   "title": "MV4 · Osnova zprávy",
   "w": 1440,
   "h": 2725,
-  "text_chars": 4965,
+  "text_chars": 4809,
   "errors": [],
   "failed_requests": [],
   "image": "17-MV4XRay.webp"
@@ -204,7 +204,7 @@
   "title": "Z0 · Zadání: průchod",
   "w": 1440,
   "h": 2160,
-  "text_chars": 6091,
+  "text_chars": 6227,
   "errors": [],
   "failed_requests": [],
   "image": "21-Z0Flow.webp"
@@ -214,7 +214,7 @@
   "title": "Z1 · Zadání: začátek",
   "w": 1440,
   "h": 1900,
-  "text_chars": 3795,
+  "text_chars": 2861,
   "errors": [],
   "failed_requests": [],
   "image": "22-Z1Start.webp"
@@ -224,7 +224,7 @@
   "title": "Z2 · Zadání: triáž",
   "w": 1440,
   "h": 1590,
-  "text_chars": 4324,
+  "text_chars": 4359,
   "errors": [],
   "failed_requests": [],
   "image": "23-Z2Triage.webp"
@@ -234,7 +234,7 @@
   "title": "Z3 · Zadání: rozhodnutí a pravidlo",
   "w": 1440,
   "h": 2220,
-  "text_chars": 4934,
+  "text_chars": 5126,
   "errors": [],
   "failed_requests": [],
   "image": "24-Z3Decision.webp"
@@ -244,7 +244,7 @@
   "title": "Z4 · Zadání: analýzy do zprávy",
   "w": 1440,
   "h": 4390,
-  "text_chars": 6979,
+  "text_chars": 6550,
   "errors": [],
   "failed_requests": [],
   "image": "25-Z4Analyses.webp"
@@ -254,7 +254,7 @@
   "title": "Z5 · Zadání: obchodní model",
   "w": 1440,
   "h": 3560,
-  "text_chars": 6546,
+  "text_chars": 6343,
   "errors": [],
   "failed_requests": [],
   "image": "26-Z5Model.webp"
@@ -264,7 +264,7 @@
   "title": "Z7 · Zadání: připravenost a předání",
   "w": 1440,
   "h": 1360,
-  "text_chars": 3055,
+  "text_chars": 2960,
   "errors": [],
   "failed_requests": [],
   "image": "27-Z7Ready.webp"
