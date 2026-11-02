@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Zadání a obchodní model – průchod</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+.sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zcard.need{border-color:var(--you);background:var(--youwash)}
+.zlead{display:flex;flex-direction:column;gap:2px}
+.zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
+.zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
+.zrow>.zv{min-width:0}
+.zgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zcard{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.zcard.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.zcard h3{margin:0;font-size:14px;font-weight:600}
+.zcard p{margin:0;font-size:13px}
+.zq{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;gap:10px;font-size:13px}
+.zq .n{font-family:var(--mono);font-size:12px;color:var(--faint);flex:none;width:18px}
+.zq .why{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.zflag{display:flex;flex-direction:column;gap:6px;border:1px solid var(--you);background:var(--youwash);border-radius:6px;padding:10px 12px;font-size:13px}
+.zflag .was{color:var(--faint);text-decoration:line-through}
+.zword{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);padding:0 2px}
+.zt{width:100%;border-collapse:collapse;font-size:13px}
+.zt th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);background:var(--sunken);padding:8px 10px;border-bottom:1px solid var(--border)}
+.zt td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.zt tr.miss td{background:var(--youwash)}
+.zt td.num{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
+.zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
+.zm{box-shadow:inset 3px 0 0 var(--shviolet)}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
+.zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
+.zseq a{font-weight:500}
+.zstate{display:flex;align-items:center;gap:10px;padding:8px 24px;background:var(--sunken);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.zbox{font-family:inherit;width:100%;box-sizing:border-box;min-height:120px;font-size:15px;line-height:22px;padding:12px 14px}
+.zdrawer{width:360px;flex:none;border-left:1px solid var(--border);background:var(--raised);display:flex;flex-direction:column}
+.zdrawer .dh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px}
+.zdrawer .db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;font-size:13px}
+.zrub{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.zrub>div{display:grid;grid-template-columns:22px 28px minmax(0,1fr);gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:start;font-size:13px;background:var(--raised)}
+.zrub>div:last-child{border-bottom:0}
+.zrub>div.miss{background:var(--youwash)}
+.zrub .i{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
+.zrub .how{display:block;font-size:12px;color:var(--muted)}
+</style>
+</helmet>
+<div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px; background: var(--surface)">
+<div style="max-width: 1344px; display: flex; flex-direction: column; gap: 20px">
+  <div><div class="cap">Návrh · Zadání a obchodní model · případ Velis Commerce s.r.o. (smyšlený) · 2. 11. 2026</div>
+    <h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Zadání začíná rozhodnutím; obchodní model ho spočítá z dat klienta</h1>
+    <p class="muted" style="max-width: 860px; font-size: 14px; line-height: 21px">Studie <b>Obchodní model</b> říká, co která varianta firmě přinese: náklady, zisk, rizika a provedení, spočítané kódem z čísel klienta pod datovou smlouvou, z veřejných zdrojů a z předpokladů s ručitelem. Zadání vyplňuje výzkumník AIA podle klienta: nejdřív co se rozhoduje a jaký výsledek by rozhodnutí změnil. Pak předá každému dalšímu kroku jen to, co potřebuje. Desky se dají proklikat v pořadí; dole na každé je šipka dál. Klient i čísla jsou smyšlené.</p></div>
+
+  <section class="sec" aria-labelledby="z0-flow"><div class="sh"><span class="num">01</span><h2 id="z0-flow">Pět kroků Zadání</h2><span class="grow"></span><span class="cap">kliknutím otevřete desku</span></div>
+    <div class="sb"><div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="5"><a class="zcard" href="{{s.href}}" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal)">{{s.n}}</span><h3>{{s.t}}</h3><p class="muted">{{s.d}}</p></a></sc-for>
+    </div></div></section>
+
+  <section class="sec" aria-labelledby="z0-boards"><div class="sh"><span class="num">02</span><h2 id="z0-boards">Desky v pořadí</h2><span class="grow"></span><span class="cap">{{boardCount}} desek</span></div>
+    <div class="sb"><table class="zt"><thead><tr><th style="width: 70px">Deska</th><th style="width: 260px">Co ukazuje</th><th>Na co se dívat</th><th style="width: 190px">Případ</th></tr></thead><tbody>
+      <sc-for list="{{boards}}" as="b" hint-placeholder-count="9"><tr><td class="num"><a href="{{b.href}}">{{b.id}}</a></td><td><a href="{{b.href}}">{{b.t}}</a></td><td class="muted">{{b.d}}</td><td class="muted">{{b.c}}</td></tr></sc-for>
+    </tbody></table></div></section>
+
+  <div class="zgrid2">
+    <section class="sec" aria-labelledby="z0-prin"><div class="sh"><span class="num">03</span><h2 id="z0-prin">Na čem stojí</h2></div>
+      <div class="sb"><sc-for list="{{prin}}" as="p" hint-placeholder-count="6"><div class="li"><i class="{{p.ic}}" style="margin-top: 2px"></i><div class="tx"><b>{{p.t}}</b><span class="cap" style="display: block">{{p.d}}</span></div></div></sc-for></div></section>
+    <section class="sec" aria-labelledby="z0-keep"><div class="sh"><span class="num">04</span><h2 id="z0-keep">Co zůstává, jak je rozhodnuto</h2></div>
+      <div class="sb"><sc-for list="{{keep}}" as="k" hint-placeholder-count="6"><div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx">{{k.t}}<span class="cap" style="display: block">{{k.d}}</span></div></div></sc-for></div></section>
+  </div>
+  <p class="cap">Vychází z návrhu koordinátora (zásady, katalog polí, R1–R7, D1–D7) a ze schválené desky 1 · Zadání. Ta zůstává beze změny, dokud nerozhodnete. Otázky D1–D7 jsou na stránce koordinátora.</p>
+  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova zprávy a Zpráva. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2290}}'>
+class Component extends DCLogic {
+renderVals() {
+  const B = [
+    ['Z1', 'Z1Start', 'Začátek', 'Jedno povinné pole a podklady; Ada z textu vyčte, co už ví, a navrhne, které další podklady by pomohly a kam půjdou.', 'Velis'],
+    ['Z2', 'Z2Triage', 'Triáž', 'Ada rozepíše Zadání v 8 částech, každou se zdrojem a s tím, kam půjde; tři otázky seřazené podle toho, kolik změní doporučení.', 'Velis'],
+    ['Z3', 'Z3Decision', 'Společné jádro', 'Rozhodnutí a cíl firmy, sedm možností a omezení, pravidlo s prahem a mezí rizika, cíle, provedení a výstup. Stav „chybí mez rizika“.', 'Velis'],
+    ['Z4', 'Z4Analyses', 'Analýzy do zprávy', 'SWOT, PESTEL, Porter, Blue Ocean, TAM/SAM/SOM, finance, provoz, logistika, řízení a architektura: Ada navrhne podle rozhodnutí, výzkumník vybere; co každá potřebuje a kam ve zprávě půjde.', 'Velis'],
+    ['Z5', 'Z5Model', 'Části modelu', 'Příspěvek po logistice, horizont a časování, hranice, data (soubor → číslo, dvě chybí), předpoklady s ručitelem, souvislosti, co může výsledek otočit.', 'Velis · model'],
+    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání drží chybějící mez rizika; co převezme Návrh, Vzorek, Data a Zpráva.', 'Velis'],
+    ['M1', 'KM1Data', 'Model · Data', 'Devět souborů, u každého, která část Zadání ho vyžádala; čísla se stránkou; kontrola dat a kapacity.', 'Velis · model'],
+    ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Devatenáct předpokladů s rozsahem, zdrojem a ručitelem; dva z dat o zpožděních.', 'Velis · model'],
+    ['M3', 'KM3Model', 'Model · Model', 'Sedm variant, příspěvek po logistice, časování, kapacita, zůstatková hodnota a přechod.', 'Velis · model'],
+    ['M4', 'KM4Results', 'Model · Výsledky: Rozhodnutí', 'Pravidlo pro sedm variant, rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace.', 'Velis · model'],
+    ['M4b', 'KM7Finance', 'Model · Výsledky: Finance', 'NPV, IRR, návratnost, ceny pro bod zvratu, cenová elasticita dopravy.', 'Velis · model'],
+    ['M4c', 'KM8Accounting', 'Model · Výsledky: Účetnictví', 'Výsledovka a rozvaha 2025, plán proti skutečnosti, ukazatele zdraví firmy v roce 2028.', 'Velis · model'],
+    ['M4d', 'KM9Operations', 'Model · Výsledky: Provoz', 'Předpověď po měsících proti kapacitě, lineární program pro špičky, pojistné zásoby.', 'Velis · model'],
+    ['M4e', 'KM10Market', 'Model · Výsledky: Trh', 'TAM, SAM a podíl Velis; je plán růstu realistický; data klienta jako vstup.', 'Velis · model'],
+    ['M5', 'KM5Map', 'Model · Sociomapa strategií', 'Sedm variant v 800 scénářích, engine aia-sociomap-5; interní, metoda čeká na schválení.', 'Velis · model'],
+    ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení C2 se zálohou B2, plán provedení s pilotem a hranice k hlídání; každé číslo se stupněm.', 'Velis · model'],
+    ['MVP', 'MV0Scope', 'Definované MVP', 'Cesta studie, funkce, pořadí stavby, kritéria přijetí M-1 až M-10.', 'MVP'],
+    ['MV1', 'MV1Contract', 'Data · datová smlouva', 'Sloupce, osobní údaje, zpráva o kvalitě; bez přijaté smlouvy nic do výpočtu.', 'MVP'],
+    ['MV2', 'MV2PublicData', 'Veřejná data', 'Typované vstupy z rejstříků a statistik, rozpor řeší člověk, kvalita citací, GDPR.', 'MVP'],
+    ['MV3', 'MV3SystemMap', 'Sociomapa systémů', 'Čtyři režimy, nové statistiky a testy věrohodnosti, expertní mapa.', 'MVP'],
+    ['MV4', 'MV4XRay', 'Osnova zprávy', 'Body zprávy s odkazem u každého čísla, vizualizace a zastávky.', 'MVP'],
+    ['MV6', 'MV6Catalogue', 'Katalog analýz', 'Všechny analýzy v sedmi skupinách: z čeho vznikají, stupeň, kapitola osnovy, MVP nebo později.', 'MVP'],
+    ['MV5', 'MV5Validation', 'Metodika', 'Validační sada, deset rozhodnutí pro metodika, registr metod.', 'MVP'],
+  ];
+  return {
+    theme: this.props.theme ?? 'light',
+    steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada rozepíše Zadání', 'Osm částí se zdrojem a tři otázky podle hodnoty odpovědi. Rozhoduje výzkumník.', 'Z2Triage'], ['3 · Jádro', 'Rozhodnutí, cíl, riziko', 'Co se rozhoduje a proč, co chce firma získat, možnosti a omezení, pravidlo s mezí rizika, provedení.', 'Z3Decision'], ['4 · Analýzy a model', 'Co zpráva zahrne', 'Analýzy do zprávy podle rozhodnutí; pak veličina, data a předpoklady s ručitelem.', 'Z4Analyses'], ['5 · Předání', 'Připravenost', 'Kontrola R1–R7, pak Data a Předpoklady převezmou, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
+    boards: B.map(([id, f, t, d, c]) => ({ id, t, d, c, href: f + '.dc.html' })), boardCount: B.length,
+    prin: [
+      ['ph ph-target', 'Začít rozhodnutím', 'Co se rozhoduje, kdo a do kdy, mezi čím. Studie bez rozhodnutí je zvědavost.'],
+      ['ph ph-scales', 'Pravidlo předem', 'Než přijdou data, platí věta „zvolíme X, když ukazatel ≥ práh“. Výsledek se pak nečte podle přání.'],
+      ['ph ph-path', 'Metoda z otázky', 'Náklady, kapacity a riziko: model z čísel klienta. Chování zákazníků: data klienta o tom, co skutečně udělali.'],
+      ['ph ph-book-open', 'Co už víme', 'Data, dřívější studie a domněnky, každá s jistotou. Domněnka se stane hypotézou nebo předpokladem.'],
+      ['ph ph-squares-four', 'Hranice a omezení', 'Kdo nebo co je uvnitř, horizont, smlouvy, kapacity, rozpočet, termín, co je mimo.'],
+      ['ph ph-shield-check', 'Riziko a provedení', 'Kolik horší výsledek firma unese, jak to vyzkoušet pilotem a co po rozhodnutí hlídat.'],
+      ['ph ph-user-check', 'Každý předpoklad má ručitele', 'Hodnota nebo rozsah, zdroj, kdo za ni ručí. Nic se nepoužije, dokud to výzkumník nepřijme.']
+    ].map(([ic, t, d]) => ({ ic, t, d })),
+    keep: [
+      ['Cíle zůstávají na Zadání a další kroky je čtou odsud.', 'rozhodnuto dříve (spec Návrh B4)'],
+      ['Data převezmou soubory, Předpoklady rozsahy s ručitelem, Model varianty.', 'Zadání je popíše slovy a předá jako návrh'],
+      ['Připravenost je řádek čipů pod hlavičkou kroku; čip otevře detail.', 'spec Zadání 1.1'],
+      ['Placená úloha jen přes kartu s částkou (Analýza zadání, nejvýše 0,40 USD).', 'triáž je běžný tah Vedoucího; nic nepřijme sama'],
+      ['Žádné třídy dat na obrazovce; soubor je Důvěrný nebo Veřejný.', 'rozhodnuto 26.–28. 10.'],
+      ['Kompaktní hlavička kroku, panel Vedoucího je Chat F, vzhled core v4.3.', 'UI-1, 28. 10.']
+    ].map(([t, d]) => ({ t, d }))
+  };
+}
+}
+</script>
+</body>
+</html>
