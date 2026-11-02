@@ -2,7 +2,7 @@
 
 **Status:** Proposed — 2026-11-02. Decisions 1 to 4 are the product owner's, given in the PM
 coordinator's chat on 2026-11-02 and quoted below. Later the same day he answered the six questions this
-record left open and nine more (§ The owner's answers, later on 2 Nov). Those answers settle parts of
+record left open and ten more (§ The owner's answers, later on 2 Nov). Those answers settle parts of
 decisions 2, 3, 4, 5, 6 and 8, and each of those decisions says where. The rest are this record's
 proposals, which take effect when he approves this record. What still needs the methodology owner's
 answer is listed under § Open.
@@ -46,6 +46,7 @@ coordinator put to him; the label of the option he chose, or his own words where
 | A12 | The SOMECS name (Q4) | "Sociomapa systémů; Aram checks": never SOMECS; A. Bahbouh confirms the name and the method's licence before any client use (decision 5) |
 | A13 | How wide are the diagrams in the MVP? | "All six in MVP": every rendering stack of `diagrams` (decision 3) |
 | A14 | Deep Research's engine freeze and v2 | "Lift for v2 only": v2's listed capabilities are sanctioned; retrieval, grounding and the bundle stay frozen (decision 6) |
+| A15 | The stage's name | "i just called it an xray, lets change the name for that", then "Osnova zprávy": in English, the report outline (decision 3) |
 
 **The evidence:** [`.planning/evidence/pivot-research-2026-11-02.md`](../../../.planning/evidence/pivot-research-2026-11-02.md),
 the owner's document "AIA pivot research: rebuilding for business decisions" (2 Nov 2026). Its
@@ -151,24 +152,24 @@ nine, in five groups:
 | Výpočet | **Model** | the quantitative model (ADR 0044) |
 | Evidence | **Výsledky** | the model's results in their views |
 | | **Sociomapa** | a Sociomapa systémů map (decision 5) |
-| Předání | **Rentgen zprávy**, the report X-ray | see below |
+| Předání | **Osnova zprávy**, the report outline | see below |
 | | **Zpráva** | the report |
 
 - **The model steps appear when the decision needs a model.** Data, Předpoklady, Model and Výsledky
   are shown when Zadání says a model is needed. A study whose decision needs none goes from Rešerše to
-  the X-ray.
-- **The report X-ray** is new and may have more than one stop. It is the report's own outline with the
+  the report outline.
+- **The report outline (Osnova zprávy)** is new and may have more than one stop. It is the report's own structure with the
   prose taken out: every finding, data point and point the report will make, each with its table, graph,
   process diagram or other visual. Every number and claim is a link to its source or its method. The
   researcher works through what Deep Research found, the results and the map with their Lead, checks
-  them, and builds the X-ray. A point whose link does not resolve cannot reach the report.
-- **Zpráva** is prose written around exactly the X-ray's closed points, each number and claim keeping
+  them, and builds the report outline. A point whose link does not resolve cannot reach the report.
+- **Zpráva** is prose written around exactly the report outline's closed points, each number and claim keeping
   its link, composed and approved there.
 
-This changes the order the owner's first words gave: Sociomapa now comes before the X-ray, as on the
+This changes the order the owner's first words gave: Sociomapa now comes before the report outline, as on the
 canvas, so the map's points can enter it.
 
-The owner's words on the X-ray (2026-11-02): "a stage where the bare bone findings are presented in a
+The owner's words on the stage he first called the X-ray (2026-11-02): "a stage where the bare bone findings are presented in a
 structure of the report … its almost as if you had the report but took out all hte claims and data and
 got an xray view of the report with all the main points. everything should be verifiable and ideally
 numbers or claims have hyperlinks connected to see what the source or methodology for that claim/figure
@@ -188,10 +189,10 @@ after the MVP. Ada proposes a set for each decision type ("Ada proposes per deci
 framework holds is a cited finding, a client-data number, a model result or a named expert's score
 ("Sourced points only"). The one exception is the researcher's own judgement (A3: "Allow, labelled"): a
 point may be it, printed with its own grade and its author's name, never mixed with sourced points. The selection drives Deep Research's plan, the model's views, the expert forms
-and the X-ray's outline. The work is
+and the report outline. The work is
 [`analysis-frameworks`](../../../.planning/plans/analysis-frameworks.md).
 
-The X-ray's visuals are specs, never pictures: BPMN, data-flow, state and the other diagrams, every chart
+The report outline's visuals are specs, never pictures: BPMN, data-flow, state and the other diagrams, every chart
 and every table are typed specs the Lead proposes, code validates, the researcher accepts and the server
 renders (the owner, 2026-11-02, "bpmn diagrams, data flow diagrams, state diagrasm, any type of graph,
 and table"). All six rendering stacks are in the MVP (A13: "All six in MVP"). The work is

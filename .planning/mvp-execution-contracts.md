@@ -92,11 +92,11 @@ rows above stay as they were except E17, re-waved to W1. The rows below are new.
 | E43 | W2 | S2/S3: `public-data-routes#PDR1`, `public-data-routes#PDR2`, `public-data-routes#PDR3`, `public-data-routes#PDR4`, `public-data-routes#PDR5`, `public-data-routes#PDR6`, `public-data-routes#PDR8`, `register-personal-data#RPD2`, `register-personal-data#RPD3` | E42 | Each route behind recorded doubles with golden responses pinned by hash, admitted values byte-equal to the response; VIES never stored, NEN's login data refused; a person-naming field released only after its balancing test |
 | E44 | W2 | S2: `deep-research-v2#DRV1`, `deep-research-v2#DRV2`, `deep-research-v2#DRV3`, `deep-research-v2#DRV4` | E42 | Typed inputs (value, unit, period, range, source, licence, as-of) extracted by code at F1 >= 0.90 on the labelled Czech set, accepted by a person; citation precision and recall in verify with a calibrated judge |
 | E45 | W3 | S2: `deep-research-v2#DRV5`, `deep-research-v2#DRV6`, `deep-research-v2#DRV7`, `public-data-routes#PDR7` | E43, E44 | Credibility v2 from declared tables (a model's score refused), contradictions resolved by a person, as-of research with each capture's own datetime; Sbírka listin statements extracted with review and the review's cost measured |
-| E46 | W1 | S1/S2: `research-findings-stage#FND0`, `research-findings-stage#FND1`, `research-findings-stage#FND2` | E06 | The report X-ray's contract (outline, points, visuals, links) and its ADR record; the survey stages left out of new research studies and read-only on old ones; every number and claim a link resolved by code, an unresolved one unverified |
-| E47 | W2 | S1/S2: `research-findings-stage#FND3`, `research-findings-stage#FND4`, `research-findings-stage#FND5`, `research-findings-stage#FND6`, `research-findings-stage#FND7`, `research-findings-stage#FND8` | E44, E46 | Findings, typed values, tables, graphs and process diagrams in the X-ray, every cell and mark linked; the Lead proposes per change; stops closed by a person |
-| E48 | W3 | S1/S2/S3: `research-findings-stage#FND9`, `research-findings-stage#FND10` | E20, E40, E47 | Zpráva written from the closed X-ray only (no point it does not hold), every number and claim keeping its link; the research study's Sociomapa stage over the expert map |
+| E46 | W1 | S1/S2: `research-findings-stage#FND0`, `research-findings-stage#FND1`, `research-findings-stage#FND2` | E06 | The report outline's contract (structure, points, visuals, links) and its ADR record; the survey stages left out of new research studies and read-only on old ones; every number and claim a link resolved by code, an unresolved one unverified |
+| E47 | W2 | S1/S2: `research-findings-stage#FND3`, `research-findings-stage#FND4`, `research-findings-stage#FND5`, `research-findings-stage#FND6`, `research-findings-stage#FND7`, `research-findings-stage#FND8` | E44, E46 | Findings, typed values, tables, graphs and process diagrams in the report outline, every cell and mark linked; the Lead proposes per change; stops closed by a person |
+| E48 | W3 | S1/S2/S3: `research-findings-stage#FND9`, `research-findings-stage#FND10` | E20, E40, E47 | Zpráva written from the closed report outline only (no point it does not hold), every number and claim keeping its link; the research study's Sociomapa stage over the expert map |
 | E49 | W3 | S4/S5: `quantitative-families#MKT2`, `quantitative-families#MKT4`, `quantitative-families#MKT5` | E36, E43, E44 | Top-down market sizing as a chain of typed public inputs, the weakest step printed; the market-sizing Deep Research purpose with queries from a person's focus; confirmed by the owner (ADR 0046 Q6, A10: "Top-down is enough") |
-| E50 | W4 | S1/S2/S3: `research-findings-stage#FND11` | E48 | A fictional research study from brief to approved report through the X-ray, every link resolving; zero paid calls |
+| E50 | W4 | S1/S2/S3: `research-findings-stage#FND11` | E48 | A fictional research study from brief to approved report through the report outline, every link resolving; zero paid calls |
 
 **Parked by the freeze.** Rows E08, E13, E14, E29, E30, E31, E32, E33 and E34 are parked whole. Every
 open chunk of a plan the master plan's §3.3 marks PARKED is parked. So are these chunks of plans that
@@ -110,7 +110,7 @@ on develop. E24 and E25, the final acceptance, are rewritten with the criteria b
 `mvp-master-plan#MP17`.
 
 **The critical path since the pivot:** E17 (W1) → E36 (W2) → E37 (W3) → E39 (W3), with E35 → E38
-feeding the maps and E42 → E43/E44 → E45 feeding the models and the X-ray. A methodology answer that
+feeding the maps and E42 → E43/E44 → E45 feeding the models and the report outline. A methodology answer that
 does not come moves the forecast. It never reduces scope silently.
 
 ## Every other open chunk of a core plan

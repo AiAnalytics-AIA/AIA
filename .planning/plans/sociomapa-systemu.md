@@ -37,7 +37,7 @@ the session that takes it reviews this plan first.
 The owner, 2 Nov (ADR 0046 A6, "Show option clusters"): the scenario and expert maps show which options
 win in the same futures, and which hedge each other. A map explains a decision; it never makes one.
 SYS9 and SYS10 are judged by this: the clusters and the hedges it draws must be the ones the synthetic
-suite planted (SYS1), and each reaches the X-ray as a point with its method link
+suite planted (SYS1), and each reaches the report outline as a point with its method link
 (`research-findings-stage#FND10`).
 
 ## What is reused

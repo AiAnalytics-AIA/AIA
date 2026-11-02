@@ -74,7 +74,7 @@ kind wins, and the others are stale until fixed.
 [`pivot-research-2026-11-02.md`](../evidence/pivot-research-2026-11-02.md) and said "we are pivoting".
 AIA now researches business decisions. The AI-respondent survey lane is frozen: "Freeze it now". The
 first deliverable is this replan, approved before any build work. Later the same day he answered the
-record's six open questions and nine more (ADR 0046 § The owner's answers, later on 2 Nov, A1-A14); this
+record's six open questions and ten more (ADR 0046 § The owner's answers, later on 2 Nov, A1-A15); this
 section carries them.
 
 **What changes in this register.**
@@ -114,8 +114,8 @@ and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
     `public-data-routes` and `register-personal-data`.
 - **One study for a business decision** (A2: "One merged study"), as on the canvas "AIA Obchodní model –
   prototyp": Zadání → Data → Rešerše (Design Research) → Předpoklady → Model → Výsledky → Sociomapa → the
-  report X-ray → Zpráva. The model steps appear only when Zadání says a model is needed; there is no
-  separate "Modely" area (`cost-model-study` CP3, CP6, CP7). The X-ray is the report's outline with its
+  report outline → Zpráva. The model steps appear only when Zadání says a model is needed; there is no
+  separate "Modely" area (`cost-model-study` CP3, CP6, CP7). The report outline (Osnova zprávy) is the report's structure with its
   prose taken out: every point, number and visual, each number and claim linked to its source or method;
   one stop or several, built with the Lead (`research-findings-stage`; the owner's words are in ADR 0046).
   New studies don't show the survey stages. Old ones show them read-only until the lane is archived.
@@ -127,7 +127,7 @@ and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
   2 Nov 2026):
   - M-1: a client file enters a computation only under an accepted data contract. A column the contract
     doesn't name, or a personal column, never leaves the analysis copy.
-  - M-2: every number on Výsledky, in the report X-ray and in the report links to its source. That is a file
+  - M-2: every number on Výsledky, in the report outline and in the report links to its source. That is a file
     and its row or page, a public input with its response hash, or a model run with its method version.
   - M-3: the same inputs and seed give the same bytes, `CALCULATED` and `ESTIMATED` alike.
   - M-4: the decision rule is written before the results and judged as written.
@@ -139,7 +139,7 @@ and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
   - M-8: a map draws an edge only when it beats its surrogate null after FDR and survives the block
     bootstrap. Its never-claim list is on screen and in the report. The scenario and expert maps show
     which options win in the same futures and which hedge each other (A6).
-  - M-9: the report says only what the closed X-ray holds. An unverified point cannot enter it.
+  - M-9: the report says only what the closed report outline holds. An unverified point cannot enter it.
   - M-10: the whole fictional Velis journey runs over HTTP and in a browser on recorded doubles, with zero
     paid calls, within the study's spend limit.
 
@@ -417,12 +417,12 @@ the disposition, and its owner closes it with a pointer when the receiving plan 
 | `cost-model-study` | S4 and S5 (ADR 0044's sessions) | I-2, I-3 (proposed) | **core since the pivot (2026-11-02, ADR 0046 decision 4)**; the data contracts (E17) before CP4; ADR 0044 stays Proposed (the owner: "Keep it Proposed"); CP10 and CR1-CR10 after the methodology owner's answers 8-10; CS1-CS5 after `sociomapa-systemu` SYS9 |
 | `situation-reports` | S4 to S6 (ADR 0045's sessions) | I-3 (proposed) | **core since the pivot**: the expert map EX1-EX2 in the MVP (the owner, 2026-11-02: "Both maps in the MVP"); SR0 (ADR 0045 accepted) before RC1-RC6; FW1 (imported fieldwork) a scope call |
 | `quantitative-families` | S4 and S5 | I-3, I-4 (proposed) | **core**: the owner, 1 Nov 2026 (research-stages prototype v29, after talking to the executive), finance, accounting, operations research and market size "from the beginning", and ADR 0045 (30 Oct) for market sizing; ACC, FIN and OR in W3 after the platform, MKT2, MKT4 and MKT5 in W3 (E49); MKT1, MKT3 and LINK1 parked (survey-derived) |
-| `research-findings-stage` | S1 with S2 | I-1 to I-4 (proposed) | **new, 2026-11-02**: the owner's report X-ray, a research study's findings stage (every point linked to its source or method); FND0's contract first; FND1 before a new study hides the survey stages |
+| `research-findings-stage` | S1 with S2 | I-1 to I-4 (proposed) | **new, 2026-11-02**: the owner's report outline (Osnova zprávy), a research study's findings stage (every point linked to its source or method); FND0's contract first; FND1 before a new study hides the survey stages |
 | `sociomapa-systemu` | S2 and the methodology owner | I-2 (proposed) | **new, 2026-11-02** (ADR 0046 decision 5): SYS0's answers before each replaced statistic; SYS11 only after the suite passes |
 | `deep-research-v2` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decision 6): DRV0 before any structured or archive route goes live |
 | `public-data-routes` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decisions 6-7): `deep-research-v2#DRV0` first; person-naming fields after `register-personal-data#RPD2` |
 | `analysis-frameworks` | S1 with S2, S4 and S5 | I-2 to I-4 (proposed) | **new, 2026-11-02**: the owner's frameworks in Zadání (SWOT, PESTEL, Blue Ocean, TAM/SAM/SOM, finance, operations, logistics, governance, architecture), "Ada proposes per decision", "Sourced points only"; AF0's catalogue first; AF6 with `research-findings-stage#FND2`; portfolio frameworks after the MVP |
-| `diagrams` | S1 and S2 | I-2, I-3 (proposed) | **new, 2026-11-02**: the owner's "bpmn diagrams, data flow diagrams, state diagrasm, any type of graph, and table" for the Lead to control; DG0's spike and licences before any dependency; DG1's spec type before the X-ray's visuals (`research-findings-stage#FND4` to `#FND6`) |
+| `diagrams` | S1 and S2 | I-2, I-3 (proposed) | **new, 2026-11-02**: the owner's "bpmn diagrams, data flow diagrams, state diagrasm, any type of graph, and table" for the Lead to control; DG0's spike and licences before any dependency; DG1's spec type before the report outline's visuals (`research-findings-stage#FND4` to `#FND6`) |
 | `register-personal-data` | S3 and the legal counsel the owner names | I-3 (proposed) | **new, 2026-11-02** (ADR 0046 decision 7): RPD0 written with counsel before any register field naming a person reaches a study |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.

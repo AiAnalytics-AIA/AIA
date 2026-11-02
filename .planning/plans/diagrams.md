@@ -10,7 +10,7 @@ chunks:
   - "[ ] DG6. Tables as one typed spec: plain, cross-tab, matrix (RACI), heat table, comparison with conditional marks, financial statement with indented subtotals; every cell a reference; the same table on screen (TanStack Table) and in the DOCX (report_docx tables)"
   - "[ ] DG7. The Lead's visual tools: it proposes a visual as a typed spec, per change, through the edit vocabulary (ADR 0026); the spec is validated before the researcher sees it; a number enters only as a reference it was given, never typed by the model; read tools for the visuals that exist"
   - "[ ] DG8. Editors on screen: the bpmn-js modeller, Mermaid text with a live preview, a chart form over the Vega-Lite spec, a form per framework template, React Flow for free node diagrams; every edit a working-copy operation, revision-checked"
-  - "[ ] DG9. Into the report: each figure from its stored render, never browser bytes (the map snapshot's rule, report-delivery RD4); caption with its sources, alt text, numbered with the outline; the X-ray links each element to its source (research-findings-stage FND2)"
+  - "[ ] DG9. Into the report: each figure from its stored render, never browser bytes (the map snapshot's rule, report-delivery RD4); caption with its sources, alt text, numbered with the outline; the report outline links each element to its source (research-findings-stage FND2)"
   - "[ ] DG10. Accessibility and the design system: alt text and a long description on every visual, the palette's contrast and colour-vision checks (scripts/check-design.mjs) extended to diagram and template colours, print sizes for the DOCX"
   - "[ ] DG11. After the MVP: ArchiMate notation (no open-source web renderer found; a symbol set on React Flow, or Archi's exchange format), value stream maps, customer journey maps, Sociomap-style overlays on diagrams"
 ---
@@ -29,7 +29,7 @@ diagrams we want".
 3. The researcher accepts it per change.
 4. The server renders it deterministically for the report.
 
-This is the report X-ray's rule ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)
+This is the report outline's rule ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)
 decision 3) applied to visuals: `research-findings-stage` FND4-FND6 and `analysis-frameworks` AF6 build on
 this plan.
 
@@ -59,7 +59,7 @@ The control round's sources:
 - the owner's list;
 - the 42 frameworks of `analysis-frameworks`;
 - the charts already drawn on the prototype's M boards;
-- the X-ray's visuals.
+- the report outline's visuals.
 
 **Status:** MVP, or after the MVP (DG11).
 
@@ -68,7 +68,7 @@ The control round's sources:
 | BPMN process (pools, lanes, gateways, events) | the owner; SIPOC, gap analysis, operating model | bpmn-js | MVP |
 | Data-flow diagram | the owner; systems and data flows | Graphviz, or React Flow + elkjs | MVP |
 | State diagram | the owner; order and return lifecycles | Mermaid | MVP |
-| Flowchart, decision tree | process maps, the X-ray's plan of execution | Mermaid / Graphviz | MVP |
+| Flowchart, decision tree | process maps, the report outline's plan of execution | Mermaid / Graphviz | MVP |
 | Sequence diagram | integrations with the 3PL | Mermaid | MVP |
 | Entity-relationship diagram | data contracts, systems | Mermaid | MVP |
 | C4 / system context | enterprise architecture | Mermaid (C4) | MVP |

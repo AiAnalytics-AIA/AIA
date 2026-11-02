@@ -1,16 +1,16 @@
 ---
 status: planned
 chunks:
-  - "[ ] AF0. The catalogue as data: every framework with its id, group, the question it answers, how it is produced (computed by code, cited Deep Research points, synthesis, named experts), its inputs (client data, Deep Research, experts), its grade, its X-ray chapter kind and its MVP flag; versioned, one fixture read by Python and TypeScript; a framework point is a typed reference (an accepted finding, an admitted client-data claim, a model result, an expert's score) or the researcher's own judgement, labelled with its grade and author (ADR 0046 A3), never unlabelled free text (W1)"
+  - "[ ] AF0. The catalogue as data: every framework with its id, group, the question it answers, how it is produced (computed by code, cited Deep Research points, synthesis, named experts), its inputs (client data, Deep Research, experts), its grade, its report outline chapter kind and its MVP flag; versioned, one fixture read by Python and TypeScript; a framework point is a typed reference (an accepted finding, an admitted client-data claim, a model result, an expert's score) or the researcher's own judgement, labelled with its grade and author (ADR 0046 A3), never unlabelled free text (W1)"
   - "[ ] AF1. The default sets: decision type to the frameworks Ada proposes, as data the owner approves; the Lead proposes a set with one reason per framework, the researcher accepts per change (ADR 0026); a framework that needs register fields naming persons is never proposed before its balancing test (W2)"
-  - "[ ] AF2. The Zadání picker (prototype board Z4): the groups, a toggle per framework, what each needs, the Deep Research cost ceiling of the selection, the X-ray chapters and the expert forms it creates; saved on the study's working copy; post-MVP frameworks shown and disabled (W2)"
+  - "[ ] AF2. The Zadání picker (prototype board Z4): the groups, a toggle per framework, what each needs, the Deep Research cost ceiling of the selection, the report outline chapters and the expert forms it creates; saved on the study's working copy; post-MVP frameworks shown and disabled (W2)"
   - "[ ] AF3. The selection drives Deep Research: each framework that needs research becomes subjects of the Design Research plan, its ceiling pinned at enqueue; a deselected framework takes its subjects out of the next run (W2, after deep-research-v2 DRV0)"
   - "[ ] AF4. The selection drives the model: each computed framework switches on its view on Výsledky (Finance, Účetnictví, Provoz, Logistika, Trh) through cost-model-study and quantitative-families; a framework whose data contract is missing says which file it waits for (W3)"
   - "[ ] AF5. The selection drives the experts: each expert-scored framework (the Blue Ocean strategy canvas, the risk register, RACI, the architecture frameworks) creates a scoring form for named raters, through situation-reports EX1's expert panel (W3)"
-  - "[ ] AF6. The selection drives the report X-ray: each framework a chapter or a part of one, with its point slots (SWOT's four quadrants, PESTEL's six factors, Porter's five forces); a point without a resolving source link is refused (research-findings-stage FND2) (W2)"
+  - "[ ] AF6. The selection drives the report outline: each framework a chapter or a part of one, with its point slots (SWOT's four quadrants, PESTEL's six factors, Porter's five forces); a point without a resolving source link is refused (research-findings-stage FND2) (W2)"
   - "[ ] AF7. Logistics frameworks: cost-to-serve, make-or-buy and 3PL total cost of ownership, network and warehouse location (centre of gravity), service level and OTIF, transport cost by zone, warehouse sizing, each computed by code from client data under its contract and public inputs (W3)"
   - "[ ] AF8. Corporate governance and enterprise architecture frameworks: ownership and group structure (after register-personal-data RPD2), RACI, risk management (COSO ERM, ISO 31000), compliance obligations, internal control; the capability map, current and target state with the gap, systems and data flows, the operating model; expert-scored or cited, never written by a model (W3)"
-  - "[ ] AF9. The journey: a fictional study picks its frameworks in Zadání and gets an X-ray with SWOT, PESTEL, Porter, TAM/SAM/SOM and cost-to-serve chapters, every point linked to its source; recorded doubles, zero paid calls (W4)"
+  - "[ ] AF9. The journey: a fictional study picks its frameworks in Zadání and gets a report outline with SWOT, PESTEL, Porter, TAM/SAM/SOM and cost-to-serve chapters, every point linked to its source; recorded doubles, zero paid calls (W4)"
   - "[ ] AF10. After the MVP: the portfolio frameworks (Ansoff, BCG, GE-McKinsey, VRIO, value chain, McKinsey 7S) enabled in the picker"
 ---
 # Analysis frameworks: chosen in Zadání, each point with its source
@@ -30,7 +30,7 @@ Written 2026-11-02 on the product owner's request, in the PM coordinator's chat:
 - Later the same day, on a researcher's own judgement: "Allow, labelled" (ADR 0046 A3).
 
 The design is drawn on the "AIA Obchodní model – prototyp" canvas: Z4 (the picker) and MV6 (the
-catalogue, 42 frameworks in seven groups, 36 in the MVP). The X-ray's SWOT chapter on MV4 is the worked
+catalogue, 42 frameworks in seven groups, 36 in the MVP). The report outline's SWOT chapter on MV4 is the worked
 example. The rule behind it is
 [ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md) decision 3.
 
@@ -48,7 +48,7 @@ A framework point is a reference, never unlabelled prose. It is one of five thin
   sourced points (A3).
 
 The Lead proposes and sorts points; it never writes one without a source, and it never writes a
-judgement point: a person does. The X-ray refuses an unsourced point that is not a labelled judgement,
+judgement point: a person does. The report outline refuses an unsourced point that is not a labelled judgement,
 so it cannot reach the report.
 
 ## Out of the MVP
