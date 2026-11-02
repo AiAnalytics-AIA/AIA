@@ -101,6 +101,8 @@ first deliverable is this replan, approved before any build work.
   - `quantitative-families`: finance, accounting, operations research and market size, in the MVP "from
     the beginning" (the owner, 1 Nov 2026, prototype v29); only its survey-derived chunks MKT1, MKT3 and
     LINK1 are parked;
+  - `analysis-frameworks`: the frameworks the researcher picks in Zadání, Ada proposing per decision
+    and every point sourced (the owner, 2 Nov);
   - five new plans: `research-findings-stage`, `sociomapa-systemu`, `deep-research-v2`,
     `public-data-routes` and `register-personal-data`.
 - **A research study** keeps Zadání, Návrh with Design Research, and Zpráva. Between them come the new
@@ -402,6 +404,7 @@ the disposition, and its owner closes it with a pointer when the receiving plan 
 | `sociomapa-systemu` | S2 and the methodology owner | I-2 (proposed) | **new, 2026-11-02** (ADR 0046 decision 5): SYS0's answers before each replaced statistic; SYS11 only after the suite passes |
 | `deep-research-v2` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decision 6): DRV0 before any structured or archive route goes live |
 | `public-data-routes` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decisions 6-7): `deep-research-v2#DRV0` first; person-naming fields after `register-personal-data#RPD2` |
+| `analysis-frameworks` | S1 with S2, S4 and S5 | I-2 to I-4 (proposed) | **new, 2026-11-02**: the owner's frameworks in Zadání (SWOT, PESTEL, Blue Ocean, TAM/SAM/SOM, finance, operations, logistics, governance, architecture), "Ada proposes per decision", "Sourced points only"; AF0's catalogue first; AF6 with `research-findings-stage#FND2`; portfolio frameworks after the MVP |
 | `register-personal-data` | S3 and the legal counsel the owner names | I-3 (proposed) | **new, 2026-11-02** (ADR 0046 decision 7): RPD0 written with counsel before any register field naming a person reaches a study |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.

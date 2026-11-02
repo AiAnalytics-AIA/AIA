@@ -255,6 +255,17 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
 | `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
 | `client-data-in-analysis#10` | W1 | scope freeze, D-37: with 2 and 2a (E17); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
+| `analysis-frameworks#AF0` | W1 | the catalogue and the sourced-point type before any picker or chapter; added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF1` | W2 | after AF0 and the Lead's per-change accept (`lead-orchestration`); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF2` | W2 | after AF0; the prototype board Z4; added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF3` | W2 | after AF2 and `deep-research-v2#DRV0` (E42); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF4` | W3 | after AF2 and the model platform (E36); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF5` | W3 | after AF2 and `situation-reports#EX1` (E40); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF6` | W2 | with `research-findings-stage#FND2` (E46); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF7` | W3 | after the model platform (E36) and the data contracts (E17); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF8` | W3 | ownership structure after `register-personal-data#RPD2` (E43); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF9` | W4 | with `research-findings-stage#FND11` (E50); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF10` | POST | after the MVP (the owner, 2 Nov: portfolio frameworks "later"); added 2026-11-02 (the owner's frameworks in Zadání) |
 | `research-lead-workbench#33` | W1 | owner, page Q19: the editor spike before LO19 and RD6 build their surface |
 | `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
 | `deep-research-web-search#57a` | W2 | owner, page Q22: with chunk 57 (E12) |

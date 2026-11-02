@@ -134,6 +134,17 @@ holds survey content or runs keeps those stages read-only, so nothing stored bec
 stages, the routes and the stop rule belong to the new plan
 [`research-findings-stage`](../../../.planning/plans/research-findings-stage.md).
 
+In Zadání the researcher also chooses which analysis frameworks the study includes (the owner,
+2026-11-02: "i want the user to be able to chose whether to include SWOT, PESTEL, BLUE OCEAN. TAM SAM
+SOM, and any and all relevant business/ operations/ accounting frameworks for the deep research and lead
+researcher to include into the report"). The groups are strategy and market, finance and accounting,
+operations, logistics, corporate governance and enterprise architecture, with the portfolio frameworks
+after the MVP. Ada proposes a set for each decision type ("Ada proposes per decision"), and every point a
+framework holds is a cited finding, a client-data number, a model result or a named expert's score
+("Sourced points only"). The selection drives Deep Research's plan, the model's views, the expert forms
+and the X-ray's outline. The work is
+[`analysis-frameworks`](../../../.planning/plans/analysis-frameworks.md).
+
 Model studies (Modely, ADR 0044) are unchanged by this decision.
 
 ### 4. The order: data contracts, then the model platform
@@ -301,7 +312,7 @@ the ten). Until then the chunk's current text stands.
 ## Consequences
 
 - **The master plan's register changes.** The survey-lane plans move from §3.1 to §3.3 as PARKED, and
-  `cost-model-study`, `situation-reports`, `quantitative-families` and the five new plans become core.
+  `cost-model-study`, `situation-reports`, `quantitative-families`, `analysis-frameworks` and the five new plans become core.
   The goal sentence and § The pivot record the new MVP. `tools/master_check.py` passes on the result.
 - **The execution contracts change.**
   - The data contracts row (E17) moves from W3 to W1.
