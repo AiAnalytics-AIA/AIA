@@ -142,6 +142,9 @@ Model studies (Modely, ADR 0044) are unchanged by this decision.
    evidence policy, the contract as a type, the analysis copy, the quality report and the drawer.
 2. **The model platform.** `cost-model-study` CP1 to CP9 and the cost-scenario type CM1 to CM7 follow
    in W2. Its `ESTIMATED` layers CP10 and CR1 to CR10 come in W3, after the methodology owner's answers.
+   The four result views follow in W3, in the MVP "from the beginning" (the owner, 1 Nov 2026, the
+   research-stages prototype v29): finance, accounting, operations research and market size
+   (`quantitative-families`, except its survey-derived MKT1, MKT3 and LINK1).
 3. **Then the maps.** Sociomapa systémů and its validation suite come in W2-W4 (decision 5).
 
 Deep Research v2, the public data routes and the register personal-data records run beside the
@@ -340,7 +343,7 @@ another decision already settled.
 | Q3 | May the frozen panel ever feed market counts? | Not until its licence is read for that use. If it may, it feeds at most `ESTIMATED` counts, labelled (C4) | `quantitative-families#MKT3` (parked) |
 | Q4 | The SOMECS name and licence: may AIA use the name and the published method? | Check before any client-facing use. Until then the expert map is called Sociomapa systémů, never SOMECS | `situation-reports#EX2`, `sociomapa-systemu#SYS12` |
 | Q5 | Are defects in the frozen lane fixed (decision 2, proposed)? | Only data loss, security, or another lane turned red | every parked chunk |
-| Q6 | The 30 Oct decision put market sizing in the MVP (ADR 0045). With the survey frozen, MKT1 and MKT3 (survey-derived) are parked. Are MKT2, MKT4 and MKT5 (top-down from public statistics, a market-sizing Deep Research purpose, the stages) still in the MVP? | Yes: they need only the public data routes and Deep Research v2 | `quantitative-families#MKT2`, `#MKT4`, `#MKT5` |
+| Q6 | Market size is in the MVP (ADR 0045, 30 Oct; prototype v29, 1 Nov). With the survey frozen, MKT1 and MKT3 (survey-derived) are parked. Is top-down sizing from public statistics (MKT2), the market-sizing Deep Research purpose (MKT4) and the stages (MKT5) enough for the MVP? | Yes: they need only the public data routes and Deep Research v2 | `quantitative-families#MKT2`, `#MKT4`, `#MKT5` |
 
 **For the methodology owner, A. Bahbouh.** These are the research's ten questions (§ Questions for the
 methodology lead), each with its recommendation there:

@@ -98,8 +98,9 @@ first deliverable is this replan, approved before any build work.
   - `cost-model-study`, the model platform and cost scenarios (ADR 0044, which stays Proposed at the
     owner's word, "Keep it Proposed");
   - `situation-reports`, whose expert map is in the MVP ("Both maps in the MVP");
-  - `quantitative-families`: only its market-sizing chunks MKT2, MKT4 and MKT5, per the 30 Oct decision
-    (ADR 0045) and ADR 0046 Q6;
+  - `quantitative-families`: finance, accounting, operations research and market size, in the MVP "from
+    the beginning" (the owner, 1 Nov 2026, prototype v29); only its survey-derived chunks MKT1, MKT3 and
+    LINK1 are parked;
   - five new plans: `research-findings-stage`, `sociomapa-systemu`, `deep-research-v2`,
     `public-data-routes` and `register-personal-data`.
 - **A research study** keeps Zadání, Návrh with Design Research, and Zpráva. Between them come the new
@@ -109,6 +110,24 @@ first deliverable is this replan, approved before any build work.
   are in ADR 0046). New studies don't show the survey stages. Old ones show them read-only.
 - **The acceptance criteria** AC-01 to AC-15 stay registered until `mvp-master-plan#MP17` redefines
   them in their own pull request. AC-16, the cost-model journey, is proposed now.
+- **The MVP's acceptance, proposed for MP17** (drawn on the "AIA Obchodní model – prototyp" canvas, board MV0,
+  2 Nov 2026):
+  - M-1: a client file enters a computation only under an accepted data contract. A column the contract
+    doesn't name, or a personal column, never leaves the analysis copy.
+  - M-2: every number on Výsledky, in the report X-ray and in the report links to its source. That is a file
+    and its row or page, a public input with its response hash, or a model run with its method version.
+  - M-3: the same inputs and seed give the same bytes, `CALCULATED` and `ESTIMATED` alike.
+  - M-4: the decision rule is written before the results and judged as written.
+  - M-5: an `ESTIMATED` number reaches a client only after the methodology owner registers its method.
+  - M-6: a public value equals the source's response byte for byte. VIES is never stored. A field naming a
+    person is not shown without a balancing test.
+  - M-7: a Deep Research finding is a quote in a captured source. Citation accuracy is at least 90 % and
+    unsupported statements are under 10 %.
+  - M-8: a map draws an edge only when it beats its surrogate null after FDR and survives the block
+    bootstrap. Its never-claim list is on screen and in the report.
+  - M-9: the report says only what the closed X-ray holds. An unverified point cannot enter it.
+  - M-10: the whole fictional Velis journey runs over HTTP and in a browser on recorded doubles, with zero
+    paid calls, within the study's spend limit.
 
 **The critical path, in order** (the execution contracts' § The pivot's critical path):
 1. Data contracts (W1).
@@ -378,7 +397,7 @@ the disposition, and its owner closes it with a pointer when the receiving plan 
 | `client-pages-redesign` | S3 (the client workspace), beside lane A's shell | I-1 to I-3 (proposed) | **core, 2026-10-27**: Nigel, "build it, the design system upgrade will take place once that's finished" (canvas v5, redrawn to v7); the visual base Petrol core v4 (the design-system session's canvas v10), brought into tokens.json by CPR21, a separate later chunk; the server chunks CPR1-CPR3 before the screens that read them; `study-files#SF1` to `#SF4` before CPR12, CPR17 and CPR18; `client-knowledge-lifecycle#K9` before CPR8 |
 | `cost-model-study` | S4 and S5 (ADR 0044's sessions) | I-2, I-3 (proposed) | **core since the pivot (2026-11-02, ADR 0046 decision 4)**; the data contracts (E17) before CP4; ADR 0044 stays Proposed (the owner: "Keep it Proposed"); CP10 and CR1-CR10 after the methodology owner's answers 8-10; CS1-CS5 after `sociomapa-systemu` SYS9 |
 | `situation-reports` | S4 to S6 (ADR 0045's sessions) | I-3 (proposed) | **core since the pivot**: the expert map EX1-EX2 in the MVP (the owner, 2026-11-02: "Both maps in the MVP"); SR0 (ADR 0045 accepted) before RC1-RC6; FW1 (imported fieldwork) a scope call |
-| `quantitative-families` | S4 and S5 | I-4 (proposed) | **core for MKT2, MKT4 and MKT5 only** (ADR 0045, 2026-10-30: market sizing in the MVP; ADR 0046 Q6); ACC, FIN and OR after the MVP (ADR 0044); MKT1, MKT3 and LINK1 parked (survey-derived) |
+| `quantitative-families` | S4 and S5 | I-3, I-4 (proposed) | **core**: the owner, 1 Nov 2026 (research-stages prototype v29, after talking to the executive), finance, accounting, operations research and market size "from the beginning", and ADR 0045 (30 Oct) for market sizing; ACC, FIN and OR in W3 after the platform, MKT2, MKT4 and MKT5 in W3 (E49); MKT1, MKT3 and LINK1 parked (survey-derived) |
 | `research-findings-stage` | S1 with S2 | I-1 to I-4 (proposed) | **new, 2026-11-02**: the owner's report X-ray, a research study's findings stage (every point linked to its source or method); FND0's contract first; FND1 before a new study hides the survey stages |
 | `sociomapa-systemu` | S2 and the methodology owner | I-2 (proposed) | **new, 2026-11-02** (ADR 0046 decision 5): SYS0's answers before each replaced statistic; SYS11 only after the suite passes |
 | `deep-research-v2` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decision 6): DRV0 before any structured or archive route goes live |

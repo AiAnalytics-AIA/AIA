@@ -690,22 +690,22 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `situation-reports#MM1` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
 | `situation-reports#MM2` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
 | `situation-reports#FW1` | UNSCHEDULED | imported real fieldwork under a data contract, with the survey's statistics; a scope call for the owner after the freeze (ADR 0046); added by the pivot (ADR 0046) |
-| `quantitative-families#ACC1` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#ACC2` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#ACC3` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#ACC4` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#ACC5` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#FIN1` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#FIN2` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#FIN3` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#FIN4` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#FIN5` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#FIN6` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#OR1` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#OR2` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#OR3` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#OR4` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
-| `quantitative-families#OR5` | POST | after the MVP (ADR 0044 decision: only cost scenarios are built for the MVP); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC1` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC2` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC3` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC4` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC5` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN1` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN2` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN3` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN4` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN5` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN6` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR1` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR2` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR3` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR4` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR5` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
 | `quantitative-families#MKT1` | PARKED | survey-derived: parked with the survey lane (ADR 0046 Q3, Q6); added by the pivot (ADR 0046) |
 | `quantitative-families#MKT3` | PARKED | survey-derived: parked with the survey lane (ADR 0046 Q3, Q6); added by the pivot (ADR 0046) |
 | `quantitative-families#LINK1` | PARKED | survey-derived: parked with the survey lane (ADR 0046 Q3, Q6); added by the pivot (ADR 0046) |
