@@ -1,0 +1,440 @@
+/* aia-study.css: the research stages' own layer, on aia-core.css (link core first; root class "aia wb").
+   Every colour, type face and radius comes from core's variables; nothing here redefines a core class.
+   Study-only names: navigator .snav/.phz, study glyph .stg, Lead card .lc, note .sn, table .stbl, dialog .sdlg. */
+.wb{--dwash:var(--sunken);--dedge:var(--border);--park:var(--youink);--pfill:var(--you);--pwash:var(--youwash);
+display:flex;flex-wrap:nowrap;width:1440px;min-width:1440px;min-height:100vh}
+.wb *,.wb *::before,.wb *::after{box-sizing:border-box}
+.wb h1,.wb h2,.wb h3,.wb h4,.wb p,.wb ul,.wb ol,.wb dl,.wb dd,.wb figure{margin:0;padding:0}
+.wb ul,.wb ol{list-style:none}
+.wb button,.wb input,.wb select,.wb textarea{font:inherit;color:inherit}
+.wb button{cursor:pointer}
+.wb :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.wb a{color:var(--signal);text-decoration:none}.wb a:hover{text-decoration:underline}
+
+/* icons: core's <i class="ph ph-check"></i>; .s 14 px and .l 20 px are the study's sizes */
+.ph.s{width:14px;height:14px}.ph.l{width:20px;height:20px}
+
+/* status glyphs: bigger and clearer than today's 10-12 px dots */
+.stg{position:relative;display:inline-grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;color:var(--raised)}
+.stg>.ph{width:13px;height:13px}
+.stg.lg{width:26px;height:26px}.stg.lg>.ph{width:16px;height:16px}
+.stg.sm{width:16px;height:16px}.stg.sm>.ph{width:11px;height:11px}
+.stg.done{background:var(--done)}
+.stg.you{background:var(--you);color:var(--onyou)}
+.stg.fault{background:var(--fault)}
+.stg.park{background:var(--pfill);color:var(--onyou)}
+.stg.run{border:2.5px solid var(--swash);border-top-color:var(--signal);animation:spin 1s linear infinite}
+.stg.inert{border:2px solid var(--strong);background:transparent}
+.stg.ai{background:var(--ai);color:var(--onai)}
+.stg.cur{border:2px solid var(--signal);background:var(--raised)}
+.stg.cur::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--signal)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--raised);color:var(--muted);white-space:nowrap}
+.pill.done{background:var(--dwash);border-color:var(--dedge);color:var(--done)}
+.pill.you{background:var(--youwash);border-color:var(--you);color:var(--youink)}
+.pill.run{background:var(--swash);border-color:var(--sedge);color:var(--signal)}
+.pill.fault{background:var(--fwash);border-color:var(--fault);color:var(--fault)}
+.pill.park{background:var(--pwash);border-color:var(--pfill);color:var(--park)}
+.pill.ai{background:var(--aiwash);border-color:var(--aiedge);color:var(--aiink)}
+
+/* buttons: square, small radii; icon buttons are 32 px (44 px on touch) */
+
+.btn.quiet:hover{background:var(--sunken);color:var(--ink)}
+
+.btn.ic{width:32px;padding:0}
+
+a.btn{color:var(--ink)}a.btn.primary{color:var(--onsig)}
+
+.chip.on{background:var(--swash);border-color:var(--signal);color:var(--signal);font-weight:500}
+button.chip:hover{border-color:var(--strong)}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--muted);font-size:11px;font-weight:500;letter-spacing:.02em}
+
+/* shell */
+
+.top{display:flex;align-items:center;gap:14px;padding:0 20px;height:56px;background:var(--raised);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.top .cl{display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:var(--c1);color:var(--raised);font-size:11px;font-weight:600}
+.top .crumb{font-size:12px;color:var(--faint);line-height:14px}
+.top .ttl{font-size:15px;font-weight:600;line-height:18px}
+.meter{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.meter .bar{width:96px;height:6px;background:var(--sunken);border-radius:0;overflow:hidden;display:flex}
+.meter .bar i{display:block;height:100%;background:var(--ink)}.meter .bar i+i{background:var(--signal)}
+
+/* stage menu: PR #840's form. One 60 px bar, six phase groups sized by their stage count,
+   equal slots; name on line 1, status glyph + word on line 2; a 3 px tone strip on top. */
+.snav{display:grid;grid-template-columns:3fr 3fr 1fr 2fr 1fr 1fr;height:60px;background:var(--raised);border-bottom:1px solid var(--border)}
+.snav .phz{display:flex;flex-direction:column;min-width:0;border-left:1px solid var(--border)}
+.snav .phz:first-child{border-left:0}
+.snav .phl{height:16px;padding:3px 10px 0;font-size:10px;line-height:13px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snav .sts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);flex:1;min-height:0}
+.snav a.sg{position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 10px;min-width:0;color:var(--ink);text-decoration:none;border-top:3px solid var(--border);border-bottom:2px solid transparent}
+.snav a.sg:hover{background:var(--surface);text-decoration:none}
+.snav a.sg .nm{font-size:13px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snav a.sg .sw{display:flex;align-items:center;gap:5px;font-size:11px;line-height:14px;color:var(--muted);min-height:14px;white-space:nowrap;overflow:hidden}
+.snav a.sg .stg{width:14px;height:14px}.snav a.sg .stg>.ph{width:10px;height:10px}
+.snav a.t-done{border-top-color:var(--ink)}
+.snav a.t-you{border-top-color:var(--you);background:var(--youwash)}
+.snav a.t-you .sw{color:var(--youink);font-weight:600}
+.snav a.t-fault{border-top-color:var(--fault);background:var(--fwash)}
+.snav a.t-fault .sw{color:var(--fault)}
+.snav a.t-run{border-top-color:var(--signal)}
+.snav a.t-none{border-top-color:var(--border)}
+.snav a.sg.on{background:var(--swash);border-bottom-color:var(--signal)}
+.snav .reo{position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--you)}
+.stg.youq{border-radius:6px;background:var(--you);color:var(--onyou)}
+.stg.dash{border:1.5px dashed var(--strong);background:transparent}
+
+/* workbench split */
+.split{display:grid;grid-template-columns:420px minmax(0,1fr);flex:1;min-height:880px}
+.lead{border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;min-width:0}
+.lead .hd{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--raised)}
+.lav{width:28px;height:28px;border-radius:6px;background:var(--shell);display:grid;place-items:center;color:var(--ai)}
+.lead .hd b{font-size:14px}
+.sees{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:0 6px;height:22px;background:var(--surface)}
+.conv{flex:1;padding:14px;display:flex;flex-direction:column;gap:14px}
+.day{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--faint)}.day::before,.day::after{content:"";flex:1;height:1px;background:var(--border)}
+.me{align-self:flex-end;max-width:85%;background:var(--swash);border:1px solid var(--sedge);border-radius:10px;padding:8px 12px;font-size:13px}
+.me .ref{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--signal);margin-bottom:4px}
+.reply{display:flex;gap:10px}
+.reply .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.reply .who{font-size:12px;color:var(--faint)}.reply .who b{color:var(--ink);font-weight:600;margin-right:6px}
+.views{display:flex;flex-wrap:wrap;gap:6px}
+.view{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--sedge);background:var(--stint);color:var(--signal);font-size:12px;font-weight:500}
+.follow{display:flex;flex-direction:column;gap:4px}
+.follow button{display:flex;align-items:center;gap:6px;text-align:left;border:1px solid var(--border);background:var(--raised);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted)}
+.follow button:hover{border-color:var(--signal);color:var(--signal)}
+.composer{border-top:1px solid var(--border);background:var(--raised);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.composer .box{display:flex;align-items:flex-end;gap:6px;border:1px solid var(--strong);border-radius:6px;padding:6px 6px 6px 10px;background:var(--raised)}
+.composer textarea{flex:1;border:0;resize:none;min-height:36px;background:transparent;outline:none;font-size:13px}
+.send{width:32px;height:32px;border-radius:6px;border:0;background:var(--signal);color:var(--onsig);display:grid;place-items:center}
+.cmds{display:flex;gap:6px;flex-wrap:wrap}
+.cmds button{border:1px dashed var(--aiedge);background:var(--aiwash);color:var(--aiink);border-radius:6px;height:24px;padding:0 8px;font-size:11px;font-weight:500}
+
+/* Lead cards: one card = one action (CARD-1) */
+.lc{border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
+.lc.you{border-color:var(--you);box-shadow:inset 0 3px 0 var(--you)}
+.lc.ai{border-color:var(--aiedge)}
+.lc.dec{opacity:.92}
+.lc .ch{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.lc .ico{width:30px;height:30px;border-radius:6px;display:grid;place-items:center;flex:none;background:var(--sunken);color:var(--ink)}
+.lc.ai .ico{background:var(--aiwash);color:var(--aiink)}
+.lc .ey{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--youink)}
+.lc .ttl{font-weight:600;font-size:14px;line-height:18px}
+.lc .why{padding:0 12px 10px;font-size:13px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:110px 1fr;border-top:1px solid var(--border)}
+.facts dt{padding:7px 12px;font-size:12px;color:var(--faint);border-bottom:1px solid var(--border)}
+.facts dd{padding:7px 12px 7px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.facts dd.key{font-weight:600}
+.facts dd .cap{display:block;margin-top:2px}
+.steps{border-top:1px solid var(--border)}
+.stp{display:grid;grid-template-columns:24px 20px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px}
+.stp .n{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.stp .kk{font-size:11px;color:var(--faint);display:block}
+.stp .c{font-size:12px;color:var(--muted);text-align:right}
+.acts{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border-top:1px solid var(--border);flex-wrap:wrap}
+.acts .grow{min-width:20px}
+.prog{height:4px;background:var(--sunken);display:flex}.prog i{display:block;background:var(--signal)}.prog i.d{background:var(--done)}
+
+/* artifact pane */
+.art{min-width:0;display:flex;flex-direction:column;background:var(--raised)}
+.ahd{display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+
+
+.abody{padding:20px 24px 40px;display:flex;flex-direction:column;gap:18px;max-width:1000px}
+.sec{border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.sec>.sh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.sec>.sh h2{font-size:15px;font-weight:600;line-height:20px}
+.sec>.sh .num{font-family:var(--mono);font-size:11px;color:var(--faint);width:22px}
+.sec>.sb{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+
+.inp,.ta,.sel{width:100%;border:1px solid var(--strong);border-radius:6px;background:var(--raised);padding:7px 10px;font-size:14px}
+.ta{min-height:76px;resize:vertical;line-height:20px}
+.inp:focus,.ta:focus{outline:2px solid var(--signal);outline-offset:0}
+.li{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--raised)}
+.li .tx{flex:1;min-width:0}
+.li.mark{outline:2px solid var(--you);outline-offset:1px}
+.stbl{width:100%;border-collapse:collapse;font-size:13px}
+.stbl th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);background:var(--surface);padding:7px 10px;border-bottom:1px solid var(--border)}
+.stbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.stbl td.r,.stbl th.r{text-align:right}
+.hbar{height:10px;background:var(--sunken);position:relative;min-width:120px}
+.hbar i{position:absolute;top:0;bottom:0;background:var(--signal)}
+.hbar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.sn{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-size:13px}
+.sn.you{background:var(--youwash);border-color:var(--you)}
+.sn.park{background:var(--pwash);border-color:var(--pfill)}
+.sn.ok{background:var(--dwash);border-color:var(--dedge)}
+.sn.sig{background:var(--stint);border-color:var(--sedge)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.kpi .v{font-size:22px;font-weight:600;line-height:28px}
+
+.stepper .v{min-width:72px;display:grid;place-items:center;font-weight:600;padding:0 8px;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+
+.edits{border:1px solid var(--you);border-radius:8px;background:var(--youwash)}
+.edits .eh{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap}
+.chg{background:var(--raised);border-top:1px solid var(--you);padding:10px 14px;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.chg .bef{color:var(--faint);text-decoration:line-through}
+.chg .why{font-size:12px;color:var(--muted)}
+.qcard{border:1px solid var(--border);border-radius:8px}
+.qcard .qh{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
+.qcard .qb{padding:12px;display:flex;flex-direction:column;gap:10px}
+.qid{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--ink);color:var(--surface);border-radius:6px;padding:1px 5px}
+.scalebox{display:flex;gap:4px}
+.scalebox span{width:30px;height:30px;border:1px solid var(--strong);border-radius:6px;display:grid;place-items:center;font-size:12px}
+.modal{position:fixed;inset:0;background:rgba(17,21,27,.45);display:grid;place-items:center;z-index:20}
+.sdlg{width:520px;max-width:calc(100% - 32px);background:var(--overlay);border-radius:10px;border:1px solid var(--border);box-shadow:var(--shadow-overlay)}
+.sdlg .dh{padding:16px 20px 8px;font-size:16px;font-weight:600}
+.sdlg .db{padding:0 20px 14px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.sdlg .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border);background:var(--surface)}
+.money{display:grid;grid-template-columns:1fr auto;border:1px solid var(--border);border-radius:6px}
+.money div{padding:7px 10px;border-bottom:1px solid var(--border)}
+.money div:nth-last-child(-n+2){border-bottom:0}
+.money .kk{font-weight:600}
+
+.toast button{border:0;background:transparent;color:var(--sedge);font-weight:600}
+
+/* the critique beside each artboard */
+.crit{border-top:4px solid var(--ink);background:var(--surface);padding:28px 32px 40px}
+.crit h2{font-size:22px;line-height:28px;font-weight:600}
+.crit .lede{max-width:900px;color:var(--muted);margin-top:6px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px;margin-top:18px}
+.cb{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.cb h3{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:8px}
+.cb h3 .lt{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--surface);font-family:var(--mono);font-size:12px}
+.cb.d h3 .lt{background:var(--you);color:var(--onyou)}
+.cb.e h3 .lt{background:var(--done)}
+.cb li{font-size:13px;line-height:19px;padding:5px 0;border-bottom:1px dashed var(--border)}
+.cb li:last-child{border-bottom:0}
+.anc{display:block;font-family:var(--mono);font-size:11px;line-height:15px;color:var(--faint);margin-top:2px;word-break:break-all}
+.split-wrap{position:relative}
+
+.orb{position:relative;display:inline-block;width:28px;height:28px;color:var(--aiink);flex:none}
+.orb.lg{width:44px;height:44px}
+.orb .o{position:absolute;inset:0;transform:rotate(var(--t)) scaleY(.36)}
+.orb .s{position:absolute;inset:0;animation:orbit var(--d,1.6s) linear infinite;animation-delay:var(--dl,0s)}
+.orb .s::before{content:"";position:absolute;left:50%;top:0;width:3px;height:8px;margin-left:-1.5px;border-radius:50%;background:currentColor}
+.orb.lg .s::before{width:4px;height:11px;margin-left:-2px}
+.orb .c{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:var(--ai)}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.orb .s{animation:none}}
+
+/* Chat F in the stage frame: the Lead pane as a rounded timeline conversation */
+.lead.cfz{background:var(--well);height:900px;position:sticky;top:0;align-self:start;border-right:1px solid var(--border)}
+.cfz .cfh{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex:none}
+.cfz .cfava{width:52px;height:52px;border-radius:50%;background:var(--raised);box-shadow:0 0 0 1px var(--border);display:grid;place-items:center;flex:none}
+.cfz .cfmk,.sbmk{width:36px;height:36px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22 fill=%22none%22 stroke=%22%23151a20%22 stroke-opacity=%22.32%22 stroke-width=%221.3%22/%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.11%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.450s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.24%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.300s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.37%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.150s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%222.40%22 fill=%22%239b8bfb%22 fill-opacity=%221.00%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.000s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3C/svg%3E") center/contain no-repeat}
+.cfz .cfst{font-size:12px;color:var(--faint)}.cfz .cfst.th{color:var(--aiink)}
+.cfz .cfib{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.cfz .cfib:hover{background:var(--raised);color:var(--ink)}
+.cfz .conv{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 16px 52px;gap:18px;background:linear-gradient(var(--border),var(--border)) 27px 0/1.5px 100% no-repeat}
+.cfz .conv>:first-child{margin-top:auto}
+.cfz .day{align-self:center;margin-left:-36px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:var(--well);padding:0 8px}
+.cfz .day::before,.cfz .day::after{display:none}
+.cfz .reply{display:block;position:relative}
+.cfz .reply>.lav{position:absolute;left:-39px;top:-2px;width:28px;height:28px;border-radius:50%;background:var(--well) url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22 fill=%22none%22 stroke=%22%23151a20%22 stroke-opacity=%22.32%22 stroke-width=%221.3%22/%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.11%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.450s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.24%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.300s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.37%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.150s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%222.40%22 fill=%22%239b8bfb%22 fill-opacity=%221.00%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.000s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3C/svg%3E") center/22px no-repeat;color:transparent}
+.cfz .reply>.lav>.ph{display:none}
+.cfz .reply>.lav.cforb{background:var(--well);display:grid;place-items:center}
+.cfz .reply .who{display:none}
+.cfz .reply .body{font-size:14px;line-height:22px;gap:8px}
+.cfz .views{gap:4px 12px}
+.cfz .view{border:0;background:transparent;height:auto;padding:0;color:var(--signal);font-size:13px;border-bottom:1px solid var(--sedge);border-radius:0}
+.cfz .view .ph{display:none}
+.cfz .follow{flex-direction:row;flex-wrap:wrap;gap:6px}
+.cfz .follow button,.cfz .follow a.btn{border:1px solid var(--sedge);background:var(--raised);color:var(--signal);border-radius:10px;padding:5px 12px;font-size:12px;font-weight:500;min-height:0}
+.cfz .follow .ph{display:none}
+.cfz .me{background:var(--signal);color:var(--onsig);border:0;border-radius:10px 10px 10px 10px;padding:9px 14px;font-size:14px;line-height:21px;margin-left:-36px;max-width:78%}
+.cfz .me .ref{color:var(--onsig);opacity:.85}
+.cfz .lc{position:relative;overflow:visible;border-radius:10px;border:0;box-shadow:0 0 0 1px var(--border);background:var(--raised)}
+.cfz .lc.you{box-shadow:0 0 0 1.5px var(--you)}
+.cfz .lc.ai{box-shadow:0 0 0 1px var(--aiedge)}
+.cfz .lc.ai.you{box-shadow:0 0 0 1.5px var(--you)}
+.cfz .lc::before{content:"";position:absolute;left:-30px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--strong);box-shadow:0 0 0 4px var(--well)}
+.cfz .lc.you::before{background:var(--you);border-radius:0}
+.cfz .lc.dec::before{background:var(--done)}
+.cfz .lc .ico{border-radius:6px}
+.cfz .lc .facts{border-top:0;margin:0 12px;background:var(--well);border-radius:12px;overflow:hidden}
+.cfz .lc .facts dt,.cfz .lc .facts dd{border-bottom:0}
+.cfz .lc .acts{background:transparent;border-top:0;border-radius:0 0 10px 10px}
+.cfz .lc .btn,.cfz .lc .pill,.cfz .pill{border-radius:8px}
+.cfz .lc .prog{margin:0 12px 8px;border-radius:0;overflow:hidden}
+.cfz .shim{display:flex;flex-direction:column;gap:7px;width:220px;padding-top:6px}
+.cfz .shim i{height:9px;border-radius:6px;background:linear-gradient(90deg,var(--sunken),var(--aiwash),var(--sunken));background-size:200% 100%;animation:sh 1.2s linear infinite}
+.cfz .shim i+i{width:64%}
+@keyframes sh{to{background-position:-200% 0}}
+.cfz .cfdock{flex:none;padding:6px 12px 12px;position:relative}
+.cfz .cfcomp{background:var(--raised);border-radius:12px;box-shadow:0 0 0 1px var(--border);padding:6px;display:flex;flex-direction:column}
+.cfz .cftok{display:flex;gap:6px;padding:6px 8px 0}
+.cfz .cftok span{display:inline-flex;align-items:center;gap:6px;background:var(--aiwash);color:var(--aiink);border-radius:8px;padding:3px 6px 3px 10px;font-size:12px;font-weight:500}
+.cfz .cftok button{border:0;background:transparent;color:inherit;width:18px;height:18px;border-radius:50%;display:grid;place-items:center}
+.cfz .cfrow{display:flex;align-items:flex-end;gap:4px}
+.cfz .cfcomp textarea{flex:1;border:0;outline:none;resize:none;background:transparent;font-size:14px;line-height:20px;min-height:40px;padding:10px 6px}
+.cfz .cfplus{width:38px;height:38px;border-radius:50%;border:0;background:var(--well);color:var(--ink);display:grid;place-items:center;transition:transform .2s}
+.cfz .cfplus.on{transform:rotate(45deg);background:var(--ink);color:var(--raised)}
+.cfz .cfgo{width:38px;height:38px;border-radius:50%;border:0;background:var(--signal);color:var(--onsig);display:grid;place-items:center}
+.cfz .cfgo:disabled{background:var(--sunken);color:var(--faint);cursor:default}
+.cfz .cfctx{display:flex;align-items:center;gap:6px;padding:4px 10px 0 50px;font-size:11.5px;color:var(--faint)}
+.cfz .cfmenu{position:absolute;left:12px;right:12px;bottom:calc(100% - 2px);background:var(--overlay);border-radius:10px;box-shadow:var(--shadow-overlay);padding:8px;display:flex;flex-direction:column;gap:2px;z-index:5}
+.cfz .cfseg{display:flex;gap:2px;padding:2px 2px 6px}
+.cfz .cfseg button{flex:1;border:0;border-radius:10px;padding:6px 0;font-size:12px;font-weight:500;background:transparent;color:var(--muted)}
+.cfz .cfseg button.on{background:var(--well);color:var(--ink)}
+.cfz .grp{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);padding:8px 10px 4px}
+.cfz .mi{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:var(--ink)}
+.cfz .mi:hover{background:var(--well)}
+.cfz .mi .mico{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--well);color:var(--muted);flex:none}
+.cfz .mi .mico.ai{background:var(--aiwash);color:var(--aiink)}
+.cfz .mi .d{display:block;font-size:11.5px;color:var(--faint)}
+.cfz .mi .tg{margin-left:auto;width:32px;height:18px;border-radius:999px;background:var(--sunken);position:relative;flex:none}
+.cfz .mi .tg::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--raised);box-shadow:0 0 0 1px var(--border)}
+.cfz .mi .tg.on{background:var(--signal)}.cfz .mi .tg.on::after{left:16px}
+.cfz .mi[disabled]{opacity:.5;cursor:default}
+
+
+/* ---------- v8: Lead cards in chat F (the CardsF system on every stage) ---------- */
+.cfz .lc{max-width:100%}
+.cfz .lc.run{box-shadow:0 0 0 1px var(--aiedge)}
+.cfz .lc.park{box-shadow:0 0 0 1.5px var(--pfill)}
+.cfz .lc.fail{box-shadow:0 0 0 1.5px var(--fault)}
+.cfz .lc.run::before{background:var(--ai);box-shadow:0 0 0 4px var(--well),0 0 0 7px color-mix(in srgb,var(--ai) 25%,transparent)}
+.cfz .lc.park::before{background:var(--pfill);border-radius:0}
+.cfz .lc.fail::before{background:var(--fault)}
+.cfz .lc .ch{align-items:flex-start;padding:12px 14px 0;gap:10px}
+.cfz .lc .ico{width:32px;height:32px;border-radius:10px}
+.cfz .lc.ai .ico{background:var(--aiwash);color:var(--aiink)}
+.cfz .lc .ey{font-size:11.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--faint);line-height:15px}
+.cfz .lc .ttl{font-size:14.5px;line-height:20px}
+.cfz .lc .ch>.pill{margin-left:auto;height:24px;padding:0 10px;border:0;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--sunken);color:var(--muted)}
+.cfz .lc .ch>.pill .stg{display:none}
+.cfz .lc .ch>.pill.you{background:var(--youwash);color:var(--youink)}
+.cfz .lc .ch>.pill.run{background:var(--aiwash);color:var(--aiink)}
+.cfz .lc .ch>.pill.done{background:var(--dwash);color:var(--done)}
+.cfz .lc .ch>.pill.park{background:var(--pwash);color:var(--park)}
+.cfz .lc .ch>.pill.fail{background:var(--fwash);color:var(--fault)}
+.cfz .lc .why{padding:8px 14px 0;font-size:13.5px;line-height:20px;color:var(--ink)}
+.cfz .lc .facts{margin:10px 12px 0;padding:4px 12px;grid-template-columns:104px minmax(0,1fr)}
+.cfz .lc .facts dt,.cfz .lc .facts dd{padding:5px 0;font-size:13px;line-height:18px}
+.cfz .lc .facts dt{color:var(--muted)}
+.cfz .lc .facts dd.key{font-size:17px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.cfz .lc .facts dd.key .cap{display:block;font-size:12px;font-weight:400;color:var(--faint);line-height:16px}
+.cfz .lc .facts dt:has(+ dd.key){color:var(--ink);font-weight:500;padding-top:7px}
+.cfz .lc .steps{margin:8px 12px 0}
+.cfz .lc .acts{padding:12px 14px;gap:8px}
+.cfz .lc .acts .btn{border-radius:10px;min-height:34px;font-weight:600;font-size:13px}
+.cfz .lc .acts .btn.quiet{font-weight:400;padding:0 4px;color:var(--muted)}
+.cfz .lc .acts .btn .vb{font-weight:500}
+.cfz .lc .acts .btn .amt{font-weight:600;font-variant-numeric:tabular-nums}
+.cfz .lc .acts .btn .vb+.amt{padding-left:9px;margin-left:3px;border-left:1px solid color-mix(in srgb,currentColor 45%,transparent)}
+.cfz .lc .acts .btn:not(.primary):not(.ai) .vb+.amt{border-left-color:var(--border)}
+.cfz .lc .acts .btn .amt.big{font-size:16px}
+
+/* ---------------------------------------------------------------------------
+   Tonal layering (R16). Depth by tone, never by hard colour or more lines:
+   pane ground (surface) > section sheet (raised) > item well (between the two).
+   A phase hue (the hue-* wayfinding tokens) only washes in, at <= 9 %, and fades
+   out: it says which phase you are in, never a status. Status fills stay the only
+   saturated grounds, so they keep their pull.
+   --------------------------------------------------------------------------- */
+.wb{--ph:var(--strong);--well:color-mix(in srgb,var(--surface) 55%,var(--raised));--well-hover:color-mix(in srgb,var(--surface) 25%,var(--raised))}
+.wb[data-phase=navrh]{--ph:var(--hblue)}
+.wb[data-phase=vzorek]{--ph:var(--hviolet)}
+.wb[data-phase=sber]{--ph:var(--hgreen)}
+.wb[data-phase=evidence]{--ph:var(--hteal)}
+.wb[data-phase=interpretace]{--ph:var(--hslate)}
+.wb[data-phase=predani]{--ph:var(--ink)}
+.wb{--ph-wash:color-mix(in srgb,var(--ph) 9%,var(--raised));--ph-glow:color-mix(in srgb,var(--ph) 6%,var(--surface));--ph-ink:color-mix(in srgb,var(--ph) 72%,var(--ink))}
+.wb[data-theme=dark]{--ph-wash:color-mix(in srgb,var(--ph) 16%,var(--raised));--ph-glow:color-mix(in srgb,var(--ph) 10%,var(--surface));--ph-ink:color-mix(in srgb,var(--ph) 55%,var(--ink))}
+
+/* 1 · the pane is the ground; its top carries the phase, fading out */
+.art{background:linear-gradient(180deg,var(--ph-glow) 0,var(--surface) 320px) var(--surface)}
+.art>.ahd{background:transparent;border-bottom-color:color-mix(in srgb,var(--border) 60%,transparent)}
+.art>.row[role=toolbar]{background:color-mix(in srgb,var(--raised) 85%,transparent)!important;backdrop-filter:blur(6px)}
+
+/* 2 · sections are sheets; the header is a soft band, not a ruled line */
+.art .sec{background:var(--raised);border-color:color-mix(in srgb,var(--border) 70%,transparent);border-radius:8px;box-shadow:0 1px 2px rgba(21,26,32,.04),0 4px 14px -8px rgba(21,26,32,.10)}
+.wb[data-theme=dark] .art .sec{box-shadow:0 1px 0 rgba(255,255,255,.03),0 6px 18px -10px rgba(0,0,0,.6)}
+.art .sec:not(.need)>.sh{background:linear-gradient(90deg,var(--ph-wash) 0,var(--raised) 72%);border-bottom-color:transparent;border-radius:8px 8px 0 0}
+.art details.sec:not([open])>.sh{border-radius:8px}
+.art .sec>.sh .num{color:var(--ph-ink);font-weight:500}
+.art .sec>.sb{padding-top:10px}
+
+/* 3 · items inside a sheet are wells: one tone down, no border of their own */
+.art .sec .li,.art .sec .kpi,.art .kpis .kpi{background:var(--well);border-color:transparent;border-radius:6px;transition:background-color .12s,border-color .12s}
+.art .sec .li:hover{background:var(--well-hover);border-color:var(--border)}
+.art .sec .qcard{background:var(--well);border-color:transparent;border-radius:8px}
+.art .sec .qcard .qh{background:transparent;border-bottom-color:color-mix(in srgb,var(--border) 70%,transparent)}
+.art .sec .sn:not(.you):not(.park):not(.sig):not(.warn){background:var(--well);border-color:transparent}
+/* a well inside a well goes back up to the sheet, so depth never runs past three tones */
+.art .sec .li .li,.art .sec .qcard .li,.art .sec .li .kpi{background:var(--raised)}
+
+/* tables: a soft header, rows alternate by a hair instead of every line ruled */
+.art .stbl th{background:var(--well);border-bottom-color:transparent}
+.art .stbl tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--surface) 28%,var(--raised))}
+.art .stbl td{border-bottom-color:color-mix(in srgb,var(--border) 55%,transparent)}
+
+/* small group labels inside a sheet, so a long section breaks into readable runs */
+.art .sec .glbl{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.art .sec .glbl::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+/* the navigator carries the same phase: its column washes in, fading down */
+.snav .phz:has(a.on){background:linear-gradient(180deg,var(--ph-wash) 0,var(--raised) 100%)}
+.snav .phz:has(a.on) .phl{color:var(--ph-ink)}
+/* on the ground itself, tiles and cards are sheets too; one corner radius for every sheet */
+.art .abody>.kpis>.kpi,.art .abody>.vos>*{background:var(--raised);border-color:color-mix(in srgb,var(--border) 70%,transparent);border-radius:8px;box-shadow:0 1px 2px rgba(21,26,32,.04)}
+.art .abody>.edits,.art .abody>.sn{border-radius:8px}
+@media (prefers-reduced-motion:reduce){.art .sec .li{transition:none}}
+
+/* ---------------------------------------------------------------------------
+   Unified look contract (26 Oct, https://claude.ai/artifact/1iuneZ5EAYJTfr854VRHPM).
+   Applied before aia-core.css exists; every value below comes from the contract or tokens.json.
+   --------------------------------------------------------------------------- */
+/* colour: done is quiet ink, never green; nothing is amber (parked on a person is coral) */
+.stg.done{background:var(--ink);color:var(--raised)}
+.stg.park{background:var(--you);color:var(--onyou)}
+.pill.done{background:var(--sunken);border-color:var(--border);color:var(--ink)}
+
+.sn.ok{background:var(--surface);border-color:var(--border)}
+.cb.e h3 .lt{background:var(--ink)}
+.cfz .lc .ch>.pill.done{background:var(--sunken);color:var(--ink)}
+.cfz .lc.dec::before{background:var(--ink)}
+/* radii: 6 controls, 8 cards and sections, 10 dialogs, menus and Lead chat cards */
+.inp,.ta,.sel,.money,.tag,.pill,.sn,.kbd,.cmds button,.follow button,.view,.send{border-radius:6px}
+
+.lc,.sec,.edits,.cb,.kpi{border-radius:8px}
+.sdlg{width:560px;border-radius:10px;overflow:hidden;box-shadow:var(--shadow-overlay)}
+.modal{background:rgba(21,26,32,.10)}
+.sdlg .dh{padding:24px 24px 8px}.sdlg .db{padding:0 24px 18px}.sdlg .df{padding:14px 24px}
+
+/* the Lead chat follows the same radii (UI-3): cards and bubbles 10, composer 12; chat ground on the surface token */
+.cfz{background:var(--surface)}
+.wb[data-theme=dark] .cfz{background:var(--surface)}
+.cfz .lc{border-radius:10px}
+.cfz .lc .acts{border-radius:0 0 10px 10px}
+.cfz .lc .facts{border-radius:6px}
+.cfz .me{border-radius:10px 10px 10px 10px}
+.cfz .cfcomp{border-radius:12px}
+.cfz .cfmenu{border-radius:10px}
+.cfz .mi,.cfz .cfseg button,.cfz .lc .btn,.cfz .lc .pill,.cfz .pill,.cfz .lc .ch>.pill,.cfz .follow button,.cfz .follow a.btn,.cfz .lc .acts .btn,.cfz .cftok span{border-radius:6px}
+.cfz .lc .ico,.cfz .mi .mico{border-radius:6px}
+/* switch 40 x 24 (the 24 px target) */
+.tg{width:40px;height:24px}
+.tg::after{width:20px;height:20px;top:2px;left:2px}
+.tg.on::after{left:18px}
+.cfz .mi .tg,.sbcz .tg{width:40px;height:24px}
+/* type: no 700 */
+.snav a.t-you .sw,.cfz .lc .facts dd.key,.cfz .lc .acts .btn .amt{font-weight:600}
+/* motion: the spinner and the shimmer stop under reduced motion */
+@media (prefers-reduced-motion:reduce){.orb *,.cfz .shim i,.spin,.live{animation:none!important;transition:none!important}}
+thinking-orb{vertical-align:middle}
+
+/* breadcrumb with "/" */
+.top .crumb .sep{margin:0 6px;color:var(--faint)}
+
+.stg.fault{color:var(--onfault)}
+
+/* files in the Lead's chat: attach on every stage, a chip in the composer and in the message (Nigel, 26 Oct) */
+.cfz .cfatt{width:38px;height:38px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;flex:none}
+.cfz .cfatt:hover{background:var(--well);color:var(--ink)}
+.cfz .cftok .cffile{background:var(--sunken);color:var(--ink)}
+.mfile{display:flex;align-items:center;gap:6px;width:fit-content;max-width:100%;margin-bottom:6px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--onsig) 16%,transparent);font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.me:not(.cfz .me) .mfile{background:var(--raised);color:var(--ink)}

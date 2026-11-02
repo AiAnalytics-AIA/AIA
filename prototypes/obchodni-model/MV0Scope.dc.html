@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>MVP – přehled</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+.sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zcard.need{border-color:var(--you);background:var(--youwash)}
+.zlead{display:flex;flex-direction:column;gap:2px}
+.zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
+.zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
+.zrow>.zv{min-width:0}
+.zgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zcard{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.zcard.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.zcard h3{margin:0;font-size:14px;font-weight:600}
+.zcard p{margin:0;font-size:13px}
+.zq{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;gap:10px;font-size:13px}
+.zq .n{font-family:var(--mono);font-size:12px;color:var(--faint);flex:none;width:18px}
+.zq .why{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.zflag{display:flex;flex-direction:column;gap:6px;border:1px solid var(--you);background:var(--youwash);border-radius:6px;padding:10px 12px;font-size:13px}
+.zflag .was{color:var(--faint);text-decoration:line-through}
+.zword{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);padding:0 2px}
+.zt{width:100%;border-collapse:collapse;font-size:13px}
+.zt th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);background:var(--sunken);padding:8px 10px;border-bottom:1px solid var(--border)}
+.zt td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.zt tr.miss td{background:var(--youwash)}
+.zt td.num{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
+.zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
+.zm{box-shadow:inset 3px 0 0 var(--shviolet)}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
+.zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
+.zseq a{font-weight:500}
+.zstate{display:flex;align-items:center;gap:10px;padding:8px 24px;background:var(--sunken);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.zbox{font-family:inherit;width:100%;box-sizing:border-box;min-height:120px;font-size:15px;line-height:22px;padding:12px 14px}
+.zdrawer{width:360px;flex:none;border-left:1px solid var(--border);background:var(--raised);display:flex;flex-direction:column}
+.zdrawer .dh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px}
+.zdrawer .db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;font-size:13px}
+.zrub{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.zrub>div{display:grid;grid-template-columns:22px 28px minmax(0,1fr);gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:start;font-size:13px;background:var(--raised)}
+.zrub>div:last-child{border-bottom:0}
+.zrub>div.miss{background:var(--youwash)}
+.zrub .i{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
+.zrub .how{display:block;font-size:12px;color:var(--muted)}
+
+.rtabs{display:flex;gap:2px;align-items:center;padding:8px 24px;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}.rtabs .l{font-size:12px;color:var(--faint);margin-right:8px;white-space:nowrap}.rtabs a{padding:6px 12px;border-radius:6px;font:500 13px/1.2 var(--sans);color:var(--muted);white-space:nowrap;text-decoration:none}.rtabs a:hover{background:var(--sunken);color:var(--ink)}.rtabs a.on{background:var(--swash);color:var(--ink);box-shadow:inset 0 -2px 0 var(--signal)}
+.zg{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;font:500 10.5px/1 var(--mono);letter-spacing:.03em;white-space:nowrap;vertical-align:1px}
+.zg.calc{background:var(--sunken);color:var(--ink)}
+.zg.est{background:var(--swash);color:var(--signal)}
+.zg.mod{background:var(--youwash);color:var(--youink)}
+.zg.data{background:var(--sunken);color:var(--muted)}
+.zfig{width:100%;height:auto;display:block}
+.zleg{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.zleg span{display:inline-flex;align-items:center;gap:6px}.zleg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.zramp{display:flex;height:10px;border-radius:3px;overflow:hidden;width:200px}.zramp i{flex:1}
+.zkpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.zkpi{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.zkpi .v{font:600 22px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.zcols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+.zbar{display:flex;align-items:center;gap:10px;padding:10px 24px;background:var(--swash);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ink)}
+.zbar.warn{background:var(--youwash)}
+.zpaper{background:#fffdfa;color:#0f1216;border:1px solid #d6d3cc;border-radius:4px;padding:28px 34px;font:14px/1.62 var(--sans);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.zpaper h3{font:600 20px/1.25 var(--serif);margin:6px 0 4px}
+.zpaper h4{font:600 15px/1.3 var(--serif);margin:14px 0 4px}
+.zpaper .pm{font:11px/1.4 var(--sans);color:#44484e;letter-spacing:.06em;text-transform:uppercase}
+.zpaper hr{border:0;border-top:1px solid #c6c4be;margin:14px 0}
+.zpaper p{margin:6px 0}
+.zref{font:500 11.5px/1 var(--mono);color:#0d5279;background:#e8eef2;border-radius:3px;padding:2px 5px;white-space:nowrap}
+.zpaper .src{font:12px/1.5 var(--sans);color:#44484e}
+.zstage{background:#14171c;border-radius:8px;overflow:hidden;position:relative}
+.zstage img{display:block;width:100%;height:auto}
+.zcap{font-size:12px;color:var(--muted);margin:6px 0 0}
+.zcard.lead{background:var(--aiwash);border-color:var(--aiedge)}
+.zbefore{color:var(--faint);text-decoration:line-through}
+
+.mvx{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:4px;background:var(--youwash);color:var(--youink);font:600 10.5px/1 var(--mono);letter-spacing:.04em}
+.zref{font:500 11.5px/1 var(--mono);color:var(--signal);background:var(--swash);border-radius:3px;padding:3px 6px;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.zref:hover{text-decoration:underline}
+.zref.on{box-shadow:inset 0 0 0 1.5px var(--signal);background:var(--stint)}
+.zref.bad{color:var(--youink);background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you)}
+.pt{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:20px}
+.pt:last-child{border-bottom:0}
+.pt .pk{font:500 11px/20px var(--mono);color:var(--faint)}
+.pt.bad{background:var(--youwash);box-shadow:inset 3px 0 0 var(--you);padding-left:6px}
+.vis{border:1px dashed var(--strong);border-radius:6px;padding:10px 12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.vis .vh{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:nowrap}
+.flow .st{flex:1 1 0;min-width:0;border:1px solid var(--border);border-radius:6px;background:var(--raised);padding:8px 10px;font-size:12px;line-height:17px;display:flex;flex-direction:column;gap:2px}
+.flow .st b{font-size:12.5px}
+.flow .st.dec{border-color:var(--you);background:var(--youwash)}
+.flow .ar{flex:none;width:22px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.stop{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--raised);font-size:13px}
+.stop.open{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal)}
+.mode{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+.mode.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.mode.lock{background:var(--sunken);color:var(--muted)}
+.mode h3{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.never{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;font-size:13px}
+.never div{display:flex;gap:8px;align-items:flex-start}
+.never i{color:var(--you);margin-top:3px}
+.mx{border-collapse:collapse;font-size:12.5px;width:100%}
+.mx th,.mx td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+.mx th{background:var(--sunken);font-weight:500;color:var(--muted);font-size:12px}
+.mx td.l{text-align:left}
+.mx td.hi{background:var(--swash)}
+.mx td.dis{background:var(--youwash)}
+.srcd{display:flex;flex-direction:column;gap:10px;font-size:13px}
+.srcd .q{border-left:3px solid var(--signal);background:var(--surface);padding:8px 10px;font-size:13px;line-height:19px}
+.srcd .q mark{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);color:inherit;padding:0 1px}
+.kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 12px;font-size:12.5px}
+.kv .kk{color:var(--muted)}
+.kv .vv{min-width:0;overflow-wrap:anywhere}
+.mono{font-family:var(--mono)}
+.swot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.swot .sq{border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--raised);display:flex;flex-direction:column;font-size:13px}
+.swot .sq>b{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding-top:4px}
+</style>
+</helmet>
+<div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px; background: var(--surface)">
+<div style="max-width: 1344px; display: flex; flex-direction: column; gap: 20px">
+<div><div class="cap">MVP · obchodní rozhodnutí · podle rešerše 2. 11. 2026 · případ Velis Commerce s.r.o. (smyšlený)</div><h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Definované MVP: rozhodnutí firmy z jejích dat, veřejných zdrojů a modelu, každé číslo dohledatelné</h1><p class="muted" style="max-width: 900px; font-size: 14px; line-height: 21px">Výzkumník AIA s Adou vezme rozhodnutí klienta od Zadání ke schválené zprávě. Data klienta jdou do výpočtu jen pod přijatou smlouvou, veřejná čísla jako typované vstupy s citací, model počítá kód, Sociomapa systémů ukazuje strukturu jen tam, kde obstojí v testech, a rentgen zprávy drží každé číslo se zdrojem dřív, než vznikne text. Desky MV jsou nové; desky Z a M jsou v prototypu od verze 29. Všechny mají jednu lištu kroků (kontrola UX: MV7). Klient i čísla jsou smyšlené.</p></div><section class="sec"><div class="sh"><span class="num">01</span><h2>Cesta studie v MVP</h2><span class="grow"></span><span class="cap">kliknutím otevřete desku</span></div><div class="sb"><div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px"><a class="zcard" href="Z1Start.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">1 · Zadání</span><h3>Rozhodnutí, pravidlo a analýzy</h3><p class="muted">Jedno pole, podklady, sedm možností, pravidlo s mezí rizika, výběr analýz do zprávy, R1–R7.</p><span class="cap">v prototypu · Z1–Z7</span></a><a class="zcard on" href="MV1Contract.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">2 · Data</span><h3>Soubory pod datovou smlouvou</h3><p class="muted">Sloupce, osobní údaje, zpráva o kvalitě; bez přijaté smlouvy nic do výpočtu.</p><span class="cap">nové</span></a><a class="zcard" href="MV2PublicData.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">3 · Rešerše</span><h3>Typované vstupy a zjištění</h3><p class="muted">Veřejná čísla z citace kódem; PESTEL, Porter a benchmark jako zjištění k přijetí; rozpor řeší člověk.</p><span class="cap">nové · MV2, MV2b</span></a><a class="zcard" href="KM2Assumptions.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">4 · Předpoklady</span><h3>Rozsah a ručitel</h3><p class="muted">Každý vstup s rozsahem, zdrojem a ručitelem; korelace vstupů.</p><span class="cap">v prototypu · M2</span></a><a class="zcard" href="KM3Model.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">5 · Model</span><h3>Typovaný model jako data</h3><p class="muted">Varianty, nákladové řádky, kapacita, časování; počítá kód.</p><span class="cap">v prototypu · M3</span></a><a class="zcard" href="KM4Results.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">6 · Výsledky</span><h3>Rozhodnutí a čtyři pohledy</h3><p class="muted">Pravidlo, Monte Carlo, citlivost, bod zvratu, hodnota informace; finance, účetnictví, provoz, logistika, trh.</p><span class="cap">v prototypu · M4, M4b–f</span></a><a class="zcard on" href="MV3SystemMap.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">7 · Sociomapa</span><h3>Sociomapa systémů</h3><p class="muted">Scénářová a expertní mapa s novou statistikou a testy věrohodnosti.</p><span class="cap">nové</span></a><a class="zcard on" href="MV4XRay.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">8 · Rentgen zprávy</span><h3>Body zprávy s odkazy</h3><p class="muted">Osnova bez textu: každé číslo vede ke zdroji nebo metodě; zastávky.</p><span class="cap">nové</span></a><a class="zcard" href="KM6Report.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">9 · Zpráva</span><h3>Text kolem uzavřených bodů</h3><p class="muted">Zpráva řekne jen to, co rentgen drží; schválení a export.</p><span class="cap">v prototypu · M6</span></a><a class="zcard on" href="MV5Validation.dc.html" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal); font-size: 12px">Metodika</span><h3>Validační sada a registr</h3><p class="muted">Co musí projít, než mapa nebo odhad půjde ke klientovi.</p><span class="cap">nové</span></a></div></div></section><section class="sec"><div class="sh"><span class="num">02</span><h2>Co MVP umí</h2><span class="grow"></span><span class="cap">funkce, důvod, deska, plán a vlna</span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 300px">Funkce MVP</th><th>Proč (rešerše 2. 11.)</th><th style="width: 120px">Deska</th><th style="width: 250px">Plán v repu</th><th style="width: 120px">Vlna</th></tr></thead><tbody><tr><td><b>Datová smlouva</b> a zpráva o kvalitě; analytická kopie jen se jmenovanými sloupci</td><td>bez smlouvy nesmí žádná data klienta do analýzy (zjištění 1)</td><td><a href="MV1Contract.dc.html">MV1</a></td><td>client-data-in-analysis 0–3b, 10</td><td>W1</td></tr><tr><td><b>Typovaný model</b> a scénáře nákladů: varianty, nákladové řádky, NPV a návratnost</td><td>platforma modelů je jádro MVP (ADR 0044)</td><td><a href="KM3Model.dc.html">M3</a>, <a href="KM4Results.dc.html">M4</a></td><td>cost-model-study CP1–CP9, CM1–CM7</td><td>W2</td></tr><tr><td><b>Odhady s intervalem</b>: Monte Carlo s korelacemi vstupů, Sobol nebo PRCC, MASE místo MAE, hodnota informace, jedna diskontní sazba</td><td>čtyři opravy metod (zjištění 9)</td><td><a href="KM4Results.dc.html">M4</a></td><td>cost-model-study CP10, CR1–CR10</td><td>W3 · po metodikovi</td></tr><tr><td><b>Finance, účetnictví, provoz a trh</b> od začátku</td><td>rozhodnutí 1. 11. (verze 29): všechny čtyři pohledy</td><td><a href="KM7Finance.dc.html">M4b</a>–<a href="KM10Market.dc.html">M4e</a></td><td>quantitative-families</td><td>W3</td></tr><tr><td><b>Veřejná data</b>: rejstříky a statistiky jako trasy brány; typované vstupy kódem</td><td>strukturovaná data a typovaná čísla jsou další hodnota (zjištění 6, 7)</td><td><a href="MV2PublicData.dc.html">MV2</a></td><td>public-data-routes, deep-research-v2 DRV0–DRV3</td><td>W1–W2</td></tr><tr><td><b>Deep Research v2</b>: přesnost i úplnost citací, věrohodnost zdrojů, rozpory, zastaralé odkazy</td><td>doslovná citace je nejsilnější aktivum (zjištění 5)</td><td><a href="MV2PublicData.dc.html">MV2</a></td><td>deep-research-v2 DRV4–DRV7</td><td>W2–W3</td></tr><tr><td><b>Osobní údaje z rejstříků</b>: test vyváženosti, čl. 14, doba uložení</td><td>GDPR je skutečná hranice (zjištění 7)</td><td><a href="MV2PublicData.dc.html">MV2</a></td><td>register-personal-data</td><td>W1–W2</td></tr><tr><td><b>Sociomapa systémů</b>: scénářová a expertní mapa, nové statistiky, testy věrohodnosti</td><td>statistika enginu na firemních datech neplatí (zjištění 2–4)</td><td><a href="MV3SystemMap.dc.html">MV3</a></td><td>sociomapa-systemu, cost-model-study CS1–CS5, situation-reports EX1–EX2</td><td>W2–W3</td></tr><tr><td><b>Validační sada</b> a registr metod</td><td>bez ní žádná mapa netvrdí, že struktura je skutečná (zjištění 3)</td><td><a href="MV5Validation.dc.html">MV5</a></td><td>sociomapa-systemu SYS0–SYS1b, SYS12</td><td>W1</td></tr><tr><td><b>Analýzy do zprávy</b>: SWOT, PESTEL, Porter, Blue Ocean, TAM/SAM/SOM, finance, provoz, logistika, řízení, architektura; Ada navrhne, výzkumník vybere</td><td>rozhodnutí 2. 11.: výběr v Zadání, jen body se zdrojem</td><td><a href="Z4Analyses.dc.html">Z4</a>, <a href="MV6Catalogue.dc.html">MV6</a></td><td>nový plán: katalog analýz (návrh)</td><td>W1–W3</td></tr><tr><td><b>Rentgen zprávy</b>: body, vizualizace a odkaz u každého čísla</td><td>rozhodnutí 2. 11.: ověřitelná kostra před textem</td><td><a href="MV4XRay.dc.html">MV4</a></td><td>research-findings-stage</td><td>W1–W3</td></tr><tr><td><b>Zpráva</b> z rentgenu, schválení a export</td><td>sledovatelná evidence je bílé místo trhu (zjištění 10)</td><td><a href="KM6Report.dc.html">M6</a></td><td>research-findings-stage FND9, report-delivery</td><td>W3</td></tr><tr><td><b>Ada</b>: návrhy po změnách, karta plánu, rozpočet studie</td><td>modely navrhují, kód počítá, člověk schvaluje</td><td>všechny</td><td>lead-orchestration, working-copy-edit-ops</td><td>W1–W2</td></tr></tbody></table></div></section><div class="zgrid2"><section class="sec"><div class="sh"><span class="num">03</span><h2>Co v MVP není</h2><span class="grow"></span><span class="cap">zaparkováno, nesmazáno</span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 430px">Mimo MVP</th><th style="width: 300px">Proč</th><th>Co se stane</th></tr></thead><tbody><tr><td>Výzkum zákazníků s AI respondenty: dotazník, cílová skupina, vzorek, dimenze, sběr, Sociomapa respondentů</td><td>zmrazeno 2. 11. („Freeze it now“); v tomto prototypu není</td><td>kód zůstává a běží na develop; ztráta objednávek jen z dat klienta</td></tr><tr><td>Jednotková a časová Sociomapa</td><td>musí nejdřív projít validační sadou</td><td>odemkne se po prazích metodika</td></tr><tr><td>Monitoring a precedenty v Deep Research</td><td>střední hodnota, vysoká pracnost</td><td>po MVP</td></tr><tr><td>Nákup komerčních dat (Merk, Cribis…)</td><td>rozhodne změřená cena kontroly závěrek</td><td>rozhodnutí vlastníka</td></tr></tbody></table></div></section><section class="sec"><div class="sh"><span class="num">04</span><h2>Pořadí stavby</h2><span class="grow"></span><span class="cap">nejdřív datové smlouvy, pak platforma modelů</span></div><div class="sb"><div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px"><div class="zcard"><h3>W1 · základy</h3><p>datová smlouva a kvalita · brána: limity, robots a výhrada vytěžování, doba uložení · rejstřík zdrojů · záznam o osobních údajích · kontrakt rentgenu · generátory validační sady · otázky metodikovi</p></div><div class="zcard"><h3>W2 · platforma</h3><p>typovaný model a scénáře nákladů · veřejné trasy · typovaná extrakce a citace · stavba rentgenu: tabulky, grafy, diagramy · nové statistiky mapy</p></div><div class="zcard"><h3>W3 · odhady a mapy</h3><p>Monte Carlo, Sobol, MASE, hodnota informace · finance, účetnictví, provoz, trh · scénářová a expertní mapa · zpráva z rentgenu</p></div><div class="zcard"><h3>W4 · přijetí</h3><p>jednotková a časová mapa po validaci · celá cesta M-1 až M-10 · vydání</p></div></div></div></section></div><section class="sec"><div class="sh"><span class="num">05</span><h2>Kritéria přijetí MVP</h2><span class="grow"></span><span class="cap">návrh · nahradí AC-01 až AC-15 (MP17)</span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 60px"></th><th>Kritérium přijetí MVP (návrh)</th><th style="width: 90px">Ověří</th></tr></thead><tbody><tr><td class="num">M-1</td><td>Soubor klienta vstoupí do výpočtu jen pod přijatou smlouvou; sloupec, který smlouva nejmenuje, ani osobní sloupec nikdy neopustí analytickou kopii.</td><td><a href="MV1Contract.dc.html">MV1</a></td></tr><tr><td class="num">M-2</td><td>Každé číslo na Výsledcích, v rentgenu i ve zprávě vede ke zdroji: soubor a řádek nebo stránka, veřejný vstup s hashem odpovědi, nebo běh modelu s verzí metody.</td><td><a href="MV4XRay.dc.html">MV4</a></td></tr><tr><td class="num">M-3</td><td>Stejné vstupy a seed dají stejné bajty, u výpočtu i u odhadu.</td><td><a href="KM4Results.dc.html">M4</a></td></tr><tr><td class="num">M-4</td><td>Pravidlo je zapsané před výsledky a posuzuje se tak, jak je zapsané.</td><td><a href="Z3Decision.dc.html">Z3</a></td></tr><tr><td class="num">M-5</td><td>Odhad jde ke klientovi až po zápisu metody do registru metodikem.</td><td><a href="MV5Validation.dc.html">MV5</a></td></tr><tr><td class="num">M-6</td><td>Veřejná hodnota se shoduje s odpovědí zdroje bajt po bajtu; VIES se neukládá; údaj o fyzické osobě bez testu vyváženosti se nezobrazí.</td><td><a href="MV2PublicData.dc.html">MV2</a></td></tr><tr><td class="num">M-7</td><td>Zjištění Deep Research je citace v zachyceném zdroji; přesnost citací aspoň 90 %, nepodložená tvrzení pod 10 %.</td><td><a href="MV2PublicData.dc.html">MV2</a></td></tr><tr><td class="num">M-8</td><td>Mapa kreslí hranu, jen když porazí surogátní nulu po korekci a obstojí v blokovém bootstrapu; seznam „nikdy netvrdí“ je na obrazovce i ve zprávě.</td><td><a href="MV3SystemMap.dc.html">MV3</a></td></tr><tr><td class="num">M-9</td><td>Zpráva řekne jen to, co drží uzavřený rentgen; neověřený bod do ní nepůjde.</td><td><a href="MV4XRay.dc.html">MV4</a></td></tr><tr><td class="num">M-10</td><td>Celá cesta Velis (smyšlená) přes HTTP i v prohlížeči se zaznamenanými odpověďmi, bez placeného volání, v rozpočtu studie.</td><td>všechny</td></tr></tbody></table></div></section><section class="sec"><div class="sh"><span class="num">06</span><h2>Co čeká na rozhodnutí</h2><span class="grow"></span><span class="cap">ADR 0046 · Otevřené</span></div><div class="sb"><div class="zgrid2"><div><b style="font-size: 13px">Vlastník produktu</b><div class="zq"><span class="n">Q1</span><div>Jeden slovník druhů čísel: výpočet, odhad, modelováno, z dat klienta, veřejný zdroj.<span class="why">doporučení: tyto čtyři štítky v prototypu jsou ten slovník</span></div></div><div class="zq"><span class="n">Q2</span><div>Vynucovat třídy dat před tokem dat klienta do modelu?<span class="why">doporučení: ano pro třídu A ve staging a produkci</span></div></div><div class="zq"><span class="n">Q4</span><div>Jméno a licence SOMECS.<span class="why">doporučení: do ověření se mapa jmenuje Sociomapa systémů</span></div></div><div class="zq"><span class="n">Q6</span><div>Velikost trhu shora (MKT2, 4, 5) v MVP?<span class="why">doporučení: ano, stačí veřejná data a Deep Research v2</span></div></div></div><div><b style="font-size: 13px">Metodik</b><div class="zq"><span class="n">10</span><div>Deset statistických rozhodnutí: korekce testů, úrovně nebo změny, efektivní velikost vzorku, převzorkování, nula, statistika souvislosti, prahy sady, diskontní sazba, PERT, hodnocení předpovědí.<span class="why"><a href="MV5Validation.dc.html">na desce Metodika</a>; žádná nahrazená statistika se nepostaví před odpovědí</span></div></div></div></div></div></section><div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Co se mění na deskách Z a M:</b> ztráta objednávek přichází z dat klienta o zpožděních pod smlouvou (MV1); Sociomapa strategií (M5) dostává nové statistiky a testy věrohodnosti (MV3) místo split-half; mezi Výsledky a Zprávou přibývá Rentgen zprávy (MV4); lišta kroků MVP je na deskách MV.</div></div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":3400}}'>
+class Component extends DCLogic {
+renderVals() { return { theme: this.props.theme ?? 'light', busy: false, idle: true }; }
+}
+</script>
+</body>
+</html>
