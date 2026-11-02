@@ -55,6 +55,7 @@ let drainStarts: LeadTurn[] = [];
 let onDrain: (() => void) | null = null;
 let withdrawn: string[] = [];
 let attachedFiles: { filename: string; data_b64: string }[] = [];
+let chosen: unknown[] = [];
 let releaseAttach: (() => void) | null = null;
 const TARGETS = { candidates: [
   { id: "t1", kind: "ANALYSIS_MODULE", words: "Odpovědi na výzkumné otázky", ref: { kind: "ANALYSIS_MODULE", module_id: "research_questions" } },
@@ -97,6 +98,12 @@ function api() {
         outcome: "READ", reason: null, segments: 2, characters: 120,
       }), { status: 201 });
     }
+    if (u.endsWith("/questionnaire")) {
+      chosen.push(JSON.parse(String(init?.body)));
+      return chosen.length > 1
+        ? new Response(JSON.stringify({ code: "questionnaire_already_filed", message: "x", details: { run_id: "RUN-Q" } }), { status: 409 })
+        : new Response(JSON.stringify({ run_id: "RUN-Q" }), { status: 201 });
+    }
     if (u.endsWith("/withdraw")) {
       withdrawn.push(u.split("/").at(-2)!);
       return new Response(JSON.stringify({ turns: [] }));
@@ -137,6 +144,7 @@ beforeEach(() => {
   drains = 0;
   withdrawn = [];
   attachedFiles = [];
+  chosen = [];
   releaseAttach = null;
   quoted = [];
   targetsAnswer = TARGETS;
@@ -304,6 +312,53 @@ describe("LeadPane", () => {
     await waitFor(() => expect(attachedFiles).toHaveLength(4));
     expect(screen.getAllByText("Ukládá se k podkladům klienta…")).toHaveLength(3);
     expect((screen.getByRole("button", { name: /Přiložit soubor/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("asks Nahradit or Doplnit for a questionnaire table on a study with questions, and files the choice once (LO18b)", async () => {
+    const file = { source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "dotaznik.xlsx" };
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [{ ...file, questionnaire: { status: "choose", questions: 2, tracked_sets: 1 } }] })] };
+    render(pane());
+    expect(await screen.findByText(/Tabulka je dotazník \(2 otázky, 1 sada\)/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Doplnit" }));
+    await waitFor(() => expect(chosen).toEqual([{ source_id: file.source_id, mode: "add" }]));
+    expect(await screen.findByText(/čeká na kontrolu jako návrh/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Nahradit" })).toBeNull();
+  });
+
+  it("stops asking once a later read finds the table's proposal filed, by another tab", async () => {
+    const file = { source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "dotaznik.xlsx" };
+    const asked = { ...file, questionnaire: { status: "choose" as const, questions: 2, tracked_sets: 1 } };
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [asked] })] };
+    const { rerender } = render(pane());
+    expect(await screen.findByRole("button", { name: "Nahradit" })).toBeTruthy();
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [{ ...asked, questionnaire: { ...asked.questionnaire, run_id: "RUN-Q" } }] })] };
+    rerender(pane({ epoch: 1 }));
+    expect(await screen.findByText(/čeká na kontrolu jako návrh/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Nahradit" })).toBeNull();
+    expect(chosen).toEqual([]);
+  });
+
+  it("reads the jobs again for a table's proposal filed at once that the list does not hold yet (Codex on #1149)", async () => {
+    const file = { source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "dotaznik.xlsx" };
+    const filed = { ...file, questionnaire: { status: "filed" as const, questions: 2, tracked_sets: 1, run_id: "RUN-Q" } };
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [filed] })] };
+    const onJobsChanged = vi.fn();
+    const { rerender } = render(pane({ cards: cards({ onJobsChanged }) }));
+    await waitFor(() => expect(onJobsChanged).toHaveBeenCalledTimes(1));
+    // Once the list holds it, nothing is read again.
+    const job = { run_id: "RUN-Q", design_revision_id: "REV-1", action: "build_questionnaire" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-11-01T08:01:00Z", steps: [], actual_cost_usd: 0 };
+    rerender(pane({ cards: cards({ onJobsChanged }), jobs: [job] }));
+    rerender(pane({ cards: cards({ onJobsChanged }), jobs: [job], epoch: 1 }));
+    await screen.findByText(/čeká na kontrolu jako návrh/);
+    expect(onJobsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it("says a refused questionnaire table in the import's words, and offers no choice", async () => {
+    const file = { source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "dotaznik.csv" };
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Udělej dotazník.", run_id: null, files: [{ ...file, questionnaire: { status: "refused", reason: "invalid_row", message: "q3: neznámý typ x.", questions: 0, tracked_sets: 0 } }] })] };
+    render(pane());
+    expect(await screen.findByText(/nenačetla: q3: neznámý typ x\./)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Doplnit" })).toBeNull();
   });
 
   it("names the files a sent message carried", async () => {

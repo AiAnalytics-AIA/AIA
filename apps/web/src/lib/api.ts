@@ -520,13 +520,6 @@ export type WorkingSave = { study_id: string; state: ContentState; revision: num
 /** A batch of edits saved (POST …/workspace/ops, WCE3a): the save, and the copy as AIA now holds it. */
 export type WorkingOpsSave = WorkingSave & { content: Record<string, unknown>; analysis: Record<string, unknown> | null };
 
-/** A filled-in questionnaire template, read by AIA (QuestionnaireImportResponse). */
-export type QuestionnaireImport = {
-  sections: Record<string, unknown>[];
-  summary: { question_count: number; tracked_sets: number; sections: number };
-  filename: string;
-};
-
 /** What the brief keeps of an attached file (AttachmentResponse): never where it is stored. */
 export type AttachmentRecord = {
   kind: "file";
@@ -935,8 +928,6 @@ export const workspace = {
     requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
   /** Each of the brief's files and links, as saved, with the data class its rule gives it (artifact-brief BRF3). */
   materials: (studyId: string) => request<BriefMaterials>("GET", `/api/v1/studies/${enc(studyId)}/workspace/materials`),
-  importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
-    request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
   questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),
   /** What the study inherits: its own client's approved knowledge (ADR 0015 decision 7). */
   studyContext: (studyId: string) =>
@@ -1662,6 +1653,8 @@ export type ResearchAgentJob = {
   proposal_state?: "pending" | "accepted" | "dismissed" | "superseded" | null;
   /** The job this one rebuilt, which it supersedes. */
   rebuild_of?: string | null;
+  /** "file": a questionnaire made from a table given to the Lead (LO18b), with its name and the mode. */
+  origin?: string | null; filename?: string | null; mode?: "replace" | "add" | null;
 };
 export type ResearchAgentResult = {
   result: { project: Record<string, unknown>; proposal: Record<string, unknown>; analysis?: unknown } & Record<string, unknown>;
@@ -1691,6 +1684,9 @@ export const lead = {
   /** `files`: the client's sources the message carries, each kept first through attachFile (LO18a). */
   post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null; files?: string[] }) =>
     request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
+  /** Nahradit or Doplnit, for a questionnaire table the caller's message carried (LO18b); once. */
+  chooseQuestionnaire: (studyId: string, turnId: string, body: { source_id: string; mode: "replace" | "add" }) =>
+    request<{ run_id: string }>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/questionnaire`, body),
   /** Keep a file given to the Lead as the study's client's source (listed under the client's Data; LO18a). */
   attachFile: (studyId: string, body: { filename: string; data_b64: string }) =>
     request<LeadFileKept>("POST", `${studyPath(studyId)}/lead/files`, body),

@@ -12,6 +12,7 @@ import { useLayoutEffect, useRef } from "react";
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchAgentAction, ResearchAgentResult } from "@/lib/api";
+import { FROM_FILE_AGENT } from "@/lib/research-agent-jobs";
 import type { ResearchProject } from "@/research/model";
 import { audienceProposalDiff } from "@/research/audience-proposal";
 import { proposalDiff, questionnaireReplacement } from "@/research/proposal-diff";
@@ -66,12 +67,16 @@ export function ProposalReview({ result, action, state, onDecision, canApply = t
   // An audience proposal (AUD5): its description and criteria against the audience there is now.
   const audience = action === "propose_audience" ? audienceProposalDiff(state.project, result.result.proposal) : null;
   const changes = diff.changes + (audience?.changes ?? 0);
+  // A table given to the Lead (LO18b): read by code, never a model; Doplnit only adds, and the
+  // file is given again rather than the proposal rebuilt (the server refuses that, from_file).
+  const fromFile = result.provenance.agent_id === FROM_FILE_AGENT;
+  const adding = fromFile && result.result.proposal.mode === "add";
   return (
     <section aria-labelledby="proposal-review-title" data-proposal-review className="scroll-mt-40 overflow-hidden rounded-card border ai-spark">
       <div className="flex flex-wrap items-center gap-2 border-b border-ai-edge bg-ai-wash px-4 py-2.5">
         <Sparkle size={14} />
         <h2 ref={heading} tabIndex={-1} id="proposal-review-title" className="flex-1 text-sm font-semibold text-ink focus:outline-none">
-          {changes ? `Zkontrolujte návrh AI · ${changes} ${changes === 1 ? "změna" : changes < 5 ? "změny" : "změn"}` : "Zkontrolujte návrh AI"}
+          {fromFile ? t("research.questionnaire.replacement.fromFile") : changes ? `Zkontrolujte návrh AI · ${changes} ${changes === 1 ? "změna" : changes < 5 ? "změny" : "změn"}` : "Zkontrolujte návrh AI"}
         </h2>
         <span className="text-xs text-ink-muted">Nic se nezmění, dokud návrh nepoužijete.</span>
       </div>
@@ -118,7 +123,9 @@ export function ProposalReview({ result, action, state, onDecision, canApply = t
           <div data-questionnaire-replacement>
             <h3 className="text-xs font-medium text-ink-muted">{t("research.questionnaire.replacement.title")}</h3>
             <p className="mt-1 text-[13px] leading-5">
-              {tv("research.questionnaire.replacement.summary", { replaced: replacement.replaced, preserved: replacement.preserved, kept: replacement.kept })}
+              {adding
+                ? tv("research.questionnaire.replacement.addSummary", { added: replacement.added.length })
+                : tv("research.questionnaire.replacement.summary", { replaced: replacement.replaced, preserved: replacement.preserved, kept: replacement.kept })}
             </p>
             <ul className="mt-1 flex flex-col gap-1">
               {replacement.removed.map((x) => <Item key={`d-${x}`} kind="del">{x}</Item>)}
@@ -181,11 +188,13 @@ export function ProposalReview({ result, action, state, onDecision, canApply = t
         </details>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-ai-edge px-4 py-2.5">
-        <span className="flex-1 text-xs leading-4 text-ink-muted">{!canApply ? t("research.proposalClosed") : questionnaire ? t("research.questionnaire.replacement.footer") : "Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</span>
+        <span className="flex-1 text-xs leading-4 text-ink-muted">{!canApply ? t("research.proposalClosed") : adding ? t("research.questionnaire.replacement.addFooter") : questionnaire ? t("research.questionnaire.replacement.footer") : "Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</span>
         <Button onClick={() => onDecision(false)}>Ponechat současný návrh</Button>
         {/* Set aside in the ledger, never applied; it stays readable in the job's history. */}
         <Button disabled={!canApply} onClick={() => onDecision("dismiss")}>Zahodit</Button>
-        {stale
+        {stale && fromFile
+          ? <span className="text-xs text-ink-muted">{t("research.questionnaire.replacement.fromFileStale")}</span>
+          : stale
           ? <Button variant="primary" disabled={!canApply} onClick={() => onDecision("rebuild")}>Navrhnout znovu</Button>
           : <Button variant="primary" disabled={!canApply} onClick={() => onDecision(true)}>Použít návrh</Button>}
       </div>

@@ -2,6 +2,7 @@
 // chip says about it, which files a message may carry, and what holds a message back. The file
 // is kept as the client's source (listed under the client's Data); the message carries its id.
 import type { LeadFileKept } from "./api";
+import type { FileQuestionnaire } from "./lead";
 import { FILE_MAX_BYTES, readingLine, reasonWords } from "./client-sources";
 
 /** The most files one message carries; the server refuses more (FILES_PER_MESSAGE). */
@@ -52,4 +53,21 @@ export function carried(attached: Attached[]): string[] {
 /** A file still being kept holds the message back: it would otherwise go without it. */
 export function holdsMessage(attached: Attached[]): boolean {
   return attached.some((a) => a.state === "uploading");
+}
+
+/** The server's own refusals of a questionnaire table (application/lead_questionnaire.py, the design's
+ * DesignRejected reasons fall back to their code); the import's refusals come with their own words. */
+const REFUSALS: Record<string, string> = {
+  questionnaire_empty: "šablona nemá žádnou otázku ani sledovanou sadu.",
+  one_questionnaire_per_message: "zpráva nese víc tabulek dotazníku; jako dotazník se čte jen první.",
+  questionnaire_too_large: "dotazník je větší, než AIA najednou přijme.",
+};
+
+/** A questionnaire table's line under the message (LO18b): what it became, in words. A choice not
+ *  made yet is asked by the card's two buttons, never guessed. */
+export function questionnaireLine(q: FileQuestionnaire): string {
+  const counts = `${q.questions} ${q.questions === 1 ? "otázka" : q.questions >= 2 && q.questions <= 4 ? "otázky" : "otázek"}, ${q.tracked_sets} ${q.tracked_sets === 1 ? "sada" : q.tracked_sets >= 2 && q.tracked_sets <= 4 ? "sady" : "sad"}`;
+  if (q.status === "refused") return `Tabulka se jako dotazník nenačetla: ${q.message || (q.reason && REFUSALS[q.reason]) || q.reason || "důvod neznámý"}`;
+  if (q.status === "filed" || q.run_id) return `Dotazník ze souboru (${counts}) čeká na kontrolu jako návrh.`;
+  return `Tabulka je dotazník (${counts}). Dotazník studie už otázky má: nahradit je, nebo doplnit jen ty, které v něm nejsou?`;
 }

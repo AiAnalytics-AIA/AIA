@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// "Sestavit s AI" on a questionnaire that already has items (artifact-questionnaire QF-4): the AI
-// does not build it anew, so the choice says so and, in the workbench, asks the Lead in one click.
-// A file of its own: the workbench switch, once read, is kept for the page.
+// AIA's questionnaire template on Dotazník in the workbench, for a table given to the Lead (LO18b):
+// downloaded through the study, a refusal said in Czech by its code. A file of its own: the
+// workbench switch, once read, is kept for the page.
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,11 +9,14 @@ import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME } from "./test-frame";
 import { CONTENT_PATH, EMPTY_PROJECT, signedIn } from "./test-workspace";
 
+const saved: string[] = [];
+vi.mock("@/lib/download", () => ({ saveBlob: (_blob: Blob, name: string) => { saved.push(name); } }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/questionnaire", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const urls: string[] = [];
 const bodies: { url: string; body: Record<string, unknown> }[] = [];
 let stored: Record<string, unknown> = {};
+let templateRefused = false;
 function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby." }, analysis: Record<string, unknown> | null = null) {
   urls.length = 0;
   bodies.length = 0;
@@ -32,13 +35,13 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
       : u.endsWith("/research/agent-jobs") ? []
+      : u.endsWith("/workspace/questionnaire-template") ? (templateRefused ? null : "PK")
       : u === "/api/v1/lead" ? { hatched: true, lead: { lead_id: "L", name: "Bára", hatched_at: "", updated_at: "", files: { soul: "", user: "" }, memories: [] } }
       : u.endsWith("/lead/turns") && method === "POST" ? { turns: [] }
       : u.endsWith("/lead") ? { available: true, unavailable_reason: null, busy: false, turns: [] }
       : null;
-    return answer === null
-      ? new Response(JSON.stringify({ code: "not_found", message: "not here" }), { status: 404 })
-      : new Response(JSON.stringify(answer), { status: 200 });
+    if (answer === null) return new Response(JSON.stringify({ code: "not_found", message: "not here" }), { status: 404 });
+    return typeof answer === "string" ? new Response(answer, { status: 200 }) : new Response(JSON.stringify(answer), { status: 200 });
   }));
 }
 
@@ -52,29 +55,23 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-const SECTIONS = [{ id: "sec_a", type: "questions", title: "Hlavní otázky", questions: [{ id: "Q1", text: "Jak často?", typ: "vyber", kategorie: ["Denně", "Týdně"] }] }];
-
-beforeEach(() => {
-  signedIn();
-  api({ title: "Alfa", goal: "Zjistit zájem.", sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-});
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-  sessionStorage.clear();
-});
-
-describe("Sestavit s AI on a questionnaire with items, in the workbench", () => {
-  it("says the AI will not build it anew and asks the Lead for changes in words", async () => {
+describe("the questionnaire template, in the workbench", () => {
+  it("downloads AIA's template through the study and says what to do with it", async () => {
+    templateRefused = false;
+    saved.length = 0;
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByText("Bára");
-    expect(screen.queryByText(/takže ho AI znovu nesestaví/)).toBeNull();
-    fireEvent.click(await screen.findByRole("radio", { name: "Sestavit s AI" }));
-    expect(await screen.findByText(/úpravy těch, které tu jsou, navrhne Vedoucí výzkumu/)).toBeTruthy();
-    // The questionnaire stays as it was, in the editor.
-    expect(screen.getByDisplayValue("Jak často?")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
-    await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Navrhni úpravy dotazníku.")).toBe(true));
-    expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.endsWith("/request")))).toBe(false);
+    fireEvent.click(await screen.findByRole("button", { name: /Stáhnout šablonu XLSX/ }));
+    await waitFor(() => expect(saved).toEqual(["AIA_dotaznik_sablona.xlsx"]));
+    expect(urls).toContain("GET /api/v1/studies/STU-1/workspace/questionnaire-template");
+    expect(screen.getByText(/přiložte ke zprávě Vedoucímu výzkumu/)).toBeTruthy();
+  });
+
+  it("says a template the API would not give in Czech, by its code", async () => {
+    templateRefused = true;
+    saved.length = 0;
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Stáhnout šablonu XLSX/ }));
+    expect(await screen.findByText("Šablonu se nepodařilo stáhnout (kód not_found)")).toBeTruthy();
+    expect(saved).toEqual([]);
   });
 });

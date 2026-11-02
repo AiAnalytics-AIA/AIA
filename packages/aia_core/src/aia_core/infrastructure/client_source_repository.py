@@ -377,6 +377,17 @@ class ClientSourceRepository:
             reading = SourceReading.model_validate_json(data)
         return FileForTurn(ref=ref, family=family, internal=internal, reading=reading)
 
+    def lead_original(self, scope: StudyContext, ref: LeadFileRef) -> bytes:
+        """A file a message carries, its bytes as the person attached them: verified against the
+        ref's SHA-256, the study's own client's source only (``ScopeDenied`` otherwise)."""
+        if not isinstance(scope, StudyContext):
+            raise ScopeDenied("a Lead file requires a study context", reason="forged_scope")
+        scope.require(Permission.VIEW_STUDY)
+        row = self._row(scope, ref.source_id)
+        if row.sha256 != ref.sha256:
+            raise ScopeDenied("not found", reason="unknown_source")
+        return self._store.get(row.storage_key, expected_sha256=row.sha256)
+
     def original(self, scope: ClientContext, source_id: str) -> tuple[str, bytes]:
         """The original's bytes, verified, and the name it was last added under."""
         record = self.source(scope, source_id)

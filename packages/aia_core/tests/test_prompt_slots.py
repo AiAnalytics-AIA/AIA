@@ -96,6 +96,7 @@ def test_every_research_action_is_a_wired_slot() -> None:
 LEAD_BASELINE_SHA256 = {
     "3": "9df31859132e4b8afaf73c2d6dc3363b63f55e34a2dbbf16ce55d23e0ba2bbc8",
     "4": "648c9e0cbec7e329fc97be6bad536e5576a628955a12c2447a997651c67ca64e",
+    "5": "4b7544b7d2657186e1fca46a115de25fcbdc4b408281e75d7a140aa4c4275115",
 }
 
 

@@ -88,7 +88,8 @@ export function workerCard(job: ResearchAgentJob): WorkerCard {
   const step = job.steps.find((s) => s.status === "RUNNING") ?? job.steps[0] ?? null;
   return {
     id: job.run_id,
-    title: ACTION_LABELS[job.action] ?? job.action,
+    // A table given to the Lead (LO18b) is the file's questionnaire, never a model's.
+    title: job.origin === "file" ? `Dotazník ze souboru${job.filename ? ` · ${job.filename}` : ""}` : ACTION_LABELS[job.action] ?? job.action,
     state,
     word: w.word,
     tone: w.tone,

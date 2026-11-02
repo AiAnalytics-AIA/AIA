@@ -742,6 +742,17 @@ class WorkflowRepository:
             )
         )
 
+    def find_runs_by_idempotency_keys(self, keys: Sequence[str]) -> dict[str, str]:
+        """The ids of the runs created with these keys in scope, by key: one query."""
+        if not keys:
+            return {}
+        rows = self._session.execute(
+            select(WorkflowRunRow.idempotency_key, WorkflowRunRow.run_id).where(
+                WorkflowRunRow.idempotency_key.in_(list(keys)), *self._scope_filter()
+            )
+        )
+        return {str(key): str(run_id) for key, run_id in rows}
+
     def list_runs(
         self,
         *,

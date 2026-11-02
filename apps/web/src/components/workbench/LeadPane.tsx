@@ -14,7 +14,7 @@ import { lead as leadApi, deepResearch as deepResearchApi, researcherLead, ApiEr
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { announceHatched } from "@/lib/rail-lead";
-import type { InterpretationTargets, LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision, TypedPrice, TypedResearchFacts } from "@/lib/lead";
+import type { FileQuestionnaire, InterpretationTargets, LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision, TypedPrice, TypedResearchFacts } from "@/lib/lead";
 import { usdWords } from "@/lib/spend";
 import { chosenTarget, commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, typedResearchBlocked, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
@@ -428,6 +428,13 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
   const atBottom = useRef(true);
   const [away, setAway] = useState(false);
   const runs = cards?.runs ?? [];
+  // A table's proposal the server filed at once (LO18b) is a job the list does not hold yet: read
+  // the jobs again, once per such run, so its card and its review show without a reload.
+  const unseen = turns.flatMap((t) => (t.files ?? []).flatMap((f) => (f.questionnaire?.run_id && !jobs.some((j) => j.run_id === f.questionnaire?.run_id) ? [f.questionnaire.run_id] : []))).join(",");
+  const onJobsChanged = cards?.onJobsChanged;
+  useEffect(() => {
+    if (unseen) onJobsChanged?.();
+  }, [unseen, onJobsChanged]);
   const sig = `${turns.length}:${turns.at(-1)?.status ?? ""}:${busy}:${jobs.map((j) => j.status).join(",")}:${runs.map((r) => r.phase).join(",")}`;
   useLayoutEffect(() => {
     const el = box.current;
@@ -568,6 +575,7 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
         ) : null}
         <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
       </div>
+      {(t.files ?? []).map((f) => (f.questionnaire ? <QuestionnaireCard key={f.source_id} turn={t} sourceId={f.source_id} q={f.questionnaire} studyId={studyId} canEdit={canEdit} onFiled={cards?.onJobsChanged} /> : null))}
       {typed && (isDeepResearchCard(typed) || typed.kind === "deep_research_stop")
         ? <TypedResearchCard t={t} r={typed} studyId={studyId} canEdit={canEdit} onRequest={onRequest} />
         : typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
@@ -575,6 +583,47 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
       {job && !t.request_decision?.reused ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards && !t.request_decision?.reused ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
     </>
+  );
+}
+
+/** A questionnaire table the person's message carried (LO18b): what it became and, when the study
+ *  already has questions, the person's own choice, Nahradit or Doplnit, filed once on the server. */
+function QuestionnaireCard({ turn, sourceId, q, studyId, canEdit, onFiled }: {
+  turn: LeadTurn; sourceId: string; q: FileQuestionnaire; studyId: string; canEdit: boolean; onFiled?: () => void;
+}) {
+  const [filed, setFiled] = useState<string | null>(q.run_id ?? null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const choose = async (mode: "replace" | "add") => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      setFiled((await leadApi.chooseQuestionnaire(studyId, turn.turn_id, { source_id: sourceId, mode })).run_id);
+      onFiled?.();
+    } catch (e) {
+      // Filed already, in another tab: the proposal is there, so the choice is made.
+      if (e instanceof ApiError && e.code === "questionnaire_already_filed") setFiled(String(e.details.run_id ?? "filed"));
+      else setProblem(e instanceof ApiError ? reasonWords(e.code) : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  // Filed here, or seen filed on a later read (another tab's choice): the choice is made.
+  const run = filed ?? q.run_id ?? null;
+  const shown = run ? { ...q, run_id: run } : q;
+  const asking = q.status === "choose" && !run;
+  return (
+    <div className="msg" data-questionnaire={sourceId}>
+      <div className="notice"><Glyph tone={q.status === "refused" ? "fault" : asking ? "you" : "world"} size={11} />{leadFiles.questionnaireLine(shown)}
+        {asking ? (
+          <span className="card__actions">
+            <button type="button" className="btn btn--sm btn--quiet" disabled={!canEdit || busy} onClick={() => void choose("add")}>Doplnit</button>
+            <button type="button" className="btn btn--sm btn--primary" disabled={!canEdit || busy} onClick={() => void choose("replace")}>Nahradit</button>
+          </span>
+        ) : null}
+        {problem ? <span role="alert"> {problem}</span> : null}
+      </div>
+    </div>
   );
 }
 

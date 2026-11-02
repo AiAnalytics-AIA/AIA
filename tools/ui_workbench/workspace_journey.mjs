@@ -13,8 +13,8 @@
  *     there, read back from AIA -- adds an objective, reloads -- it is one Lead target --
  *     rewords it in place, reloads -- it is still one, in its new words -- and downloads the
  *     file through the study;
- *   * Dotazník: downloads AIA's template, imports that same file, reloads -- the
- *     imported questionnaire is still there; puts its first question on the 1–10 preset
+ *   * Dotazník: opens on its one editor (no choice of paths), a question added in place,
+ *     reloads -- the question is still there; puts its first question on the 1–10 preset
  *     with a label on every point, reloads -- the range and the ten labels are still there,
  *     and the editor fits at 390 px (input-interactions 3b2);
  *   * Cílová skupina: one choice of three, Najít ve výsledcích disabled with its reason (R4);
@@ -197,21 +197,18 @@ await text("https://example.test/fiktivni", "the added link");
 ok("Zadání: a link's problem said at its field, cleared as it is typed, the link added (A26)");
 await shot("1-brief");
 
-// 2. Dotazník: AIA's template, imported back.
+// 2. Dotazník: its one editor, never a choice of paths (QST12); a question added inline and read
+// back after a reload. A template table comes as the Lead's proposal (LO18b), not here.
 await page.goto(stage("questionnaire"), { waitUntil: "load", timeout: 120000 });
-await page.getByRole("button", { name: /Nahrát Excel/ }).click({ timeout: 60000 });
-const [templateDownload] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: "Stáhnout XLSX šablonu" }).click()]);
-const templatePath = join(OUT, "sablona.xlsx");
-writeFileSync(templatePath, readFileSync(await templateDownload.path()));
-if (!readFileSync(templatePath).subarray(0, 2).equals(Buffer.from("PK"))) fail("the template is not a workbook");
-ok("Dotazník: AIA's template downloads");
-const imported = saved();
-await page.locator('input[type="file"][aria-label="Vyplněný XLSX / CSV"]').setInputFiles(templatePath);
-await text("Načteno: 2 otázky · 1 sledovaná sada", "the import's summary");
-await imported;
+if (await page.getByRole("heading", { name: "Jak chcete dotazník vytvořit?" }).count()) fail("Dotazník still offers a choice of paths");
+const added = saved();
+await page.getByRole("button", { name: "Nová otázka", exact: true }).click({ timeout: 60000 });
+await page.getByRole("textbox", { name: "Nová otázka", exact: true }).fill("Jak moc vás produkt zaujal?");
+await page.getByRole("textbox", { name: "Nová otázka", exact: true }).press("Enter");
+await added;
 await page.reload({ waitUntil: "load" });
-await text("2 otázky · 1 sledovaná sada", "the imported questionnaire after a reload");
-ok("Dotazník: the template imports in AIA and the questionnaire is read back after a reload");
+await text("1 otázka · 0 sledovaných sad", "the added question after a reload");
+ok("Dotazník: one editor, a question added in place and read back after a reload");
 await shot("2-questionnaire");
 
 // 2b. Dotazník: a scale on the 1–10 preset with a label on every point (input-interactions 3b2),

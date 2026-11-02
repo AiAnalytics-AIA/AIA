@@ -374,3 +374,21 @@ def test_a_document_cut_inside_its_only_segment_is_named_as_left_out() -> None:
     assert entry["files"][0]["segments"][0]["cut"] is True
     row = next(r for r in context_manifest(_context(entry))["layers"] if r["layer"] == FILES_LAYER)
     assert row["omitted"] == [{"id": f"SRC-{1:016x}", "reason": "over_budget"}]
+
+
+def test_the_lead_is_told_what_a_questionnaire_table_became() -> None:
+    """LO18b: the file's entry names the table's outcome, never its sections as edits."""
+    from aia_core.domain.lead_files import QuestionnaireOutcome
+
+    ref = _ref(name="dotaznik.xlsx").model_copy(
+        update={"questionnaire": QuestionnaireOutcome(status="choose", questions=2, tracked_sets=1)}
+    )
+    entry = files_layer([_file(None, ref=ref)])
+    assert entry is not None
+    assert entry["files"][0]["questionnaire"] == {
+        "status": "choose",
+        "questions": 2,
+        "tracked_sets": 1,
+    }
+    plain = files_layer([_file(None)])
+    assert plain is not None and "questionnaire" not in plain["files"][0]

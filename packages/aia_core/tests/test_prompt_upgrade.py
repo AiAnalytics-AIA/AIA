@@ -64,16 +64,16 @@ def test_catalogue_reports_the_actual_role_version(role: AgentRole) -> None:
 
 def test_every_live_editable_task_passes_the_same_store_validation() -> None:
     editable = [s for s in slots() if s.wired]
-    # The eight design actions and the Research Lead (ADR 0026), whose wording is at 4 since it
-    # says what the files layer is (lead-orchestration LO18a; 3 named the select and filter on
-    # Sociomapa, #992; 2 described Deep Research's purposes, presets and targets, LO5a.1).
+    # The eight design actions and the Research Lead (ADR 0026), whose wording is at 5 since it
+    # says what a questionnaire table became (LO18b; 4 the files layer, LO18a; 3 named the select
+    # and filter on Sociomapa, #992; 2 described Deep Research's purposes, presets and targets).
     assert len(editable) == len(ResearchAction) + 1
     # The questionnaire prompts name the research-question links and comparisons (plan 3e).
     moved = {"aia.research.build_questionnaire", "aia.research.optimize_questionnaire"}
     for slot in editable:
         assert slot.check(slot.baseline_text) == slot.baseline_text.strip()
         if slot.prompt_id == LEAD_PROMPT_ID:
-            assert slot.baseline_version == "4"
+            assert slot.baseline_version == "5"
             continue
         assert slot.baseline_version == ("3" if slot.prompt_id in moved else "2")
 

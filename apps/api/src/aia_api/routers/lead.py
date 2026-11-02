@@ -62,6 +62,7 @@ from aia_core.application.research_lead import (
     LeadTurnNotReady,
     LeadUnavailable,
     NotAPaidRequest,
+    QuestionnaireAlreadyFiled,
     ResearchLead,
     WorkspaceConflict,
     worker_preflight,
@@ -136,6 +137,20 @@ class TurnPost(BaseModel):
     )
 
 
+class FileQuestionnaire(BaseModel):
+    """What a questionnaire table a message carried became (LO18b): ``filed`` (its proposal's
+    run once filed), ``choose`` (Nahradit or Doplnit asked of the person) or ``refused`` (the
+    import's reason and words)."""
+
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["filed", "choose", "refused"]
+    reason: str | None = None
+    message: str | None = None
+    questions: int = 0
+    tracked_sets: int = 0
+    run_id: str | None = None
+
+
 class LeadFile(BaseModel):
     """A file a message carries to the Lead: the client's source, as the message stores it."""
 
@@ -144,6 +159,21 @@ class LeadFile(BaseModel):
     sha256: str
     reading_sha256: str | None
     filename: str
+    questionnaire: FileQuestionnaire | None = None
+
+
+class QuestionnaireChoice(BaseModel):
+    """The person's answer to a questionnaire table their message carried: Nahradit (replace)
+    or Doplnit (add)."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_id: str = Field(pattern=r"^SRC-[0-9a-f]{16}$")
+    mode: Literal["replace", "add"]
+
+
+class QuestionnaireFiled(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    run_id: str
 
 
 class LeadFileKept(BaseModel):
@@ -528,6 +558,10 @@ def _lead_errors() -> Iterator[None]:
         raise _error(status.HTTP_404_NOT_FOUND, exc.reason, "No such resource.") from exc
     except LeadFileNotFound as exc:
         raise _error(status.HTTP_404_NOT_FOUND, exc.reason, "No such source.") from exc
+    except QuestionnaireAlreadyFiled as exc:
+        raise _error(
+            409, exc.reason, "This file's questionnaire is already filed.", run_id=exc.run_id
+        ) from exc
     except LeadUnavailable as exc:
         raise _error(409, exc.reason, "The Research Lead is not switched on here.") from exc
     except LeadNotHatched as exc:
@@ -854,6 +888,33 @@ def add_lead_file(
         segments=record.segments,
         characters=record.characters,
     )
+
+
+@router.post(
+    "/lead/turns/{turn_id}/questionnaire",
+    response_model=QuestionnaireFiled,
+    status_code=201,
+    responses={
+        404: {"model": ErrorResponse, "description": "Not your message, or not its file"},
+        409: {"model": ErrorResponse, "description": "Already filed"},
+        422: {"model": ErrorResponse, "description": "The file asked for no choice"},
+    },
+)
+def choose_questionnaire(
+    turn_id: TurnIdPath,
+    body: QuestionnaireChoice,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> QuestionnaireFiled:
+    """Nahradit or Doplnit, for a questionnaire table the caller's own message carried while the
+    study held questions (lead-orchestration LO18b): the table's proposal filed in that mode, a
+    no-model questionnaire job reviewed and accepted as any other. Once only (409)."""
+    with _lead_errors():
+        run_id = ResearchLead(session, scope, store=store).choose_questionnaire(
+            turn_id, source_id=body.source_id, mode=body.mode
+        )
+    return QuestionnaireFiled(run_id=run_id)
 
 
 @router.get(
