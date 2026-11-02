@@ -24,6 +24,11 @@ chunks:
 ---
 # Artifact: Dotazník (Questionnaire)
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 Umbrella: `research-lead-workbench#17` (and `#7`, which lands here). Chain:
 [`artifact-chain-to-draft-report.md`](artifact-chain-to-draft-report.md). Anchors `@ 25f26232`;
 prototype `@ 9b50963f`.

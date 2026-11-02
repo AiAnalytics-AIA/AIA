@@ -18,6 +18,8 @@ chunks:
   - "[ ] MP14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] MP15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
   - "[x] MP16. The scope baseline signed by the owner (§ The scope baseline); its open items answered or carried, each answer applied to the plans it moves"
+  - "[ ] MP17. The acceptance criteria redefined for the pivot (ADR 0046): docs/migration/mvp-acceptance.md, parity-matrix.json and their tests, the frozen criteria parked and the business-decision criteria written, the tier B allocation re-cut; the owner approves (its own pull request)"
+  - "[x] MP18. The pivot recorded (ADR 0046): this register, the execution contracts' waves and the new plans for business decisions, the survey lane parked (2026-11-02)"
 ---
 # The MVP master plan
 
@@ -35,11 +37,20 @@ that place. It does **not** copy any plan's chunks: a chunk is built from its ow
 things: the **register** (§3), the **activation matrix** (§4), the **interfaces between plans** (§5)
 and the **gaps** (§6), plus the **protocol** the sessions work by (§8).
 
-**The goal, in one sentence.** A researcher, with their own Lead, takes a study from brief to an
+**The goal, in one sentence** (since 2026-11-02, ADR 0046). A researcher, with their own Lead, answers a
+client's business decision: the client's own data under an accepted data contract, public registers and
+statistics, Deep Research grounded in quotes, a quantitative model computed by code and a Sociomapa
+systémů map, in an approved report where every number traces to its origin, inside a spend limit the
+researcher set. It is done when the acceptance criteria as redefined by `mvp-master-plan#MP17` pass in
+CI (tier A), once live on develop within the approved allocation (tier B), and the system is released
+to production.
+
+*Until 2026-11-02 the goal read:* A researcher, with their own Lead, takes a study from brief to an
 approved client deliverable: respondents built from the population, Deep Research reaching the open
 web, the client's own data in the analysis, every number and quote traceable to its origin, inside a
 spend limit the researcher set. It is done when `MVP-ACCEPT-2`'s fifteen criteria pass in CI (tier A),
-once live on develop within USD 25 (tier B), and the system is released to production.
+once live on develop within USD 25 (tier B), and the system is released to production. *It is superseded by
+ADR 0046; its survey half is parked (§ The pivot).*
 
 **The document map.** One document owns each kind of question; on a disagreement the owner of that
 kind wins, and the others are stale until fixed.
@@ -54,6 +65,77 @@ kind wins, and the others are stale until fixed.
 | Which plan is in play, what links to what, what is missing, how sessions work | **this plan** | `mvp-master-plan.md` |
 | How a chunk is built | each feature plan | `.planning/plans/<feature>.md` |
 | Why a rule is what it is | ADRs | `docs/architecture/adr/` |
+
+## The pivot (2026-11-02)
+
+**Status: the owner's decisions of 2026-11-02, recorded in [ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)
+(Proposed until he approves this record).** He shared the research
+[`pivot-research-2026-11-02.md`](../evidence/pivot-research-2026-11-02.md) and said "we are pivoting".
+AIA now researches business decisions. The AI-respondent survey lane is frozen: "Freeze it now". The
+first deliverable is this replan, approved before any build work.
+
+**What changes in this register.**
+
+- **The goal** is §1's new sentence.
+- **Parked: the survey lane.** These plans move from §3.1 to §3.3 as PARKED (the owner: "Freeze it now";
+  for the survey maps, "Park with the lane"):
+  - `audience-catalogue-cpu`
+  - `sociomap-formula-corrections`
+  - `segment-maps-and-drilldown`
+  - `assumptions-and-open-answer-coding`
+  - `artifact-questionnaire`, `artifact-sample`, `artifact-fieldwork`, `artifact-results`,
+    `artifact-sociomap`, `artifact-audience`, `artifact-dimensions`, `artifact-analysis`,
+    `artifact-chain-to-draft-report`
+  - `sociomap-5-web`
+  - `run-qc-and-checkpoint`
+  - `signed-off-sociomap-method`
+
+  `panel-grounded-respondents` moves there from §3.2, and `scenario-respondent-bridge` joins it. In the
+  plans that stay core, the survey chunks are parked by name in the execution contracts (§ The pivot's
+  critical path). Nothing is deleted, unticked or skipped. Develop keeps running all of it.
+- **Core, new or newly core:**
+  - `client-data-in-analysis`'s data contracts, re-waved to W1;
+  - `cost-model-study`, the model platform and cost scenarios (ADR 0044, which stays Proposed at the
+    owner's word, "Keep it Proposed");
+  - `situation-reports`, whose expert map is in the MVP ("Both maps in the MVP");
+  - `quantitative-families`: only its market-sizing chunks MKT2, MKT4 and MKT5, per the 30 Oct decision
+    (ADR 0045) and ADR 0046 Q6;
+  - five new plans: `research-findings-stage`, `sociomapa-systemu`, `deep-research-v2`,
+    `public-data-routes` and `register-personal-data`.
+- **A research study** keeps Zadání, Návrh with Design Research, and Zpráva. Between them come the new
+  report X-ray (the report's outline with its prose taken out: every point, number and visual, each
+  number and claim linked to its source or method; one stop or several, built with the Lead) and a
+  Sociomapa stage (`research-findings-stage`; the owner's words
+  are in ADR 0046). New studies don't show the survey stages. Old ones show them read-only.
+- **The acceptance criteria** AC-01 to AC-15 stay registered until `mvp-master-plan#MP17` redefines
+  them in their own pull request. AC-16, the cost-model journey, is proposed now.
+
+**The critical path, in order** (the execution contracts' § The pivot's critical path):
+1. Data contracts (W1).
+2. The model platform and cost scenarios (W2).
+3. Their `ESTIMATED` methods, after the methodology owner's answers (W3).
+4. The scenario and expert maps (W3).
+5. The unit and period maps, after the synthetic suite passes (W4).
+
+Deep Research v2, the public data routes and the register personal-data records run beside them: the
+gate additions in W1, routes and extraction in W2, credibility and as-of in W3. The Lead, the
+workbench frame, the working copy, client knowledge, the report engine, Settings, the prototypes'
+build and production keep their waves, minus their parked chunks.
+
+**What does not change.**
+- The rules: models propose, code computes, a person approves.
+- The evidence capability, the report engine with locked numbers, Deep Research's verbatim rule.
+- Every settled decision of §11.1 that is not about the survey lane.
+
+**Open, with recommendations** (ADR 0046 § Open):
+- **The owner:**
+  - Q1, one grade vocabulary;
+  - Q2, whether class gates enforce before client data flows;
+  - Q3, the frozen panel and market counts;
+  - Q4, the SOMECS name and licence;
+  - Q5, whether a defect in the frozen lane is fixed;
+  - Q6, market sizing's top-down chunks.
+- **The methodology owner:** the research's ten statistical questions (`sociomapa-systemu#SYS0`).
 
 ## The scope baseline (2026-10-20), for the owner's signature
 
@@ -145,7 +227,7 @@ Relayed by the coordinator from the PM status page; recorded in
 |---|---|---|
 | Q13 | A Lead's edits reach the study context file and reports as each researcher chooses: tracked-change suggestions (default) or direct, undoable rewrites; the editor is open (Wordcraft?) | `lead-orchestration#LO19`, `report-delivery#RD6` |
 | Q14 | A departed member's Lead is sealed, then deleted at MVPQ-07's retention end | `lead-orchestration#LO11` |
-| Q15 | Production's hostname is `app.ai-analytics.ai` | `production-environment#PE1` |
+| Q15 | Production's hostname is `app.ai-analytics.ai` | `production-environment#PE1e` |
 | Q16 | Brave at release for OPEN clients; Brave for Class B queries is being confirmed (Open) | `deep-research-web-search#53` |
 | Q17 | Approved old-method reports stay downloadable; an old-method retry is refused with a link to a new `-5` run | `signed-off-sociomap-method#8`, `report-delivery#RD3` |
 | Q18 | A Lead web lookup needs no card: 3 queries, 5 pages and 2 lookups per turn, a wallet hold, OPEN clients only | `lead-orchestration#LO20` |
@@ -266,9 +348,6 @@ the disposition, and its owner closes it with a pointer when the receiving plan 
 |---|---|---|---|
 | `research-lead-workbench` | S1 | I-1 to I-4 | edit vocabulary, `LeadWorkerSpec` |
 | `evidence-integrity` | S2 | I-1, I-3 | D04 before final empty-module policy; external-context producer/consumer contract |
-| `sociomap-formula-corrections` | S2 | I-2 | method owner (0b is open; 0a is done) |
-| `segment-maps-and-drilldown` | S2 | I-2 | method owner, register entries |
-| `audience-catalogue-cpu` | S2 | I-0 | none |
 | `complete-study-report` | S2 | I-0 | the AI route widened for Class A and B (§4), audience 4 |
 | `deep-research-web-search` | S2 | I-R, I-4 | Brave sign-off (owner) |
 | `deep-research` | S2; migration reviewed by S3 | I-4, I-5 | tool-spend contract and serial migration lane; before AC-15 reconciliation |
@@ -281,35 +360,30 @@ the disposition, and its owner closes it with a pointer when the receiving plan 
 | `mvp-acceptance-harness` | S3 | I-0, I-5 | #503 acceptance reconciliation and one shared provider fixture |
 | `system-prompts-settings` | S1 | I-3 | worker row |
 | `working-copy-edit-ops` | S1 | I-1, I-2 | WCE0 covers structural operations and text-only default; S2 supplies lock fields before W1 writers |
-| `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
 | `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
 | `lead-identity` | S1 (proposed) | I-1 (proposed) | core, W3, after `lead-conversation#LC5b` and `#LC10` (Nigel, 2026-10-25 ~23:47 UTC, relayed by the PM coordinator); LI0's money amount needs its ADR 0028 amendment |
 | `lead-client-knowledge` | S1 | I-1, I-3 | LK0's licence determination (Q60) first; ADR 0042 (Proposed, written in LK1) before the read round |
-| `artifact-questionnaire` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#17` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
 | `artifact-brief` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
 | `artifact-design` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-sample` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#19` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-fieldwork` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#19` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-results` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#20` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-sociomap` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#20` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-audience` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#22` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-dimensions` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#22` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-analysis` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#21` (E20); the artifact contract of `research-lead-workbench#14` and `#16` |
 | `artifact-report` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#21` (E20); the artifact contract of `research-lead-workbench#14` and `#16` |
-| `artifact-chain-to-draft-report` | S1 and S2 | I-1 to I-4 | every artifact plan's hand-off; the internal report (`research-lead-workbench#21`, `report-delivery`) |
-| `sociomap-5-web` | S2 and the methodology owner | I-2 | the methodology owner's lane (#517); `aia-sociomap-5` registered (MQ-01) before a map is client-facing |
 | `input-interactions` | S1 | I-1 | the shared primitives (`input-interactions#1`) before the artifact bodies build on them; 3b's wording rule from the methodology owner |
-| `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
 | `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
 | `study-deletion` | S3 | I-5 (proposed) | **proposed core (planning, 26 Oct): all SD questions answered** (ADR 0043 accepted 2026-10-26, Q1-Q8 and SD-F1-NOW in the Decision Review); `study-data-lifecycle#SDL3`'s study half; SD7's client half first, as its own small PR (OI-232); a proposal of this register, not the owner's scope decision |
 | `production-environment` | S3 | I-5 | operator items (§11.5) |
-| `signed-off-sociomap-method` | S2 and the methodology owner | I-2 | the owner's D-13 (`-5` the only method); the methodology owner's register entry (MQ-01) before a `-5` map reaches a client |
 | `settings-redesign` | lane B: the Settings builder (S1) | I-1 (proposed) | **proposed core, 2026-10-26** (was SUPPORT in §3.2): the Settings pages are step 2-3 of `prototype-build`, every open chunk W1; Nigel may change it |
 | `prototype-build` | the coordinator; lane A "the second account" (Nigel's art-chain organisation account) | I-1 to I-4 | the order from the approved prototypes to the product (five steps, eight lanes; Nigel's decisions of 25-26 Oct 2026); core because lane A's chunks (`prototype-build#PBA1` to `#PBA7`) are build work with no other plan, and the five step chunks index the others |
 | `study-files` | S3 (RA1-RA3 with S2, who own the fieldwork dataset) | I-2 (proposed) | **core, 2026-10-27**: Nigel's decisions of 27 Oct (~01:10-01:40 UTC, the PM coordinator's chat), folders and filing in the MVP; SF1's and SF4's migrations in the serial lane; SF2 introduces the minimal retired state (W2) and `client-knowledge-lifecycle#K6` (W3) extends it; `lead-orchestration#LO18a` before SF7; `artifact-brief#BRF7` with SF6 |
 | `client-pages-redesign` | S3 (the client workspace), beside lane A's shell | I-1 to I-3 (proposed) | **core, 2026-10-27**: Nigel, "build it, the design system upgrade will take place once that's finished" (canvas v5, redrawn to v7); the visual base Petrol core v4 (the design-system session's canvas v10), brought into tokens.json by CPR21, a separate later chunk; the server chunks CPR1-CPR3 before the screens that read them; `study-files#SF1` to `#SF4` before CPR12, CPR17 and CPR18; `client-knowledge-lifecycle#K9` before CPR8 |
+| `cost-model-study` | S4 and S5 (ADR 0044's sessions) | I-2, I-3 (proposed) | **core since the pivot (2026-11-02, ADR 0046 decision 4)**; the data contracts (E17) before CP4; ADR 0044 stays Proposed (the owner: "Keep it Proposed"); CP10 and CR1-CR10 after the methodology owner's answers 8-10; CS1-CS5 after `sociomapa-systemu` SYS9 |
+| `situation-reports` | S4 to S6 (ADR 0045's sessions) | I-3 (proposed) | **core since the pivot**: the expert map EX1-EX2 in the MVP (the owner, 2026-11-02: "Both maps in the MVP"); SR0 (ADR 0045 accepted) before RC1-RC6; FW1 (imported fieldwork) a scope call |
+| `quantitative-families` | S4 and S5 | I-4 (proposed) | **core for MKT2, MKT4 and MKT5 only** (ADR 0045, 2026-10-30: market sizing in the MVP; ADR 0046 Q6); ACC, FIN and OR after the MVP (ADR 0044); MKT1, MKT3 and LINK1 parked (survey-derived) |
+| `research-findings-stage` | S1 with S2 | I-1 to I-4 (proposed) | **new, 2026-11-02**: the owner's report X-ray, a research study's findings stage (every point linked to its source or method); FND0's contract first; FND1 before a new study hides the survey stages |
+| `sociomapa-systemu` | S2 and the methodology owner | I-2 (proposed) | **new, 2026-11-02** (ADR 0046 decision 5): SYS0's answers before each replaced statistic; SYS11 only after the suite passes |
+| `deep-research-v2` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decision 6): DRV0 before any structured or archive route goes live |
+| `public-data-routes` | S2 | I-4 (proposed) | **new, 2026-11-02** (ADR 0046 decisions 6-7): `deep-research-v2#DRV0` first; person-naming fields after `register-personal-data#RPD2` |
+| `register-personal-data` | S3 and the legal counsel the owner names | I-3 (proposed) | **new, 2026-11-02** (ADR 0046 decision 7): RPD0 written with counsel before any register field naming a person reaches a study |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.
 
@@ -329,7 +403,6 @@ The owner's answer is quoted in each row: the Decision Review, 2026-10-26, relay
 | `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional, **accepted** 2026-10-26 ("Accept: CLOSE A4 and A5; keep A3 optional") | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
 | `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed CLOSE (verify)) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | none; each stays in progress with its own chunks |
 | `methodology-tab` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | S4d waits on the audit's author (R-1), W1c on panel source weighting, X1 is Simulation | none; outside the development plan, not POST |
-| `panel-grounded-respondents` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | 7f-7h are the holdout validation that lifts client-facing analysis prose; 7h waits for the methodology owner's confirmation of P1-P8 (ADR 0024 Q1 (a), 2026-10-26) | none; outside the development plan, not POST |
 | `sociomapping-engine` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none; outside the development plan, not POST |
 | `simulation-studio` | POST, **accepted** 2026-10-26 ("Accept: POST") | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
 | `report-editor-hosting` | SUPPORT (S1, operations) | the ONLYOFFICE server and its gate for `artifact-report#RPT8`; activation (chunk 4) waits on OI-200 | registered 2026-10-25 (register drift) |
@@ -337,13 +410,34 @@ The owner's answer is quoted in each row: the Decision Review, 2026-10-26, relay
 | `sonnet-5-5-switch` | SUPPORT (operations) | AUD-7 (a): develop's route model from Claude Sonnet 4.5 to Claude Sonnet 5.5; chunk 1 (the code, #907) built, chunks 2-5 the infra session's | registered 2026-10-27 (register drift) |
 | `prompt-caching` | SUPPORT (planned) | prompt caching on the Bedrock route behind `AIA_AI_PROMPT_CACHE` (off), measured first (#912) | registered 2026-10-27 (register drift); no chunk is scheduled |
 | `design-system-v2` | SUPPORT (S1, beside `prototype-build` lane A), **Nigel, 2026-10-27** ("register design-system-v2 as SUPPORT") | the code half of the design system: tokens, then shared components, then the screens' parts (DS0-DS26; DS12 and DS23-DS26 landed in #1022). The core screen plans build on its parts, but it gates nothing alone: no MVP gate is about the look, and its cleanup chunks (DS18, DS22) should not hold a release | registered 2026-10-27 (register drift, added by #1022). Overlaps settled by each plan's owner before building: DS23 (Petrol into `tokens.json`) already did most of `client-pages-redesign#CPR21`, which is re-scoped to what DS23 left; DS8 (one Chip), DS13 (Segmented, Tabs) and DS14 (Switch) are checked against `input-interactions`' shared primitives, which own the inputs |
+| `brief-analysis-schema-repair` | SUPPORT | a brief analysis refused for one schema shape; chunk 3 is deferred until an observed failure shows it | registered 2026-11-02 (register drift) |
+| `ops-status-report` | SUPPORT (operations) | the deployment's state without a shell; chunk 3 needs the operator's GlitchTip token (Nigel) | registered 2026-11-02 (register drift) |
+| sociomapping-engine, under the pivot | see its row above | under the pivot, its chunks 2c, 4b and 11 are predecessors of `cost-model-study` CS3-CS5 and `situation-reports` EX2 (execution contracts E40, E41); the plan stays here, its other chunks as they were | 2026-11-02, ADR 0046 |
 
-### 3.3 In the development plan and after the MVP, by decision
+### 3.3 After the MVP, or parked, by decision
 
 | Plan | Why |
 |---|---|
 | `class-b-search-route` | deferred whole on 2026-10-19: the open posture replaces classification for Deep Research in the MVP (`deep-research-web-search#53`); the content rule stays in it as the redesign's starting point. It is **not** core. |
 | `fronta-prace` | Nigel, 2026-10-26 ~00:38 UTC: "lets table this idea as a plan in the future"; the organization's work queue on Stav systému, which needs an organization-level work-queue read (an architecture decision first) |
+| `audience-catalogue-cpu` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `sociomap-formula-corrections` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `segment-maps-and-drilldown` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `assumptions-and-open-answer-coding` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-questionnaire` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-sample` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-fieldwork` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-results` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-sociomap` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-audience` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-dimensions` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-analysis` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `artifact-chain-to-draft-report` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `sociomap-5-web` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `run-qc-and-checkpoint` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `signed-off-sociomap-method` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `panel-grounded-respondents` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
+| `scenario-respondent-bridge` | **PARKED**, the survey lane's freeze (Nigel, 2026-11-02: "Freeze it now"; ADR 0046 decision 2). Built work stays and runs on develop; open chunks keep their `[ ]`, count toward no wave and move only on the owner's word |
 
 Counts are derived, not typed: `python tools/master_check.py` prints how many plans each table holds and
 checks them against the plan files' front matter.
@@ -355,6 +449,8 @@ A plan not in §3 is a defect of this plan: `tools/master_check.py` (`MP8`) fail
 Every criterion of `docs/migration/mvp-acceptance.md` (MVP-ACCEPT-2) maps to named chunks; the proof each
 needs beyond a checked box is in `.planning/evidence/mvp-master-review/codex-coordination.md` §4. The
 register check fails on a criterion with no resolvable chunk.
+
+**Since the pivot (ADR 0046)** AC-05, AC-06 and AC-07 test only the frozen survey lane, and parts of AC-02, AC-03, AC-08, AC-09 and AC-13 do; their chunks are parked and the rows stay until `mvp-master-plan#MP17` redefines the criteria. AC-16 is proposed.
 
 | AC | Built by |
 |---|---|
@@ -373,6 +469,7 @@ register check fails on a criterion with no resolvable chunk.
 | AC-13 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD4`, `research-integrity-report#6`, `report-delivery#RD9`, `report-delivery#RD10`, `report-delivery#RD11`, `signed-off-sociomap-method#8`, `signed-off-sociomap-method#9` |
 | AC-14 | `mvp-master-plan#MP6`, `mvp-acceptance-harness#5`, `lead-orchestration#LO12c`, `mvp-acceptance-harness#14` |
 | AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7`, `mvp-acceptance-harness#16`, `run-qc-and-checkpoint#RQC12` |
+| AC-16 | `cost-model-study#CM6` (proposed, ADR 0046: the cost-model journey from an upload under an accepted data contract to an approved report; written into MVP-ACCEPT-2 by `mvp-master-plan#MP17`) |
 
 ## 4. The activation matrix: what must be switched on, and who throws it
 
@@ -456,7 +553,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G4 | **The activation profile is not declared** (chunk 6 of this plan) | `mvp-master-plan#MP6` |
 | G5 | **Each connector is UNVERIFIED**, none run live; Common Crawl's AWS side has no Terraform; the focused crawler, triage readers and procurement source are not usable though chunks 16 and 20 were ticked (T5 A5, A6, A16, B1, B15) | `deep-research-web-search#54`, `deep-research-web-search#16`, `deep-research-web-search#20`, `deep-research-web-search#36` |
 | G6 | **No Terraform validation in CI**; two documents assume it; no freeze of auto-deploys during a tier B run; production needs its own ADR 0022 approvals (T5 A10, A11, A17, B9) | `production-environment#PE3`, `production-environment#PE5`, `production-environment#PE8` |
-| G7 | **Production environment has no plan file**: `infra/production`, the workflow, RDS, Cognito, the egress proxy (which contradicts fetch from any public host), tag-conditioned IAM (T5 A8, A9, B14) | `production-environment#PE0`, `production-environment#PE1`, `production-environment#PE2`, `production-environment#PE4` |
+| G7 | **Production environment has no plan file**: `infra/production`, the workflow, RDS, Cognito, the egress proxy (which contradicts fetch from any public host), tag-conditioned IAM (T5 A8, A9, B14) | `production-environment#PE0`, `production-environment#PE1a`, `production-environment#PE1b`, `production-environment#PE1c`, `production-environment#PE1d`, `production-environment#PE1e`, `production-environment#PE1f`, `production-environment#PE2`, `production-environment#PE4` |
 | G8 | **The delete path is blocked four ways**: `ai_usage_events.study_id` and `population_dataset_versions.owner_client_id` have no `ondelete` (`tables.py:1833, 1938-1939`); IAM grants no delete on population children (`main.tf:364-368`); `delete_prefix` exists only on the filesystem store (`storage.py:366`); versioned buckets keep deleted objects 30 days with no `DeleteObjectVersion` grant (T5 A7, B12) | `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL2`, `study-data-lifecycle#SDL3`, `study-data-lifecycle#SDL5` |
 | G9 | **The tagged-profile plan conflicts with the code**: its ARNs would be refused at worker start (`ai_runtime.py:254, 516` need an `eu.` id), "no Environment tag" is wrong (`versions.tf:34-40`), tool spend is not in the usage ledger so AC-15 reconciles model spend only (T5 A12, B8) | `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7` |
 | G10 | **The harness is not scheduled**: chunks 4 (doubles for the Lead and workers) and 8 (parity never blocks) are in no wave, the `acceptance` marker is unregistered under `--strict-markers` (`pyproject.toml:276-282`), tier B depends on the deferred `class-b-search-route`; tier A has no population double so cannot prove AC-05 (T5 A13, B6; T2 A11) | `mvp-acceptance-harness#4`, `mvp-acceptance-harness#8`, `mvp-acceptance-harness#9`, `run-qc-and-checkpoint#RQC10` |

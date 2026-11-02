@@ -100,8 +100,8 @@ apps/
                             DataClassGates): advisory makes every refusal made solely because of a data class a
                             recorded pass (residency.ClassAdvisory: the ledger row's note,
                             CallProvenance.class_advisories, the tool event, a step event); unclassified material is
-                            judged as Class A; develop only (Compose), refused in staging, production and an unknown
-                            AIA_ENV; EU residency, licences, budgets and scope still hold; Brave's search route takes
+                            judged as Class A; allowed in every environment since 4959b1cb (the owner's "Advisory
+                            everywhere", 2026-10-28), set on develop (Compose), enforce the default; EU residency, licences, budgets and scope still hold; Brave's search route takes
                             any class there (ToolRoute.any_class_when_advisory; ADR 0008, Amendment 2026-10-21, #594);
                             AIA_ROUTING_ENABLED (routing_enabled, off; off on develop until RQC11): a valid display
                             condition passes readiness and a new run pins it (metadata.routing, read by the preflight
@@ -1678,8 +1678,8 @@ packages/aia_core/src/aia_core/
     deployment.py           AIA_ENV: local / test / develop / staging / production; what each allows
                             (deployed guards, fictional material), the one fictional-material rule the
                             API and the worker both ask; DataClassGates / data_class_gates_problem
-                            (AIA_DATA_CLASS_GATES, enforce | advisory: advisory refused outside local, test and
-                            develop; #594)
+                            (AIA_DATA_CLASS_GATES, enforce | advisory: advisory allowed in every environment since
+                            4959b1cb, enforce the default; #594)
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58);
                             edited_from_current: a save naming no revision is not stale over a working copy that is

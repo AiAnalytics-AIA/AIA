@@ -29,6 +29,11 @@ chunks:
 ---
 # Sociomap formula corrections -- the audit "NPC Sociomapa: faulty formulas in the code" fitted into AIA
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 **Owner:** method owner (QED Group; the audit is by Aram Bahbouh, status 6 October 2026) ·
 **Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (chunks 0a, 1a, 1b and 1c landed, § 8a and § 10) ·
 **Initial audit base:** `develop` @ `579b7ab`; **latest integration review:** `develop @ 08fdb26a`.

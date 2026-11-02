@@ -14,6 +14,11 @@ chunks:
 ---
 # Tracked assumptions and open-answer coding
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 The owner decided on 2026-10-20 (`MVPQ-02`): **both tracked assumptions and open-answer coding are required at first release.** That is a decision about scope, not about method. Assumptions need an engineering contract and the existing evidence policy, not a new scientific method; **the coding method (how an answer is coded and counted) is the methodology owner's and stays open (`MVPQ-02b`)** until approved. Neither feature is a checkbox inferred from the V2 prototype's panels: each needs a producer, a stored form, a consumer in Analysis and Report, and a refusal path.
 
 **Owner: S1** for the assumption item and its artifact (AOC1, AOC3), **S2** for evidence and coding (AOC0, AOC2, AOC4-AOC8), **S3** for the report chapters (`report-delivery#RD9`, `report-delivery#RD10`) and the journey (AOC9). Serves AC-03, AC-08, AC-13 and gates I-1, I-3, I-5. Every chunk below is **open**; a chunk is built from this file, not from the master plan.
