@@ -40,9 +40,9 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 .zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
 .zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
 .zm{box-shadow:inset 3px 0 0 var(--shviolet)}
-.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
-.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
 .zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
 .zseq a{font-weight:500}
@@ -113,7 +113,7 @@ label.cfib{cursor:pointer}
 <div class="ahd"><label for="leadx" class="btn quiet sm leadopen" title="Ukázat Vedoucího"><i class="ph ph-sidebar-simple s"></i>Ada</label><h1>Zadání</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span><span class="grow"></span><details class="mnu"><summary class="btn quiet sm ic" aria-label="Další akce" title="Další akce"><i class="ph ph-dots-three"></i></summary><div class="mnu-p" role="menu"><button type="button"><i class="ph ph-clock-counter-clockwise s"></i>Historie verzí Zadání</button><button type="button"><i class="ph ph-download-simple s"></i>Stáhnout Zadání (DOCX)</button><button type="button"><i class="ph ph-copy s"></i>Duplikovat studii</button><span class="sep" role="separator"></span><button type="button" class="dz"><i class="ph ph-trash s"></i>Smazat studii</button></div></details><a class="btn primary sm" href="Z7Ready.dc.html">Připravenost<i class="ph ph-caret-right s"></i></a></div>
 <div class="zstate"><span>Ukázka stavu</span><span class="seg sm" role="radiogroup" aria-label="Stav ukázky"><sc-for list="{{states}}" as="s" hint-placeholder-count="2"><button class="{{s.cls}}" type="button" role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}">{{s.l}}</button></sc-for></span></div>
 <div class="abody">
-  <div class="sn"><span class="ztag-m" style="flex: none">Obchodní model</span><div>Čísla počítá kód z dat klienta a z předpokladů, které přijme výzkumník. Ada nic nedopočítává ani nedoplňuje; může jen navrhnout, odkud číslo vzít.</div></div>
+  
   <div class="zgrid2">
     <section class="sec zm" id="z5-obj"><div class="sh"><span class="num">01</span><h2>Cílová veličina</h2><span class="grow"></span><span class="cap">povinné · R5</span></div>
       <div class="sb"><div class="zrow"><span class="zk">Co porovnáme</span><span class="zv"><b>Příspěvek po logistice za 7 let</b>: objednávky, které firma udrží, × příspěvek, minus logistika, investice a přechod, plus zůstatková hodnota. NPV při 8 %, mil. Kč · vyšší je lepší</span></div>
@@ -146,7 +146,7 @@ label.cfib{cursor:pointer}
       <div class="row" style="gap: 6px"><button class="btn sm" type="button"><i class="ph ph-upload-simple s"></i>Vyžádat data o zpožděních</button><button class="btn primary sm" type="button" onClick="{{fill}}">Vzít jako předpoklad s rozsahem</button></div></div></sc-if>
     <p class="cap" style="margin: 0">Na kroku Data se každé číslo přiváže ke sloupci nebo stránce souboru; tady je jen soupis, co odkud přijde.</p></div></section>
 
-  <section class="sec zm" id="z5-ass"><div class="sh"><span class="num">06</span><h2>Klíčové předpoklady</h2><span class="grow"></span><span class="cap">povinné · R5 · nic se nepoužije, dokud to výzkumník nepřijme</span></div>
+  <section class="sec zm" id="z5-ass"><div class="sh"><span class="num">06</span><h2>Klíčové předpoklady</h2><span class="grow"></span><span class="cap">povinné · R5</span></div>
     <div class="sb"><table class="zt"><thead><tr><th style="width: 34px"></th><th>Předpoklad</th><th style="width: 170px">Hodnota nebo rozsah</th><th>Zdroj</th><th style="width: 150px">Kdo ručí</th><th style="width: 160px">Stav</th></tr></thead><tbody>
       <sc-for list="{{ass}}" as="a" hint-placeholder-count="5"><tr><td class="num">{{a.id}}</td><td>{{a.t}}</td><td class="num">{{a.val}}</td><td class="muted">{{a.src}}</td><td>{{a.who}}</td><td><span class="row" style="gap: 6px"><span class="{{a.gl}}" aria-hidden="true"><i class="{{a.ic}}"></i></span>{{a.st}}</span></td></tr></sc-for>
     </tbody></table><p class="cap" style="margin: 0">Na kroku Předpoklady se každý předpoklad schvaluje znovu, s hodnotou, kterou Model opravdu použije.</p></div></section>

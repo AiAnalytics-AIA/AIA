@@ -34,7 +34,7 @@
   "title": "M2 · Model: Předpoklady",
   "w": 1440,
   "h": 1940,
-  "text_chars": 4262,
+  "text_chars": 4082,
   "errors": [],
   "failed_requests": [],
   "image": "04-KM2Assumptions.webp"
@@ -124,7 +124,7 @@
   "title": "MV1 · Data: datová smlouva",
   "w": 1440,
   "h": 1940,
-  "text_chars": 3983,
+  "text_chars": 3726,
   "errors": [],
   "failed_requests": [],
   "image": "13-MV1Contract.webp"
@@ -134,7 +134,7 @@
   "title": "MV2 · Rešerše: typované vstupy",
   "w": 1440,
   "h": 2260,
-  "text_chars": 3960,
+  "text_chars": 3611,
   "errors": [],
   "failed_requests": [],
   "image": "14-MV2PublicData.webp"
@@ -144,7 +144,7 @@
   "title": "MV2b · Rešerše: zjištění podle analýz",
   "w": 1440,
   "h": 1700,
-  "text_chars": 3348,
+  "text_chars": 3163,
   "errors": [],
   "failed_requests": [],
   "image": "15-MV2bFindings.webp"
@@ -164,7 +164,7 @@
   "title": "MV4 · Osnova zprávy",
   "w": 1440,
   "h": 2725,
-  "text_chars": 5020,
+  "text_chars": 4793,
   "errors": [],
   "failed_requests": [],
   "image": "17-MV4XRay.webp"
@@ -214,7 +214,7 @@
   "title": "Z1 · Zadání: začátek",
   "w": 1440,
   "h": 1900,
-  "text_chars": 3819,
+  "text_chars": 2861,
   "errors": [],
   "failed_requests": [],
   "image": "22-Z1Start.webp"
@@ -244,7 +244,7 @@
   "title": "Z4 · Zadání: analýzy do zprávy",
   "w": 1440,
   "h": 4390,
-  "text_chars": 6986,
+  "text_chars": 6550,
   "errors": [],
   "failed_requests": [],
   "image": "25-Z4Analyses.webp"
@@ -254,7 +254,7 @@
   "title": "Z5 · Zadání: obchodní model",
   "w": 1440,
   "h": 3560,
-  "text_chars": 6553,
+  "text_chars": 6343,
   "errors": [],
   "failed_requests": [],
   "image": "26-Z5Model.webp"
@@ -264,7 +264,7 @@
   "title": "Z7 · Zadání: připravenost a předání",
   "w": 1440,
   "h": 1360,
-  "text_chars": 3062,
+  "text_chars": 2960,
   "errors": [],
   "failed_requests": [],
   "image": "27-Z7Ready.webp"

@@ -40,9 +40,9 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 .zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
 .zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
 .zm{box-shadow:inset 3px 0 0 var(--shviolet)}
-.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
-.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
 .zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
 .zseq a{font-weight:500}
@@ -135,7 +135,7 @@ label.cfib{cursor:pointer}
 </div>
 <sc-if value="{{drawer}}" hint-placeholder-val="{{ true }}">
 <aside class="zdrawer" aria-label="Připravenost k předání"><div class="dh"><i class="ph ph-list-checks"></i><span class="grow">Připravenost k předání</span><button class="btn quiet sm ic" type="button" aria-label="Zavřít" onClick="{{close}}"><i class="ph ph-x"></i></button></div>
-  <div class="db"><p class="cap" style="margin: 0">R1–R5 kontroluje kód a drží předání. R6 a R7 radí Vedoucí; předání nedrží. Úpravy nedrží nikdy nic.</p>
+  <div class="db">
     <div class="zrub"><sc-for list="{{rub}}" as="r" hint-placeholder-count="7"><div class="{{r.cls}}"><span class="{{r.gl}}" aria-hidden="true"><i class="{{r.ic}}"></i></span><span class="i">{{r.id}}</span><span>{{r.t}}<span class="how">{{r.how}}</span></span></div></sc-for></div>
   </div></aside>
 </sc-if>

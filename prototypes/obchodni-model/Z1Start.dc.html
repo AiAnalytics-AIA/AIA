@@ -40,9 +40,9 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 .zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
 .zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
 .zm{box-shadow:inset 3px 0 0 var(--shviolet)}
-.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
-.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
 .zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
 .zseq a{font-weight:500}
@@ -127,7 +127,7 @@ label.cfib{cursor:pointer}
     <div class="sb">
       <sc-if value="{{typed}}" hint-placeholder-val="{{ false }}"><sc-for list="{{files}}" as="f" hint-placeholder-count="4"><div class="li"><i class="{{f.ic}}" style="margin-top: 2px"></i><div class="tx">{{f.n}}<span class="cap" style="display: block">{{f.r}}</span></div><span class="pill"><i class="ph ph-lock-simple s"></i>Důvěrné</span></div></sc-for></sc-if>
       <button class="btn sm" type="button" style="align-self: flex-start"><i class="ph ph-upload-simple s"></i>Přidat podklady</button>
-      <p class="cap" style="margin: 0">Soubory se uloží mezi zdroje klienta, do složky studie / Vstupy. Tabulka se přečte celá; Ada z ní cituje jen to, co přijmete.</p>
+      
     </div></section>
 
   <sc-if value="{{typed}}" hint-placeholder-val="{{ false }}">
@@ -137,15 +137,10 @@ label.cfib{cursor:pointer}
         <td><sc-if value="{{m.open}}" hint-placeholder-val="{{ true }}"><span class="row" style="gap: 6px"><button class="btn sm" type="button" onClick="{{m.add}}"><i class="ph ph-upload-simple s"></i>Přidat</button><button class="btn quiet sm" type="button" onClick="{{m.no}}">Nemáme</button></span></sc-if>
           <sc-if value="{{m.done}}" hint-placeholder-val="{{ false }}"><span class="cap" style="margin: 0">{{m.st}}</span></sc-if></td></tr></sc-for>
     </tbody></table>
-    <p class="cap" style="margin: 0">Co chybí, zůstane v Zadání jako otevřená položka. Model ho pak vezme jako předpoklad s širokým rozsahem a řekne, kolik by jeho ověření stálo za to. Velikost trhu a ceny konkurence dohledá AIA sama z veřejných zdrojů (Deep Research).</p></div></section>
+    </div></section>
   </sc-if>
 
-  <section class="sec"><div class="sh"><span class="num">{{nextNum}}</span><h2>Co se stane potom</h2></div>
-    <div class="sb"><div class="zgrid3">
-      <div class="zcard"><span class="mono" style="color: var(--signal)">1</span><h3>Ada přečte podklady</h3><p class="muted">Řekne, co z nich vyčetla, co chybí a které další soubory by výsledek nejvíc zpřesnily.</p></div>
-      <div class="zcard"><span class="mono" style="color: var(--signal)">2</span><h3>Rozepíše Zadání do 8 částí</h3><p class="muted">Rozhodnutí a cíl, možnosti a omezení, pravidlo a riziko, zákazníci, data a nejistoty, provedení a výstup. Každou část přijmete, upravíte nebo zahodíte.</p></div>
-      <div class="zcard"><span class="mono" style="color: var(--signal)">3</span><h3>Zeptá se jen na to, co mění výsledek</h3><p class="muted">Na všechno, co může změnit doporučení, seřazené podle důležitosti; první tři jsou otevřené, ostatní pod „Další otázky“.</p></div>
-    </div><p class="cap" style="margin: 0">Triáž je běžný tah Vedoucího z rozpočtu studie. Placenou úlohu, například Analýzu zadání, spustí jen karta s částkou.</p></div></section>
+  
 </div>
       </main>
     </div>

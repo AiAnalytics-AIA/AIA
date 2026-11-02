@@ -40,9 +40,9 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 .zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
 .zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
 .zm{box-shadow:inset 3px 0 0 var(--shviolet)}
-.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
-.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
 .ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
 .zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
 .zseq a{font-weight:500}
@@ -191,7 +191,7 @@ label.cfib{cursor:pointer}
 </aside>
       <main class="art" aria-label="Zadání · Analýzy do zprávy">
 <div class="ahd"><label for="leadx" class="btn quiet sm leadopen" title="Ukázat Vedoucího"><i class="ph ph-sidebar-simple s"></i>Ada</label><h1>Zadání · Analýzy do zprávy</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span><span class="grow"></span><details class="mnu"><summary class="btn quiet sm ic" aria-label="Další akce" title="Další akce"><i class="ph ph-dots-three"></i></summary><div class="mnu-p" role="menu"><button type="button"><i class="ph ph-clock-counter-clockwise s"></i>Historie verzí Zadání</button><button type="button"><i class="ph ph-download-simple s"></i>Stáhnout Zadání (DOCX)</button><button type="button"><i class="ph ph-copy s"></i>Duplikovat studii</button><span class="sep" role="separator"></span><button type="button" class="dz"><i class="ph ph-trash s"></i>Smazat studii</button></div></details><a class="btn quiet sm" href="MV6Catalogue.dc.html"><i class="ph ph-book-open s"></i>Katalog analýz</a><a class="btn primary sm" href="Z5Model.dc.html">Části modelu<i class="ph ph-caret-right s"></i></a></div>
-<div class="zbar"><i class="ph ph-shield-check"></i><span><b>Každý bod analýzy má zdroj:</b> citované zjištění Deep Research, číslo z dat klienta pod smlouvou, nebo hodnocení jmenovaného experta. Ada body navrhuje a třídí, nikdy je nepíše bez zdroje.</span></div>
+
 <div class="abody">
 <section class="sec"><div class="sh"><span class="num">01</span><h2>Co výběr znamená</h2><span class="grow"></span><span class="cap">mění se s každým zaškrtnutím</span></div><div class="sb"><div class="fwsum">
 <div class="zkpi"><span class="cap">Vybráno</span><span class="v">{{selN}}</span><span class="cap">z {{allN}} v MVP · navrhla Ada {{adaN}}</span></div>
@@ -202,7 +202,7 @@ label.cfib{cursor:pointer}
 <sc-for list="{{groups}}" as="g" hint-placeholder-count="7"><section class="sec"><div class="sh"><span class="num">{{g.num}}</span><h2>{{g.name}}</h2><span class="grow"></span><span class="cap">{{g.note}}</span></div><div class="sb"><div class="fwg">
 <sc-for list="{{g.items}}" as="it" hint-placeholder-count="6"><div class="{{it.cls}}">
 <button class="fwc" type="button" role="checkbox" aria-checked="{{it.on}}" aria-label="{{it.name}}" disabled="{{it.dis}}" onClick="{{it.toggle}}"><sc-if value="{{it.on}}" hint-placeholder-val="{{ true }}"><i class="ph ph-check"></i></sc-if></button>
-<span class="nm"><b>{{it.name}}</b><sc-if value="{{it.ada}}" hint-placeholder-val="{{ false }}"> <span class="pill ai" style="display: inline-flex"><i class="ph ph-sparkle s"></i>navrhuje Ada</span></sc-if><span class="qq">{{it.q}}</span></span>
+<span class="nm"><span class="row" style="gap: 6px; align-items: center"><sc-if value="{{it.ada}}" hint-placeholder-val="{{ false }}"><span class="pill ai" style="display: inline-flex; flex: none" title="navrhuje Ada" aria-label="navrhuje Ada"><i class="ph ph-sparkle s"></i>Ada</span></sc-if><b>{{it.name}}</b></span><span class="qq">{{it.q}}</span></span>
 <span class="row" style="gap: 4px; flex-wrap: wrap"><sc-if value="{{it.d}}" hint-placeholder-val="{{ true }}"><span class="nd nd-D">data klienta</span></sc-if><sc-if value="{{it.r}}" hint-placeholder-val="{{ false }}"><span class="nd nd-R">rešerše</span></sc-if><sc-if value="{{it.e}}" hint-placeholder-val="{{ false }}"><span class="nd nd-E">experti</span></sc-if></span>
 <span><span class="{{it.gcls}}">{{it.gl}}</span></span>
 <span class="cap" style="margin: 0">{{it.chText}}</span>
