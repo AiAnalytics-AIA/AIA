@@ -266,6 +266,18 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `analysis-frameworks#AF8` | W3 | ownership structure after `register-personal-data#RPD2` (E43); added 2026-11-02 (the owner's frameworks in Zadání) |
 | `analysis-frameworks#AF9` | W4 | with `research-findings-stage#FND11` (E50); added 2026-11-02 (the owner's frameworks in Zadání) |
 | `analysis-frameworks#AF10` | POST | after the MVP (the owner, 2 Nov: portfolio frameworks "later"); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `diagrams#DG0` | W1 | the spike and the licences, before any dependency is added; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG1` | W1 | after DG0; before `research-findings-stage#FND4` to `#FND6` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG2` | W2 | after DG1; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG3` | W2 | after DG2; with `research-findings-stage#FND4` and `#FND5` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG4` | W2 | after DG2; with `research-findings-stage#FND6` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG5` | W2 | after DG2; with `analysis-frameworks#AF6`; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG6` | W2 | after DG1; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG7` | W2 | after DG1 and the Lead's edit vocabulary (`working-copy-edit-ops`); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG8` | W3 | after DG3 to DG6; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG9` | W3 | after DG2; with `research-findings-stage#FND9` (E48); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG10` | W3 | after DG3 to DG5; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG11` | POST | after the MVP: ArchiMate, value stream and customer journey maps; added 2026-11-02 (the owner's diagrams for the Lead) |
 | `research-lead-workbench#33` | W1 | owner, page Q19: the editor spike before LO19 and RD6 build their surface |
 | `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
 | `deep-research-web-search#57a` | W2 | owner, page Q22: with chunk 57 (E12) |

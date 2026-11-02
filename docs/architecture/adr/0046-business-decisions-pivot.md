@@ -145,6 +145,11 @@ framework holds is a cited finding, a client-data number, a model result or a na
 and the X-ray's outline. The work is
 [`analysis-frameworks`](../../../.planning/plans/analysis-frameworks.md).
 
+The X-ray's visuals are specs, never pictures: BPMN, data-flow, state and the other diagrams, every chart
+and every table are typed specs the Lead proposes, code validates, the researcher accepts and the server
+renders (the owner, 2026-11-02, "bpmn diagrams, data flow diagrams, state diagrasm, any type of graph,
+and table"). The work is [`diagrams`](../../../.planning/plans/diagrams.md).
+
 Model studies (Modely, ADR 0044) are unchanged by this decision.
 
 ### 4. The order: data contracts, then the model platform
@@ -312,7 +317,7 @@ the ten). Until then the chunk's current text stands.
 ## Consequences
 
 - **The master plan's register changes.** The survey-lane plans move from §3.1 to §3.3 as PARKED, and
-  `cost-model-study`, `situation-reports`, `quantitative-families`, `analysis-frameworks` and the five new plans become core.
+  `cost-model-study`, `situation-reports`, `quantitative-families`, `analysis-frameworks`, `diagrams` and the five new plans become core.
   The goal sentence and § The pivot record the new MVP. `tools/master_check.py` passes on the result.
 - **The execution contracts change.**
   - The data contracts row (E17) moves from W3 to W1.
