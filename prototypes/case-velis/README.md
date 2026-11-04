@@ -9,7 +9,7 @@ Version 1, 4 Nov 2026. This is the shared context for the six reports Nigel and 
 | [`CASE.md`](CASE.md) | **Start here.** The company, the situation, the decision, the options, the constraints, the rule, the people, the client's answers, every file, and what to research |
 | [`STUDIES.md`](STUDIES.md) | The three study types (situation report, business model, business model + customers), the parts every report shares, and the executive's feedback sheet |
 | [`ANSWER-KEY.md`](ANSWER-KEY.md) | What was planted in the data. Open it only after your report is finished |
-| [`data/`](data/) | The client's nine data files (XLSX and CSV, `;`-separated, UTF-8) |
+| [`data/`](data/) | The client's nine data files (XLSX and CSV, `;`-separated, UTF-8), and the survey's questionnaire and codes (`pruzkum_zakazniku_2026_dotaznik.md`) |
 | [`documents/`](documents/) | The client's five documents as PDF, and their HTML sources in `documents/html/` |
 | [`tools/`](tools/) | `generate.py` writes `data/`. `documents.py` and `pdf.js` write `documents/` |
 

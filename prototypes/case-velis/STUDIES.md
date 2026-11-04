@@ -62,7 +62,7 @@ Every number carries its grade and source. Every chart says what it is computed 
   - the shipping-price elasticity, from `objednavky_doprava_2024.xlsx`.
 
   State which inputs move together, and why.
-- **Model.** One cash-flow model for all seven options. Use the same timing for each: 2026 at the Czech 3PL, the hall from 2027, a move no earlier than 1. 7. 2027. Run the base case plus 20 000 seeded futures with seed `20261030`; the same seed gives the same result.
+- **Model.** One cash-flow model for all seven options. Use the same timing for each (CASE.md §8): every option at the Czech 3PL in 2026; B2's fixed price from 1. 1. 2027; a move to the Polish 3PL on 1. 7. 2027; the hall from 1. 1. 2028, with A and A2 at the Czech 3PL until then. Run the base case plus 20 000 seeded futures with seed `20261030`; the same seed gives the same result.
 - **Výsledky.**
   - **Rozhodnutí:** the rule applied as written. For each option: the median and 90 % interval of NPV against B, P(better than B) and P(loss > 10 mil. Kč). Then sensitivity, break-even, and the value of information in Kč.
   - **Finance:** NPV before and after tax, IRR, payback, at 6 / 8 / 10 %.
@@ -77,7 +77,7 @@ Every number carries its grade and source. Every chart says what it is computed 
 
 **The question.** As in 2, plus: what do customers want from delivery, and do their answers agree with how they actually behaved (the delay data) and with the model?
 
-**Inputs.** Everything from 2, plus `pruzkum_zakazniku_2026.csv`. The 800 rows are fictional respondents. They stand in for a real customer survey or for AIA's AI respondents, and both authors use the same file so their reports can be compared.
+**Inputs.** Everything from 2, plus `pruzkum_zakazniku_2026.csv` and its questionnaire, `pruzkum_zakazniku_2026_dotaznik.md` (each question's wording and scale anchors). The 800 rows are fictional respondents. They stand in for a real customer survey or for AIA's AI respondents, and both authors use the same file so their reports can be compared.
 
 **Additional chapters.**
 - **Co chtějí zákazníci:** how attractive the eight delivery experiences are, overall and by group (big city or not, age, purchase frequency), and what customers would pay for next-day delivery.
@@ -90,7 +90,10 @@ Every number carries its grade and source. Every chart says what it is computed 
   | O2 Do 2 pracovních dnů | A, A2, B, B2 outside the big cities; C in the big cities |
   | O3 Do 3 pracovních dnů | C outside the big cities; C2, H outside the big cities |
   | O4 Expres ve velkých městech | C2 in the big cities |
-  | O5–O8 Price, box, free shipping | pricing levers; any option |
+  | O5 Doprava za 79 Kč | today's shipping price; any option |
+  | O6 Doprava za 59 Kč, o den delší | a cheaper, slower delivery; fits C |
+  | O7 Výdejní box nebo výdejní místo | a delivery channel; any option |
+  | O8 Doprava zdarma nad 1 500 Kč | a pricing lever; any option |
 
   The maps stay two maps. They are never merged into one.
 - **Říkají a dělají:** the customers' stated reaction to a one-day delay (`q_zpozdeni_objednal_znovu_1_5`) against the observed loss in `zpozdeni_2024.xlsx`. Where the two disagree, the report says which it trusts and why.

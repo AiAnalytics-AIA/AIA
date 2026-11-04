@@ -130,9 +130,9 @@ doc(
     <tr><td><b>Doporučená</b> (třídicí linka, WMS)</td><td class='num'><b>70 mil. Kč</b></td></tr>
     <tr><td>S automatizací (shuttle systém)</td><td class='num'>84 mil. Kč</td></tr></table>""",
         """<h2>Harmonogram</h2>
-    <p>Stavba a vybavení trvají <b>12 měsíců</b> od podpisu smlouvy a vydání stavebního povolení. Povolení očekáváme
-    do 3 měsíců. Etapové řešení je možné: 60 % kapacity hned (cena 42 mil. Kč), zbytek později (35 mil. Kč, cena
-    roku 2029).</p>""",
+    <p>Stavební povolení bylo vydáno 15. 9. 2026 a je pravomocné. Stavba a vybavení trvají <b>12 měsíců</b> od
+    podpisu smlouvy. Při podpisu nejpozději 4. 1. 2027 předáme halu do provozu <b>1. 1. 2028</b>. Etapové řešení je
+    možné: 60 % kapacity od 1. 1. 2028 (cena 42 mil. Kč), zbytek od 1. 1. 2030 (35 mil. Kč, cena roku 2029).</p>""",
         """<h2>Kapacita</h2>
     <p>Ve dvousměnném provozu <b>620 000 objednávek ročně</b>; se třetí směnou ve špičkách (listopad, prosinec) až
     680 000. Při základní variantě vybavení 560 000. Potřeba lidí: 34 FTE ve dvou směnách.</p>""",

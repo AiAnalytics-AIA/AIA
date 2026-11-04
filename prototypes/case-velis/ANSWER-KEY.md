@@ -37,4 +37,4 @@ All the values come from `tools/generate.py` (seed `20261104`). The "measured" c
 
 ## The prototype's results
 
-The canvas ([`../obchodni-model/`](../obchodni-model/)) shows a fictional result: C2 recommended, with B2 as the hedge, and C2 best in 42 % of futures. It was drawn by hand, not computed from these files. A study that reaches a different answer from the data is not wrong. Say where and why the two differ.
+The canvas ([`../obchodni-model/`](../obchodni-model/)) shows a fictional result: C2 recommended, with B2 as the hedge, and C2 best in 42 % of futures. It was drawn by hand, not computed from these files. The timing also differs: the canvas opens the hall in 2027, while this pack opens it on 1. 1. 2028, because the offer's 12 months start at signing in January 2027. A study that reaches a different answer from the data is not wrong. Say where and why the two differ.

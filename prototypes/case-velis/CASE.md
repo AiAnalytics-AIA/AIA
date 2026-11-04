@@ -52,8 +52,8 @@ The client brought A, B and C. A2, B2, C2 and H are the combinations proposed in
 
 | | Option | What it means | Client's source |
 |---|---|---|---|
-| A | Own warehouse +2 000 m² | Velis runs fulfilment itself from 2027; above capacity, the overflow goes to Delta Fulfillment CZ | `nabidka_hala.pdf` |
-| A2 | Warehouse in stages | 60 % of the hall now, the rest in 2029 | `nabidka_hala.pdf` |
+| A | Own warehouse +2 000 m² | Velis runs fulfilment itself from 1. 1. 2028; above capacity, the overflow goes to Delta Fulfillment CZ | `nabidka_hala.pdf` |
+| A2 | Warehouse in stages | 60 % of the hall from 1. 1. 2028, the rest from 1. 1. 2030 | `nabidka_hala.pdf` |
 | B | Stay with the Czech 3PL | Change nothing; the baseline every option is compared with | `smlouva_3PL_CZ.pdf` |
 | B2 | Czech 3PL, fixed price | The five-year fixed-price amendment | `dodatek_3PL_CZ_email.pdf` |
 | C | Polish 3PL | Cheaper rates; delivery one day longer everywhere | `nabidka_3PL_PL.pdf` |
@@ -65,7 +65,7 @@ The client brought A, B and C. A2, B2, C2 and H are the combinations proposed in
 Every option must meet these:
 - investment at most 90 mil. Kč (the CFO);
 - a move to another 3PL no earlier than 1. 7. 2027, because of the six-month notice period (contract p. 8);
-- the hall is ready 12 months after signing and handles 620 000 orders a year (hall offer);
+- the hall handles 620 000 orders a year and opens on 1. 1. 2028: the permit is already granted, Velis would sign by 4. 1. 2027, and construction takes 12 months (hall offer p. 2–3). Until then A and A2 stay with Delta Fulfillment CZ;
 - the delivery promise in the big cities must not get worse (the sales director).
 
 ## 6. The rule, fixed before any result
@@ -105,6 +105,7 @@ Every study gets the same answers. If a study needs to ask the client something,
 | How many orders does a one-day delay cost? | Marketing guesses 0–12 %. The data in `zpozdeni_2024.xlsx` may say more |
 | Transition cost to another 3PL? | See `plan_prechodu.xlsx` (VL) |
 | Do the two 3PLs' prices move together? | The sales director sees no link. The head of logistics thinks wages drive both |
+| When would each option start? | A, A2: the hall from 1. 1. 2028, Delta Fulfillment CZ until then. B2: the fixed price from 1. 1. 2027. C, C2, H: the move on 1. 7. 2027, after notice given in December 2026 |
 | Overflow above the hall's capacity? | Goes to Delta Fulfillment CZ at its contract price |
 | Competitor delivery times and prices? | Velis has no data; research them if needed |
 | Customer survey? | Only for study type 3: `pruzkum_zakazniku_2026.csv`. Otherwise none |
@@ -124,7 +125,7 @@ Every study gets the same answers. If a study needs to ask the client something,
 | `objednavky_doprava_2024.xlsx` | Weekly orders before and after the shipping price rose from 69 to 79 Kč, against marketing's forecast | Mar–Aug 2024 | 2, 3 |
 | `plan_prechodu.xlsx` | Transition cost to another 3PL by item: min, likely, max (VL) | Oct 2026 | 2, 3 |
 | `hodnoceni_expertu.csv` | Five managers score the seven options 1–10 on five criteria (10 = best for the company) | Oct 2026 | 1, 2 (expert map) |
-| `pruzkum_zakazniku_2026.csv` | 800 customers rate eight delivery experiences 1–10, say whether they would reorder after a one-day delay (1–5), and what they would pay for next-day delivery | Oct 2026 | 3 only |
+| `pruzkum_zakazniku_2026.csv` | 800 customers rate eight delivery experiences 1–10, say whether they would reorder after a one-day delay (1–5), and what they would pay for next-day delivery. The questions as asked and every scale's anchors are in `pruzkum_zakazniku_2026_dotaznik.md` | Oct 2026 | 3 only |
 
 The files have not been cleaned. Checking them is part of the study, as it would be with a real client.
 
