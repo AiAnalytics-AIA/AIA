@@ -1,0 +1,176 @@
+hodnotitel;role;moznost;kriterium;skore_1_10
+FR;finanční ředitel;A;Náklady;7
+FR;finanční ředitel;A;Riziko dodavatele;9
+FR;finanční ředitel;A;Služba zákazníkům;8
+FR;finanční ředitel;A;Kapacita a růst;9
+FR;finanční ředitel;A;Kapitálová náročnost;1
+FR;finanční ředitel;A2;Náklady;6
+FR;finanční ředitel;A2;Riziko dodavatele;8
+FR;finanční ředitel;A2;Služba zákazníkům;9
+FR;finanční ředitel;A2;Kapacita a růst;8
+FR;finanční ředitel;A2;Kapitálová náročnost;3
+FR;finanční ředitel;B;Náklady;3
+FR;finanční ředitel;B;Riziko dodavatele;6
+FR;finanční ředitel;B;Služba zákazníkům;9
+FR;finanční ředitel;B;Kapacita a růst;6
+FR;finanční ředitel;B;Kapitálová náročnost;8
+FR;finanční ředitel;B2;Náklady;5
+FR;finanční ředitel;B2;Riziko dodavatele;8
+FR;finanční ředitel;B2;Služba zákazníkům;9
+FR;finanční ředitel;B2;Kapacita a růst;5
+FR;finanční ředitel;B2;Kapitálová náročnost;9
+FR;finanční ředitel;C;Náklady;9
+FR;finanční ředitel;C;Riziko dodavatele;5
+FR;finanční ředitel;C;Služba zákazníkům;3
+FR;finanční ředitel;C;Kapacita a růst;6
+FR;finanční ředitel;C;Kapitálová náročnost;8
+FR;finanční ředitel;C2;Náklady;6
+FR;finanční ředitel;C2;Riziko dodavatele;7
+FR;finanční ředitel;C2;Služba zákazníkům;6
+FR;finanční ředitel;C2;Kapacita a růst;6
+FR;finanční ředitel;C2;Kapitálová náročnost;7
+FR;finanční ředitel;H;Náklady;5
+FR;finanční ředitel;H;Riziko dodavatele;4
+FR;finanční ředitel;H;Služba zákazníkům;6
+FR;finanční ředitel;H;Kapacita a růst;7
+FR;finanční ředitel;H;Kapitálová náročnost;7
+OR;obchodní ředitelka;A;Náklady;6
+OR;obchodní ředitelka;A;Riziko dodavatele;7
+OR;obchodní ředitelka;A;Služba zákazníkům;
+OR;obchodní ředitelka;A;Kapacita a růst;7
+OR;obchodní ředitelka;A;Kapitálová náročnost;2
+OR;obchodní ředitelka;A2;Náklady;5
+OR;obchodní ředitelka;A2;Riziko dodavatele;7
+OR;obchodní ředitelka;A2;Služba zákazníkům;8
+OR;obchodní ředitelka;A2;Kapacita a růst;6
+OR;obchodní ředitelka;A2;Kapitálová náročnost;3
+OR;obchodní ředitelka;B;Náklady;4
+OR;obchodní ředitelka;B;Riziko dodavatele;7
+OR;obchodní ředitelka;B;Služba zákazníkům;9
+OR;obchodní ředitelka;B;Kapacita a růst;4
+OR;obchodní ředitelka;B;Kapitálová náročnost;8
+OR;obchodní ředitelka;B2;Náklady;4
+OR;obchodní ředitelka;B2;Riziko dodavatele;8
+OR;obchodní ředitelka;B2;Služba zákazníkům;8
+OR;obchodní ředitelka;B2;Kapacita a růst;4
+OR;obchodní ředitelka;B2;Kapitálová náročnost;10
+OR;obchodní ředitelka;C;Náklady;8
+OR;obchodní ředitelka;C;Riziko dodavatele;6
+OR;obchodní ředitelka;C;Služba zákazníkům;2
+OR;obchodní ředitelka;C;Kapacita a růst;7
+OR;obchodní ředitelka;C;Kapitálová náročnost;9
+OR;obchodní ředitelka;C2;Náklady;7
+OR;obchodní ředitelka;C2;Riziko dodavatele;4
+OR;obchodní ředitelka;C2;Služba zákazníkům;7
+OR;obchodní ředitelka;C2;Kapacita a růst;6
+OR;obchodní ředitelka;C2;Kapitálová náročnost;8
+OR;obchodní ředitelka;H;Náklady;7
+OR;obchodní ředitelka;H;Riziko dodavatele;6
+OR;obchodní ředitelka;H;Služba zákazníkům;6
+OR;obchodní ředitelka;H;Kapacita a růst;5
+OR;obchodní ředitelka;H;Kapitálová náročnost;9
+VL;vedoucí logistiky;A;Náklady;5
+VL;vedoucí logistiky;A;Riziko dodavatele;8
+VL;vedoucí logistiky;A;Služba zákazníkům;8
+VL;vedoucí logistiky;A;Kapacita a růst;8
+VL;vedoucí logistiky;A;Kapitálová náročnost;3
+VL;vedoucí logistiky;A2;Náklady;5
+VL;vedoucí logistiky;A2;Riziko dodavatele;9
+VL;vedoucí logistiky;A2;Služba zákazníkům;7
+VL;vedoucí logistiky;A2;Kapacita a růst;6
+VL;vedoucí logistiky;A2;Kapitálová náročnost;4
+VL;vedoucí logistiky;B;Náklady;5
+VL;vedoucí logistiky;B;Riziko dodavatele;7
+VL;vedoucí logistiky;B;Služba zákazníkům;8
+VL;vedoucí logistiky;B;Kapacita a růst;6
+VL;vedoucí logistiky;B;Kapitálová náročnost;8
+VL;vedoucí logistiky;B2;Náklady;5
+VL;vedoucí logistiky;B2;Riziko dodavatele;6
+VL;vedoucí logistiky;B2;Služba zákazníkům;8
+VL;vedoucí logistiky;B2;Kapacita a růst;4
+VL;vedoucí logistiky;B2;Kapitálová náročnost;8
+VL;vedoucí logistiky;C;Náklady;8
+VL;vedoucí logistiky;C;Riziko dodavatele;3
+VL;vedoucí logistiky;C;Služba zákazníkům;2
+VL;vedoucí logistiky;C;Kapacita a růst;6
+VL;vedoucí logistiky;C;Kapitálová náročnost;9
+VL;vedoucí logistiky;C2;Náklady;6
+VL;vedoucí logistiky;C2;Riziko dodavatele;1
+VL;vedoucí logistiky;C2;Služba zákazníkům;6
+VL;vedoucí logistiky;C2;Kapacita a růst;6
+VL;vedoucí logistiky;C2;Kapitálová náročnost;9
+VL;vedoucí logistiky;H;Náklady;6
+VL;vedoucí logistiky;H;Riziko dodavatele;4
+VL;vedoucí logistiky;H;Služba zákazníkům;8
+VL;vedoucí logistiky;H;Kapacita a růst;7
+VL;vedoucí logistiky;H;Kapitálová náročnost;8
+VN;vedoucí nákupu;A;Náklady;7
+VN;vedoucí nákupu;A;Riziko dodavatele;9
+VN;vedoucí nákupu;A;Služba zákazníkům;9
+VN;vedoucí nákupu;A;Kapacita a růst;9
+VN;vedoucí nákupu;A;Kapitálová náročnost;3
+VN;vedoucí nákupu;A2;Náklady;5
+VN;vedoucí nákupu;A2;Riziko dodavatele;8
+VN;vedoucí nákupu;A2;Služba zákazníkům;8
+VN;vedoucí nákupu;A2;Kapacita a růst;8
+VN;vedoucí nákupu;A2;Kapitálová náročnost;3
+VN;vedoucí nákupu;B;Náklady;4
+VN;vedoucí nákupu;B;Riziko dodavatele;6
+VN;vedoucí nákupu;B;Služba zákazníkům;8
+VN;vedoucí nákupu;B;Kapacita a růst;6
+VN;vedoucí nákupu;B;Kapitálová náročnost;8
+VN;vedoucí nákupu;B2;Náklady;5
+VN;vedoucí nákupu;B2;Riziko dodavatele;6
+VN;vedoucí nákupu;B2;Služba zákazníkům;8
+VN;vedoucí nákupu;B2;Kapacita a růst;6
+VN;vedoucí nákupu;B2;Kapitálová náročnost;8
+VN;vedoucí nákupu;C;Náklady;8
+VN;vedoucí nákupu;C;Riziko dodavatele;5
+VN;vedoucí nákupu;C;Služba zákazníkům;3
+VN;vedoucí nákupu;C;Kapacita a růst;6
+VN;vedoucí nákupu;C;Kapitálová náročnost;8
+VN;vedoucí nákupu;C2;Náklady;7
+VN;vedoucí nákupu;C2;Riziko dodavatele;5
+VN;vedoucí nákupu;C2;Služba zákazníkům;7
+VN;vedoucí nákupu;C2;Kapacita a růst;8
+VN;vedoucí nákupu;C2;Kapitálová náročnost;8
+VN;vedoucí nákupu;H;Náklady;5
+VN;vedoucí nákupu;H;Riziko dodavatele;5
+VN;vedoucí nákupu;H;Služba zákazníkům;6
+VN;vedoucí nákupu;H;Kapacita a růst;7
+VN;vedoucí nákupu;H;Kapitálová náročnost;9
+MK;vedoucí marketingu;A;Náklady;6
+MK;vedoucí marketingu;A;Riziko dodavatele;9
+MK;vedoucí marketingu;A;Služba zákazníkům;7
+MK;vedoucí marketingu;A;Kapacita a růst;9
+MK;vedoucí marketingu;A;Kapitálová náročnost;1
+MK;vedoucí marketingu;A2;Náklady;5
+MK;vedoucí marketingu;A2;Riziko dodavatele;9
+MK;vedoucí marketingu;A2;Služba zákazníkům;7
+MK;vedoucí marketingu;A2;Kapacita a růst;7
+MK;vedoucí marketingu;A2;Kapitálová náročnost;3
+MK;vedoucí marketingu;B;Náklady;3
+MK;vedoucí marketingu;B;Riziko dodavatele;6
+MK;vedoucí marketingu;B;Služba zákazníkům;8
+MK;vedoucí marketingu;B;Kapacita a růst;6
+MK;vedoucí marketingu;B;Kapitálová náročnost;10
+MK;vedoucí marketingu;B2;Náklady;4
+MK;vedoucí marketingu;B2;Riziko dodavatele;8
+MK;vedoucí marketingu;B2;Služba zákazníkům;7
+MK;vedoucí marketingu;B2;Kapacita a růst;6
+MK;vedoucí marketingu;B2;Kapitálová náročnost;10
+MK;vedoucí marketingu;C;Náklady;7
+MK;vedoucí marketingu;C;Riziko dodavatele;6
+MK;vedoucí marketingu;C;Služba zákazníkům;1
+MK;vedoucí marketingu;C;Kapacita a růst;7
+MK;vedoucí marketingu;C;Kapitálová náročnost;10
+MK;vedoucí marketingu;C2;Náklady;7
+MK;vedoucí marketingu;C2;Riziko dodavatele;6
+MK;vedoucí marketingu;C2;Služba zákazníkům;7
+MK;vedoucí marketingu;C2;Kapacita a růst;8
+MK;vedoucí marketingu;C2;Kapitálová náročnost;7
+MK;vedoucí marketingu;H;Náklady;6
+MK;vedoucí marketingu;H;Riziko dodavatele;6
+MK;vedoucí marketingu;H;Služba zákazníkům;8
+MK;vedoucí marketingu;H;Kapacita a růst;7
+MK;vedoucí marketingu;H;Kapitálová náročnost;7
