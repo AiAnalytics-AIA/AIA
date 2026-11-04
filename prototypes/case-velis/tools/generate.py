@@ -453,6 +453,11 @@ SEGMENTS = {  # latent, not in the file: mean attractiveness 1-10 per object
     "pohodlni": (0.20, [7.0, 6.9, 4.6, 5.0, 4.6, 5.8, 9.0, 7.0], 0.25),
     "lhostejni": (0.15, [6.0, 6.4, 5.4, 5.0, 5.4, 5.9, 6.0, 6.6], 0.30),
 }
+CITY_KRAJE = ["Hlavní město Praha", "Jihomoravský", "Moravskoslezský", "Plzeňský"]
+CITY_P = [0.55, 0.20, 0.14, 0.11]  # roughly by the four cities' population
+_other = np.array([k[1] * (1 - k[2]) for k in KRAJE])
+OTHER_KRAJE = [k[0] for k, w in zip(KRAJE, _other, strict=True) if w > 0]
+OTHER_P = (_other[_other > 0] / _other[_other > 0].sum()).tolist()
 seg_names = list(SEGMENTS)
 seg_p = np.array([SEGMENTS[s][0] for s in seg_names])
 sv = []
@@ -460,11 +465,8 @@ for i in range(800):
     seg = seg_names[int(rng.choice(4, p=seg_p))]
     _, means, city_bias = SEGMENTS[seg]
     big = bool(rng.random() < min(0.95, 0.30 + city_bias))
-    kraj = (
-        "Hlavní město Praha"
-        if big and rng.random() < 0.55
-        else KRAJE[int(rng.choice(len(KRAJE), p=KRAJ_P))][0]
-    )
+    # the region follows the big-city flag: a big-city resident lives in Praha, Brno, Ostrava or Plzeň's kraj
+    kraj = str(rng.choice(CITY_KRAJE, p=CITY_P)) if big else str(rng.choice(OTHER_KRAJE, p=OTHER_P))
     agep = [0.30, 0.38, 0.18, 0.09, 0.05] if seg == "rychli" else [0.13, 0.26, 0.26, 0.20, 0.15]
     ageb = ["18–24", "25–34", "35–44", "45–54", "55+"][int(rng.choice(5, p=agep))]
     band = ["1", "2–3", "4+"][int(rng.choice(3, p=[0.40, 0.36, 0.24]))]

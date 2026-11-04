@@ -26,7 +26,8 @@ All the values come from `tools/generate.py` (seed `20261104`). The "measured" c
 | Orders against invoices | invoiced orders are 0,4 % fewer (cancellations before dispatch) | `objednavky_2023-2025.xlsx` against `faktury_3PL_CZ_2025.csv` |
 | Logistics in the P&L against the invoices | 23,6 mil. Kč against 23,58 mil. Kč (rounding) | P&L against invoices |
 | Missing expert score | OR, option A, "Služba zákazníkům" | `hodnoceni_expertu.csv` |
-| Survey non-response | 11 empty ratings | `pruzkum_zakazniku_2026.csv` |
+| Survey non-response | 14 empty ratings | `pruzkum_zakazniku_2026.csv` |
+| Survey sample skew | 54 % of respondents live in the big cities against 38 % of customers in the CRM, so a study should weight, or say why it doesn't | `pruzkum_zakazniku_2026.csv` against `zakaznici_souhrn_2025.xlsx` |
 
 ## Reconciliations that hold
 
