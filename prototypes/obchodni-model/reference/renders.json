@@ -54,7 +54,7 @@
   "title": "M4 · Model: Výsledky",
   "w": 1440,
   "h": 3060,
-  "text_chars": 6795,
+  "text_chars": 6794,
   "errors": [],
   "failed_requests": [],
   "image": "06-KM4Results.webp"
@@ -74,7 +74,7 @@
   "title": "M6 · Model: Zpráva",
   "w": 1440,
   "h": 1840,
-  "text_chars": 5411,
+  "text_chars": 5422,
   "errors": [],
   "failed_requests": [],
   "image": "08-KM6Report.webp"
@@ -164,7 +164,7 @@
   "title": "MV4 · Osnova zprávy",
   "w": 1440,
   "h": 3690,
-  "text_chars": 7511,
+  "text_chars": 7550,
   "errors": [],
   "failed_requests": [],
   "image": "17-MV4XRay.webp"

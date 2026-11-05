@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 5 Nov 2026 (version 37)
+# AIA Obchodní model – prototyp, 5 Nov 2026 (version 38)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 37, artifact version `1793907449-7d0f` |
+| Version | version 38, artifact version `1793908215-017a` |
 | Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then; versions 34–36 were uploads only) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -157,6 +157,12 @@ specifically"). The boards now carry them:
 - **Inconsistencies.** Data and its contracts stay in every study type (Z0, Z3); the rule is frozen before comparative
   results, with intake reading recorded as feasibility work (Z3); income tax is inside the model, so Z5 agrees with KM7;
   illustrative numbers are labelled apart from validation evidence (MV5).
+
+**Changed in version 38 (5 Nov).** KM4, MV4 and KM6 agree on B2 and the pilot: B2 can be signed only until the Czech
+3PL is given notice (31. 12. 2026), and going back later costs 4–9 mil. Kč (KM6 had said 31. 1. 2027 and "nic nestojí",
+with an option to 31. 5. 2027); the C2 pilot is three months in Olomoucký kraj, 0,4 mil. Kč, result in 6/2027 (KM4 had
+six weeks). The remaining "záloha" wording on MV4 and KM6 now says "přechod". Found while writing the methodology's
+version 2 (acceptance criterion K6).
 
 | # | File | Board |
 |---|---|---|
