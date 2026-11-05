@@ -4,7 +4,9 @@
 coordinator's chat on 2026-11-02 and quoted below. Later the same day he answered the six questions this
 record left open and ten more (§ The owner's answers, later on 2 Nov). Those answers settle parts of
 decisions 2, 3, 4, 5, 6 and 8, and each of those decisions says where. A stage-by-stage walkthrough of
-the canvas the same day gave 28 more (§ The owner's walkthrough, W1-W28). The rest are this record's
+the canvas the same day gave 28 more (§ The owner's walkthrough, W1-W28). On 5 Nov his methodology review set ten changes, seven
+corrections and six acceptance criteria (§ The methodology review, R1-R10); R9 is proposed for his
+decision. The rest are this record's
 proposals, which take effect when he approves this record. What still needs the methodology owner's
 answer is listed under § Open.
 
@@ -83,6 +85,61 @@ in the plan named:
 | W26 | Osnova zprávy | A closed stop may be shared with the client's decision-makers for comments; their agreement recorded | `research-findings-stage#FND12` |
 | W27 | Zpráva | An estimate whose method is not yet registered still reaches the client report, labelled, with an approval warning; never refused | decision 5; M-5; `cost-model-study#CM6` |
 | W28 | Zpráva | The report is Czech in the MVP; English after | `research-findings-stage#FND9` |
+
+**The methodology review, 5 Nov** (the product owner, in this record's session, of the methodology write-up
+of canvas version 33: "we have just defined changes and upgrades to make very specifically, retain that
+very clearly"; then, to the plan to carry them into the canvas, the methodology document and this record:
+"lets do it"). Canvas version 37 (`prototypes/obchodni-model/`, [AiAnalytics-AIA/AIA#1157](https://github.com/AiAnalytics-AIA/AIA/pull/1157))
+carries R1-R10 as design. None of it is built.
+
+To keep: the decision governs the study (options, constraints, owner, deadline and rule recorded before
+results); sources stay attached to findings (data contracts, source locations, outline links, which the
+review calls "particularly worth retaining"); every assumption has an owner; the client's rule and the
+indicator ranking may disagree and both are shown; model and respondent maps stay separate; design status
+is disclosed.
+
+| # | Change | What it requires | Canvas v37 |
+|---|---|---|---|
+| R1 | A model-validity gate, apart from reproducibility (highest priority) | Before the recommendation is approved, a documented review: every option represented comparably; material costs, benefits, constraints and implementation dependencies included; whether an exclusion could reverse the recommendation; extreme inputs give sensible results; an independent reviewer has challenged the structure and the decisive assumptions. The researcher owns the study but is never the only assessor of the decision-critical work they accepted. Hashes verify the implementation, not fitness for the decision | MV8; Z7 R8 |
+| R2 | Replace the universal missing-data scoring rules | Four states: unknown, not applicable, evidenced absent, evidenced present. A decision-critical unknown is an evidence request or explicit alternative cases. Imputation only through a justified, approved rule, with a visible coverage measure and a test of whether the missing information could change the ranking. An unknown compliance condition or operational prerequisite never becomes acceptable because other scores compensate | SI1-SI4 |
+| R3 | A firmer foundation for the indicator method | Weights elicited from the decision-maker's trade-offs (swing weighting); value scales and trade-offs approved by the stakeholder; overlapping criteria checked; non-compensable requirements identified; sensitivity to other defensible scoring structures (the GOV.UK MCDA guidance). The method states when it is preference information and when it may influence the recommendation | SI1-SI4 |
+| R4 | Indicator "probabilities" are assumed perturbations | Separate uncertainty about evidence, future performance and preferences; justify the perturbation parameters or label them sensitivity settings; say "the share of tested scoring assumptions under which an option ranks first"; test whether the conclusion survives materially different settings | SI3, SI4 (labelled settings; the parameters wait for the methodologist) |
+| R5 | Each Sociomapa mode has its own statistical contract | Per mode (scenarios, experts, units, periods): what a row is; what population or model the claim concerns; the relationship measured; what the null means; the resampling scheme; which uncertainty the stability measures. More futures reduce numerical noise, never assumption error. Removing each future's mean changes the question: relative performance apart from shared absolute downside | MV3 |
+| R6 | An uncertainty policy beyond ranges and PERT | Distinguish natural variation, parameter uncertainty, expert disagreement, model-structure uncertainty and severe events outside the range; mixture rules (weights, dependence between experts, fact or interpretation); a justification for every decisive input; explicit meaning for the endpoints; alternative model structures; stress tests beyond ordinary ranges; convergence tied to the decision (precise enough to tell passing the rule from failing it) | KM2, KM3 |
+| R7 | Value of information answers the client's rule | State whether it optimises expected monetary benefit or follows the rule (median plus constraints); label a proxy prominently; separate perfect information from a practical enquiry; include the enquiry's cost, duration and the consequence of waiting; say how new evidence updates the assumptions and the pass probabilities. The review: this "directly addresses the mismatch we encountered in ChemVitro" | KM4 |
+| R8 | Causal evidence where behaviour drives benefits | Record the causal assumption, plausible alternative explanations and the identification approach, else a labelled assumption or an alternative scenario (the delay → order-loss link; the shipping-price elasticity). Forecasts: a backtest horizon, rolling out-of-sample evaluation and interval checks; "beats seasonal naïve on MASE" alone is not enough for a multi-year decision | KM1, KM4 |
+| R9 | A stronger release gate for client reports | Every decision-critical claim checked for support and for correct interpretation; a recommendation resting on an unvalidated method stays provisional, never released as approved investment advice; exploratory material only with explicit limits; approval records the exact version and the unresolved qualifications; M-7's thresholds are one check, not the release criterion. **Proposed, for the product owner:** it changes W27 and report-delivery RD0 (22 Oct, "Warnings for all of it") | MV0, MV5, KM6 (marked proposed) |
+| R10 | The report is organised around the argument | Not one chapter per analysis: 1 the decision and the action requested; 2 why the preferred option is acceptable, or why none is; 3 what could change that conclusion; 4 implementation conditions, owners and dates; 5 supporting evidence and technical appendices. The required disclosures standardised; the outline records why each claim matters to the decision | MV4, KM6 |
+
+Inconsistencies the review found, each resolved on the canvas:
+
+| # | Inconsistency | Resolution |
+|---|---|---|
+| I1 | The route without calculation hid Data, yet client inputs still need contracts | Data and its contracts in every study type; only the modelling stages hidden (Z0, Z3; amends W4) |
+| I2 | "Fix the rule before the data" against reading files at intake | The rule is frozen before comparative results are seen; intake reading recorded as feasibility work; amendments authorised and logged (Z3) |
+| I3 | Six grades, plus modelováno and the survey provenance | Four attributes: source type, analytical method, uncertainty, validation status (MV4, KM6; amends A5's single table) |
+| I4 | Tax outside the model, yet an after-tax NPV shown | Income tax inside the model as a fixed parameter; the boundary agrees with every result view (Z5, KM7) |
+| I5 | Outline links did not cover named judgement or sourced synthesis | Typed judgement and inference records with their evidence (MV4) |
+| I6 | Other passing options called hedges | Switch feasibility, timing, cost and shared risks first (KM4 B2; amends A6's "hedge each other") |
+| I7 | Hand-made illustrative numbers | Labelled wherever they appear; illustrative fixtures kept apart from validation evidence (MV5) |
+
+Acceptance criteria the review adds (MV0 M-11 to M-16, MV8): K1 decision fitness (an independent review of
+mechanisms, exclusions and dependencies); K2 uncertainty fitness (decisive distributions, dependence and
+stress cases justified); K3 recommendation integrity (the client's rule, supplementary scoring and
+exploratory analysis kept distinct); K4 change propagation (a revised input invalidates downstream results
+and approvals until reviewed); K5 decision timing (information gathering states its effect on the
+deadline); K6 claim integrity (automated and human checks for contradictions between narrative, tables and
+figures, percentile and probability wording included). K6 found one on the canvas itself: SI3 read other
+medians and loss shares than Výsledky (3,9 vs 2,6 for A; 12 % vs 4 %), now held to KM4 by
+`prototypes/obchodni-model/tools/check.py`.
+
+**The order the review sets:** keep the nine-step workflow, and revise the analytical contracts and release
+conditions before the catalogue of analyses grows: (1) the missing-data treatment and the probability
+semantics; (2) validation per map mode; (3) value of information aligned with the decision rule; (4) the
+independent model review; (5) the whole process shown on a computed case with known expected behaviour,
+then on an imperfect case (the review names ChemVitro; it is not in this repository, and the product owner
+confirms which case it is). Its aim: every conclusion can be traced, the evidence is appropriate for the
+conclusion drawn, and the conclusion is appropriate for the decision being made.
 
 **The evidence:** [`.planning/evidence/pivot-research-2026-11-02.md`](../../../.planning/evidence/pivot-research-2026-11-02.md),
 the owner's document "AIA pivot research: rebuilding for business decisions" (2 Nov 2026). Its
@@ -272,6 +329,13 @@ These are replaced for business rows:
 - the pair floors, by an autocorrelation-adjusted effective-sample-size floor;
 - Benjamini-Hochberg, by Benjamini-Yekutieli by default;
 - split-half, by a block bootstrap with Procrustes-aligned displacement.
+
+Each mode states its own statistical contract (R5): what a row is, what the claim concerns, the relation,
+the null, the resampling and what the stability measures. The list above holds for the period map. The
+scenario map's rows are independent Monte Carlo draws: no block bootstrap and no p-value there; its
+stability is the Monte Carlo error across seeds and the sensitivity to assumptions, and it shows the
+relation with and without each future's mean (relative performance, shared downside). The expert map
+resamples raters; the unit map resamples clusters.
 
 The map has four modes, each with its own claim and grade:
 
@@ -488,3 +552,12 @@ methodology lead), each with its recommendation there:
 
 They are sent to him as one message (`sociomapa-systemu#SYS0`), with the SOMECS name and licence check
 (Q4). No replaced statistic is built before its question is answered.
+
+The methodology review (R1-R10) adds to them: the per-mode contracts (R5); the perturbation settings of the
+indicator method, or their label as sensitivity settings (R4); the uncertainty types and mixture rules
+(R6); the causal-identification and backtest standards (R8); and a registered entry for the indicator
+method v2 (states, gates, swing weights, value scales), which stays internal until it is approved.
+
+**For the product owner, from the review:** R9, the release policy for a recommendation that rests on an
+unvalidated method (provisional, not approved advice), which changes W27 and RD0; and which case
+"ChemVitro" is, for the review's step 5.
