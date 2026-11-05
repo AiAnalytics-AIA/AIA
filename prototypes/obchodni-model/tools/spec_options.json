@@ -1,0 +1,944 @@
+{
+ "objects": [
+  {
+   "id": "A",
+   "name": "A · Hala"
+  },
+  {
+   "id": "A2",
+   "name": "A2 · Hala po etapách"
+  },
+  {
+   "id": "B",
+   "name": "B · 3PL CZ"
+  },
+  {
+   "id": "B2",
+   "name": "B2 · 3PL CZ pevná cena"
+  },
+  {
+   "id": "C",
+   "name": "C · 3PL PL"
+  },
+  {
+   "id": "C2",
+   "name": "C2 · 3PL PL + expres"
+  },
+  {
+   "id": "H",
+   "name": "H · Hybrid"
+  }
+ ],
+ "flip": [
+  1,
+  1
+ ],
+ "categories": [
+  {
+   "code": "E",
+   "name": "Ekonomika",
+   "w": 0.22,
+   "why": "cíl FR: nejvyšší příspěvek za 7 let",
+   "indicators": [
+    {
+     "code": "E1",
+     "name": "Medián NPV proti B (mil. Kč, 8 %)",
+     "kind": "pásmo",
+     "from": "Výsledky",
+     "rule": "< 0 → 2 · < 1 → 4 · < 3 → 5 · < 5 → 6 · < 7 → 8 · ≥ 7 → 10",
+     "cuts": [
+      [
+       -0.001,
+       2
+      ],
+      [
+       0.999,
+       4
+      ],
+      [
+       2.999,
+       5
+      ],
+      [
+       4.999,
+       6
+      ],
+      [
+       6.999,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "A": [
+       3.9,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ],
+      "A2": [
+       4.7,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ],
+      "B": [
+       0.0,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ],
+      "B2": [
+       5.9,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ],
+      "C": [
+       4.7,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ],
+      "C2": [
+       8.8,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ],
+      "H": [
+       1.1,
+       "Vysoká",
+       "Výsledky · model, 800 budoucností"
+      ]
+     }
+    },
+    {
+     "code": "E2",
+     "name": "Podíl budoucností, kde je nejlepší (%)",
+     "kind": "pásmo",
+     "from": "Výsledky",
+     "rule": "< 5 → 2 · < 10 → 4 · < 20 → 6 · < 30 → 8 · ≥ 30 → 10",
+     "cuts": [
+      [
+       4.99,
+       2
+      ],
+      [
+       9.99,
+       4
+      ],
+      [
+       19.99,
+       6
+      ],
+      [
+       29.99,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "A": [
+       9,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "A2": [
+       15,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "B": [
+       3,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "B2": [
+       24,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "C": [
+       7,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "C2": [
+       42,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "H": [
+       0,
+       "Vysoká",
+       "Výsledky · model"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "R",
+   "name": "Riziko ztráty",
+   "w": 0.12,
+   "why": "limit FR: ztráta > 10 mil. nejvýš v 1 z 10",
+   "indicators": [
+    {
+     "code": "R1",
+     "name": "P(ztráta > 10 mil. Kč proti B) (%)",
+     "kind": "pásmo",
+     "from": "Výsledky",
+     "rule": "≤ 2 → 10 · ≤ 5 → 8 · ≤ 10 → 6 · ≤ 15 → 3 · > 15 → 1",
+     "cuts": [
+      [
+       2,
+       10
+      ],
+      [
+       5,
+       8
+      ],
+      [
+       10,
+       6
+      ],
+      [
+       15,
+       3
+      ],
+      [
+       1000000000.0,
+       1
+      ]
+     ],
+     "values": {
+      "A": [
+       12,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "A2": [
+       8,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "B": [
+       0,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "B2": [
+       3,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "C": [
+       9,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "C2": [
+       6,
+       "Vysoká",
+       "Výsledky · model"
+      ],
+      "H": [
+       14,
+       "Vysoká",
+       "Výsledky · model"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "K",
+   "name": "Kapitál",
+   "w": 0.08,
+   "why": "strop investice 90 mil., hotovost 4 mil.",
+   "indicators": [
+    {
+     "code": "K1",
+     "name": "Investice (mil. Kč)",
+     "kind": "pásmo",
+     "from": "Data · dokumenty",
+     "rule": "0 → 10 · ≤ 45 → 7 · ≤ 90 → 4 · > 90 vyřazeno",
+     "cuts": [
+      [
+       0,
+       10
+      ],
+      [
+       45,
+       7
+      ],
+      [
+       90,
+       4
+      ]
+     ],
+     "values": {
+      "A": [
+       70,
+       "Vysoká",
+       "nabidka_hala.pdf s. 1"
+      ],
+      "A2": [
+       77,
+       "Vysoká",
+       "nabidka_hala.pdf s. 2"
+      ],
+      "B": [
+       0,
+       "Vysoká",
+       "smlouva s. 4"
+      ],
+      "B2": [
+       0,
+       "Vysoká",
+       "dodatek"
+      ],
+      "C": [
+       0,
+       "Vysoká",
+       "nabidka_3PL_PL s. 1"
+      ],
+      "C2": [
+       0,
+       "Vysoká",
+       "nabidka_3PL_PL s. 1"
+      ],
+      "H": [
+       0,
+       "Vysoká",
+       "obě nabídky 3PL"
+      ]
+     }
+    },
+    {
+     "code": "K2",
+     "name": "Náklad přechodu (mil. Kč)",
+     "kind": "pásmo",
+     "from": "Data",
+     "rule": "0 → 10 · ≤ 3 → 8 · ≤ 6 → 6 · ≤ 9 → 4 · > 9 → 2",
+     "cuts": [
+      [
+       0,
+       10
+      ],
+      [
+       3,
+       8
+      ],
+      [
+       6,
+       6
+      ],
+      [
+       9,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "A": null,
+      "A2": null,
+      "B": [
+       0,
+       "Vysoká",
+       "beze změny"
+      ],
+      "B2": [
+       0,
+       "Vysoká",
+       "beze změny"
+      ],
+      "C": [
+       6,
+       "Vysoká",
+       "plan_prechodu.xlsx, Celkem"
+      ],
+      "C2": [
+       6,
+       "Vysoká",
+       "plan_prechodu.xlsx"
+      ],
+      "H": [
+       6,
+       "Vysoká",
+       "plan_prechodu.xlsx"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "S",
+   "name": "Slib a zákazníci",
+   "w": 0.16,
+   "why": "podmínka OR: slib ve městech se nezhorší",
+   "indicators": [
+    {
+     "code": "S1",
+     "name": "Doručení ve velkých městech (pracovní dny)",
+     "kind": "pásmo",
+     "from": "Data · dokumenty",
+     "rule": "1 den → 9 · 2 dny → 3 (porušuje podmínku)",
+     "cuts": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       3
+      ],
+      [
+       1000000000.0,
+       1
+      ]
+     ],
+     "values": {
+      "A": [
+       1,
+       "Vysoká",
+       "úsudek: vlastní expedice"
+      ],
+      "A2": [
+       1,
+       "Vysoká",
+       "úsudek"
+      ],
+      "B": [
+       1,
+       "Vysoká",
+       "smlouva s. 3"
+      ],
+      "B2": [
+       1,
+       "Vysoká",
+       "smlouva s. 3"
+      ],
+      "C": [
+       2,
+       "Vysoká",
+       "nabidka_3PL_PL s. 3"
+      ],
+      "C2": [
+       1,
+       "Vysoká",
+       "nabidka_kuryr_expres"
+      ],
+      "H": [
+       1,
+       "Vysoká",
+       "smlouva s. 3"
+      ]
+     }
+    },
+    {
+     "code": "S2",
+     "name": "Ztráta objednávek ze zpoždění (%)",
+     "kind": "pásmo",
+     "from": "Data",
+     "rule": "0 → 10 · ≤ 1 → 8 · ≤ 2 → 6 · ≤ 3 → 4 · > 3 → 2",
+     "cuts": [
+      [
+       0,
+       10
+      ],
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       6
+      ],
+      [
+       3,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "A": [
+       0,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ],
+      "A2": [
+       0,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ],
+      "B": [
+       0,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ],
+      "B2": [
+       0,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ],
+      "C": [
+       3.6,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ],
+      "C2": [
+       1.7,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ],
+      "H": [
+       1.7,
+       "Vysoká",
+       "zpozdeni_2024.xlsx: 3,6 % celkem, 48 % mimo města"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "D",
+   "name": "Dodavatelé (Porter)",
+   "w": 0.1,
+   "why": "síla dodavatele: jediný 3PL, indexace 3–7 %",
+   "indicators": [
+    {
+     "code": "D1",
+     "name": "Závislost na jednom dodavateli",
+     "kind": "slovní",
+     "from": "Rešerše · Porter",
+     "rule": "slovní škála: vlastní + záloha 8 · dva dodavatelé 7 · jeden s pevnou cenou 5 · jeden 4 · dva noví 3",
+     "values": {
+      "A": [
+       8,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ],
+      "A2": [
+       8,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ],
+      "B": [
+       4,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ],
+      "B2": [
+       5,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ],
+      "C": [
+       4,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ],
+      "C2": [
+       3,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ],
+      "H": [
+       7,
+       "Střední",
+       "Porter: síla dodavatelů (úsudek)"
+      ]
+     }
+    },
+    {
+     "code": "D2",
+     "name": "Roční indexace ceny (%)",
+     "kind": "pásmo",
+     "from": "Data · dokumenty",
+     "rule": "≤ 1 → 10 · ≤ 2 → 8 · ≤ 3 → 7 · ≤ 4 → 5 · ≤ 5 → 4 · > 5 → 2",
+     "cuts": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       8
+      ],
+      [
+       3,
+       7
+      ],
+      [
+       4,
+       5
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "A": null,
+      "A2": null,
+      "B": [
+       5,
+       "Vysoká",
+       "smlouva s. 6: 3–7 %, čekáno 5 %"
+      ],
+      "B2": [
+       1,
+       "Vysoká",
+       "dodatek: poplatek pevně, skladné dál čl. 5"
+      ],
+      "C": [
+       3,
+       "Vysoká",
+       "nabidka_3PL_PL s. 5: průměr 3 %"
+      ],
+      "C2": [
+       3,
+       "Střední",
+       "s. 5; expres bez indexace v nabídce"
+      ],
+      "H": [
+       4,
+       "Střední",
+       "průměr B a C"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "P",
+   "name": "Prostředí (PESTEL)",
+   "w": 0.08,
+   "why": "mzdy a kurz jsou největší vnější tlaky na cenu",
+   "indicators": [
+    {
+     "code": "P1",
+     "name": "Citlivost nákladu na mzdy v logistice",
+     "kind": "slovní",
+     "from": "Rešerše · PESTEL E",
+     "rule": "slovní škála: pevná cena 8 · PL minimální mzda 6 · CZ vzorec (½ růstu mezd) 5 · vlastní lidé 4",
+     "values": {
+      "A": [
+       4,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ],
+      "A2": [
+       4,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ],
+      "B": [
+       5,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ],
+      "B2": [
+       8,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ],
+      "C": [
+       6,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ],
+      "C2": [
+       6,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ],
+      "H": [
+       5,
+       "Střední",
+       "PESTEL: mzdy doprava a skladování (ČSÚ, GUS)"
+      ]
+     }
+    },
+    {
+     "code": "P2",
+     "name": "Kurzové riziko",
+     "kind": "slovní",
+     "from": "Rešerše · PESTEL E",
+     "rule": "slovní škála: vše v Kč 9 · část v EUR 7 · fakturace v EUR 5",
+     "values": {
+      "A": [
+       9,
+       "Vysoká",
+       "Kč"
+      ],
+      "A2": [
+       9,
+       "Vysoká",
+       "Kč"
+      ],
+      "B": [
+       9,
+       "Vysoká",
+       "smlouva: Kč"
+      ],
+      "B2": [
+       9,
+       "Vysoká",
+       "Kč"
+      ],
+      "C": [
+       5,
+       "Vysoká",
+       "nabidka_3PL_PL s. 1: EUR"
+      ],
+      "C2": [
+       5,
+       "Vysoká",
+       "EUR"
+      ],
+      "H": [
+       7,
+       "Vysoká",
+       "polovina v EUR"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "F",
+   "name": "Flexibilita",
+   "w": 0.1,
+   "why": "růst 4–14 % ročně je nejistý",
+   "indicators": [
+    {
+     "code": "F1",
+     "name": "Vratnost rozhodnutí",
+     "kind": "slovní",
+     "from": "Rešerše · PESTEL L",
+     "rule": "slovní škála: výpověď 6 měs. 9 · výpověď 12 měs. 6 · výstup po 3. roce s poplatkem 3 · vlastní hala 2",
+     "values": {
+      "A": [
+       2,
+       "Vysoká",
+       "nabidka_hala s. 6"
+      ],
+      "A2": [
+       3,
+       "Vysoká",
+       "druhá etapa se dá odložit"
+      ],
+      "B": [
+       9,
+       "Vysoká",
+       "smlouva s. 8"
+      ],
+      "B2": [
+       6,
+       "Vysoká",
+       "dodatek: 12 měsíců"
+      ],
+      "C": [
+       3,
+       "Vysoká",
+       "nabidka_3PL_PL s. 7"
+      ],
+      "C2": [
+       3,
+       "Vysoká",
+       "s. 7"
+      ],
+      "H": [
+       4,
+       "Vysoká",
+       "PL část s. 7"
+      ]
+     }
+    },
+    {
+     "code": "F2",
+     "name": "Kapacita na rok 2032 (podíl potřeby)",
+     "kind": "pásmo",
+     "from": "Data · Předpoklady",
+     "rule": "potřeba 750 tis. objednávek (9 % ročně): ≥ 1,2 → 10 · ≥ 1,0 → 8 · ≥ 0,9 → 6 · ≥ 0,8 → 4 · < 0,8 → 2",
+     "cuts": [
+      [
+       0.7999,
+       2
+      ],
+      [
+       0.8999,
+       4
+      ],
+      [
+       0.9999,
+       6
+      ],
+      [
+       1.1999,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "A": [
+       0.83,
+       "Vysoká",
+       "nabidka_hala s. 3: 620 tis."
+      ],
+      "A2": [
+       0.83,
+       "Vysoká",
+       "s. 3"
+      ],
+      "B": [
+       1.2,
+       "Nízká",
+       "limit nehlášen, úsudek"
+      ],
+      "B2": [
+       1.2,
+       "Nízká",
+       "úsudek"
+      ],
+      "C": [
+       1.12,
+       "Vysoká",
+       "s. 4: 70 tis. měsíčně"
+      ],
+      "C2": [
+       1.12,
+       "Vysoká",
+       "s. 4"
+      ],
+      "H": [
+       1.3,
+       "Střední",
+       "dva sklady"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "T",
+   "name": "Realizace",
+   "w": 0.06,
+   "why": "rozhoduje se do 15. 12. 2026",
+   "indicators": [
+    {
+     "code": "T1",
+     "name": "Začátek nového stavu",
+     "kind": "slovní",
+     "from": "Zadání · dokumenty",
+     "rule": "hned 10 · 1. 1. 2027 9 · 1. 7. 2027 7 · 1. 1. 2028 5",
+     "values": {
+      "A": [
+       5,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ],
+      "A2": [
+       5,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ],
+      "B": [
+       10,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ],
+      "B2": [
+       9,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ],
+      "C": [
+       7,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ],
+      "C2": [
+       7,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ],
+      "H": [
+       7,
+       "Vysoká",
+       "CASE §8: kdy která možnost začne"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "X",
+   "name": "Experti",
+   "w": 0.08,
+   "why": "pět manažerů klienta, pět kritérií",
+   "indicators": [
+    {
+     "code": "X1",
+     "name": "Průměr hodnocení manažerů (1–10)",
+     "kind": "přímo",
+     "from": "Data",
+     "rule": "tvrdá data se použijí přímo (pravidlo 1); chybějící buňka OR·A·Služba = medián ostatních čtyř",
+     "values": {
+      "A": [
+       6.6,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ],
+      "A2": [
+       6.28,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ],
+      "B": [
+       6.52,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ],
+      "B2": [
+       6.76,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ],
+      "C": [
+       6.08,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ],
+      "C2": [
+       6.48,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ],
+      "H": [
+       6.44,
+       "Vysoká",
+       "hodnoceni_expertu.csv, 25 buněk"
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

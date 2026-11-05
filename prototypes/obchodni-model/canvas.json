@@ -217,6 +217,38 @@
       "w": 1440,
       "x": 4560,
       "y": 23010
+    },
+    "SI1Method.dc.html": {
+      "h": 3360,
+      "is_interactive": true,
+      "title": "SI1 · Sociomapa z indikátorů: metoda na míru",
+      "w": 1440,
+      "x": 0,
+      "y": 37200
+    },
+    "SI2Matrix.dc.html": {
+      "h": 2270,
+      "is_interactive": true,
+      "title": "SI2 · Sociomapa z indikátorů: matice skóre",
+      "w": 1440,
+      "x": 1520,
+      "y": 37200
+    },
+    "SI3OptionsMap.dc.html": {
+      "h": 2260,
+      "is_interactive": true,
+      "title": "SI3 · Sociomapa z indikátorů: mapa možností",
+      "w": 1440,
+      "x": 3040,
+      "y": 37200
+    },
+    "SI4Suppliers.dc.html": {
+      "h": 3850,
+      "is_interactive": true,
+      "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
+      "w": 1440,
+      "x": 4560,
+      "y": 37200
     }
   },
   "createdOnFiles": {
@@ -251,6 +283,14 @@
       "w": 240,
       "x": 0,
       "y": 32400
+    },
+    "t10": {
+      "kind": "title1",
+      "maxW": 5920,
+      "text": "Sociomapa z indikátorů · metoda z analýzy cloudu, na míru rozhodnutí Velis",
+      "w": 240,
+      "x": 0,
+      "y": 36900
     }
   },
   "order": [
@@ -280,7 +320,11 @@
     "MV4XRay.dc.html",
     "MV5Validation.dc.html",
     "MV6Catalogue.dc.html",
-    "MV7UXAudit.dc.html"
+    "MV7UXAudit.dc.html",
+    "SI1Method.dc.html",
+    "SI2Matrix.dc.html",
+    "SI3OptionsMap.dc.html",
+    "SI4Suppliers.dc.html"
   ],
   "pages": [],
   "title": "AIA Obchodní model – prototyp"
