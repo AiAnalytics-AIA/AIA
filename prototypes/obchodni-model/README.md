@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 5 Nov 2026 (version 27)
+# AIA Obchodní model – prototyp, 5 Nov 2026 (version 29)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 27, artifact version `1793893604-6c54` |
+| Version | version 29, artifact version `1793894963-7a53` |
 | Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -82,12 +82,13 @@ walkthrough, W1-W28, the full record in `.planning/evidence/pivot-walkthrough-20
 
 The new numbers (after-tax NPVs, correlations, wage growth) are fictional, like every number here.
 
-**Changed in versions 23–27 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
+**Changed in versions 23–29 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
 cloud analysis's method in the business-model study, where the decision differs but the method stands, using
 SWOT, PESTEL and Porter as inputs, and saw "a big benefit of using AI and deep research to custom tailor the
-methodology to each individual study". SI1 splits what stays fixed (Metodika: the scale, the six scoring rules, the
-arithmetic, the futures) from what Ada and Rešerše tailor to each study and a person approves and locks before any
-score (objects, categories, weights, indicators, bands, checklists, rule changes). It also shows how SWOT, PESTEL
+methodology to each individual study". Every report is tailored, so SI1 does not divide the method into fixed and tailored parts (an
+earlier version did; the owner: "every report is customized … those buttons are useless"). It shows how this study's
+method was built, from Zadání, Rešerše and Data to an approval locked before any score, and the six scoring
+rules as applied here. It also shows how SWOT, PESTEL
 and Porter findings become indicators instead of being counted. One rule is changed for this study: an
 undocumented price rise counts as the others' median, not 0 %. SI2 is the 7 × 15 score matrix. SI3 is the map and
 its futures: **B2 ranks first (8,35) and C2 overtakes it only once Ekonomika's weight reaches 0,507 (approved
@@ -127,7 +128,7 @@ option is new and equally fictional.
 | 25 | `MV5Validation.dc.html` | MV5 · Metodika: validační sada a otázky |
 | 26 | `MV6Catalogue.dc.html` | MV6 · Katalog analýz |
 | 27 | `MV7UXAudit.dc.html` | MV7 · Kontrola UX |
-| 28 | `SI1Method.dc.html` | SI1 · Sociomapa z indikátorů: metoda na míru |
+| 28 | `SI1Method.dc.html` | SI1 · Sociomapa z indikátorů: metoda |
 | 29 | `SI2Matrix.dc.html` | SI2 · Sociomapa z indikátorů: matice skóre |
 | 30 | `SI3OptionsMap.dc.html` | SI3 · Sociomapa z indikátorů: mapa možností |
 | 31 | `SI4Suppliers.dc.html` | SI4 · Sociomapa z indikátorů: mapa dodavatelů |

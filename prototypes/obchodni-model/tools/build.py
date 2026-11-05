@@ -34,15 +34,6 @@ EXTRA_CSS = """
 .smx th,.smx td{border:1px solid var(--border);padding:6px 8px;vertical-align:middle}
 .smx th{background:var(--sunken);font-weight:500;color:var(--muted);font-size:12px;text-align:center}
 .smx td.l{text-align:left}
-.ft{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.ft .col{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
-.ft .col.tail{border-color:var(--aiedge);background:var(--aiwash)}
-.ft h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px}
-.ft ul{margin:0;padding-left:18px;list-style:disc;font-size:13.5px;line-height:21px}
-.ft .who{font-size:12px;color:var(--muted)}
-.guard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
-.guard div{border:1px dashed var(--strong);border-radius:6px;padding:9px 11px;font-size:13px;background:var(--surface)}
-.guard b{display:block;font-size:12.5px;margin-bottom:2px}
 .io{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .io .st{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 11px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;line-height:18px}
 .io .st.ai{border-color:var(--aiedge);background:var(--aiwash)}
@@ -230,21 +221,6 @@ SN = {o["id"]: o["name"] for o in ss["objects"]}
 SS = {"DE": "Delta", "WI": "Wisła", "VL": "Vlastní", "MO": "Morava*", "PO": "Polaris*", "DU": "Dunaj*"}
 
 # ============ SI1 ============
-fixed = ["škála 1–10 a šest pravidel bodování", "jistota u každé buňky (Vysoká, Střední, Nízká, Odhad)", "průměr kategorie, vážený součet = výška",
-         "z-skóre v kategorii a podobnost profilů (r + 1) × 5", "budoucnosti: váhy kolem schválených (Dirichlet, α = 60 × w), šum podle jistoty",
-         "čára jen tam, kde r projde prahem pro daný počet kategorií"]
-tail = ["<b>objekty mapy</b>: varianty ze Zadání, dodavatelé a konkurenti z Rešerše",
-        "<b>kategorie a váhy</b>: z cíle a pravidla klienta (u Velis pravidlo FR ze 14. 10.)",
-        "<b>indikátory</b>: z nálezů SWOT, PESTEL a Porter, z Dat a z Modelu",
-        "<b>pásma a checklisty</b>: z veřejných zdrojů a dokumentů klienta, každé se zdrojem",
-        "<b>úprava pravidel</b>: kde obecné pravidlo v této studii škodí (u Velis pravidlo 5)"]
-s1_ft = ('<div class="ft"><div class="col"><h3><i class="ph ph-lock-simple"></i>Pevné · Metodika</h3><div class="who">stejné v každé studii, mění jen metodik</div><ul>' +
-         "".join(f"<li>{x}</li>" for x in fixed) + '</ul></div><div class="col tail"><h3><i class="ph ph-sparkle"></i>Na míru · Ada a Rešerše navrhnou, člověk schválí</h3>'
-         '<div class="who">jiné v každé studii; to je výhoda AI: návrh za minuty, se zdrojem u každého pásma</div><ul>' + "".join(f"<li>{x}</li>" for x in tail) + "</ul></div></div>"
-         '<div class="guard"><div><b>Zamčeno před skóre</b>Váhy, pásma a checklisty se schválí a zamknou dřív, než kdokoli vidí skóre. Jako pravidlo FR.</div>'
-         '<div><b>Změna = nová verze</b>Úprava po zamčení se zapíše s důvodem a mapa ukáže obě verze vedle sebe.</div>'
-         '<div><b>Mapa ukáže citlivost</b>Budoucnosti mění váhy. Když pořadí visí na jedné váze, mapa to řekne.</div></div>')
-
 steps = [("1", "Zadání", "cíl, pravidlo, podmínky", "Ada navrhne kategorie a váhy", "kategorie s váhou a důvodem", ""),
          ("2", "Rešerše", "Deep Research · SWOT, PESTEL, Porter", "nálezy převede na indikátory a pásma", "indikátor + pásmo + citace", "ai"),
          ("3", "Data", "soubory klienta", "tvrdé hodnoty se použijí přímo", "hodnota + soubor a řádek", ""),
@@ -277,19 +253,18 @@ s1_finds = ('<table class="zt"><thead><tr><th>Nástroj</th><th>Nález</th><th>St
     f'<tr><td>{e(t)}</td><td>{e(f)}</td><td>{e(b)}</td><td class="num">{e(i)}</td></tr>' for t, f, b, i in finds) + "</tbody></table>"
             '<p class="zcap">Nálezy se nesčítají. Počet silných stránek nic neměří. Každý nález se stane indikátorem s pravidlem, nebo zdůvodní pásmo či váhu.</p>')
 
-body1 = (WARN + sec("01", "Co je pevné a co se šije na míru", "metoda stojí, design se mění", s1_ft) +
-         sec("02", "Jak vznikne metoda pro tuto studii", "vstup → proces → výstup", s1_io) +
-         sec("03", "Šest pravidel bodování", "převzato z analýzy cloudu", s1_rules) +
-         sec("04", "SWOT, PESTEL a Porter jako vstupy", "z Rešerše a Zadání (Z4)", s1_finds) +
-         sec("05", "Katalog indikátorů: mapa možností", "9 kategorií · 15 indikátorů · návrh Ady, schváleno 5. 11.", catalogue(so) +
+body1 = (WARN + sec("01", "Jak vznikne metoda pro tuto studii", "vstup → proces → výstup", s1_io) +
+         sec("02", "Šest pravidel bodování", "převzato z analýzy cloudu", s1_rules) +
+         sec("03", "SWOT, PESTEL a Porter jako vstupy", "z Rešerše a Zadání (Z4)", s1_finds) +
+         sec("04", "Katalog indikátorů: mapa možností", "9 kategorií · 15 indikátorů · návrh Ady, schváleno 5. 11.", catalogue(so) +
              '<p class="zcap">Katalog mapy dodavatelů je na <a href="SI4Suppliers.dc.html">SI4</a>. Stejná metoda, jiné indikátory.</p>'))
 conv1 = ada("10:12", ["Metodu jsem ušila na rozhodnutí Velis. Kategorie a váhy vycházejí z pravidla FR: <b>Ekonomika 22 %</b>, <b>Slib a zákazníci 16 %</b>, ostatní pod tím.",
                       "Pásma mají zdroj: z dokumentů klienta, z Rešerše, nebo jsou označená jako úsudek. Upravila jsem pravidlo 5: zdražení, které dodavatel nezveřejní, nepočítám jako 0 %."],
             "Můžeme váhy měnit, až uvidíme výsledky?", "10:14",
             ["Ne potichu. Metodu jsem zamkla před prvním skóre. Každá změna je nová verze s důvodem a mapa ukáže obě. Jak moc pořadí na vahách visí, ukážou budoucnosti na SI3."])
 btn1 = BTN_MENU + '<a class="btn primary sm" href="SI2Matrix.dc.html">Matice skóre<i class="ph ph-caret-right s"></i></a>'
-open(f"{OUT}/SI1Method.dc.html", "w").write(frame("Sociomapa z indikátorů: metoda na míru", "Sociomapa z indikátorů: metoda", "Sociomapa · metoda", conv1,
-                                                    "Sociomapa · metoda", btn1, body1, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 3360))
+open(f"{OUT}/SI1Method.dc.html", "w").write(frame("Sociomapa z indikátorů: metoda", "Sociomapa z indikátorů: metoda", "Sociomapa · metoda", conv1,
+                                                    "Sociomapa · metoda", btn1, body1, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 2850))
 
 # ============ SI2 ============
 cert_rows = ""

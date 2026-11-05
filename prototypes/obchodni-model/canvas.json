@@ -219,9 +219,9 @@
       "y": 23010
     },
     "SI1Method.dc.html": {
-      "h": 3360,
+      "h": 2850,
       "is_interactive": true,
-      "title": "SI1 · Sociomapa z indikátorů: metoda na míru",
+      "title": "SI1 · Sociomapa z indikátorů: metoda",
       "w": 1440,
       "x": 0,
       "y": 37200
@@ -287,7 +287,7 @@
     "t10": {
       "kind": "title1",
       "maxW": 5920,
-      "text": "Sociomapa z indikátorů · metoda z analýzy cloudu, na míru rozhodnutí Velis",
+      "text": "Sociomapa z indikátorů · metoda z analýzy cloudu na rozhodnutí Velis",
       "w": 240,
       "x": 0,
       "y": 36900
