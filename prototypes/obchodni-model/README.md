@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 5 Nov 2026 (version 26)
+# AIA Obchodní model – prototyp, 5 Nov 2026 (version 27)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 26, artifact version `1793893172-fc24` |
+| Version | version 27, artifact version `1793893604-6c54` |
 | Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -82,7 +82,7 @@ walkthrough, W1-W28, the full record in `.planning/evidence/pivot-walkthrough-20
 
 The new numbers (after-tax NPVs, correlations, wage growth) are fictional, like every number here.
 
-**Changed in versions 23–26 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
+**Changed in versions 23–27 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
 cloud analysis's method in the business-model study, where the decision differs but the method stands, using
 SWOT, PESTEL and Porter as inputs, and saw "a big benefit of using AI and deep research to custom tailor the
 methodology to each individual study". SI1 splits what stays fixed (Metodika: the scale, the six scoring rules, the
@@ -90,10 +90,11 @@ arithmetic, the futures) from what Ada and Rešerše tailor to each study and a 
 score (objects, categories, weights, indicators, bands, checklists, rule changes). It also shows how SWOT, PESTEL
 and Porter findings become indicators instead of being counted. One rule is changed for this study: an
 undocumented price rise counts as the others' median, not 0 %. SI2 is the 7 × 15 score matrix. SI3 is the map and
-its futures: **B2 ranks first (8,35) and C2 overtakes it only once Ekonomika's weight reaches 0,52 (approved
-0,22)**, the gap between the model's rule (C2) and a broader weighing. SI4 maps six suppliers: three from the
+its futures: **B2 ranks first (8,35) and C2 overtakes it only once Ekonomika's weight reaches 0,507 (approved
+0,22), computed exactly (totals are linear in that weight)**, the gap between the model's rule (C2) and a broader weighing. SI4 maps six suppliers: three from the
 client's documents and three, starred, that Rešerše would find (fictional here). The numbers come from
-`tools/` (`specs.py`, `compute.py`, `build.py`, numpy only), which writes the four boards from MV3's frame. The
+`tools/` (`specs.py`, `compute.py`, `build.py`, numpy only), which writes the four boards from MV3's frame; `check.py`
+holds the printed rules to the results (a checklist scores 1 + 9 × share, unrounded; the order flips at the printed crossing). The
 model's results they read (NPV, P(best), P(loss)) are the canvas's illustrative ones; P(loss > 10 mil.) per
 option is new and equally fictional.
 

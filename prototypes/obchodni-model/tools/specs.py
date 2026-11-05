@@ -15,6 +15,7 @@ def row(vals, cert, src):
 ex = {"A": 6.6, "A2": 6.28, "B": 6.52, "B2": 6.76, "C": 6.08, "C2": 6.48, "H": 6.44}  # A with OR's missing cell at the median
 options = {
     "objects": [{"id": o, "name": names[o]} for o in objs],
+    "crossings": [["E", "C2", "B2"], ["E", "C2", "B"]],
     "flip": [1, 1],
     "categories": [
         {"code": "E", "name": "Ekonomika", "w": 0.22, "why": "cíl FR: nejvyšší příspěvek za 7 let", "indicators": [

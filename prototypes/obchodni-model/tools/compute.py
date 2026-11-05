@@ -32,7 +32,7 @@ def score_indicator(ind, objs):
         if ind["kind"] == "pásmo":
             s = band(v, ind["cuts"])
         elif ind["kind"] == "checklist":
-            s = round(1 + 9 * v / ind["items"])
+            s = 1 + 9 * v / ind["items"]  # the declared rule, unrounded; only the board rounds for display
         else:  # slovní / přímo
             s = v
         out[o] = {"raw": v, "score": s, "cert": cert, "src": src}
@@ -101,7 +101,12 @@ def compute(spec):
     tcrit = {7: 2.571, 8: 2.447, 9: 2.365, 10: 2.306}[k]
     rcrit = tcrit / math.sqrt(k - 2 + tcrit ** 2)
 
+    crossings = {}
+    for cat, a, b in spec.get("crossings", []):
+        crossings[f"{a}>{b}"] = crossing(M, W, [c["code"] for c in cats].index(cat), objs.index(a), objs.index(b))
+
     return {
+        "crossings": crossings,
         "objs": objs,
         "cat_codes": [c["code"] for c in cats],
         "scores": scores,
@@ -118,6 +123,24 @@ def compute(spec):
         "X": X.round(4).tolist(),
         "rcrit": round(rcrit, 2),
     }
+
+
+def crossing(M, W, k, a, b):
+    """The weight of category k at which object a's total reaches object b's, the other weights
+    scaled in proportion. Totals are linear in that weight, so the crossing is exact."""
+    rest = np.delete(np.arange(len(W)), k)
+    Wr = W[rest] / W[rest].sum()
+
+    def gap(w):
+        t = w * M[:, k] + (1 - w) * (M[:, rest] @ Wr)
+        return t[a] - t[b]
+
+    g0, g1 = gap(0.0), gap(1.0)
+    if g0 == g1 or not (min(g0, g1) <= 0 <= max(g0, g1)):
+        return None
+    w = g0 / (g0 - g1)
+    assert gap(w - 1e-3) * gap(w + 1e-3) < 0  # the order really flips here
+    return round(float(w), 4)
 
 
 def terrain_svg(res, labels, W=720, H=470, cell=3, sigma=0.62, links=None, cid="m"):

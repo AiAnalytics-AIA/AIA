@@ -294,7 +294,7 @@
   "title": "SI3 · Sociomapa z indikátorů: mapa možností",
   "w": 1440,
   "h": 2260,
-  "text_chars": 3954,
+  "text_chars": 3992,
   "errors": [],
   "failed_requests": [],
   "image": "30-SI3OptionsMap.webp"
@@ -304,7 +304,7 @@
   "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
   "w": 1440,
   "h": 3850,
-  "text_chars": 6659,
+  "text_chars": 6679,
   "errors": [],
   "failed_requests": [],
   "image": "31-SI4Suppliers.webp"

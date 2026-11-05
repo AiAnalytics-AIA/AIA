@@ -315,9 +315,10 @@ open(f"{OUT}/SI2Matrix.dc.html", "w").write(frame("Sociomapa z indikátorů: mat
 
 # ============ SI3 ============
 svg_o = terrain_svg(ro, {"aria": "Sociomapa možností z indikátorů", "names": [OS[o] for o in ro["objs"]]}, links=links(ro))
-s3_map = f'<div class="mapw"><div>{svg_o}<p class="zcap">Blízko sebe = podobný profil přes 9 kategorií (z-skóre). Výška = vážený součet. Body bližší než 46 px jsou odsunuté kvůli čitelnosti. Čára jen tam, kde |r| ≥ {cz(ro["rcrit"],2)}: to při 9 kategoriích projde na p &lt; 0,05. Prošly 3 z 21 dvojic.</p></div>{mapleg(ro, ON, OS)}</div>'
-sweep = ('<div class="claim"><span class="n">!</span><div>C2 předběhne B2 až při váze Ekonomiky <b>0,52</b> (schváleno 0,22).'
-         '<span class="w">ostatní váhy klesají v poměru · při 0,24 předběhne C2 i B · pod 0,52 vede B2 v každé z 2 000 budoucností</span></div></div>')
+s3_map = f'<div class="mapw"><div>{svg_o}<p class="zcap">Blízko sebe = podobný profil přes 9 kategorií (z-skóre). Výška = vážený součet. Body bližší než 46 px jsou odsunuté kvůli čitelnosti. Čára jen tam, kde |r| ≥ {cz(ro["rcrit"],2)}: to při 9 kategoriích projde na p &lt; 0,05. Prošly {len(links(ro))} z 21 dvojic.</p></div>{mapleg(ro, ON, OS)}</div>'
+XB2, XB = ro["crossings"]["C2>B2"], ro["crossings"]["C2>B"]
+sweep = (f'<div class="claim"><span class="n">!</span><div>C2 předběhne B2 až při váze Ekonomiky <b>{cz(XB2, 3)}</b> (schváleno 0,22).'
+         f'<span class="w">ostatní váhy klesají v poměru · B zůstává před C2 jen do {cz(XB, 3)}, pak je C2 druhá · při schválených vahách vede B2 ve všech 2 000 budoucnostech</span></div></div>')
 claims3 = [("A a B mají opačný profil", "r = −0,71: kde hala boduje (závislost, slib), B ne, a naopak; A a A2 mají profil podobný, r = 0,70"),
            ("A a C stojí nejdál od sebe", "r = −0,76: vlastní provoz proti zahraničnímu dodavateli"),
            ("B2 stojí sama a nejvýš", "s žádnou možností nemá spolehlivou čáru; vyhrává v každé budoucnosti"),
@@ -330,7 +331,7 @@ body3 = (WARN + sec("01", "Mapa možností", "7 objektů · 9 kategorií · vý�
              sim_table(ro, OS) + f'<p class="zcap">Podbarvené: |r| ≥ {cz(ro["rcrit"],2)}. Souběh s je korelace součtů napříč budoucnostmi po odečtení průměru budoucnosti; kladný = daří se jim ve stejných budoucnostech.</p>') +
          sec("04", "Co mapa tvrdí a co ne", "tvrzení do osnovy zprávy", claims3_html))
 conv3 = ada("10:48", ["Mapa ukazuje tři spolehlivé čáry z 21. Ostatní dvojice se od nuly při 9 kategoriích odlišit nedají, tak je nekreslím.",
-                      "Nejdůležitější je řádek v části 02: <b>C2 předběhne B2 až při váze Ekonomiky 0,52</b>. Rozdíl mezi Modelem a maticí je tedy otázka vah, ne chyba."],
+                      f"Nejdůležitější je řádek v části 02: <b>C2 předběhne B2 až při váze Ekonomiky {cz(XB2, 2)}</b>. Rozdíl mezi Modelem a maticí je tedy otázka vah, ne chyba."],
             "Co z toho řekneme FR?", "10:50",
             ["Že pravidlo doporučí C2 a mapa ukáže cenu: dva noví dodavatelé, EUR a smlouva na 7 let. A že B2 je pojistka, která vyhraje, kdykoli váha peněz klesne pod polovinu."])
 btn3 = BTN_MENU + '<a class="btn primary sm" href="SI4Suppliers.dc.html">Mapa dodavatelů<i class="ph ph-caret-right s"></i></a>'
@@ -348,11 +349,11 @@ s4_objs = '<table class="zt"><thead><tr><th>Dodavatel</th><th>Sklad</th><th>Pro�
     f"<tr><td><b>{e(a)}</b></td><td>{e(b)}</td><td>{e(c)}</td><td>{e(d)}</td></tr>" for a, b, c, d in objs_t) + "</tbody></table>"
 s4_objs += '<p class="zcap">* Smyšlení dodavatelé pro ukázku. V ostré studii je najde Rešerše a u každé hodnoty bude citace. Rychlík Kurýr na mapě není: je to dopravce, ne sklad.</p>'
 svg_s = terrain_svg(rs, {"aria": "Sociomapa dodavatelů fulfilmentu", "names": [SS[o] for o in rs["objs"]]}, links=links(rs))
-s4_map = f'<div class="mapw"><div>{svg_s}<p class="zcap">Vlastní provoz a Morava mají skoro stejné místo; odsunuté kvůli čitelnosti. 7 kategorií: čára jen při |r| ≥ {cz(rs["rcrit"],2)}. Prošly 2 z 15 dvojic.</p></div>{mapleg(rs, SN, SS)}</div>'
-claims4 = [("Delta vede: 7,72, nejlepší v 93 % budoucností", "smlouva má všech 5 podmínek z checklistu a historie je doložená"),
-           ("Wisła a Polaris mají podobný profil (r = 0,76)", "levnější, dál, v cizí měně, slabší smlouva"),
+s4_map = f'<div class="mapw"><div>{svg_s}<p class="zcap">Vlastní provoz a Morava mají skoro stejné místo; odsunuté kvůli čitelnosti. 7 kategorií: čára jen při |r| ≥ {cz(rs["rcrit"],2)}. Prošly {len(links(rs))} z 15 dvojic.</p></div>{mapleg(rs, SN, SS)}</div>'
+claims4 = [(f"Delta vede: {cz(rs['total'][0], 2)}, nejlepší v {cz(rs['best'][0]*100, 0)} % budoucností", "smlouva má všech 5 podmínek z checklistu a historie je doložená"),
+           (f"Wisła a Polaris mají podobný profil (r = {cz(rs['R'][1][4], 2)})", "levnější, dál, v cizí měně, slabší smlouva"),
            ("Část náskoku Delty je náskok v dokladech", "Dunaj má 5 z 11 buněk Odhad a 4 Nízká; Rešerše by ho mohla posunout"),
-           ("Vlastní provoz je druhý (6,94)", "47,1 Kč na objednávku a nejblíž Praze, ale kapacita jen 0,83 potřeby roku 2032")]
+           (f"Vlastní provoz je druhý ({cz(rs['total'][2], 2)})", "47,1 Kč na objednávku a nejblíž Praze, ale kapacita jen 0,83 potřeby roku 2032")]
 claims4_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims4))
 body4 = (WARN + sec("01", "Koho mapa porovná", "6 skladů pro e-shop Velis", s4_objs) +
          sec("02", "Katalog indikátorů: mapa dodavatelů", "7 kategorií · 11 indikátorů · stejná pravidla", catalogue(ss)) +
