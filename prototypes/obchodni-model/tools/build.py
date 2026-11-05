@@ -5,7 +5,6 @@ python3 compute.py spec_suppliers.json res_suppliers.json; python3 build.py
 """
 import json, html, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from compute import terrain_svg
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 MV3 = open(os.path.join(OUT, "MV3SystemMap.dc.html")).read().split("\n")
@@ -87,11 +86,9 @@ EXTRA_CSS = """
 .claim:last-child{border-bottom:0}
 .claim .n{font:600 12px/21px var(--mono);color:var(--signal)}
 .claim .w{display:block;font-size:12.5px;color:var(--muted)}
-.mapw{display:grid;grid-template-columns:minmax(0,860px) minmax(260px,1fr);gap:16px;align-items:start}
-.mleg{display:flex;flex-direction:column;gap:8px;font-size:13px}
-.mleg .o{display:grid;grid-template-columns:70px minmax(0,1fr) 44px;gap:8px;align-items:baseline}
-.mleg .o b{font:600 12px var(--mono)}
-.mleg .o .h{font:500 12px var(--mono);text-align:right;color:var(--muted)}
+.plist{display:flex;flex-direction:column;gap:6px;font-size:13px}.plist div{display:flex;gap:10px;align-items:center}
+.pr{font:600 12px var(--mono);border-radius:4px;padding:2px 6px;min-width:44px;text-align:center}.pr.w{background:#ffe9cf;color:#8a4a00}.pr.c{background:#dde9ff;color:#1d4f9c}
+.ztag{font-size:11.5px;border-radius:4px;padding:2px 7px;margin-left:4px}.ztag.hi{background:var(--swash);color:var(--signal)}.ztag.lo{background:var(--youwash);color:var(--youink)}
 """
 
 
@@ -298,25 +295,6 @@ def sim_table(res, short):
     return "".join(rows)
 
 
-def links(res):
-    rc = res["rcrit"]
-    n = len(res["objs"])
-    return [(i, j, res["R"][i][j]) for i in range(n) for j in range(i + 1, n) if abs(res["R"][i][j]) >= rc]
-
-
-def mapleg(res, names, short):
-    objs = res["objs"]
-    order = sorted(range(len(objs)), key=lambda i: -res["total"][i])
-    s = '<div class="mleg"><b style="font-size:12px;color:var(--muted)">Výška = vážený součet</b>'
-    for i in order:
-        s += f'<div class="o"><b>{e(short[objs[i]])}</b><span>{e(names[objs[i]])}</span><span class="h">{cz(res["total"][i],2)}</span></div>'
-    s += ('<div class="zleg" style="flex-direction:column;gap:6px;margin-top:6px"><span><i style="background:#f4f1ec;border:1px solid #929ca4"></i>plná čára: podobný profil (r ≥ ' + cz(res["rcrit"], 2) +
-          ')</span><span><i style="background:#ff7a59"></i>čárkovaná: opačný profil (r ≤ −' + cz(res["rcrit"], 2) + ')</span>'
-          '<span class="zramp" style="width:100%">' + "".join(f'<i style="background:{c}"></i>' for c in ["#2c3e9e", "#2f6fd1", "#2aa3d8", "#37c2a9", "#2bb53f", "#99d02d", "#e7ee31", "#f5a332", "#e8672b", "#c8302a"]) +
-          '</span><span>terasy 1–10 na absolutní stupnici</span></div></div>')
-    return s
-
-
 BTN_MENU = ('<details class="mnu"><summary class="btn quiet sm ic" aria-label="Další akce" title="Další akce"><i class="ph ph-dots-three"></i></summary><div class="mnu-p" role="menu">'
             '<button type="button"><i class="ph ph-download-simple s"></i>Stáhnout matici (XLSX)</button><a href="MV5Validation.dc.html"><i class="ph ph-book-open s"></i>Metoda v Metodice</a></div></details>')
 WARN = '<div class="zbar warn"><i class="ph ph-lock-simple"></i>Interní · metoda „Sociomapa z indikátorů“ čeká na zápis metodika do registru · hodnoty z Modelu jsou ukázkové z tohoto prototypu.</div>'
@@ -413,30 +391,96 @@ btn2 = BTN_MENU + '<a class="btn primary sm" href="SI3OptionsMap.dc.html">Mapa m
 open(f"{OUT}/SI2Matrix.dc.html", "w").write(frame("Sociomapa z indikátorů: matice skóre", "Matice skóre: možnosti", "Sociomapa · matice skóre", conv2,
                                                     "Matice skóre", btn2, body2, ("SI1Method.dc.html", "Metoda"), ("SI3OptionsMap.dc.html", "Mapa možností"), "SI2 Matice", 2240))
 
+# ============ the aia-sociomap-5 engine's maps (engine_maps.py) ============
+ENG = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "engine.json")))
+BLOB = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "engine_assets.json")))
+METHOD_WORDS = {"soft_rank_spearman_coulomb": "soft-rank Spearman s Coulombem (BB1)", "interval_mds": "Interval MDS"}
+
+
+def reliable(key):
+    return sorted((p for p in ENG[key]["pairs"] if p[2] == "reliable"), key=lambda p: -abs(p[3]))
+
+
+def img(name, alt):
+    return f'<div class="zstage"><img src="/_blob/{BLOB[name]}" alt="{e(alt)}"></div>'
+
+
+def eng_facts(key, rows):
+    v = ENG[key]
+    c = v["credibility"]
+    m = len(v["heights"])
+    n = m * (m - 1) // 2
+    seg = v["segments"] or {}
+    seg_words = {"TOO_FEW_RESPONDENTS": "nepočítají se (málo řádků)", "NO_CLEAR_SEGMENTS": "žádné zřetelné"}.get(seg.get("reason"), "—")
+    verdict = ('<span class="ztag lo">slabě určená</span>' if c["weakly_determined"] else '<span class="ztag hi">určená</span>')
+    rows_html = "".join(f'<div class="zrow"><span class="zk">{e(k)}</span><span class="zv">{x}</span></div>' for k, x in (
+        ("Řádky mapy", e(rows)),
+        ("Rozložení", e(METHOD_WORDS.get(v["method"], v["method"] or "—"))),
+        ("Věrohodnost", f'split-half {cz(c["split_half"], 2)} · práh {cz(c["threshold"], 2)} · {verdict}'),
+        ("Spolehlivé dvojice", f'{c["reliable_pairs"]} z {n} (Benjamini–Hochberg)'),
+        ("Segmenty", e(seg_words)),
+    ))
+    return f'<div class="zcard"><h3>Co spočítal engine</h3>{rows_html}</div>'
+
+
+def pair_list(key, names, k=6):
+    ps = reliable(key)[:k]
+    if not ps:
+        return '<p class="zcap">Žádná dvojice neprošla.</p>'
+    return '<div class="plist">' + "".join(
+        f'<div><span class="pr {"w" if r > 0 else "c"}">{cz(r, 2)}</span>{e(names[a])} ↔ {e(names[b])}</div>' for a, b, _, r in ps) + "</div>"
+
+
+def engine_section(map_key, kind, names, rows, caption):
+    key = f"{map_key}/{kind}"
+    figs = f'<div class="zgrid2">{img(f"si-{map_key}-{kind}-top", "pohled shora")}{img(f"si-{map_key}-{kind}-3d", "pohled z boku")}</div>'
+    side = eng_facts(key, rows) + '<div class="zcard"><h3>Nejsilnější spolehlivé dvojice</h3>' + pair_list(key, names) + \
+        '<p class="zcap">teplá: daří se jim spolu · studená: když jedné, druhé ne</p></div>'
+    if kind == "budoucnosti":
+        third = f'<div class="zgrid2" style="margin-top:12px">{img(f"si-{map_key}-{kind}-respondents", "budoucnosti jako body")}<div class="zlead" style="gap:12px">{side}</div></div>'
+    else:
+        third = f'<div class="zgrid2" style="margin-top:12px">{side}</div>'
+    return figs + third + f'<p class="zcap">{caption}</p>'
+
+
+FUT_CAVEAT = ("Spočítal engine aia-sociomap-5 a nakreslil renderer AIA, kterým zpráva kreslí mapy. Místo respondentů jsou řádky 2 000 budoucností "
+              "s vahami a nejistými buňkami podle jistoty; v pohledu s body engine nazývá budoucnosti respondenty. Pozor: spolehlivost dvojic tu "
+              "roste s počtem budoucností, který volíme my, ne s počtem lidí. Statistika enginu je stavěná na respondenty, proto mapa zůstává interní.")
+PROF_CAVEAT = ("Řádky jsou indikátory: každý „hodnotí“ všechny objekty 1–10, jako v analýze cloudu. Mapa staví k sobě objekty, které bodují podobně napříč indikátory.")
+
 # ============ SI3 ============
-svg_o = terrain_svg(ro, {"aria": "Sociomapa možností z indikátorů", "names": [OS[o] for o in ro["objs"]]}, links=links(ro))
-s3_map = f'<div class="mapw"><div>{svg_o}<p class="zcap">Blízko sebe = podobný profil přes 9 kategorií (z-skóre). Výška = vážený součet. Body bližší než 46 px jsou odsunuté kvůli čitelnosti. Čára jen tam, kde |r| ≥ {cz(ro["rcrit"],2)}: to při 9 kategoriích projde na p &lt; 0,05. Prošly {len(links(ro))} z 21 dvojic.</p></div>{mapleg(ro, ON, OS)}</div>'
 XB2, XB = ro["crossings"]["C2>B2"], ro["crossings"]["C2>B"]
 sweep = (f'<div class="claim"><span class="n">!</span><div>C2 předběhne B2 až při váze Ekonomiky <b>{cz(XB2, 3)}</b> (schváleno 0,22).'
          f'<span class="w">ostatní váhy klesají v poměru · B zůstává před C2 jen do {cz(XB, 3)}, pak je C2 druhá · při schválených vahách vede B2 ve všech 2 000 budoucnostech</span></div></div>')
-claims3 = [("A a B mají opačný profil", "r = −0,71: kde hala boduje (závislost, slib), B ne, a naopak; A a A2 mají profil podobný, r = 0,70"),
-           ("A a C stojí nejdál od sebe", "r = −0,76: vlastní provoz proti zahraničnímu dodavateli"),
-           ("B2 stojí sama a nejvýš", "s žádnou možností nemá spolehlivou čáru; vyhrává v každé budoucnosti"),
+_rf = reliable("options/budoucnosti")
+_pos = [p for p in _rf if p[3] > 0]
+_neg = [p for p in _rf if p[3] < 0]
+_prof = reliable("options/profil")
+_pc = ENG["options/profil"]["credibility"]
+claims3 = [(f"{ON[_pos[0][0]]} a {ON[_pos[0][1]]} se daří ve stejných budoucnostech (r = {cz(_pos[0][3], 2)})",
+            "nejsilnější kladná dvojice na mapě budoucností; " + ", ".join(f"{a}–{b} {cz(r, 2)}" for a, b, _, r in _pos[1:3])),
+           (f"Nejsilněji proti sobě: {ON[_neg[0][0]]} a {ON[_neg[0][1]]} (r = {cz(_neg[0][3], 2)})",
+            "když se daří jedné, druhé ne; dál " + ", ".join(f"{a}–{b} {cz(r, 2)}" for a, b, _, r in _neg[1:4])),
+           (f"Mapa profilu je slabě určená (split-half {cz(_pc['split_half'], 2)}, práh {cz(_pc['threshold'], 2)})",
+            "z 15 indikátorů tvrdíme jen " + (", ".join(f"{a} a {b} (r = {cz(r, 2)})" for a, b, _, r in _prof) or "nic") + "; víc indikátorů by ji zpevnilo"),
            ("Mapa neříká, co doporučit", "doporučení dává pravidlo FR nad Modelem (C2); mapa ukazuje, co za to klient platí")]
 claims3_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims3))
-body3 = (WARN + sec("01", "Mapa možností", "7 objektů · 9 kategorií · výška = vážený součet", s3_map) +
-         sec("02", "Budoucnosti: kdo je nejlepší, když se váhy a nejisté buňky hýbou", "2 000 budoucností · váhy kolem schválených · šum podle jistoty",
+body3 = (WARN + sec("01", "Mapa budoucností", "aia-sociomap-5 · 2 000 budoucností jako řádky · 7 objektů",
+                    engine_section("options", "budoucnosti", ON, "2 000 budoucností (součty 1–10)", FUT_CAVEAT)) +
+         sec("02", "Mapa profilu z indikátorů", "aia-sociomap-5 · 15 indikátorů jako řádky",
+             engine_section("options", "profil", ON, "15 indikátorů (skóre 1–10)", PROF_CAVEAT)) +
+         sec("03", "Budoucnosti: kdo je nejlepší, když se váhy a nejisté buňky hýbou", "2 000 budoucností · váhy kolem schválených · šum podle jistoty",
              scen_bars(ro, ON) + sweep) +
-         sec("03", "Podobnost profilů", "číslo 0–10 jako v analýze cloudu · r profilu · s = souběh v budoucnostech",
+         sec("04", "Podobnost profilů", "číslo 0–10 jako v analýze cloudu · r profilu · s = souběh v budoucnostech",
              sim_table(ro, OS) + f'<p class="zcap">Podbarvené: |r| ≥ {cz(ro["rcrit"],2)}. Souběh s je korelace součtů napříč budoucnostmi po odečtení průměru budoucnosti; kladný = daří se jim ve stejných budoucnostech.</p>') +
-         sec("04", "Co mapa tvrdí a co ne", "tvrzení do osnovy zprávy", claims3_html))
-conv3 = ada("10:48", ["Mapa ukazuje tři spolehlivé čáry z 21. Ostatní dvojice se od nuly při 9 kategoriích odlišit nedají, tak je nekreslím.",
-                      f"Nejdůležitější je řádek v části 02: <b>C2 předběhne B2 až při váze Ekonomiky {cz(XB2, 2)}</b>. Rozdíl mezi Modelem a maticí je tedy otázka vah, ne chyba."],
+         sec("05", "Co mapy tvrdí a co ne", "tvrzení do osnovy zprávy", claims3_html))
+conv3 = ada("10:48", [f"Obě mapy spočítal engine aia-sociomap-5. Mapa budoucností je věrohodná (split-half {cz(ENG['options/budoucnosti']['credibility']['split_half'], 2)}), mapa profilu z 15 indikátorů ne ({cz(_pc['split_half'], 2)} pod prahem {cz(_pc['threshold'], 2)}).",
+                      f"Nejdůležitější je řádek v části 03: <b>C2 předběhne B2 až při váze Ekonomiky {cz(XB2, 2)}</b>. Rozdíl mezi Modelem a maticí je tedy otázka vah, ne chyba."],
             "Co z toho řekneme FR?", "10:50",
-            ["Že pravidlo doporučí C2 a mapa ukáže cenu: dva noví dodavatelé, EUR a smlouva na 7 let. A že B2 je pojistka, která vyhraje, kdykoli váha peněz klesne pod polovinu."])
+            ["Že pravidlo doporučí C2 a mapa ukáže cenu: dva noví dodavatelé, EUR a smlouva na 7 let. A že B2 vyhraje, kdykoli váha peněz klesne pod polovinu."])
 btn3 = BTN_MENU + '<a class="btn primary sm" href="SI4Suppliers.dc.html">Mapa dodavatelů<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI3OptionsMap.dc.html", "w").write(frame("Sociomapa z indikátorů: mapa možností", "Mapa možností", "Sociomapa · mapa možností", conv3,
-                                                        "Mapa možností", btn3, body3, ("SI2Matrix.dc.html", "Matice skóre"), ("SI4Suppliers.dc.html", "Mapa dodavatelů"), "SI3 Mapa možností", 2430))
+                                                        "Mapa možností", btn3, body3, ("SI2Matrix.dc.html", "Matice skóre"), ("SI4Suppliers.dc.html", "Mapa dodavatelů"), "SI3 Mapa možností", 3600))
 
 # ============ SI4 ============
 objs_t = [("Delta Fulfillment CZ", "Modřice", "dnešní 3PL", "smlouva, faktury 2025"),
@@ -448,23 +492,24 @@ objs_t = [("Delta Fulfillment CZ", "Modřice", "dnešní 3PL", "smlouva, faktury
 s4_objs = '<table class="zt"><thead><tr><th>Dodavatel</th><th>Sklad</th><th>Proč na mapě</th><th>Podklad</th></tr></thead><tbody>' + "".join(
     f"<tr><td><b>{e(a)}</b></td><td>{e(b)}</td><td>{e(c)}</td><td>{e(d)}</td></tr>" for a, b, c, d in objs_t) + "</tbody></table>"
 s4_objs += '<p class="zcap">* Smyšlení dodavatelé pro ukázku. V ostré studii je najde Rešerše a u každé hodnoty bude citace. Rychlík Kurýr na mapě není: je to dopravce, ne sklad.</p>'
-svg_s = terrain_svg(rs, {"aria": "Sociomapa dodavatelů fulfilmentu", "names": [SS[o] for o in rs["objs"]]}, links=links(rs))
-s4_map = f'<div class="mapw"><div>{svg_s}<p class="zcap">Vlastní provoz a Morava mají skoro stejné místo; odsunuté kvůli čitelnosti. 7 kategorií: čára jen při |r| ≥ {cz(rs["rcrit"],2)}. Prošly {len(links(rs))} z 15 dvojic.</p></div>{mapleg(rs, SN, SS)}</div>'
 claims4 = [(f"Delta vede: {cz(rs['total'][0], 2)}, nejlepší v {cz(rs['best'][0]*100, 0)} % budoucností", "smlouva má všech 5 podmínek z checklistu a historie je doložená"),
-           (f"Wisła a Polaris mají podobný profil (r = {cz(rs['R'][1][4], 2)})", "levnější, dál, v cizí měně, slabší smlouva"),
+           (f"Wisła a Polaris se daří ve stejných budoucnostech (r = {cz([p for p in reliable('suppliers/budoucnosti') if {p[0], p[1]} == {'WI', 'PO'}][0][3], 2)})", "levnější, dál, v cizí měně, slabší smlouva; mapa profilu z 11 indikátorů nemá žádnou spolehlivou dvojici"),
            ("Část náskoku Delty je náskok v dokladech", "Dunaj má 5 z 11 buněk Odhad a 4 Nízká; Rešerše by ho mohla posunout"),
            (f"Vlastní provoz je druhý ({cz(rs['total'][2], 2)})", "47,1 Kč na objednávku a nejblíž Praze, ale kapacita jen 0,83 potřeby roku 2032")]
 claims4_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims4))
 body4 = (WARN + sec("01", "Koho mapa porovná", "6 skladů pro e-shop Velis", s4_objs) +
          sec("02", "Katalog indikátorů: mapa dodavatelů", "7 kategorií · 11 indikátorů · stejná pravidla", catalogue(ss, rs, SS, LOOK["suppliers"])) +
          sec("03", "Matice skóre", "skóre 1–10 · jistota · vstupní hodnota", matrix(ss, rs, SS) + CT_LEG) +
-         sec("04", "Mapa dodavatelů", "výška = vážený součet", s4_map) +
-         sec("05", "Budoucnosti", "2 000 budoucností · váhy a nejisté buňky se hýbou", scen_bars(rs, SN)) +
-         sec("06", "Co mapa tvrdí a co ne", "a co doplnit před závěrem", claims4_html +
+         sec("04", "Mapa budoucností", "aia-sociomap-5 · 2 000 budoucností jako řádky · 6 objektů",
+             engine_section("suppliers", "budoucnosti", SN, "2 000 budoucností (součty 1–10)", FUT_CAVEAT)) +
+         sec("05", "Mapa profilu z indikátorů", "aia-sociomap-5 · 11 indikátorů jako řádky",
+             engine_section("suppliers", "profil", SN, "11 indikátorů (skóre 1–10)", PROF_CAVEAT)) +
+         sec("06", "Budoucnosti", "2 000 budoucností · váhy a nejisté buňky se hýbou", scen_bars(rs, SN)) +
+         sec("07", "Co mapy tvrdí a co ne", "a co doplnit před závěrem", claims4_html +
              '<div class="zhand" style="margin-top:10px"><i class="ph ph-magnifying-glass"></i><div><b>Další krok pro Rešerši:</b> ceník a smlouva Dunaj 3PL a kapacita Delty. To jsou buňky, které nejvíc hýbou pořadím.</div></div>'))
 conv4 = ada("11:05", ["Stejná metoda, jiné objekty: šest skladů. Tři znám z dokumentů klienta, tři našla Rešerše. Ty jsou v ukázce smyšlené a označené hvězdičkou.",
                       "Pozor na <b>náskok v dokladech</b>. Delta má skoro všechno doložené, Dunaj skoro nic. Pravidla 3 a 4 za chybějící údaj nedají body navíc, takže málo prozkoumaný dodavatel vyjde hůř. Než to dáme do zprávy, doplním Dunaj."])
 btn4 = BTN_MENU + '<a class="btn primary sm" href="MV4XRay.dc.html">Osnova zprávy<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI4Suppliers.dc.html", "w").write(frame("Sociomapa z indikátorů: mapa dodavatelů", "Mapa dodavatelů", "Sociomapa · mapa dodavatelů", conv4,
-                                                       "Mapa dodavatelů", btn4, body4, ("SI3OptionsMap.dc.html", "Mapa možností"), ("MV4XRay.dc.html", "Osnova zprávy"), "SI4 Mapa dodavatelů", 5050))
+                                                       "Mapa dodavatelů", btn4, body4, ("SI3OptionsMap.dc.html", "Mapa možností"), ("MV4XRay.dc.html", "Osnova zprávy"), "SI4 Mapa dodavatelů", 6240))
 print("ok")

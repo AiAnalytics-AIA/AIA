@@ -44,7 +44,7 @@ def score_indicator(ind, objs):
     return out
 
 
-def compute(spec):
+def compute(spec, keep_futures=False):
     objs = [o["id"] for o in spec["objects"]]
     cats = spec["categories"]
     scores = {}
@@ -122,6 +122,7 @@ def compute(spec):
         "C": C.round(2).tolist(),
         "X": X.round(4).tolist(),
         "rcrit": round(rcrit, 2),
+        **({"futures": T, "base": base} if keep_futures else {}),
     }
 
 
@@ -141,84 +142,6 @@ def crossing(M, W, k, a, b):
     w = g0 / (g0 - g1)
     assert gap(w - 1e-3) * gap(w + 1e-3) < 0  # the order really flips here
     return round(float(w), 4)
-
-
-def terrain_svg(res, labels, W=720, H=470, cell=3, sigma=0.62, links=None, cid="m"):
-    """Envelope terrain: each object a hill of its height (total), terraces on the 1-10 scale."""
-    ramp = ["#2c3e9e", "#2f6fd1", "#2aa3d8", "#37c2a9", "#2bb53f", "#99d02d", "#e7ee31", "#f5a332", "#e8672b", "#c8302a"]
-    X = np.array(res["X"])
-    h = np.array(res["total"])
-    span = (X.max(0) - X.min(0)).max()
-    Xn = (X - X.mean(0)) / span  # roughly -0.5..0.5
-    pad = 105
-    sx = (W - 2 * pad)
-    sy = (H - 2 * pad)
-    s = min(sx, sy * 1.0)
-    P = np.c_[W / 2 + Xn[:, 0] * s, H / 2 - Xn[:, 1] * s]
-    # display only: points closer than 46 px are pushed apart so each can be read
-    for _ in range(200):
-        moved = False
-        for i in range(len(P)):
-            for j in range(i + 1, len(P)):
-                d = P[j] - P[i]
-                dist = float(np.hypot(*d))
-                if dist < 46:
-                    u = d / dist if dist > 1e-6 else np.array([1.0, 0.0])
-                    P[i] -= u * (46 - dist) / 2
-                    P[j] += u * (46 - dist) / 2
-                    moved = True
-        if not moved:
-            break
-    nx, ny = W // cell, H // cell
-    gx = (np.arange(nx) + 0.5) * cell
-    gy = (np.arange(ny) + 0.5) * cell
-    GX, GY = np.meshgrid(gx, gy)
-    F = np.zeros_like(GX)
-    sg = sigma * s / 2.2
-    for (px, py), hi in zip(P, h):
-        F = np.maximum(F, hi * np.exp(-((GX - px) ** 2 + (GY - py) ** 2) / (2 * sg ** 2)))
-    parts = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="{labels["aria"]}" style="display:block;max-width:860px;background:var(--surface-sunken,#eef0f2);border-radius:8px">']
-    for lv in range(1, 11):
-        mask = F >= lv
-        d = []
-        for j in range(ny):
-            row = mask[j]
-            i = 0
-            while i < nx:
-                if row[i]:
-                    k = i
-                    while k < nx and row[k]:
-                        k += 1
-                    d.append(f"M{i*cell} {j*cell}h{(k-i)*cell}v{cell}h{-(k-i)*cell}z")
-                    i = k
-                else:
-                    i += 1
-        if d:
-            parts.append(f'<path fill="{ramp[lv-1]}" d="{"".join(d)}"/>')
-    if links:
-        for a, b, r in links:
-            col = "#f4f1ec" if r > 0 else "#ff7a59"
-            wdt = 1.5 + 3 * abs(r)
-            dash = "" if r > 0 else ' stroke-dasharray="7 5"'
-            parts.append(f'<line x1="{P[a][0]:.1f}" y1="{P[a][1]:.1f}" x2="{P[b][0]:.1f}" y2="{P[b][1]:.1f}" stroke="{col}" stroke-width="{wdt:.1f}" stroke-linecap="round"{dash} opacity=".95"/>')
-    boxes = []
-    for i, (px, py) in enumerate(P):
-        parts.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="5" fill="#14171c" stroke="#fff" stroke-width="2"/>')
-    for i, (px, py) in enumerate(P):
-        lab = labels["names"][i]
-        tw = 7.4 * len(lab) + 14
-        for tx, ty in ((px - tw / 2, py - 30), (px - tw / 2, py + 10), (px + 10, py - 10), (px - tw - 10, py - 10)):
-            box = (tx, ty, tx + tw, ty + 21)
-            clear = all(box[2] < b0[0] or box[0] > b0[2] or box[3] < b0[1] or box[1] > b0[3] for b0 in boxes)
-            clear = clear and all(not (box[0] - 4 < qx < box[2] + 4 and box[1] - 4 < qy < box[3] + 4) for k, (qx, qy) in enumerate(P) if k != i)
-            if clear and box[1] > 0 and box[3] < H:
-                break
-        boxes.append(box)
-        px = tx + tw / 2
-        parts.append(f'<rect x="{px - tw/2:.1f}" y="{ty:.1f}" width="{tw:.1f}" height="21" rx="4" fill="#14171c" opacity=".86"/>')
-        parts.append(f'<text x="{px:.1f}" y="{ty + 15:.1f}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="600" fill="#fff">{lab}</text>')
-    parts.append("</svg>")
-    return "".join(parts)
 
 
 if __name__ == "__main__":
