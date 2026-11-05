@@ -268,5 +268,45 @@
   "errors": [],
   "failed_requests": [],
   "image": "27-Z7Ready.webp"
+ },
+ {
+  "board": "SI1Method.dc.html",
+  "title": "SI1 · Sociomapa z indikátorů: metoda",
+  "w": 1440,
+  "h": 4530,
+  "text_chars": 7073,
+  "errors": [],
+  "failed_requests": [],
+  "image": "28-SI1Method.webp"
+ },
+ {
+  "board": "SI2Matrix.dc.html",
+  "title": "SI2 · Sociomapa z indikátorů: matice skóre",
+  "w": 1440,
+  "h": 2240,
+  "text_chars": 3781,
+  "errors": [],
+  "failed_requests": [],
+  "image": "29-SI2Matrix.webp"
+ },
+ {
+  "board": "SI3OptionsMap.dc.html",
+  "title": "SI3 · Sociomapa z indikátorů: mapa možností",
+  "w": 1440,
+  "h": 3600,
+  "text_chars": 4623,
+  "errors": [],
+  "failed_requests": [],
+  "image": "30-SI3OptionsMap.webp"
+ },
+ {
+  "board": "SI4Suppliers.dc.html",
+  "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
+  "w": 1440,
+  "h": 6240,
+  "text_chars": 8289,
+  "errors": [],
+  "failed_requests": [],
+  "image": "31-SI4Suppliers.webp"
  }
 ]

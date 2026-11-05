@@ -1,0 +1,648 @@
+{
+ "options/profil": {
+  "outcome": "MAPPED",
+  "method": "soft_rank_spearman_coulomb",
+  "status_counts": {
+   "unknown": 0,
+   "reliable": 1,
+   "weak": 20
+  },
+  "credibility": {
+   "rule": "split_half",
+   "split_half": 0.5571428571428572,
+   "threshold": 0.59,
+   "weakly_determined": true,
+   "reliable_pairs": 1,
+   "uncertainty_radius": 0.3521757382428419
+  },
+  "pairs": [
+   [
+    "A",
+    "A2",
+    "reliable",
+    0.911
+   ],
+   [
+    "A",
+    "B",
+    "weak",
+    -0.204
+   ],
+   [
+    "A",
+    "B2",
+    "weak",
+    -0.181
+   ],
+   [
+    "A",
+    "C",
+    "weak",
+    -0.463
+   ],
+   [
+    "A",
+    "C2",
+    "weak",
+    -0.182
+   ],
+   [
+    "A",
+    "H",
+    "weak",
+    0.02
+   ],
+   [
+    "A2",
+    "B",
+    "weak",
+    -0.153
+   ],
+   [
+    "A2",
+    "B2",
+    "weak",
+    -0.104
+   ],
+   [
+    "A2",
+    "C",
+    "weak",
+    -0.452
+   ],
+   [
+    "A2",
+    "C2",
+    "weak",
+    -0.087
+   ],
+   [
+    "A2",
+    "H",
+    "weak",
+    -0.236
+   ],
+   [
+    "B",
+    "B2",
+    "weak",
+    0.162
+   ],
+   [
+    "B",
+    "C",
+    "weak",
+    0.057
+   ],
+   [
+    "B",
+    "C2",
+    "weak",
+    -0.294
+   ],
+   [
+    "B",
+    "H",
+    "weak",
+    0.286
+   ],
+   [
+    "B2",
+    "C",
+    "weak",
+    0.32
+   ],
+   [
+    "B2",
+    "C2",
+    "weak",
+    0.419
+   ],
+   [
+    "B2",
+    "H",
+    "weak",
+    -0.288
+   ],
+   [
+    "C",
+    "C2",
+    "weak",
+    0.413
+   ],
+   [
+    "C",
+    "H",
+    "weak",
+    0.242
+   ],
+   [
+    "C2",
+    "H",
+    "weak",
+    -0.099
+   ]
+  ],
+  "heights": [
+   0.531,
+   0.598,
+   0.69,
+   0.817,
+   0.478,
+   0.688,
+   0.521
+  ],
+  "segments": {
+   "decision": "NONE",
+   "reason": "TOO_FEW_RESPONDENTS",
+   "k": 0,
+   "k_fit": null,
+   "gain": 0.0,
+   "null_gain_max": null,
+   "margins": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "mean_margin": null,
+   "votes": 0,
+   "maps": 5,
+   "shares": [],
+   "separation": null,
+   "distinct": null,
+   "profiles": [],
+   "label": null,
+   "membership": null,
+   "coloured": null,
+   "hint": null
+  }
+ },
+ "options/budoucnosti": {
+  "outcome": "MAPPED",
+  "method": "soft_rank_spearman_coulomb",
+  "status_counts": {
+   "unknown": 0,
+   "reliable": 10,
+   "weak": 11
+  },
+  "credibility": {
+   "rule": "split_half",
+   "split_half": 0.9761904761904762,
+   "threshold": 0.59,
+   "weakly_determined": false,
+   "reliable_pairs": 10,
+   "uncertainty_radius": 0.01687412680708755
+  },
+  "pairs": [
+   [
+    "A",
+    "A2",
+    "reliable",
+    0.646
+   ],
+   [
+    "A",
+    "B",
+    "reliable",
+    -0.277
+   ],
+   [
+    "A",
+    "B2",
+    "weak",
+    -0.17
+   ],
+   [
+    "A",
+    "C",
+    "reliable",
+    -0.399
+   ],
+   [
+    "A",
+    "C2",
+    "weak",
+    0.031
+   ],
+   [
+    "A",
+    "H",
+    "reliable",
+    0.223
+   ],
+   [
+    "A2",
+    "B",
+    "reliable",
+    -0.205
+   ],
+   [
+    "A2",
+    "B2",
+    "weak",
+    -0.065
+   ],
+   [
+    "A2",
+    "C",
+    "reliable",
+    -0.339
+   ],
+   [
+    "A2",
+    "C2",
+    "weak",
+    0.127
+   ],
+   [
+    "A2",
+    "H",
+    "weak",
+    -0.126
+   ],
+   [
+    "B",
+    "B2",
+    "weak",
+    0.133
+   ],
+   [
+    "B",
+    "C",
+    "weak",
+    0.121
+   ],
+   [
+    "B",
+    "C2",
+    "reliable",
+    -0.363
+   ],
+   [
+    "B",
+    "H",
+    "reliable",
+    0.322
+   ],
+   [
+    "B2",
+    "C",
+    "weak",
+    0.237
+   ],
+   [
+    "B2",
+    "C2",
+    "reliable",
+    0.385
+   ],
+   [
+    "B2",
+    "H",
+    "weak",
+    -0.111
+   ],
+   [
+    "C",
+    "C2",
+    "weak",
+    0.295
+   ],
+   [
+    "C",
+    "H",
+    "weak",
+    0.044
+   ],
+   [
+    "C2",
+    "H",
+    "reliable",
+    -0.341
+   ]
+  ],
+  "heights": [
+   0.53,
+   0.598,
+   0.687,
+   0.813,
+   0.478,
+   0.687,
+   0.519
+  ],
+  "segments": {
+   "decision": "NONE",
+   "reason": "NO_CLEAR_SEGMENTS",
+   "k": 0,
+   "k_fit": null,
+   "gain": 0.0,
+   "null_gain_max": null,
+   "margins": [
+    125.3,
+    125.37,
+    127.81,
+    125.99,
+    125.37
+   ],
+   "mean_margin": 125.96709112499848,
+   "votes": 0,
+   "maps": 5,
+   "shares": [],
+   "separation": null,
+   "distinct": null,
+   "profiles": [],
+   "label": null,
+   "membership": null,
+   "coloured": null,
+   "hint": null
+  }
+ },
+ "suppliers/profil": {
+  "outcome": "MAPPED",
+  "method": "soft_rank_spearman_coulomb",
+  "status_counts": {
+   "unknown": 0,
+   "reliable": 0,
+   "weak": 15
+  },
+  "credibility": {
+   "rule": "split_half",
+   "split_half": 0.7166666666666666,
+   "threshold": 0.59,
+   "weakly_determined": false,
+   "reliable_pairs": 0,
+   "uncertainty_radius": 0.24086896601997917
+  },
+  "pairs": [
+   [
+    "DE",
+    "WI",
+    "weak",
+    -0.175
+   ],
+   [
+    "DE",
+    "VL",
+    "weak",
+    0.05
+   ],
+   [
+    "DE",
+    "MO",
+    "weak",
+    0.317
+   ],
+   [
+    "DE",
+    "PO",
+    "weak",
+    -0.126
+   ],
+   [
+    "DE",
+    "DU",
+    "weak",
+    -0.28
+   ],
+   [
+    "WI",
+    "VL",
+    "weak",
+    -0.482
+   ],
+   [
+    "WI",
+    "MO",
+    "weak",
+    -0.176
+   ],
+   [
+    "WI",
+    "PO",
+    "weak",
+    0.691
+   ],
+   [
+    "WI",
+    "DU",
+    "weak",
+    0.632
+   ],
+   [
+    "VL",
+    "MO",
+    "weak",
+    0.417
+   ],
+   [
+    "VL",
+    "PO",
+    "weak",
+    -0.303
+   ],
+   [
+    "VL",
+    "DU",
+    "weak",
+    -0.119
+   ],
+   [
+    "MO",
+    "PO",
+    "weak",
+    -0.469
+   ],
+   [
+    "MO",
+    "DU",
+    "weak",
+    -0.345
+   ],
+   [
+    "PO",
+    "DU",
+    "weak",
+    0.547
+   ]
+  ],
+  "heights": [
+   0.744,
+   0.558,
+   0.657,
+   0.637,
+   0.6,
+   0.544
+  ],
+  "segments": {
+   "decision": "NONE",
+   "reason": "TOO_FEW_RESPONDENTS",
+   "k": 0,
+   "k_fit": null,
+   "gain": 0.0,
+   "null_gain_max": null,
+   "margins": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "mean_margin": null,
+   "votes": 0,
+   "maps": 5,
+   "shares": [],
+   "separation": null,
+   "distinct": null,
+   "profiles": [],
+   "label": null,
+   "membership": null,
+   "coloured": null,
+   "hint": null
+  }
+ },
+ "suppliers/budoucnosti": {
+  "outcome": "MAPPED",
+  "method": "soft_rank_spearman_coulomb",
+  "status_counts": {
+   "unknown": 0,
+   "reliable": 9,
+   "weak": 6
+  },
+  "credibility": {
+   "rule": "split_half",
+   "split_half": 0.9666666666666666,
+   "threshold": 0.59,
+   "weakly_determined": false,
+   "reliable_pairs": 9,
+   "uncertainty_radius": 0.0195391494794687
+  },
+  "pairs": [
+   [
+    "DE",
+    "WI",
+    "weak",
+    -0.093
+   ],
+   [
+    "DE",
+    "VL",
+    "weak",
+    0.093
+   ],
+   [
+    "DE",
+    "MO",
+    "reliable",
+    0.292
+   ],
+   [
+    "DE",
+    "PO",
+    "weak",
+    -0.065
+   ],
+   [
+    "DE",
+    "DU",
+    "weak",
+    -0.141
+   ],
+   [
+    "WI",
+    "VL",
+    "reliable",
+    -0.202
+   ],
+   [
+    "WI",
+    "MO",
+    "reliable",
+    -0.14
+   ],
+   [
+    "WI",
+    "PO",
+    "reliable",
+    0.539
+   ],
+   [
+    "WI",
+    "DU",
+    "reliable",
+    0.145
+   ],
+   [
+    "VL",
+    "MO",
+    "reliable",
+    0.241
+   ],
+   [
+    "VL",
+    "PO",
+    "reliable",
+    -0.232
+   ],
+   [
+    "VL",
+    "DU",
+    "weak",
+    -0.083
+   ],
+   [
+    "MO",
+    "PO",
+    "reliable",
+    -0.193
+   ],
+   [
+    "MO",
+    "DU",
+    "reliable",
+    -0.176
+   ],
+   [
+    "PO",
+    "DU",
+    "weak",
+    0.085
+   ]
+  ],
+  "heights": [
+   0.737,
+   0.558,
+   0.647,
+   0.634,
+   0.591,
+   0.543
+  ],
+  "segments": {
+   "decision": "NONE",
+   "reason": "NO_CLEAR_SEGMENTS",
+   "k": 0,
+   "k_fit": null,
+   "gain": 0.0,
+   "null_gain_max": null,
+   "margins": [
+    205.91,
+    205.74,
+    205.71,
+    205.62,
+    205.3
+   ],
+   "mean_margin": 205.65553342842395,
+   "votes": 0,
+   "maps": 5,
+   "shares": [],
+   "separation": null,
+   "distinct": null,
+   "profiles": [],
+   "label": null,
+   "membership": null,
+   "coloured": null,
+   "hint": null
+  }
+ }
+}

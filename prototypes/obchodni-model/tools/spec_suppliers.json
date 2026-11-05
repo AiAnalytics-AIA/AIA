@@ -1,0 +1,605 @@
+{
+ "objects": [
+  {
+   "id": "DE",
+   "name": "Delta Fulfillment CZ"
+  },
+  {
+   "id": "WI",
+   "name": "Wisła Fulfilment"
+  },
+  {
+   "id": "VL",
+   "name": "Vlastní provoz Velis"
+  },
+  {
+   "id": "MO",
+   "name": "Morava Fulfil*"
+  },
+  {
+   "id": "PO",
+   "name": "Polaris Logistyka*"
+  },
+  {
+   "id": "DU",
+   "name": "Dunaj 3PL*"
+  }
+ ],
+ "flip": [
+  1,
+  1
+ ],
+ "categories": [
+  {
+   "code": "C",
+   "name": "Cena",
+   "w": 0.22,
+   "why": "náklad na objednávku je hlavní páka",
+   "indicators": [
+    {
+     "code": "C1",
+     "name": "Provozní náklad na objednávku vč. skladného (Kč)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≤ 45 → 10 · ≤ 50 → 8 · ≤ 55 → 6 · ≤ 60 → 4 · > 60 → 2 (při 410 tis. objednávek, 2,3 položky)",
+     "cuts": [
+      [
+       45,
+       10
+      ],
+      [
+       50,
+       8
+      ],
+      [
+       55,
+       6
+      ],
+      [
+       60,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "DE": [
+       57.7,
+       "Vysoká",
+       "smlouva s. 3–4: 46 + 4,8 mil./rok"
+      ],
+      "WI": [
+       47.6,
+       "Vysoká",
+       "s. 1–3: 34 + 6 svoz + 3,1 mil."
+      ],
+      "VL": [
+       47.1,
+       "Střední",
+       "nabidka_hala s. 5: 32 Kč + 6,2 mil."
+      ],
+      "MO": [
+       52.0,
+       "Střední",
+       "veřejný ceník*"
+      ],
+      "PO": [
+       44.0,
+       "Střední",
+       "veřejný ceník*"
+      ],
+      "DU": null
+     }
+    },
+    {
+     "code": "C2",
+     "name": "Roční indexace (%)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≤ 2 → 10 · ≤ 3 → 8 · ≤ 4 → 6 · ≤ 5 → 4 · > 5 → 2 · nezveřejněno = medián (upravené pravidlo 5)",
+     "cuts": [
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       8
+      ],
+      [
+       4,
+       6
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "DE": [
+       5,
+       "Vysoká",
+       "smlouva s. 6"
+      ],
+      "WI": [
+       3,
+       "Vysoká",
+       "s. 5"
+      ],
+      "VL": [
+       4.5,
+       "Nízká",
+       "úsudek: mzdy CZ"
+      ],
+      "MO": null,
+      "PO": [
+       3.5,
+       "Střední",
+       "obchodní podmínky*"
+      ],
+      "DU": null
+     }
+    }
+   ]
+  },
+  {
+   "code": "S",
+   "name": "Doručení",
+   "w": 0.2,
+   "why": "slib ve velkých městech",
+   "indicators": [
+    {
+     "code": "S1",
+     "name": "Doručení do velkých měst (dny)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "1 → 9 · 2 → 5 · 3 → 2",
+     "cuts": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       5
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "DE": [
+       1,
+       "Vysoká",
+       "smlouva s. 3"
+      ],
+      "WI": [
+       2,
+       "Vysoká",
+       "s. 3"
+      ],
+      "VL": [
+       1,
+       "Střední",
+       "úsudek: Jihlava"
+      ],
+      "MO": [
+       1,
+       "Střední",
+       "web*"
+      ],
+      "PO": [
+       2,
+       "Střední",
+       "web*"
+      ],
+      "DU": [
+       2,
+       "Nízká",
+       "úsudek: vzdálenost"
+      ]
+     }
+    },
+    {
+     "code": "S2",
+     "name": "Uzávěrka expedice (hodina)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≥ 15 → 10 · 14 → 8 · 13 → 6 · ≤ 12 → 4",
+     "cuts": [
+      [
+       12,
+       4
+      ],
+      [
+       13,
+       6
+      ],
+      [
+       14,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "DE": [
+       14,
+       "Vysoká",
+       "smlouva s. 3"
+      ],
+      "WI": [
+       13,
+       "Vysoká",
+       "s. 6"
+      ],
+      "VL": [
+       15,
+       "Nízká",
+       "úsudek"
+      ],
+      "MO": [
+       15,
+       "Střední",
+       "web*"
+      ],
+      "PO": [
+       12,
+       "Střední",
+       "web*"
+      ],
+      "DU": null
+     }
+    }
+   ]
+  },
+  {
+   "code": "K",
+   "name": "Kapacita",
+   "w": 0.12,
+   "why": "potřeba 750 tis. objednávek v roce 2032",
+   "indicators": [
+    {
+     "code": "K1",
+     "name": "Kapacita / potřeba 2032",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≥ 1,2 → 10 · ≥ 1,0 → 8 · ≥ 0,9 → 6 · ≥ 0,8 → 4 · < 0,8 → 2",
+     "cuts": [
+      [
+       0.7999,
+       2
+      ],
+      [
+       0.8999,
+       4
+      ],
+      [
+       0.9999,
+       6
+      ],
+      [
+       1.1999,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "DE": [
+       1.2,
+       "Nízká",
+       "limit nehlášen, úsudek"
+      ],
+      "WI": [
+       1.12,
+       "Vysoká",
+       "s. 4"
+      ],
+      "VL": [
+       0.83,
+       "Vysoká",
+       "nabidka_hala s. 3"
+      ],
+      "MO": [
+       0.9,
+       "Střední",
+       "výroční zpráva*"
+      ],
+      "PO": [
+       1.4,
+       "Střední",
+       "web*"
+      ],
+      "DU": null
+     }
+    }
+   ]
+  },
+  {
+   "code": "P",
+   "name": "Smluvní podmínky",
+   "w": 0.12,
+   "why": "ochrana proti zdražení a uzamčení",
+   "indicators": [
+    {
+     "code": "P1",
+     "name": "Checklist podmínek (z 5)",
+     "kind": "checklist",
+     "items": 5,
+     "from": "Data · Rešerše",
+     "rule": "strop indexace · výpověď ≤ 6 měs. · sleva za zpoždění · odpovědnost ≥ 2 mil. · bez poplatku za ukončení; skóre = 1 + 9 × podíl; nezdokumentované = nesplněno (pravidlo 4)",
+     "values": {
+      "DE": [
+       5,
+       "Vysoká",
+       "smlouva s. 3–8"
+      ],
+      "WI": [
+       2,
+       "Vysoká",
+       "s. 5–7"
+      ],
+      "VL": [
+       1,
+       "Střední",
+       "jen cena pod kontrolou"
+      ],
+      "MO": [
+       3,
+       "Střední",
+       "obchodní podmínky*"
+      ],
+      "PO": [
+       2,
+       "Střední",
+       "obchodní podmínky*"
+      ],
+      "DU": [
+       1,
+       "Nízká",
+       "zveřejněna jen výpověď"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "R",
+   "name": "Spolehlivost",
+   "w": 0.14,
+   "why": "zpoždění stojí 3,6 % objednávek",
+   "indicators": [
+    {
+     "code": "R1",
+     "name": "Hlášené výpadky za 3 roky",
+     "kind": "slovní",
+     "from": "Data · Rešerše",
+     "rule": "doložená bezchybná historie 9 · nic nehlášeno 8 (pravidlo 6) · hlášený výpadek 5 · nový provoz 5",
+     "values": {
+      "DE": [
+       9,
+       "Vysoká",
+       "faktury_3PL_CZ_2025: žádná sleva za zpoždění"
+      ],
+      "WI": [
+       8,
+       "Nízká",
+       "nic nehlášeno"
+      ],
+      "VL": [
+       5,
+       "Střední",
+       "rozjezd provozu"
+      ],
+      "MO": [
+       5,
+       "Střední",
+       "zpráva o výpadku WMS 2025*"
+      ],
+      "PO": [
+       8,
+       "Nízká",
+       "nic nehlášeno"
+      ],
+      "DU": [
+       8,
+       "Nízká",
+       "nic nehlášeno"
+      ]
+     }
+    },
+    {
+     "code": "R2",
+     "name": "Riziko dodavatele podle manažerů",
+     "kind": "přímo",
+     "from": "Data",
+     "rule": "průměr kritéria Riziko dodavatele z hodnoceni_expertu.csv (B, C, A); ostatní nehodnotili = medián",
+     "values": {
+      "DE": [
+       6.4,
+       "Vysoká",
+       "možnost B"
+      ],
+      "WI": [
+       5.0,
+       "Vysoká",
+       "možnost C"
+      ],
+      "VL": [
+       8.4,
+       "Vysoká",
+       "možnost A"
+      ],
+      "MO": null,
+      "PO": null,
+      "DU": null
+     }
+    }
+   ]
+  },
+  {
+   "code": "V",
+   "name": "Služby navíc",
+   "w": 0.08,
+   "why": "vratky tvoří velkou část práce",
+   "indicators": [
+    {
+     "code": "V1",
+     "name": "Checklist služeb (z 4)",
+     "kind": "checklist",
+     "items": 4,
+     "from": "Data · Rešerše",
+     "rule": "vratky do 48 h · dárkové balení · napojení na e-shop přes API · sklad v ČR pro výprodeje; nezdokumentované = nesplněno",
+     "values": {
+      "DE": [
+       3,
+       "Vysoká",
+       "smlouva s. 2"
+      ],
+      "WI": [
+       1,
+       "Vysoká",
+       "s. 7: napojení systémů"
+      ],
+      "VL": [
+       4,
+       "Střední",
+       "vlastní"
+      ],
+      "MO": [
+       3,
+       "Střední",
+       "web*"
+      ],
+      "PO": [
+       2,
+       "Střední",
+       "web*"
+      ],
+      "DU": [
+       1,
+       "Nízká",
+       "web*"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "code": "L",
+   "name": "Lokalita (PESTEL)",
+   "w": 0.12,
+   "why": "vzdálenost a měna",
+   "indicators": [
+    {
+     "code": "L1",
+     "name": "Vzdálenost od Prahy (km)",
+     "kind": "pásmo",
+     "from": "Rešerše",
+     "rule": "≤ 150 → 10 · ≤ 250 → 8 · ≤ 350 → 5 · > 350 → 3",
+     "cuts": [
+      [
+       150,
+       10
+      ],
+      [
+       250,
+       8
+      ],
+      [
+       350,
+       5
+      ],
+      [
+       1000000000.0,
+       3
+      ]
+     ],
+     "values": {
+      "DE": [
+       205,
+       "Vysoká",
+       "mapa: silniční vzdálenost"
+      ],
+      "WI": [
+       400,
+       "Vysoká",
+       "mapa: silniční vzdálenost"
+      ],
+      "VL": [
+       130,
+       "Vysoká",
+       "mapa: silniční vzdálenost"
+      ],
+      "MO": [
+       370,
+       "Vysoká",
+       "mapa: silniční vzdálenost"
+      ],
+      "PO": [
+       330,
+       "Vysoká",
+       "mapa: silniční vzdálenost"
+      ],
+      "DU": [
+       330,
+       "Vysoká",
+       "mapa: silniční vzdálenost"
+      ]
+     }
+    },
+    {
+     "code": "L2",
+     "name": "Měna fakturace",
+     "kind": "slovní",
+     "from": "Rešerše · PESTEL E",
+     "rule": "Kč 9 · EUR 5 · PLN 4",
+     "values": {
+      "DE": [
+       9,
+       "Vysoká",
+       "smlouva"
+      ],
+      "WI": [
+       5,
+       "Vysoká",
+       "nabídka s. 1"
+      ],
+      "VL": [
+       9,
+       "Vysoká",
+       "Kč"
+      ],
+      "MO": [
+       9,
+       "Vysoká",
+       "ceník*"
+      ],
+      "PO": [
+       4,
+       "Vysoká",
+       "ceník*"
+      ],
+      "DU": [
+       5,
+       "Vysoká",
+       "ceník*"
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}
