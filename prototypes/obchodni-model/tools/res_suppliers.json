@@ -1,5 +1,4 @@
 {
- "crossings": {},
  "objs": [
   "DE",
   "WI",
@@ -15,429 +14,175 @@
   "P",
   "R",
   "V",
-  "L"
+  "M"
  ],
- "scores": {
-  "C1": {
-   "DE": {
-    "raw": 57.7,
-    "score": 4,
-    "cert": "Vysoká",
-    "src": "smlouva s. 3–4: 46 + 4,8 mil./rok"
-   },
-   "WI": {
-    "raw": 47.6,
-    "score": 8,
-    "cert": "Vysoká",
-    "src": "s. 1–3: 34 + 6 svoz + 3,1 mil."
-   },
-   "VL": {
-    "raw": 47.1,
-    "score": 8,
-    "cert": "Střední",
-    "src": "nabidka_hala s. 5: 32 Kč + 6,2 mil."
-   },
-   "MO": {
-    "raw": 52.0,
-    "score": 6,
-    "cert": "Střední",
-    "src": "veřejný ceník*"
-   },
-   "PO": {
-    "raw": 44.0,
-    "score": 10,
-    "cert": "Střední",
-    "src": "veřejný ceník*"
-   },
-   "DU": {
-    "raw": null,
-    "score": 8,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   }
-  },
-  "C2": {
-   "DE": {
-    "raw": 5,
-    "score": 4,
-    "cert": "Vysoká",
-    "src": "smlouva s. 6"
-   },
-   "WI": {
-    "raw": 3,
-    "score": 8,
-    "cert": "Vysoká",
-    "src": "s. 5"
-   },
-   "VL": {
-    "raw": 4.5,
-    "score": 4,
-    "cert": "Nízká",
-    "src": "úsudek: mzdy CZ"
-   },
-   "MO": {
-    "raw": null,
-    "score": 5.0,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   },
-   "PO": {
-    "raw": 3.5,
-    "score": 6,
-    "cert": "Střední",
-    "src": "obchodní podmínky*"
-   },
-   "DU": {
-    "raw": null,
-    "score": 5.0,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   }
-  },
-  "S1": {
-   "DE": {
-    "raw": 1,
-    "score": 9,
-    "cert": "Vysoká",
-    "src": "smlouva s. 3"
-   },
-   "WI": {
-    "raw": 2,
-    "score": 5,
-    "cert": "Vysoká",
-    "src": "s. 3"
-   },
-   "VL": {
-    "raw": 1,
-    "score": 9,
-    "cert": "Střední",
-    "src": "úsudek: Jihlava"
-   },
-   "MO": {
-    "raw": 1,
-    "score": 9,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "PO": {
-    "raw": 2,
-    "score": 5,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "DU": {
-    "raw": 2,
-    "score": 5,
-    "cert": "Nízká",
-    "src": "úsudek: vzdálenost"
-   }
-  },
-  "S2": {
-   "DE": {
-    "raw": 14,
-    "score": 8,
-    "cert": "Vysoká",
-    "src": "smlouva s. 3"
-   },
-   "WI": {
-    "raw": 13,
-    "score": 6,
-    "cert": "Vysoká",
-    "src": "s. 6"
-   },
-   "VL": {
-    "raw": 15,
-    "score": 10,
-    "cert": "Nízká",
-    "src": "úsudek"
-   },
-   "MO": {
-    "raw": 15,
-    "score": 10,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "PO": {
-    "raw": 12,
-    "score": 4,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "DU": {
-    "raw": null,
-    "score": 8,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   }
-  },
-  "K1": {
-   "DE": {
-    "raw": 1.2,
-    "score": 10,
-    "cert": "Nízká",
-    "src": "limit nehlášen, úsudek"
-   },
-   "WI": {
-    "raw": 1.12,
-    "score": 8,
-    "cert": "Vysoká",
-    "src": "s. 4"
-   },
-   "VL": {
-    "raw": 0.83,
-    "score": 4,
-    "cert": "Vysoká",
-    "src": "nabidka_hala s. 3"
-   },
-   "MO": {
-    "raw": 0.9,
-    "score": 6,
-    "cert": "Střední",
-    "src": "výroční zpráva*"
-   },
-   "PO": {
-    "raw": 1.4,
-    "score": 10,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "DU": {
-    "raw": null,
-    "score": 8,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   }
-  },
-  "P1": {
-   "DE": {
-    "raw": 5,
-    "score": 10.0,
-    "cert": "Vysoká",
-    "src": "smlouva s. 3–8"
-   },
-   "WI": {
-    "raw": 2,
-    "score": 4.6,
-    "cert": "Vysoká",
-    "src": "s. 5–7"
-   },
-   "VL": {
-    "raw": 1,
-    "score": 2.8,
-    "cert": "Střední",
-    "src": "jen cena pod kontrolou"
-   },
-   "MO": {
-    "raw": 3,
-    "score": 6.4,
-    "cert": "Střední",
-    "src": "obchodní podmínky*"
-   },
-   "PO": {
-    "raw": 2,
-    "score": 4.6,
-    "cert": "Střední",
-    "src": "obchodní podmínky*"
-   },
-   "DU": {
-    "raw": 1,
-    "score": 2.8,
-    "cert": "Nízká",
-    "src": "zveřejněna jen výpověď"
-   }
-  },
-  "R1": {
-   "DE": {
-    "raw": 9,
-    "score": 9,
-    "cert": "Vysoká",
-    "src": "faktury_3PL_CZ_2025: žádná sleva za zpoždění"
-   },
-   "WI": {
-    "raw": 8,
-    "score": 8,
-    "cert": "Nízká",
-    "src": "nic nehlášeno"
-   },
-   "VL": {
-    "raw": 5,
-    "score": 5,
-    "cert": "Střední",
-    "src": "rozjezd provozu"
-   },
-   "MO": {
-    "raw": 5,
-    "score": 5,
-    "cert": "Střední",
-    "src": "zpráva o výpadku WMS 2025*"
-   },
-   "PO": {
-    "raw": 8,
-    "score": 8,
-    "cert": "Nízká",
-    "src": "nic nehlášeno"
-   },
-   "DU": {
-    "raw": 8,
-    "score": 8,
-    "cert": "Nízká",
-    "src": "nic nehlášeno"
-   }
-  },
-  "R2": {
-   "DE": {
-    "raw": 6.4,
-    "score": 6.4,
-    "cert": "Vysoká",
-    "src": "možnost B"
-   },
-   "WI": {
-    "raw": 5.0,
-    "score": 5.0,
-    "cert": "Vysoká",
-    "src": "možnost C"
-   },
-   "VL": {
-    "raw": 8.4,
-    "score": 8.4,
-    "cert": "Vysoká",
-    "src": "možnost A"
-   },
-   "MO": {
-    "raw": null,
-    "score": 6.4,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   },
-   "PO": {
-    "raw": null,
-    "score": 6.4,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   },
-   "DU": {
-    "raw": null,
-    "score": 6.4,
-    "cert": "Odhad",
-    "src": "chybí → medián ostatních"
-   }
-  },
-  "V1": {
-   "DE": {
-    "raw": 3,
-    "score": 7.75,
-    "cert": "Vysoká",
-    "src": "smlouva s. 2"
-   },
-   "WI": {
-    "raw": 1,
-    "score": 3.25,
-    "cert": "Vysoká",
-    "src": "s. 7: napojení systémů"
-   },
-   "VL": {
-    "raw": 4,
-    "score": 10.0,
-    "cert": "Střední",
-    "src": "vlastní"
-   },
-   "MO": {
-    "raw": 3,
-    "score": 7.75,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "PO": {
-    "raw": 2,
-    "score": 5.5,
-    "cert": "Střední",
-    "src": "web*"
-   },
-   "DU": {
-    "raw": 1,
-    "score": 3.25,
-    "cert": "Nízká",
-    "src": "web*"
-   }
-  },
-  "L1": {
-   "DE": {
-    "raw": 205,
-    "score": 8,
-    "cert": "Vysoká",
-    "src": "mapa: silniční vzdálenost"
-   },
-   "WI": {
-    "raw": 400,
-    "score": 3,
-    "cert": "Vysoká",
-    "src": "mapa: silniční vzdálenost"
-   },
-   "VL": {
-    "raw": 130,
-    "score": 10,
-    "cert": "Vysoká",
-    "src": "mapa: silniční vzdálenost"
-   },
-   "MO": {
-    "raw": 370,
-    "score": 3,
-    "cert": "Vysoká",
-    "src": "mapa: silniční vzdálenost"
-   },
-   "PO": {
-    "raw": 330,
-    "score": 5,
-    "cert": "Vysoká",
-    "src": "mapa: silniční vzdálenost"
-   },
-   "DU": {
-    "raw": 330,
-    "score": 5,
-    "cert": "Vysoká",
-    "src": "mapa: silniční vzdálenost"
-   }
-  },
-  "L2": {
-   "DE": {
-    "raw": 9,
-    "score": 9,
-    "cert": "Vysoká",
-    "src": "smlouva"
-   },
-   "WI": {
-    "raw": 5,
-    "score": 5,
-    "cert": "Vysoká",
-    "src": "nabídka s. 1"
-   },
-   "VL": {
-    "raw": 9,
-    "score": 9,
-    "cert": "Vysoká",
-    "src": "Kč"
-   },
-   "MO": {
-    "raw": 9,
-    "score": 9,
-    "cert": "Vysoká",
-    "src": "ceník*"
-   },
-   "PO": {
-    "raw": 4,
-    "score": 4,
-    "cert": "Vysoká",
-    "src": "ceník*"
-   },
-   "DU": {
-    "raw": 5,
-    "score": 5,
-    "cert": "Vysoká",
-    "src": "ceník*"
-   }
-  }
+ "W": [
+  0.2632,
+  0.2105,
+  0.1053,
+  0.1316,
+  0.1579,
+  0.0789,
+  0.0526
+ ],
+ "stakeholder_weights": {
+  "VN": [
+   0.263,
+   0.211,
+   0.105,
+   0.132,
+   0.158,
+   0.079,
+   0.053
+  ],
+  "FR": [
+   0.299,
+   0.149,
+   0.09,
+   0.179,
+   0.149,
+   0.045,
+   0.09
+  ],
+  "OR": [
+   0.162,
+   0.27,
+   0.135,
+   0.081,
+   0.189,
+   0.135,
+   0.027
+  ]
  },
+ "gate": {
+  "DE": "pass",
+  "WI": "pass",
+  "VL": "pass",
+  "MO": "pass",
+  "PO": "unknown",
+  "DU": "unknown"
+ },
+ "coverage": [
+  0.895,
+  0.882,
+  1.0,
+  0.717,
+  0.743,
+  0.204
+ ],
  "M": [
+  [
+   4.0,
+   8.5,
+   2.0,
+   10.0,
+   7.7,
+   7.75,
+   9.0
+  ],
+  [
+   8.0,
+   5.5,
+   8.0,
+   4.6,
+   5.0,
+   3.25,
+   5.0
+  ],
+  [
+   6.0,
+   9.5,
+   4.0,
+   NaN,
+   6.7,
+   10.0,
+   9.0
+  ],
+  [
+   4.0,
+   9.5,
+   6.0,
+   6.4,
+   3.0,
+   7.75,
+   9.0
+  ],
+  [
+   8.0,
+   4.5,
+   10.0,
+   4.6,
+   3.0,
+   5.5,
+   4.0
+  ],
+  [
+   2.0,
+   4.5,
+   2.0,
+   2.8,
+   3.0,
+   3.25,
+   5.0
+  ]
+ ],
+ "Mlo": [
+  [
+   4.0,
+   8.5,
+   2.0,
+   10.0,
+   7.7,
+   7.75,
+   9.0
+  ],
+  [
+   8.0,
+   5.5,
+   8.0,
+   4.6,
+   5.0,
+   3.25,
+   5.0
+  ],
+  [
+   6.0,
+   9.5,
+   4.0,
+   NaN,
+   6.7,
+   10.0,
+   9.0
+  ],
+  [
+   4.0,
+   9.5,
+   6.0,
+   6.4,
+   3.0,
+   7.75,
+   9.0
+  ],
+  [
+   8.0,
+   4.5,
+   10.0,
+   4.6,
+   3.0,
+   5.5,
+   4.0
+  ],
+  [
+   2.0,
+   4.5,
+   2.0,
+   2.8,
+   3.0,
+   3.25,
+   5.0
+  ]
+ ],
+ "Mhi": [
   [
    4.0,
    8.5,
@@ -445,165 +190,332 @@
    10.0,
    7.7,
    7.75,
-   8.5
+   9.0
   ],
   [
    8.0,
    5.5,
    8.0,
    4.6,
-   6.5,
-   3.25,
-   4.0
+   7.0,
+   7.75,
+   5.0
   ],
   [
    6.0,
    9.5,
    4.0,
-   2.8,
+   NaN,
    6.7,
    10.0,
-   9.5
+   9.0
   ],
   [
-   5.5,
+   8.0,
    9.5,
    6.0,
-   6.4,
-   5.7,
-   7.75,
-   6.0
+   10.0,
+   7.5,
+   10.0,
+   9.0
   ],
   [
    8.0,
    4.5,
    10.0,
-   4.6,
-   7.2,
-   5.5,
-   4.5
+   10.0,
+   9.5,
+   7.75,
+   4.0
   ],
   [
-   6.5,
-   6.5,
-   8.0,
-   2.8,
-   7.2,
-   3.25,
+   10.0,
+   7.5,
+   10.0,
+   10.0,
+   9.5,
+   10.0,
    5.0
   ]
  ],
  "total": [
-  7.7,
+  6.67,
   6.02,
-  6.91,
-  6.74,
-  6.4,
-  5.89
+  7.28,
+  6.09,
+  5.83,
+  3.05
  ],
- "Z": [
+ "tlo": [
+  6.67,
+  6.02,
+  7.28,
+  6.09,
+  5.83,
+  3.05
+ ],
+ "thi": [
+  7.51,
+  6.69,
+  7.28,
+  8.5,
+  7.74,
+  9.13
+ ],
+ "lead": "VL",
+ "critical": [
   [
-   -1.66,
-   0.6,
-   1.09,
-   1.94,
-   1.36,
-   0.6,
-   1.09
+   "K1",
+   "DE",
+   7.51,
+   7.28
+  ]
+ ],
+ "na_test": {
+  "VL": {
+   "codes": [
+    "P1"
+   ],
+   "at1": 6.45,
+   "at10": 7.64
+  }
+ },
+ "can_pass": [
+  "DE",
+  "MO",
+  "PO",
+  "DU"
+ ],
+ "families": {
+  "váhy": [
+   0.023,
+   0.009,
+   0.951,
+   0.0,
+   0.017,
+   0.0
+  ],
+  "důkazy": [
+   0.086,
+   0.0,
+   0.907,
+   0.006,
+   0.002,
+   0.0
+  ],
+  "chybějící údaje": [
+   0.164,
+   0.0,
+   0.302,
+   0.477,
+   0.034,
+   0.022
+  ],
+  "struktura": [
+   0.0,
+   0.0,
+   1.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "vše najednou": [
+   0.096,
+   0.003,
+   0.296,
+   0.478,
+   0.106,
+   0.021
+  ]
+ },
+ "family_sizes": {
+  "váhy": 903,
+  "důkazy": 900,
+  "chybějící údaje": 900,
+  "struktura": 3,
+  "vše najednou": 2000
+ },
+ "stakeholder_first": {
+  "VN": "VL",
+  "FR": "VL",
+  "OR": "VL"
+ },
+ "structure_first": {
+  "schválená": "VL",
+  "lineární škály": "VL",
+  "bez R1": "VL"
+ },
+ "median": [
+  6.83,
+  6.24,
+  7.12,
+  7.26,
+  6.63,
+  5.92
+ ],
+ "p05": [
+  5.74,
+  5.34,
+  6.36,
+  6.26,
+  5.73,
+  4.7
+ ],
+ "p95": [
+  7.6,
+  6.74,
+  7.86,
+  8.18,
+  7.36,
+  7.15
+ ],
+ "C": [
+  [
+   1.0,
+   -0.35,
+   0.12,
+   0.04,
+   -0.37,
+   -0.33
   ],
   [
-   1.19,
-   -0.94,
-   0.16,
-   -0.24,
-   -0.52,
-   -1.21,
-   -1.09
-  ],
-  [
-   -0.24,
-   1.11,
-   -1.72,
-   -0.97,
-   -0.21,
-   1.51,
-   1.58
-  ],
-  [
-   -0.59,
-   1.11,
-   -0.78,
-   0.49,
-   -1.78,
-   0.6,
-   -0.12
-  ],
-  [
-   1.19,
-   -1.45,
-   1.09,
-   -0.24,
-   0.58,
-   -0.3,
-   -0.85
+   -0.35,
+   1.0,
+   -0.33,
+   -0.32,
+   0.48,
+   -0.24
   ],
   [
    0.12,
-   -0.43,
-   0.16,
-   -0.97,
+   -0.33,
+   1.0,
+   0.12,
+   -0.45,
+   -0.3
+  ],
+  [
+   0.04,
+   -0.32,
+   0.12,
+   1.0,
+   -0.37,
+   -0.37
+  ],
+  [
+   -0.37,
+   0.48,
+   -0.45,
+   -0.37,
+   1.0,
+   -0.21
+  ],
+  [
+   -0.33,
+   -0.24,
+   -0.3,
+   -0.37,
+   -0.21,
+   1.0
+  ]
+ ],
+ "Craw": [
+  [
+   1.0,
+   0.17,
+   0.44,
+   0.45,
+   0.04,
+   0.17
+  ],
+  [
+   0.17,
+   1.0,
+   0.04,
+   0.21,
    0.58,
-   -1.21,
-   -0.61
+   0.21
+  ],
+  [
+   0.44,
+   0.04,
+   1.0,
+   0.45,
+   -0.17,
+   0.13
+  ],
+  [
+   0.45,
+   0.21,
+   0.45,
+   1.0,
+   0.06,
+   0.15
+  ],
+  [
+   0.04,
+   0.58,
+   -0.17,
+   0.06,
+   1.0,
+   0.14
+  ],
+  [
+   0.17,
+   0.21,
+   0.13,
+   0.15,
+   0.14,
+   1.0
   ]
  ],
  "R": [
   [
    1.0,
-   -0.61,
-   -0.13,
-   0.05,
-   -0.36,
-   -0.24
-  ],
-  [
-   -0.61,
-   1.0,
-   -0.68,
-   -0.41,
-   0.79,
-   0.52
-  ],
-  [
-   -0.13,
-   -0.68,
-   1.0,
+   -0.65,
    0.46,
-   -0.72,
-   -0.48
+   0.08,
+   -0.84,
+   0.35
   ],
   [
-   0.05,
-   -0.41,
+   -0.65,
+   1.0,
+   -0.71,
+   -0.69,
+   0.8,
+   -0.4
+  ],
+  [
    0.46,
+   -0.71,
    1.0,
-   -0.75,
-   -0.83
+   0.26,
+   -0.73,
+   0.36
   ],
   [
-   -0.36,
-   0.79,
-   -0.72,
-   -0.75,
+   0.08,
+   -0.69,
+   0.26,
    1.0,
-   0.62
+   -0.4,
+   0.24
   ],
   [
-   -0.24,
-   0.52,
-   -0.48,
-   -0.83,
-   0.62,
+   -0.84,
+   0.8,
+   -0.73,
+   -0.4,
+   1.0,
+   -0.6
+  ],
+  [
+   0.35,
+   -0.4,
+   0.36,
+   0.24,
+   -0.6,
    1.0
   ]
  ],
@@ -611,159 +523,561 @@
   [
    10,
    2,
-   4,
-   5,
-   3,
-   4
-  ],
-  [
-   2,
-   10,
-   2,
-   3,
-   9,
-   8
-  ],
-  [
-   4,
-   2,
-   10,
    7,
+   5,
    1,
+   7
+  ],
+  [
+   2,
+   10,
+   1,
+   2,
+   9,
    3
   ],
   [
-   5,
-   3,
    7,
-   10,
    1,
-   1
+   10,
+   6,
+   1,
+   7
   ],
   [
+   5,
+   2,
+   6,
+   10,
    3,
+   6
+  ],
+  [
+   1,
    9,
    1,
-   1,
+   3,
    10,
-   8
+   2
   ],
   [
-   4,
-   8,
+   7,
    3,
-   1,
-   8,
+   7,
+   6,
+   2,
    10
   ]
  ],
- "best": [
-  0.929,
-  0.0,
-  0.053,
-  0.011,
-  0.006,
-  0.002
- ],
- "median": [
-  7.65,
-  6.02,
-  6.84,
-  6.72,
-  6.32,
-  5.89
- ],
- "p05": [
-  7.14,
-  5.63,
-  6.12,
-  6.12,
-  5.73,
-  5.08
- ],
- "p95": [
-  8.06,
-  6.4,
-  7.49,
-  7.26,
-  6.9,
-  6.67
- ],
- "C": [
-  [
-   1.0,
-   -0.31,
-   -0.09,
-   0.15,
-   -0.28,
-   -0.37
-  ],
-  [
-   -0.31,
-   1.0,
-   -0.44,
-   -0.37,
-   0.45,
-   -0.03
-  ],
-  [
-   -0.09,
-   -0.44,
-   1.0,
-   0.09,
-   -0.48,
-   -0.3
-  ],
-  [
-   0.15,
-   -0.37,
-   0.09,
-   1.0,
-   -0.43,
-   -0.41
-  ],
-  [
-   -0.28,
-   0.45,
-   -0.48,
-   -0.43,
-   1.0,
-   -0.1
-  ],
-  [
-   -0.37,
-   -0.03,
-   -0.3,
-   -0.41,
-   -0.1,
-   1.0
-  ]
- ],
- "X": [
-  [
-   -0.493,
-   0.9159
-  ],
-  [
-   0.7409,
-   -0.3725
-  ],
-  [
-   -0.8599,
-   -0.3511
-  ],
-  [
-   -0.9153,
-   -0.3475
-  ],
-  [
-   0.8253,
-   -0.0104
-  ],
-  [
-   0.7021,
-   0.1655
-  ]
- ],
- "rcrit": 0.75
+ "rcrit": 0.75,
+ "crossings": {},
+ "cells": {
+  "C1": {
+   "DE": {
+    "state": "known",
+    "lo": 4,
+    "hi": 4,
+    "cert": "Vysoká",
+    "src": "smlouva s. 3–4: 46 + 4,8 mil./rok",
+    "raw": 57.7
+   },
+   "WI": {
+    "state": "known",
+    "lo": 8,
+    "hi": 8,
+    "cert": "Vysoká",
+    "src": "s. 1–3: 34 + 6 svoz + 3,1 mil.",
+    "raw": 47.6
+   },
+   "VL": {
+    "state": "known",
+    "lo": 8,
+    "hi": 8,
+    "cert": "Střední",
+    "src": "nabidka_hala s. 5: 32 Kč + 6,2 mil.",
+    "raw": 47.1
+   },
+   "MO": {
+    "state": "known",
+    "lo": 6,
+    "hi": 6,
+    "cert": "Střední",
+    "src": "veřejný ceník*",
+    "raw": 52.0
+   },
+   "PO": {
+    "state": "known",
+    "lo": 10,
+    "hi": 10,
+    "cert": "Střední",
+    "src": "veřejný ceník*",
+    "raw": 44.0
+   },
+   "DU": {
+    "state": "unknown",
+    "lo": 2,
+    "hi": 10,
+    "cert": null,
+    "src": "ceník nezveřejněn",
+    "raw": null
+   }
+  },
+  "C2": {
+   "DE": {
+    "state": "known",
+    "lo": 4,
+    "hi": 4,
+    "cert": "Vysoká",
+    "src": "smlouva s. 6",
+    "raw": 5
+   },
+   "WI": {
+    "state": "known",
+    "lo": 8,
+    "hi": 8,
+    "cert": "Vysoká",
+    "src": "s. 5",
+    "raw": 3
+   },
+   "VL": {
+    "state": "known",
+    "lo": 4,
+    "hi": 4,
+    "cert": "Nízká",
+    "src": "úsudek: mzdy CZ",
+    "raw": 4.5
+   },
+   "MO": {
+    "state": "unknown",
+    "lo": 2,
+    "hi": 10,
+    "cert": null,
+    "src": "indexace nezveřejněna",
+    "raw": null
+   },
+   "PO": {
+    "state": "known",
+    "lo": 6,
+    "hi": 6,
+    "cert": "Střední",
+    "src": "obchodní podmínky*",
+    "raw": 3.5
+   },
+   "DU": {
+    "state": "unknown",
+    "lo": 2,
+    "hi": 10,
+    "cert": null,
+    "src": "nezveřejněno",
+    "raw": null
+   }
+  },
+  "S1": {
+   "DE": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Vysoká",
+    "src": "smlouva s. 3",
+    "raw": 1
+   },
+   "WI": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Vysoká",
+    "src": "s. 3",
+    "raw": 2
+   },
+   "VL": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Střední",
+    "src": "úsudek: Jihlava",
+    "raw": 1
+   },
+   "MO": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": 1
+   },
+   "PO": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": 2
+   },
+   "DU": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Nízká",
+    "src": "úsudek: vzdálenost",
+    "raw": 2
+   }
+  },
+  "S2": {
+   "DE": {
+    "state": "known",
+    "lo": 8,
+    "hi": 8,
+    "cert": "Vysoká",
+    "src": "smlouva s. 3",
+    "raw": 14
+   },
+   "WI": {
+    "state": "known",
+    "lo": 6,
+    "hi": 6,
+    "cert": "Vysoká",
+    "src": "s. 6",
+    "raw": 13
+   },
+   "VL": {
+    "state": "known",
+    "lo": 10,
+    "hi": 10,
+    "cert": "Nízká",
+    "src": "úsudek",
+    "raw": 15
+   },
+   "MO": {
+    "state": "known",
+    "lo": 10,
+    "hi": 10,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": 15
+   },
+   "PO": {
+    "state": "known",
+    "lo": 4,
+    "hi": 4,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": 12
+   },
+   "DU": {
+    "state": "unknown",
+    "lo": 4,
+    "hi": 10,
+    "cert": null,
+    "src": "uzávěrka nezveřejněna",
+    "raw": null
+   }
+  },
+  "K1": {
+   "DE": {
+    "state": "unknown",
+    "lo": 2,
+    "hi": 10,
+    "cert": null,
+    "src": "limit nehlášen · dotaz odeslán 4. 11.",
+    "raw": null
+   },
+   "WI": {
+    "state": "known",
+    "lo": 8,
+    "hi": 8,
+    "cert": "Vysoká",
+    "src": "s. 4",
+    "raw": 1.12
+   },
+   "VL": {
+    "state": "known",
+    "lo": 4,
+    "hi": 4,
+    "cert": "Vysoká",
+    "src": "nabidka_hala s. 3",
+    "raw": 0.83
+   },
+   "MO": {
+    "state": "known",
+    "lo": 6,
+    "hi": 6,
+    "cert": "Střední",
+    "src": "výroční zpráva*",
+    "raw": 0.9
+   },
+   "PO": {
+    "state": "known",
+    "lo": 10,
+    "hi": 10,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": 1.4
+   },
+   "DU": {
+    "state": "unknown",
+    "lo": 2,
+    "hi": 10,
+    "cert": null,
+    "src": "nezveřejněno",
+    "raw": null
+   }
+  },
+  "P1": {
+   "DE": {
+    "state": "known",
+    "lo": 10.0,
+    "hi": 10.0,
+    "cert": "Vysoká",
+    "src": "smlouva s. 3–8",
+    "raw": "yyyyy",
+    "known_share": 1.0
+   },
+   "WI": {
+    "state": "known",
+    "lo": 4.6,
+    "hi": 4.6,
+    "cert": "Vysoká",
+    "src": "nabidka_3PL_PL s. 5–7",
+    "raw": "nnyyn",
+    "known_share": 1.0
+   },
+   "VL": {
+    "state": "na",
+    "src": "vlastní provoz nemá smlouvu s 3PL"
+   },
+   "MO": {
+    "state": "partial",
+    "lo": 6.4,
+    "hi": 10.0,
+    "cert": "Střední",
+    "src": "obchodní podmínky*",
+    "raw": "yy?y?",
+    "known_share": 0.6
+   },
+   "PO": {
+    "state": "partial",
+    "lo": 4.6,
+    "hi": 10.0,
+    "cert": "Střední",
+    "src": "obchodní podmínky*",
+    "raw": "?y?y?",
+    "known_share": 0.4
+   },
+   "DU": {
+    "state": "partial",
+    "lo": 2.8,
+    "hi": 10.0,
+    "cert": "Nízká",
+    "src": "zveřejněna jen výpověď",
+    "raw": "?y???",
+    "known_share": 0.19999999999999996
+   }
+  },
+  "R1": {
+   "DE": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Vysoká",
+    "src": "faktury_3PL_CZ_2025: žádná sleva za zpoždění",
+    "raw": 9
+   },
+   "WI": {
+    "state": "unknown",
+    "lo": 5,
+    "hi": 9,
+    "cert": null,
+    "src": "nic nehlášeno, nic doloženo",
+    "raw": null
+   },
+   "VL": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Nízká",
+    "src": "rozjezd provozu (úsudek)",
+    "raw": 5
+   },
+   "MO": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Střední",
+    "src": "zpráva o výpadku WMS 2025*",
+    "raw": 5
+   },
+   "PO": {
+    "state": "unknown",
+    "lo": 5,
+    "hi": 9,
+    "cert": null,
+    "src": "nic nehlášeno",
+    "raw": null
+   },
+   "DU": {
+    "state": "unknown",
+    "lo": 5,
+    "hi": 9,
+    "cert": null,
+    "src": "nic nehlášeno",
+    "raw": null
+   }
+  },
+  "R2": {
+   "DE": {
+    "state": "known",
+    "lo": 6.4,
+    "hi": 6.4,
+    "cert": "Vysoká",
+    "src": "možnost B",
+    "raw": 6.4
+   },
+   "WI": {
+    "state": "known",
+    "lo": 5.0,
+    "hi": 5.0,
+    "cert": "Vysoká",
+    "src": "možnost C",
+    "raw": 5.0
+   },
+   "VL": {
+    "state": "known",
+    "lo": 8.4,
+    "hi": 8.4,
+    "cert": "Vysoká",
+    "src": "možnost A",
+    "raw": 8.4
+   },
+   "MO": {
+    "state": "unknown",
+    "lo": 1,
+    "hi": 10,
+    "cert": null,
+    "src": "manažeři nehodnotili",
+    "raw": null
+   },
+   "PO": {
+    "state": "unknown",
+    "lo": 1,
+    "hi": 10,
+    "cert": null,
+    "src": "nehodnotili",
+    "raw": null
+   },
+   "DU": {
+    "state": "unknown",
+    "lo": 1,
+    "hi": 10,
+    "cert": null,
+    "src": "nehodnotili",
+    "raw": null
+   }
+  },
+  "V1": {
+   "DE": {
+    "state": "known",
+    "lo": 7.75,
+    "hi": 7.75,
+    "cert": "Vysoká",
+    "src": "smlouva s. 2",
+    "raw": "yyny",
+    "known_share": 1.0
+   },
+   "WI": {
+    "state": "partial",
+    "lo": 3.25,
+    "hi": 7.75,
+    "cert": "Vysoká",
+    "src": "s. 7: napojení systémů; sklad v PL",
+    "raw": "??yn",
+    "known_share": 0.5
+   },
+   "VL": {
+    "state": "known",
+    "lo": 10.0,
+    "hi": 10.0,
+    "cert": "Střední",
+    "src": "vlastní provoz",
+    "raw": "yyyy",
+    "known_share": 1.0
+   },
+   "MO": {
+    "state": "partial",
+    "lo": 7.75,
+    "hi": 10.0,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": "yyy?",
+    "known_share": 0.75
+   },
+   "PO": {
+    "state": "partial",
+    "lo": 5.5,
+    "hi": 7.75,
+    "cert": "Střední",
+    "src": "web*",
+    "raw": "y?yn",
+    "known_share": 0.75
+   },
+   "DU": {
+    "state": "partial",
+    "lo": 3.25,
+    "hi": 10.0,
+    "cert": "Nízká",
+    "src": "web*",
+    "raw": "?y??",
+    "known_share": 0.25
+   }
+  },
+  "L2": {
+   "DE": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Vysoká",
+    "src": "smlouva",
+    "raw": 9
+   },
+   "WI": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Vysoká",
+    "src": "nabídka s. 1",
+    "raw": 5
+   },
+   "VL": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Vysoká",
+    "src": "Kč",
+    "raw": 9
+   },
+   "MO": {
+    "state": "known",
+    "lo": 9,
+    "hi": 9,
+    "cert": "Vysoká",
+    "src": "ceník*",
+    "raw": 9
+   },
+   "PO": {
+    "state": "known",
+    "lo": 4,
+    "hi": 4,
+    "cert": "Vysoká",
+    "src": "ceník*",
+    "raw": 4
+   },
+   "DU": {
+    "state": "known",
+    "lo": 5,
+    "hi": 5,
+    "cert": "Vysoká",
+    "src": "ceník*",
+    "raw": 5
+   }
+  }
+ }
 }

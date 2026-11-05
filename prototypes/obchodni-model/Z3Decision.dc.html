@@ -122,7 +122,7 @@ label.cfib{cursor:pointer}
       <div class="zrow"><span class="zk">Co chce firma získat</span><span class="zv"><b>Co nejvyšší příspěvek po logistice za 7 let</b> (dnes 300 Kč na objednávku před logistikou) <b>bez zhoršení slibu doručení</b> zákazníkům.<span class="cap" style="display: block">vysledovka_2025.xlsx ř. 14 · slib: do 2 pracovních dnů, ve velkých městech druhý den (web klienta)</span></span></div>
       <div class="zrow"><span class="zk">Kdo rozhoduje</span><span class="zv">Finanční ředitel Velis s vedením společnosti</span></div>
       <div class="zrow"><span class="zk">Do kdy</span><span class="zv">15. 12. 2026 <span class="cap" style="display: inline">· rozpočet 2027; výsledek musí být hotov do 8. 12.</span></span></div>
-      <div class="zrow"><span class="zk">Potřebuje výpočet?</span><span class="zv"><b>Ano · obchodní model</b> <span class="cap" style="display: inline">· navrhla Ada podle typu rozhodnutí, potvrdil výzkumník; bez výpočtu by kroky Data, Předpoklady, Model a Výsledky ani podkrok Model nebyly vidět</span></span></div>
+      <div class="zrow"><span class="zk">Potřebuje výpočet?</span><span class="zv"><b>Ano · obchodní model</b> <span class="cap" style="display: inline">· navrhla Ada podle typu rozhodnutí, potvrdil výzkumník; bez výpočtu zmizí jen Předpoklady, Model a modelové pohledy Výsledků. Data a datové smlouvy zůstávají v každé studii: vstupy klienta potřebují smlouvu vždy</span></span></div>
     </div></section>
 
   <section class="sec" id="z3-opt"><div class="sh"><span class="num">02</span><h2>Možnosti a omezení</h2><span class="grow"></span><span class="cap">povinné · R2 · z toho budou varianty modelu</span></div>
@@ -135,10 +135,10 @@ label.cfib{cursor:pointer}
 
   <section class="{{ruleSec}}" id="z3-rule"><div class="sh"><span class="num">03</span><h2>Pravidlo a riziko</h2><span class="grow"></span><sc-if value="{{missing}}" hint-placeholder-val="{{ true }}"><span class="pill you"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>chybí mez rizika</span></sc-if><span class="cap">povinné před předáním · R3</span></div>
     <div class="sb">
-      <p class="cap" style="margin: 0">Napište předem, který výsledek povede ke které možnosti. Platí, než přijdou data; zpráva pak řekne, na kterou stranu výsledek padl.</p>
+      <p class="cap" style="margin: 0">Napište předem, který výsledek povede ke které možnosti. Pravidlo se zmrazí dřív, než kdokoli uvidí porovnání možností; zpráva pak řekne, na kterou stranu výsledek padl.</p>
       <div class="zgrid3">
         <div class="zcard"><span class="cap" style="margin: 0">Ukazatel</span><b>Příspěvek po logistice</b><p class="muted">NPV 2026–2032 při 8 %, proti dnešku (B)</p></div>
-        <div class="zcard"><span class="cap" style="margin: 0">Práh</span><b>Lepší než dnešek s P ≥ 0,80</b><p class="muted">z 20 000 budoucností</p></div>
+        <div class="zcard"><span class="cap" style="margin: 0">Práh</span><b>Lepší než dnešek aspoň v 80 % budoucností</b><p class="muted">podíl budoucností modelu</p></div>
         <div class="{{riskCard}}"><span class="cap" style="margin: 0">Mez rizika</span><b>{{riskVal}}</b><p class="muted">{{riskNote}}</p></div>
       </div>
       <sc-if value="{{missing}}" hint-placeholder-val="{{ true }}">
@@ -147,11 +147,12 @@ label.cfib{cursor:pointer}
           <div class="row" style="gap: 6px"><sc-for list="{{limits}}" as="l" hint-placeholder-count="3"><button class="chip" type="button" onClick="{{l.pick}}">{{l.l}}</button></sc-for><button class="btn sm" type="button" onClick="{{fill}}">Napsat vlastní</button><span class="cap" style="margin: 0">Mez určuje finanční ředitel, ne Ada.</span></div></div>
       </sc-if>
       <sc-if value="{{filled}}" hint-placeholder-val="{{ false }}">
-        <div class="li"><span class="ztag-m" style="flex: none">Obchodní model</span><div class="tx"><b>Doporučíme variantu s nejvyšším mediánem příspěvku, pokud je lepší než dnešek s pravděpodobností aspoň 0,80 a ztráta horší než 10 mil. Kč nastane nejvýš v 10 % budoucností. Slib doručení ve velkých městech se nesmí zhoršit.</b><span class="cap" style="display: block">zapsáno 14. 10. před prvním výpočtem · ručí finanční ředitel Velis · změna se zaznamená a ve zprávě vyznačí</span></div></div>
+        <div class="li"><span class="ztag-m" style="flex: none">Obchodní model</span><div class="tx"><b>Doporučíme variantu s nejvyšším mediánem příspěvku, pokud je lepší než dnešek aspoň v 80 % budoucností modelu a ztráta horší než 10 mil. Kč nastane nejvýš v 10 % budoucností. Slib doručení ve velkých městech se nesmí zhoršit.</b><span class="cap" style="display: block">zapsáno 14. 10. před prvním výpočtem · ručí finanční ředitel Velis · změnu musí schválit finanční ředitel; zapíše se a ve zprávě vyznačí</span></div></div>
         <div class="li"><span class="ztag-m" style="flex: none">Data klienta</span><div class="tx">Data o zpožděních sama nerozhodují: z nich vyjde, <b>kolik objednávek se ztratí při doručení o den delší</b> a <b>jaký podíl té ztráty je ve velkých městech</b>; vstoupí do modelu jako předpoklady, až je výzkumník přijme.<span class="cap" style="display: block">ukazatele s intervalem · zpozdeni_2024.xlsx pod datovou smlouvou</span></div></div>
+        <div class="li"><span class="mono" style="flex: none; color: var(--faint)">zámek</span><div class="tx"><b>Zmrazeno 14. 10. před porovnáním výsledků</b> · čtení souborů při příjmu: jen proveditelnost (zapsáno) · změny pravidla: 0 schválených dodatků<span class="cap" style="display: block">dodatek pravidla schvaluje finanční ředitel; každý se zapíše s datem a důvodem</span></div></div>
       </sc-if>
       <div class="zgrid2">
-        <div><span class="lbl">Když žádná varianta pravidlo nesplní</span><div class="li"><div class="tx">AIA nedoporučí nic a ukáže, který předpoklad se nejvíc vyplatí ověřit, v Kč (hodnota informace).</div></div></div>
+        <div><span class="lbl">Když žádná varianta pravidlo nesplní</span><div class="li"><div class="tx">AIA nedoporučí nic a ukáže, které ověření by mohlo výsledek pravidla změnit, co stojí a kolik času vezme.</div></div></div>
         <div><span class="lbl" id="z3-cert">Jak jisté to musí být</span><span class="seg sm" role="radiogroup" aria-labelledby="z3-cert"><sc-for list="{{certs}}" as="c" hint-placeholder-count="3"><button class="{{c.cls}}" type="button" role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}">{{c.l}}</button></sc-for></span><p class="cap">{{certNote}}</p></div>
       </div>
     </div></section>
@@ -176,12 +177,12 @@ label.cfib{cursor:pointer}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2220}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2290}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { mode: 'missing', cert: 1 }; }
 renderVals() {
   const s = this.state, filled = s.mode === 'filled';
-  const C = [['Stačí směr', 'Stačí vědět, která možnost je lepší. Model počítá jeden střední scénář.'], ['Číslo s rozsahem', 'Každý výsledek s intervalem: model losuje 20 000 budoucností.'], ['Úzký rozsah', 'Rozsah do ±5 %; model počítá víc scénářů a potřebuje užší rozsahy předpokladů.']];
+  const C = [['Stačí směr', 'Stačí vědět, která možnost je lepší. Model počítá jeden střední scénář.'], ['Číslo s rozsahem', 'Každý výsledek s intervalem: model losuje budoucnosti, dokud verdikt pravidla nestojí.'], ['Úzký rozsah', 'Rozsah do ±5 %; model počítá víc scénářů a potřebuje užší rozsahy předpokladů.']];
   const G = { done: ['chip good', 'stg sm done', 'ph ph-check'], you: ['chip you', 'stg sm youq', 'ph ph-exclamation-mark'], adv: ['chip', 'stg sm dash', ''] };
   const R = [['R1 Rozhodnutí a cíl', 'done'], ['R2 Možnosti a omezení', 'done'], ['R3 Pravidlo a riziko', filled ? 'done' : 'you'], ['R4 Cíle', 'done'], ['R5 Části modelu', 'done'], ['R6 Slova', 'adv'], ['R7 Provedení a rozsah', 'done']];
   const O = [['A', 'Vlastní sklad +2 000 m²', 'investice 62–84 mil. Kč, nabidka_hala.pdf s. 1', 'klient'], ['A2', 'Sklad po etapách', '60 % haly hned, zbytek 2029', 'Ada · přijato'],

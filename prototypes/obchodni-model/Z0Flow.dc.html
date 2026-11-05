@@ -82,10 +82,10 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
       <div class="sb"><sc-for list="{{keep}}" as="k" hint-placeholder-count="6"><div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx">{{k.t}}<span class="cap" style="display: block">{{k.d}}</span></div></div></sc-for></div></section>
   </div>
   <p class="cap">Vychází z návrhu koordinátora (zásady, katalog polí, R1–R7, D1–D7) a ze schválené desky 1 · Zadání. Ta zůstává beze změny, dokud nerozhodnete. Otázky D1–D7 jsou na stránce koordinátora.</p>
-  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova zprávy a Zpráva. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
+  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova zprávy a Zpráva. Studie bez výpočtu skryje jen Předpoklady, Model a modelové pohledy Výsledků; Data s datovými smlouvami zůstávají v každé studii. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
 </div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2290}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2440}}'>
 class Component extends DCLogic {
 renderVals() {
   const B = [
@@ -98,13 +98,13 @@ renderVals() {
     ['M1', 'KM1Data', 'Model · Data', 'Devět souborů, u každého, která část Zadání ho vyžádala; čísla se stránkou; kontrola dat a kapacity.', 'Velis · model'],
     ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Devatenáct předpokladů s rozsahem, zdrojem a ručitelem; dva z dat o zpožděních.', 'Velis · model'],
     ['M3', 'KM3Model', 'Model · Model', 'Sedm variant, příspěvek po logistice, časování, kapacita, zůstatková hodnota a přechod.', 'Velis · model'],
-    ['M4', 'KM4Results', 'Model · Výsledky: Rozhodnutí', 'Pravidlo pro sedm variant, rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace.', 'Velis · model'],
+    ['M4', 'KM4Results', 'Model · Výsledky: Rozhodnutí', 'Pravidlo pro sedm variant, rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace podle pravidla, posouzení přechodu na B2.', 'Velis · model'],
     ['M4b', 'KM7Finance', 'Model · Výsledky: Finance', 'NPV, IRR, návratnost, ceny pro bod zvratu, cenová elasticita dopravy.', 'Velis · model'],
     ['M4c', 'KM8Accounting', 'Model · Výsledky: Účetnictví', 'Výsledovka a rozvaha 2025, plán proti skutečnosti, ukazatele zdraví firmy v roce 2028.', 'Velis · model'],
     ['M4d', 'KM9Operations', 'Model · Výsledky: Provoz', 'Předpověď po měsících proti kapacitě, lineární program pro špičky, pojistné zásoby.', 'Velis · model'],
     ['M4e', 'KM10Market', 'Model · Výsledky: Trh', 'TAM, SAM a podíl Velis; je plán růstu realistický; data klienta jako vstup.', 'Velis · model'],
     ['M5', 'KM5Map', 'Model · Sociomapa strategií', 'Sedm variant v 800 scénářích, engine aia-sociomap-5; interní, metoda čeká na schválení.', 'Velis · model'],
-    ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení C2 se zálohou B2, plán provedení s pilotem a hranice k hlídání; každé číslo se stupněm.', 'Velis · model'],
+    ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení C2 s posouzeným přechodem na B2, plán provedení s pilotem a hranice k hlídání; každé číslo se stupněm.', 'Velis · model'],
     ['MVP', 'MV0Scope', 'Definované MVP', 'Cesta studie, funkce, pořadí stavby, kritéria přijetí M-1 až M-10.', 'MVP'],
     ['MV1', 'MV1Contract', 'Data · datová smlouva', 'Sloupce, osobní údaje, zpráva o kvalitě; bez přijaté smlouvy nic do výpočtu.', 'MVP'],
     ['MV2', 'MV2PublicData', 'Veřejná data', 'Typované vstupy z rejstříků a statistik, rozpor řeší člověk, kvalita citací, GDPR.', 'MVP'],
@@ -112,6 +112,11 @@ renderVals() {
     ['MV4', 'MV4XRay', 'Osnova zprávy', 'Body zprávy s odkazem u každého čísla, vizualizace a zastávky.', 'MVP'],
     ['MV6', 'MV6Catalogue', 'Katalog analýz', 'Všechny analýzy v sedmi skupinách: z čeho vznikají, stupeň, kapitola osnovy, MVP nebo později.', 'MVP'],
     ['MV5', 'MV5Validation', 'Metodika', 'Validační sada, deset rozhodnutí pro metodika, registr metod.', 'MVP'],
+    ['MV8', 'MV8Validity', 'Kontrola platnosti modelu', 'Nezávislá kontrola před schválením doporučení: srovnatelné varianty, co chybí, krajní vstupy, rozhodující předpoklady.', 'MVP'],
+    ['SI1', 'SI1Method', 'Sociomapa z indikátorů: metoda', 'Jak vznikla metoda této studie: indikátory, čtyři stavy důkazu, váhy, brány.', 'Velis · indikátory'],
+    ['SI2', 'SI2Matrix', 'Sociomapa z indikátorů: matice skóre', 'Skóre 1–10 podle pravidel, se zdrojem, jistotou a stavem důkazu.', 'Velis · indikátory'],
+    ['SI3', 'SI3OptionsMap', 'Sociomapa z indikátorů: mapa možností', 'Sedm možností na mapě enginu -5; podíl testovaných nastavení, kde je možnost první.', 'Velis · indikátory'],
+    ['SI4', 'SI4Suppliers', 'Sociomapa z indikátorů: mapa dodavatelů', 'Šest dodavatelů fulfilmentu; neznámé zůstávají neznámé, brána kapacity.', 'Velis · indikátory'],
   ];
   return {
     theme: this.props.theme ?? 'light',
@@ -119,7 +124,7 @@ renderVals() {
     boards: B.map(([id, f, t, d, c]) => ({ id, t, d, c, href: f + '.dc.html' })), boardCount: B.length,
     prin: [
       ['ph ph-target', 'Začít rozhodnutím', 'Co se rozhoduje, kdo a do kdy, mezi čím. Studie bez rozhodnutí je zvědavost.'],
-      ['ph ph-scales', 'Pravidlo předem', 'Než přijdou data, platí věta „zvolíme X, když ukazatel ≥ práh“. Výsledek se pak nečte podle přání.'],
+      ['ph ph-scales', 'Pravidlo předem', 'Než kdokoli uvidí porovnání možností, platí věta „zvolíme X, když ukazatel ≥ práh“. Výsledek se pak nečte podle přání.'],
       ['ph ph-path', 'Metoda z otázky', 'Náklady, kapacity a riziko: model z čísel klienta. Chování zákazníků: data klienta o tom, co skutečně udělali.'],
       ['ph ph-book-open', 'Co už víme', 'Data, dřívější studie a domněnky, každá s jistotou. Domněnka se stane hypotézou nebo předpokladem.'],
       ['ph ph-squares-four', 'Hranice a omezení', 'Kdo nebo co je uvnitř, horizont, smlouvy, kapacity, rozpočet, termín, co je mimo.'],

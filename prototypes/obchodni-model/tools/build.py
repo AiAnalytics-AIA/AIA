@@ -1,13 +1,15 @@
-"""Writes SI1-SI4 into the canvas folder from MV3's frame and the two computed maps.
+"""Writes SI1-SI4 (method v2) into the canvas folder from MV3's frame and the two computed maps.
 
 Run from this folder: python3 specs.py; python3 compute.py spec_options.json res_options.json;
-python3 compute.py spec_suppliers.json res_suppliers.json; python3 build.py
+python3 compute.py spec_suppliers.json res_suppliers.json; (engine_maps.py); python3 build.py
+The frame is MV3 as merged in b28ce0919 (its line numbers are what frame() edits), read from git.
 """
-import json, html, sys, os
+import json, html, sys, os, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-MV3 = open(os.path.join(OUT, "MV3SystemMap.dc.html")).read().split("\n")
+MV3 = subprocess.run(["git", "show", "b28ce0919:prototypes/obchodni-model/MV3SystemMap.dc.html"], cwd=OUT,
+                     capture_output=True, text=True, check=True).stdout.split("\n")
 so, ss = json.load(open("spec_options.json")), json.load(open("spec_suppliers.json"))
 ro, rs = json.load(open("res_options.json")), json.load(open("res_suppliers.json"))
 e = html.escape
@@ -159,29 +161,6 @@ def fmt_raw(v):
     return cz(v, 0)
 
 
-def matrix(spec, res, short):
-    objs = res["objs"]
-    th = "".join(f"<th>{e(short[o])}</th>" for o in objs)
-    rows = [f'<table class="smx"><thead><tr><th style="text-align:left">Indikátor</th>{th}</tr></thead><tbody>']
-    for ci, c in enumerate(spec["categories"]):
-        for ind in c["indicators"]:
-            sc = res["scores"][ind["code"]]
-            cells = ""
-            for o in objs:
-                x = sc[o]
-                s = x["score"]
-                cls = "hi" if s >= 8 else ("lo" if s <= 3 else "")
-                sv = cz(s, 1) if not float(s).is_integer() else cz(s, 0)
-                rw = "" if ind["kind"] in ("slovní", "přímo") else (f'{fmt_raw(x["raw"])} z {ind["items"]}' if ind["kind"] == "checklist" and x["raw"] is not None else fmt_raw(x["raw"]))
-                cells += f'<td class="s {cls}">{sv}{ct(x["cert"])}' + (f'<small>{rw}</small>' if rw else '') + '</td>'
-            rows.append(f'<tr><td class="l"><span class="mono" style="color:var(--faint)">{ind["code"]}</span> {e(ind["name"])}</td>{cells}</tr>')
-        cm = "".join(f'<td class="s">{cz(res["M"][oi][ci])}</td>' for oi in range(len(objs)))
-        rows.append(f'<tr class="cat"><td class="l">{e(c["name"])} · průměr · váha {cz(c["w"]*100,0)} %</td>{cm}</tr>')
-    tot = "".join(f'<td class="s">{cz(t, 2)}</td>' for t in res["total"])
-    rows.append(f'<tr class="tot"><td class="l">Vážený součet = výška na mapě</td>{tot}</tr></tbody></table>')
-    return "".join(rows)
-
-
 LOOK = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "look.json")))
 
 
@@ -202,38 +181,106 @@ def band_of(v, cuts):
 
 def seg(label, score, members, extra=""):
     mem = "".join(f'<span class="mb">{e(m)}</span>' for m in members) or '<span class="mb none">—</span>'
-    sc = f'<span class="sc">{sc_txt(score)}</span>' if score is not None else '<span class="sc x">vyřazeno</span>'
+    sc = f'<span class="sc">{sc_txt(score)}</span>' if score is not None else '<span class="sc x">bez skóre</span>'
     return f'<div class="seg {tone(score) if score is not None else "ex"} {extra}"><span class="rg">{e(label)}</span>{sc}<span class="mem">{mem}</span></div>'
 
 
-def scale(ind, look, res, short):
-    sc = res["scores"][ind["code"]]
+# ---------------- v2: states, ranges, gates, families ----------------
+CT_LEG = ('<div class="zleg" style="margin-top:8px"><span>Jistota dokladu:</span><span>' + ct("Vysoká") + ' Vysoká: doklad klienta nebo výpočet</span><span>' + ct("Střední") +
+          ' Střední: veřejný zdroj nebo ověřený úsudek</span><span>' + ct("Nízká") + ' Nízká: úsudek bez dokladu</span>'
+          '<span><span class="unk">?</span> neznámo: rozsah, ne skóre</span><span><span class="na">n/a</span> neuplatní se</span></div>')
+EXTRA_CSS += """
+.unk{display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;border-radius:3px;font:700 10px/1 var(--mono);border:1px dashed var(--youink);color:var(--youink);padding:0 3px}
+.na{font:500 10.5px/1 var(--mono);color:var(--faint)}
+.smx td.s.u{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 5px,var(--sunken) 5px,var(--sunken) 10px)}
+.smx tr.gate td{background:var(--raised)}
+.gp{font:600 11px/1 var(--sans);border-radius:4px;padding:3px 6px;white-space:nowrap}.gp.pass{background:var(--swash);color:var(--signal)}.gp.fail{background:#fbe0dc;color:#9b2c1c}.gp.unknown{border:1px dashed var(--youink);color:var(--youink)}
+.rng{display:flex;flex-direction:column;gap:7px}
+.rng .b{display:grid;grid-template-columns:200px minmax(0,1fr) 230px;gap:10px;align-items:center;font-size:13px}
+.rng .t{height:18px;background:var(--sunken);border-radius:4px;position:relative}
+.rng .t i{position:absolute;top:3px;bottom:3px;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--signal) 30%,transparent),color-mix(in srgb,var(--signal) 30%,transparent) 4px,transparent 4px,transparent 8px);border-radius:3px}
+.rng .t em{position:absolute;top:1px;bottom:1px;width:4px;background:var(--signal);border-radius:1px}
+.rng .b.out{color:var(--faint)}.rng .b.out .t em{background:var(--faint)}
+.rng .v{font:500 12px var(--mono);color:var(--muted);text-align:right}
+.fam td.num b{font:600 13px var(--mono)}
+.fam td.lead{background:var(--swash)}
+"""
+
+
+def gate_pill(st):
+    return f'<span class="gp {st}">{ {"pass": "splněno", "fail": "nesplněno", "unknown": "neznámo"}[st] }</span>'
+
+
+def cell_html(ind, x):
+    st = x["state"]
+    if st == "na":
+        return '<td class="s"><span class="na">n/a</span><small>neuplatní se</small></td>'
+    if st == "unknown":
+        return f'<td class="s u"><span class="unk">?</span><small>{sc_txt(x["lo"])}–{sc_txt(x["hi"])}</small></td>'
+    if st == "partial":
+        it = x["raw"]
+        return (f'<td class="s u">{sc_txt(x["lo"])}–{sc_txt(x["hi"])}{ct(x["cert"])}<small>{it.count("y")} ano · {it.count("n")} ne · {it.count("?")} ?</small></td>')
+    s = x["lo"]
+    cls = "hi" if s >= 8 else ("lo" if s <= 3 else "")
+    if ind["kind"] == "checklist":
+        rw = f'{x["raw"].count("y")} z {len(x["raw"])}'
+    elif ind["kind"] in ("slovní", "přímo"):
+        rw = ""
+    else:
+        rw = fmt_raw(x["raw"])
+    return f'<td class="s {cls}">{sc_txt(s)}{ct(x["cert"])}' + (f'<small>{rw}</small>' if rw else '') + '</td>'
+
+
+def matrix(spec, res, short):
     objs = res["objs"]
-    known = [o for o in objs if sc[o]["raw"] is not None]
-    missing = [o for o in objs if sc[o]["raw"] is None]
-    unit = ""
-    segs = []
+    th = "".join(f"<th>{e(short[o])}</th>" for o in objs)
+    rows = [f'<table class="smx"><thead><tr><th style="text-align:left">Brána / kritérium · indikátor</th>{th}</tr></thead><tbody>']
+    for g in spec.get("gates", []):
+        rows.append(f'<tr class="gate"><td class="l"><span class="mono" style="color:var(--faint)">{g["code"]}</span> {e(g["name"])}</td>' +
+                    "".join(f'<td class="s">{gate_pill(g["values"][o][0])}</td>' for o in objs) + "</tr>")
+    for ci, c in enumerate(spec["categories"]):
+        for ind in c["indicators"]:
+            rows.append(f'<tr><td class="l"><span class="mono" style="color:var(--faint)">{ind["code"]}</span> {e(ind["name"])}</td>' +
+                        "".join(cell_html(ind, res["cells"][ind["code"]][o]) for o in objs) + "</tr>")
+        cm = ""
+        for oi in range(len(objs)):
+            a, b = res["Mlo"][oi][ci], res["Mhi"][oi][ci]
+            cm += '<td class="s">—</td>' if a is None or a != a else (f'<td class="s">{cz(a)}</td>' if a == b else f'<td class="s">{cz(a)}–{cz(b)}</td>')
+        rows.append(f'<tr class="cat"><td class="l">{e(c["name"])} · váha {cz(res["W"][ci]*100,1)} %</td>{cm}</tr>')
+    rows.append('<tr class="tot"><td class="l">Doložené minimum (neznámé na dolní mezi)</td>' + "".join(f'<td class="s">{cz(t, 2)}</td>' for t in res["total"]) + "</tr>")
+    rows.append('<tr class="cat"><td class="l">Horní případ (neznámé na horní mezi)</td>' + "".join(f'<td class="s">{cz(t, 2)}</td>' for t in res["thi"]) + "</tr>")
+    rows.append('<tr class="cat"><td class="l">Pokrytí vah doklady</td>' + "".join(f'<td class="s">{cz(c*100,0)} %</td>' for c in res["coverage"]) + "</tr></tbody></table>")
+    return "".join(rows)
+
+
+def scale(ind, look, res, short):
+    sc = res["cells"][ind["code"]]
+    objs = res["objs"]
+    known = [o for o in objs if sc[o]["state"] == "known"]
+    other = [o for o in objs if sc[o]["state"] in ("unknown", "partial")]
+    nas = [o for o in objs if sc[o]["state"] == "na"]
+    unit, segs = "", []
     if ind["kind"] == "pásmo":
         unit = look.get("unit", "")
         for k, ((up, score), lab) in enumerate(zip(ind["cuts"], look["bands"])):
             segs.append(seg(lab, score, [f'{short[o]} {fmt_raw(sc[o]["raw"])}' for o in known if band_of(sc[o]["raw"], ind["cuts"]) == k]))
-        if look.get("excluded"):
-            segs.append(seg(look["excluded"], None, [], "ex"))
     elif ind["kind"] == "slovní":
         for lab, score, mem in look["levels"]:
             segs.append(seg(lab, score, [short[o] for o in mem]))
     elif ind["kind"] == "checklist":
-        n = ind["items"]
-        unit = f"splněno z {n}"
+        n = len(ind["items"])
+        unit = "položky: " + " · ".join(ind["items"])
         for k in range(n + 1):
-            segs.append(seg(f"{k} z {n}", 1 + 9 * k / n, [short[o] for o in known if sc[o]["raw"] == k]))
+            segs.append(seg(f"{k} z {n}", 1 + 9 * k / n, [short[o] for o in known if sc[o]["raw"].count("y") == k]))
     else:
         unit = "skóre = hodnota"
         segs.append('<div class="seg mid wide"><span class="rg">hodnota se použije přímo</span><span class="mem">' +
-                    "".join(f'<span class="mb">{e(short[o])} {sc_txt(sc[o]["score"])}</span>' for o in known) + "</span></div>")
-    if missing:
-        med = sc[missing[0]]["score"]
-        segs.append(seg("chybí → medián", med, [short[o] for o in missing], "est"))
+                    "".join(f'<span class="mb">{e(short[o])} {sc_txt(sc[o]["lo"])}</span>' for o in known) + "</span></div>")
+    if other:
+        segs.append(f'<div class="seg est"><span class="rg">neznámo: rozsah</span><span class="sc x">bez skóre</span><span class="mem">' +
+                    "".join(f'<span class="mb">{e(short[o])} {sc_txt(sc[o]["lo"])}–{sc_txt(sc[o]["hi"])}</span>' for o in other) + "</span></div>")
+    if nas:
+        segs.append(seg("neuplatní se", None, [short[o] for o in nas], "ex"))
     head = f'<span class="su">{e(unit)}</span>' if unit else ""
     return f'<div class="scale">{head}<div class="strip">{"".join(segs)}</div></div>'
 
@@ -243,61 +290,110 @@ KIND_WORDS = {"pásmo": "číselná pásma", "slovní": "slovní škála", "chec
 
 def catalogue(spec, res, short, look):
     out = []
-    for c in spec["categories"]:
-        out.append(f'<div class="cat"><div class="ch"><b>{e(c["name"])}</b><span class="wbar"><i style="width:{c["w"]*100/0.25:.0f}%"></i></span>'
-                   f'<span class="wv">{cz(c["w"]*100,0)} %</span><span class="why">{e(c["why"])}</span></div>')
+    for ci, c in enumerate(spec["categories"]):
+        w = res["W"][ci]
+        out.append(f'<div class="cat"><div class="ch"><b>{e(c["name"])}</b><span class="wbar"><i style="width:{w*100/0.40:.0f}%"></i></span>'
+                   f'<span class="wv">{cz(w*100,1)} %</span><span class="why">{e(c["why"])}</span></div>')
         for ind in c["indicators"]:
-            note = ""
-            if ind["kind"] == "checklist":
-                note = f'<span class="inote">{e(ind["rule"].split(";")[0])}</span>'
-            elif ind["kind"] == "přímo":
-                note = f'<span class="inote">{e(ind["rule"])}</span>'
+            notes = []
+            if ind.get("contains"):
+                notes.append(f'<span class="inote"><b>Překryv:</b> {e(ind["contains"])}</span>')
+            if c.get("overlap") and ind is c["indicators"][0]:
+                notes.append(f'<span class="inote"><b>Překryv:</b> {e(c["overlap"])}</span>')
+            if ind["kind"] in ("checklist", "přímo"):
+                notes.append(f'<span class="inote">{e(ind["rule"])}</span>')
             out.append(f'<div class="ind"><div class="il"><span class="code">{ind["code"]}</span><b>{e(ind["name"])}</b>'
-                       f'<span class="tags"><span class="itg">{e(ind["from"])}</span><span class="itg k">{KIND_WORDS[ind["kind"]]}</span></span>{note}</div>'
+                       f'<span class="tags"><span class="itg">{e(ind["from"])}</span><span class="itg k">{KIND_WORDS[ind["kind"]]}</span></span>{"".join(notes)}</div>'
                        f'{scale(ind, look.get(ind["code"], {}), res, short)}</div>')
         out.append("</div>")
-    out.append('<p class="zcap">Každý dílek je jedno pásmo nebo situace: nahoře rozsah, uprostřed skóre 1–10, dole možnosti, které do něj padly, s hodnotou. '
-               'Hodnota přesně na hranici dostane lepší skóre. Barva: zelená 8 a víc, oranžová 3 a míň.</p>')
+    out.append('<p class="zcap">Každý dílek je jedno pásmo nebo situace: nahoře rozsah, uprostřed skóre 1–10, dole možnosti, které do něj padly. '
+               'Hodnota přesně na hranici dostane lepší skóre. Čárkovaný dílek: bez dokladu, jen rozsah, který by buňka mohla mít. Škály schválil vlastník rozhodnutí spolu s vahami.</p>')
     return "".join(out)
 
 
-def scen_bars(res, names):
-    objs = res["objs"]
-    order = sorted(range(len(objs)), key=lambda i: -res["median"][i])
-    lo, hi = 4.0, 9.0
-    out = ['<div class="bars">']
-    for i in order:
-        a = (res["p05"][i] - lo) / (hi - lo) * 100
-        b = (res["p95"][i] - lo) / (hi - lo) * 100
-        m = (res["median"][i] - lo) / (hi - lo) * 100
-        out.append(f'<div class="b"><span>{e(names[objs[i]])}</span><span class="t"><i style="left:{a:.1f}%;width:{b-a:.1f}%"></i><em style="left:{m:.1f}%"></em></span>'
-                   f'<span class="v">{cz(res["median"][i],2)} · nejlepší {cz(res["best"][i]*100,0)} %</span></div>')
-    out.append('<div class="zleg"><span>Pruh: 5–95 % z 2 000 budoucností · čárka: medián · stupnice 4–9</span></div></div>')
-    return "".join(out)
-
-
-def sim_table(res, short):
-    objs = res["objs"]
-    rc = res["rcrit"]
+def gates_table(spec, short):
+    objs = [o["id"] for o in spec["objects"]]
     th = "".join(f"<th>{e(short[o])}</th>" for o in objs)
-    rows = [f'<table class="mx"><thead><tr><th></th>{th}</tr></thead><tbody>']
-    for i, a in enumerate(objs):
-        cells = ""
-        for j in range(len(objs)):
-            if i == j:
-                cells += '<td style="color:var(--faint)">—</td>'
-                continue
-            r = res["R"][i][j]
-            cls = ' class="hi"' if abs(r) >= rc else ""
-            cells += f'<td{cls}><b style="font-size:15px">{res["sim"][i][j]}</b><br><span class="mono" style="font-size:11px;color:var(--muted);white-space:nowrap">r {cz(r,2)}</span><br><span class="mono" style="font-size:11px;color:var(--faint);white-space:nowrap">s {cz(res["C"][i][j],2)}</span></td>'
-        rows.append(f'<tr><th>{e(short[a])}</th>{cells}</tr>')
-    rows.append("</tbody></table>")
-    return "".join(rows)
+    rows = "".join(f'<tr><td><b>{g["code"]}</b> {e(g["name"])}<br><span style="font-size:12px;color:var(--muted)">{e(g["from"])}</span></td>' +
+                   "".join(f'<td title="{e(g["values"][o][1])}">{gate_pill(g["values"][o][0])}<br><span style="font-size:11px;color:var(--faint)">{e(g["values"][o][1])}</span></td>' for o in objs) + "</tr>"
+                   for g in spec["gates"])
+    return f'<table class="zt"><thead><tr><th>Brána</th>{th}</tr></thead><tbody>{rows}</tbody></table>'
+
+
+def ranges(res, names):
+    objs = res["objs"]
+    order = sorted(range(len(objs)), key=lambda i: (res["gate"][objs[i]] == "fail", -res["total"][i]))
+    lo_s, hi_s = 2.0, 10.0
+    out = ['<div class="rng">']
+    for i in order:
+        o = objs[i]
+        a = (res["total"][i] - lo_s) / (hi_s - lo_s) * 100
+        b = (res["thi"][i] - lo_s) / (hi_s - lo_s) * 100
+        g = res["gate"][o]
+        tag = {"pass": "", "fail": " · vyřazeno bránou", "unknown": " · brána neznámá"}[g]
+        rng_t = cz(res["total"][i], 2) if res["thi"][i] == res["total"][i] else f'{cz(res["total"][i], 2)}–{cz(res["thi"][i], 2)}'
+        out.append(f'<div class="b{" out" if g == "fail" else ""}"><span>{e(names[o])}</span><span class="t"><i style="left:{a:.1f}%;width:{max(b-a,0):.1f}%"></i><em style="left:{a:.1f}%"></em></span>'
+                   f'<span class="v">{rng_t} · pokrytí {cz(res["coverage"][i]*100,0)} %{tag}</span></div>')
+    out.append('<div class="zleg"><span>Čárka: doložené minimum · šrafovaný pruh: kam by mohly posunout chybějící doklady · stupnice 2–10</span></div></div>')
+    return "".join(out)
+
+
+FAM_WORDS = {
+    "váhy": "váhy tří lidí z vedení a Dirichlet kolem schválených (koncentrace 20, 60, 200)",
+    "důkazy": "šum skóre podle jistoty dokladu, tři rozptyly (Vysoká 0,1–0,5 bodu, Střední 0,5–1,5, Nízká 1–2,5)",
+    "chybějící údaje": "každá neznámá buňka kdekoli ve svém rozsahu",
+    "vše najednou": "vše výše zároveň, střední nastavení",
+}
+
+
+def families(res, short):
+    objs = res["objs"]
+    alive = [o for o in objs if res["gate"][o] != "fail"]
+    th = "".join(f"<th>{e(short[o])}</th>" for o in alive)
+    rows = []
+    for k, v in res["families"].items():
+        best = max(v[objs.index(o)] for o in alive)
+        cells = "".join(f'<td class="num{" lead" if v[objs.index(o)] == best and best > 0 else ""}"><b>{cz(v[objs.index(o)]*100,0)} %</b></td>' for o in alive)
+        words = FAM_WORDS.get(k) or ("jiné obhajitelné stavby: " + ", ".join(s for s in res["structure_first"] if s != "schválená"))
+        rows.append(f'<tr><td><b>{e(k)}</b> · {res["family_sizes"][k]} nastavení<br><span style="font-size:12px;color:var(--muted)">{e(words)}</span></td>{cells}</tr>')
+    return (f'<table class="zt fam"><thead><tr><th>Co se mění</th>{th}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
+            '<p class="zcap">Číslo je podíl testovaných nastavení, ve kterých je možnost první mezi těmi, které brány nevyřadily. Nastavení i jejich počty volíme my: je to citlivost, ne pravděpodobnost. '
+            'Budoucí výsledky firmy tu nesimulujeme; jsou ve Výsledcích a E1 a R1 je odtud čtou.</p>')
+
+
+def who_first(res, spec, names):
+    st = ", ".join(f'{k} ({e(spec["stakeholders"][k].split(" (")[0])}): {e(names[v])}' for k, v in res["stakeholder_first"].items())
+    sf = ", ".join(f'{e(k)}: {e(names[v])}' for k, v in res["structure_first"].items())
+    return (f'<div class="zrow"><span class="zk">První podle vah jednotlivých lidí</span><span class="zv">{st}</span></div>'
+            f'<div class="zrow"><span class="zk">První podle stavby</span><span class="zv">{sf}</span></div>')
+
+
+def swing_table(spec, res):
+    cats = spec["categories"]
+    ks = list(spec["swing"])
+    th = "".join(f'<th>{k}{" · schvaluje" if k == spec["owner"] else ""}</th>' for k in ks)
+    rows = ""
+    for ci, c in enumerate(cats):
+        rows += f'<tr><td><b>{e(c["name"])}</b></td>' + "".join(
+            f'<td class="num">{spec["swing"][k][c["code"]]} b. · {cz(res["stakeholder_weights"][k][ci]*100,0)} %</td>' for k in ks) + "</tr>"
+    return (f'<table class="zt"><thead><tr><th>Kritérium (výkyv od nejhorší k nejlepší možnosti)</th>{th}</tr></thead><tbody>{rows}</tbody></table>'
+            '<p class="zcap">Swing weighting: každý z vedení seřadí výkyvy od nejhorší k nejlepší možnosti, největšímu dá 100 bodů a ostatním poměrem. Váha = body / součet. '
+            'Platí váhy vlastníka rozhodnutí, schválené spolu s hodnotovými škálami před prvním skóre; váhy ostatních jsou test citlivosti.</p>')
+
+
+def critical_html(res, spec, names):
+    ind_name = {i["code"]: i["name"] for c in spec["categories"] for i in c["indicators"]}
+    out = []
+    for code, o, t1, others in res["critical"]:
+        out.append(f'<div class="claim"><span class="n">?</span><div><b>{e(names[o])} · {code} {e(ind_name[code])}</b>: s dokladem na horní mezi by měl {cz(t1, 2)}, víc než ostatní ({cz(others, 2)}).'
+                   f'<span class="w">rozhodující neznámá: vyžádat doklad, jinak ve zprávě dva případy</span></div></div>')
+    return "".join(out) or '<p class="zcap">Žádná jednotlivá neznámá buňka nemění, kdo je první.</p>'
 
 
 BTN_MENU = ('<details class="mnu"><summary class="btn quiet sm ic" aria-label="Další akce" title="Další akce"><i class="ph ph-dots-three"></i></summary><div class="mnu-p" role="menu">'
             '<button type="button"><i class="ph ph-download-simple s"></i>Stáhnout matici (XLSX)</button><a href="MV5Validation.dc.html"><i class="ph ph-book-open s"></i>Metoda v Metodice</a></div></details>')
-WARN = '<div class="zbar warn"><i class="ph ph-lock-simple"></i>Interní · metoda „Sociomapa z indikátorů“ čeká na zápis metodika do registru · hodnoty z Modelu jsou ukázkové z tohoto prototypu.</div>'
+WARN = ('<div class="zbar warn"><i class="ph ph-lock-simple"></i>Interní · metoda „Sociomapa z indikátorů“ v2 čeká na zápis metodika do registru · '
+        'podíly jsou podíly testovaných nastavení, ne pravděpodobnosti · čísla z Modelu jsou ukázková.</div>')
 
 ON = {o["id"]: o["name"] for o in so["objects"]}
 OS = {o: o for o in ON}
@@ -305,45 +401,54 @@ SN = {o["id"]: o["name"] for o in ss["objects"]}
 SS = {"DE": "Delta", "WI": "Wisła", "VL": "Vlastní", "MO": "Morava*", "PO": "Polaris*", "DU": "Dunaj*"}
 
 # ============ SI1 ============
-steps = [("1", "Zadání", "Ada", "cíl, pravidlo a podmínky klienta", "navrhne kategorie a jejich váhy", "kategorie s váhou a důvodem"),
+steps = [("1", "Zadání", "Ada", "cíl, pravidlo a podmínky klienta", "navrhne kritéria a brány (co se nekompenzuje)", "kritéria a brány se zdrojem"),
          ("2", "Rešerše", "Ada · Deep Research", "SWOT, PESTEL, Porter, veřejné zdroje", "nálezy převede na indikátory a pásma", "indikátor, pásmo a citace"),
-         ("3", "Data", "kód", "soubory klienta", "tvrdé hodnoty použije přímo", "hodnota se souborem a řádkem"),
-         ("4", "Schválení", "výzkumník", "návrh metody", "upraví, schválí a zamkne před prvním skóre", "zamčená verze v záznamu"),
-         ("5", "Výpočet", "kód", "zamčená metoda a hodnoty", "skóre, výška, mapa, budoucnosti", "matice, mapa, tvrzení")]
+         ("3", "Data", "kód", "soubory klienta", "hodnota, nebo stav: neznámo, neuplatní se", "buňka se zdrojem a stavem"),
+         ("4", "Kontrola překryvů", "Ada · výzkumník", "Model a jeho předpoklady", "co už počítá NPV, vypustí; zbytek označí", "seznam vypuštěných a proč"),
+         ("5", "Váhy a škály", "vlastník rozhodnutí", "kritéria a pásma", "swing weighting; schválí hodnotové škály", "váhy a škály podepsané před výsledky"),
+         ("6", "Zámek", "výzkumník · metodik", "návrh metody", "zamkne před prvním skóre; změna = nová verze", "zamčená verze v záznamu"),
+         ("7", "Výpočet a testy", "kód", "zamčená metoda a buňky", "rozsahy, brány, pět rodin citlivosti", "matice, rozsahy, podíly nastavení")]
 s1_io = ('<div class="tl">' + "".join(
-    f'<div class="tr{" you" if who == "výzkumník" else ""}"><span class="n">{k}</span><div class="nm"><b>{e(n)}</b><span>{e(who)}</span></div>'
+    f'<div class="tr{" you" if who in ("výzkumník", "vlastník rozhodnutí", "výzkumník · metodik") else ""}"><span class="n">{k}</span><div class="nm"><b>{e(n)}</b><span>{e(who)}</span></div>'
     f'<div><span class="lb">vstup</span>{e(i)}</div><div><span class="lb">proces</span>{e(p)}</div><div><span class="lb">výstup</span><b>{e(o)}</b></div></div>'
     for k, n, who, i, p, o in steps) + "</div>")
 
-rules = [("1", "Tvrdá data se použijí přímo", "Tvrdá data se použijí přímo", "beze změny", "X1 průměr manažerů 6,60 pro A"),
-         ("2", "Neověřená znalost = Střední", "Neověřený úsudek = Střední, bez dokladu Nízká", "zpřesněno", "D1, P1 slovní škály"),
-         ("3", "Chybí číslo = medián ostatních (Odhad)", "Chybí číslo = medián ostatních (Odhad)", "beze změny", "K2 přechod do haly: v plánu přechodu chybí"),
-         ("4", "Nezdokumentovaná služba = nenabízí", "Nezdokumentovaná podmínka nebo služba = nesplněno", "beze změny", "checklisty dodavatelů"),
-         ("5", "Nezdokumentované zdražení = 0 %", "Nezdokumentované zdražení = medián ostatních (Odhad)", "upraveno", "0 % by odměnilo dodavatele, který mlčí"),
-         ("6", "Žádný hlášený výpadek = 8, ne 10", "Žádný hlášený výpadek = 8; 9 jen s dokladem", "zpřesněno", "R1: Delta 9 z faktur bez slev")]
-s1_rules = '<table class="zt"><thead><tr><th>#</th><th>V analýze cloudu</th><th>Ve studii Velis</th><th>Stav</th><th>Kde to působí</th></tr></thead><tbody>' + "".join(
-    f'<tr{" class=\"miss\"" if st == "upraveno" else ""}><td class="num">{n}</td><td>{e(a)}</td><td><b>{e(b)}</b></td><td>{e(st)}</td><td style="font-size:12.5px;color:var(--muted)">{e(w)}</td></tr>' for n, a, b, st, w in rules) + "</tbody></table>"
+states = [("Známo", "hodnota s dokladem", "skóre podle pravidla a jistota dokladu", "E1 C2: +7,3 mil. → 10"),
+          ("Neznámo", "doklad chybí", "bez skóre: buňka drží rozsah, který by mohla mít; ukazuje se pokrytí vah doklady", "F2 B2: 3PL CZ limit nehlásí → 2–10"),
+          ("Neuplatní se", "kritérium se objektu netýká", "vynechá se; váhu nesou ostatní kritéria objektu, test ukáže oba konce", "P1 vlastní provoz: žádná smlouva s 3PL"),
+          ("Položka doloženě chybí", "u checklistu doklad říká ne", "počítá se jako nesplněná; nedoložená položka je neznámá", "P1 Wisła: strop indexace ne"),
+          ("Brána", "podmínka, která se nekompenzuje", "nesplněno: vyřazeno; neznámo: nelze doporučit, dokud chybí doklad, ať boduje jakkoli", "G1 C: 2 dny do měst")]
+s1_states = '<table class="zt"><thead><tr><th>Stav</th><th>Kdy</th><th>Jak vstupuje do výpočtu</th><th>Příklad</th></tr></thead><tbody>' + "".join(
+    f'<tr><td><b>{e(a)}</b></td><td>{e(b)}</td><td>{e(c)}</td><td style="font-size:12.5px;color:var(--muted)">{e(d)}</td></tr>' for a, b, c, d in states) + "</tbody></table>"
+v1 = [("3", "Chybí číslo = medián ostatních", "neznámo, rozsah"), ("4", "Nezdokumentovaná služba = nenabízí", "neznámá položka; nesplněná jen s dokladem"),
+      ("5", "Nezdokumentované zdražení = medián", "neznámo, rozsah"), ("6", "Nic nehlášeno = 8", "neznámo; 9 jen s dokladem")]
+s1_states += ('<p class="zcap" style="margin-top:10px"><b>Proti verzi 1.</b> Pravidla 1 (tvrdá data přímo) a 2 (úsudek bez dokladu = Nízká) zůstávají. Pravidla 3–6 dávala chybějícímu údaji skóre: ' +
+              "; ".join(f"{n}. {e(a)} → {e(b)}" for n, a, b in v1) + '. Jedno neznámé číslo už nikdy nepřebije podmínku a nepřidá body.</p>')
+s1_overlap = ('<table class="zt"><thead><tr><th>Indikátor ve verzi 1</th><th>Teď</th><th>Proč</th></tr></thead><tbody>' + "".join(
+    f'<tr><td><b>{e(r["code"])}</b> {e(r["name"])}</td><td>{e(r["to"])}</td><td>{e(r["why"])}</td></tr>' for r in so["removed"]) + "</tbody></table>" +
+    '<p class="zcap">E1 je medián NPV z Modelu: obsahuje investici, přechod, ztrátu objednávek, indexaci, mzdy a daň. Indikátor, jehož mechanismus už NPV počítá, by ho započítal podruhé. '
+    'Ve verzi 1 tak pevná cena B2 bodovala třikrát (E1, D2, P1). Ponechané indikátory hodnotí, co Model nepočítá: závislost, měnu, vratnost, rezervu a termín.</p>')
 
 def fcard(t, src, to):
     chips = "".join(f'<span class="ic">{e(c)}</span>' for c in to[0])
     return f'<div class="fd"><span class="t">{e(t)}</span><span class="src">{e(src)}</span><span class="to"><i class="ph ph-arrow-right"></i>{chips}<span>{e(to[1])}</span></span></div>'
 
 
-EMPTY = '<div class="fd none">Nic, co by měnilo skóre.</div>'
-PESTEL = [("P", "Politické", []), ("E", "Ekonomické", [("Mzdy v dopravě a skladování rostou", "Rešerše · ČSÚ, GUS", (["P1"], "slovní škála citlivosti")),
-                                                   ("Wisła fakturuje v EUR", "nabidka_3PL_PL.pdf s. 1", (["P2", "L2"], "slovní škála měny"))]),
-          ("S", "Sociální", [("46 % zákazníků je pod 35 let a čeká rychlé doručení", "zakaznici_souhrn_2025.xlsx", (["váha S"], "Slib a zákazníci 16 %"))]),
+EMPTY = '<div class="fd none">Nic, co by měnilo výsledek.</div>'
+PESTEL = [("P", "Politické", []), ("E", "Ekonomické", [("Mzdy v dopravě a skladování rostou", "Rešerše · ČSÚ, GUS", (["E1"], "předpoklad Modelu, ne indikátor")),
+                                                   ("Wisła fakturuje v EUR", "nabidka_3PL_PL.pdf s. 1", (["P2", "L2"], "Model kurz nepočítá"))]),
+          ("S", "Sociální", [("46 % zákazníků je pod 35 let a čeká rychlé doručení", "zakaznici_souhrn_2025.xlsx", (["G1"], "brána slibu"))]),
           ("T", "Technologické", []), ("E", "Ekologické", []),
           ("L", "Legislativní", [("Výpověď 6 měsíců", "smlouva s. 8 · zákon 89/2012 Sb.", (["F1", "T1"], "vratnost a začátek")),
                                  ("Daň 21 % a odpisová skupina haly", "zákon 586/1992 Sb.", (["E1"], "přes NPV v Modelu"))])]
-PORTER = [("Dodavatelé", [("Jediný 3PL, indexace 3–7 % ročně", "smlouva s. 6", (["D1", "D2"], "závislost a indexace"))]),
-          ("Rivalita", [("Konkurence doručuje ve městech druhý den", "Rešerše", (["S1"], "1 den = norma trhu"))]),
-          ("Odběratelé", [("Po zpoždění o den odejde 3,6 % objednávek", "zpozdeni_2024.xlsx", (["S2"], "pásmo ztráty"))]),
+PORTER = [("Dodavatelé", [("Jediný 3PL, indexace 3–7 % ročně", "smlouva s. 6", (["D1", "E1"], "závislost; indexace je v NPV"))]),
+          ("Rivalita", [("Konkurence doručuje ve městech druhý den", "Rešerše", (["G1"], "1 den = norma trhu"))]),
+          ("Odběratelé", [("Po zpoždění o den odejde 3,6 % objednávek", "zpozdeni_2024.xlsx", (["E1"], "v Modelu, ne indikátor"))]),
           ("Substituty", []), ("Noví hráči", [])]
 SWOT = [("S", "Silné stránky", [("Povolení haly je pravomocné", "nabidka_hala.pdf s. 2", (["T1"], "začátek 1. 1. 2028"))]),
-        ("W", "Slabé stránky", [("Hotovost 4 mil. Kč, EBITDA 27,3 mil. Kč", "vysledovka_rozvaha_2023-2025.xlsx", (["K1"], "pásmo investice"))]),
+        ("W", "Slabé stránky", [("Hotovost 4 mil. Kč, EBITDA 27,3 mil. Kč", "vysledovka_rozvaha_2023-2025.xlsx", (["G2"], "strop investice"))]),
         ("O", "Příležitosti", [("Polský 3PL je o 6 Kč levnější na objednávku", "nabidka_3PL_PL.pdf s. 1–3", (["E1"], "přes NPV v Modelu"))]),
-        ("T", "Hrozby", [("Český 3PL zdražuje o 3–7 % ročně", "smlouva s. 6", (["D2"], "pásmo indexace"))])]
+        ("T", "Hrozby", [("Český 3PL zdražuje o 3–7 % ročně", "smlouva s. 6", (["E1"], "indexace je předpoklad Modelu"))])]
 
 
 def tool(title, cols, n):
@@ -353,134 +458,142 @@ def tool(title, cols, n):
 
 
 s1_finds = (tool("PESTEL", PESTEL, 6) + tool("Porter · pět sil", [(str(k + 1), n, f) for k, (n, f) in enumerate(PORTER)], 5) + tool("SWOT", SWOT, 4) +
-            '<p class="zcap">Nálezy se nesčítají: počet silných stránek nic neměří. Každý nález se stane indikátorem s pravidlem, nebo zdůvodní pásmo či váhu. '
-            'Prázdné pole znamená, že Rešerše nenašla nic, co by měnilo skóre.</p>')
+            '<p class="zcap">Nálezy se nesčítají: počet silných stránek nic neměří. Každý nález se stane indikátorem s pravidlem, bránou, nebo předpokladem Modelu (E1); '
+            'nikdy dvěma z toho. Prázdné pole znamená, že Rešerše nenašla nic, co by měnilo výsledek.</p>')
+
+use = [("Pravidlo klienta rozhoduje", "doporučení dává pravidlo FR nad Modelem; mapa z indikátorů ho nepřepisuje"),
+       ("Mapa je informace o preferencích", "ukazuje, co za doporučenou možnost klient platí v kritériích, která Model nepočítá"),
+       ("Smí ovlivnit doporučení, jen když", "pravidlo nechá projít víc možností, kritéria a váhy schválil vlastník před výsledky, brány jsou doložené a závěr přežije všech pět rodin testů"),
+       ("Jinak jde do zprávy jako doplněk", "v části „Co by závěr změnilo“, s rozsahy a podíly nastavení, ne v doporučení")]
+s1_use = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(use))
 
 body1 = (WARN + sec("01", "Jak vznikne metoda pro tuto studii", "vstup → proces → výstup", s1_io) +
-         sec("02", "Šest pravidel bodování", "převzato z analýzy cloudu", s1_rules) +
-         sec("03", "SWOT, PESTEL a Porter jako vstupy", "z Rešerše a Zadání (Z4)", s1_finds) +
-         sec("04", "Katalog indikátorů: mapa možností", "9 kategorií · 15 indikátorů · návrh Ady, schváleno 5. 11.", catalogue(so, ro, OS, LOOK["options"]) +
-             '<p class="zcap">Katalog mapy dodavatelů je na <a href="SI4Suppliers.dc.html">SI4</a>. Stejná metoda, jiné indikátory.</p>'))
-conv1 = ada("10:12", ["Metodu jsem ušila na rozhodnutí Velis. Kategorie a váhy vycházejí z pravidla FR: <b>Ekonomika 22 %</b>, <b>Slib a zákazníci 16 %</b>, ostatní pod tím.",
-                      "Pásma mají zdroj: z dokumentů klienta, z Rešerše, nebo jsou označená jako úsudek. Upravila jsem pravidlo 5: zdražení, které dodavatel nezveřejní, nepočítám jako 0 %."],
+         sec("02", "Stavy důkazů a brány", "chybějící údaj zůstává chybějící", s1_states) +
+         sec("03", "Kontrola překryvů: co Model už počítá", "každý mechanismus jednou", s1_overlap) +
+         sec("04", "Váhy: swing weighting", f'schválil {so["owner"]} 4. 11. před prvním skóre', swing_table(so, ro)) +
+         sec("05", "SWOT, PESTEL a Porter jako vstupy", "z Rešerše a Zadání (Z4)", s1_finds) +
+         sec("06", "Katalog indikátorů: mapa možností", f'2 brány · {len(so["categories"])} kritérií · {sum(len(c["indicators"]) for c in so["categories"])} indikátorů', catalogue(so, ro, OS, LOOK["options"]) +
+             '<p class="zcap">Katalog mapy dodavatelů je na <a href="SI4Suppliers.dc.html">SI4</a>. Stejná metoda, jiné indikátory.</p>') +
+         sec("07", "Kdy smí mapa ovlivnit doporučení", "a kdy je jen doplněk", s1_use))
+conv1 = ada("10:12", ["Metodu jsem postavila na rozhodnutí Velis ve verzi 2. Slib ve městech a strop investice jsou <b>brány</b>: nekompenzují se.",
+                      "Indikátory, které už počítá NPV z Modelu (přechod, ztráta objednávek, indexace, mzdy), jsem vypustila. Ve verzi 1 se pevná cena B2 počítala třikrát.",
+                      "Chybějící údaj nemá skóre, jen rozsah. Váhy dal FR výkyvy mezi nejhorší a nejlepší možností."],
             "Můžeme váhy měnit, až uvidíme výsledky?", "10:14",
-            ["Ne potichu. Metodu jsem zamkla před prvním skóre. Každá změna je nová verze s důvodem a mapa ukáže obě. Jak moc pořadí na vahách visí, ukážou budoucnosti na SI3."])
+            ["Ne potichu. Váhy a škály schválil FR před prvním skóre a metoda je zamčená. Váhy OR a VL jsou jen test citlivosti na SI3."])
 btn1 = BTN_MENU + '<a class="btn primary sm" href="SI2Matrix.dc.html">Matice skóre<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI1Method.dc.html", "w").write(frame("Sociomapa z indikátorů: metoda", "Sociomapa z indikátorů: metoda", "Sociomapa · metoda", conv1,
-                                                    "Sociomapa · metoda", btn1, body1, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 4530))
+                                                    "Sociomapa · metoda", btn1, body1, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 4980))
 
 # ============ SI2 ============
-cert_rows = ""
 from collections import Counter
+cnt_rows = ""
 for o in ro["objs"]:
-    c = Counter(v[o]["cert"] for v in ro["scores"].values())
-    cert_rows += f'<tr><td>{e(ON[o])}</td>' + "".join(f'<td class="num">{c.get(k,0)}</td>' for k in ["Vysoká", "Střední", "Nízká", "Odhad"]) + "</tr>"
-cert_t = '<table class="zt"><thead><tr><th>Možnost</th><th>Vysoká</th><th>Střední</th><th>Nízká</th><th>Odhad</th></tr></thead><tbody>' + cert_rows + "</tbody></table>"
-claims2 = [("B2 má nejvyšší vážený součet: 8,35", "vyhrává na riziku, kapitálu, flexibilitě a vnějších tlacích; na ekonomice je druhá (8,0)"),
-           ("C2 vede v Ekonomice (10,0), ale ztrácí na Dodavatelích, Prostředí a Flexibilitě", "dva noví dodavatelé, fakturace v EUR, smlouva na 7 let"),
-           ("C porušuje podmínku OR: ve městech doručí o den později", "S1 = 3; v mapě zůstává, ve zprávě je vyřazená"),
-           ("A a A2 drží Slib a Dodavatele, ale padají na Flexibilitě (3 a 3,5) a Kapitálu (5)", "investice 70 a 77 mil. Kč; hala se nedá vrátit")]
+    c = Counter(v[o]["state"] for v in ro["cells"].values())
+    cnt_rows += f'<tr><td>{e(ON[o])}</td>' + "".join(f'<td class="num">{c.get(k,0)}</td>' for k in ["known", "unknown", "na"]) + f'<td class="num">{cz(ro["coverage"][ro["objs"].index(o)]*100,0)} %</td></tr>'
+cnt_t = '<table class="zt"><thead><tr><th>Možnost</th><th>Známo</th><th>Neznámo</th><th>Neuplatní se</th><th>Pokrytí vah</th></tr></thead><tbody>' + cnt_rows + "</tbody></table>"
+ex = so["experts"]
+ex_rank = sorted(ro["objs"], key=lambda o: -ex[o])
+ind_rank = sorted([o for o in ro["objs"] if ro["gate"][o] != "fail"], key=lambda o: -ro["total"][ro["objs"].index(o)])
+ex_t = ('<table class="zt"><thead><tr><th>Možnost</th><th>Průměr manažerů</th><th>Buněk</th><th>Pořadí manažerů</th><th>Pořadí indikátorů</th></tr></thead><tbody>' + "".join(
+    f'<tr><td>{e(ON[o])}</td><td class="num">{cz(ex[o],2)}</td><td class="num">{so["expert_cells"][o]}</td><td class="num">{ex_rank.index(o)+1}</td>'
+    f'<td class="num">{(ind_rank.index(o)+1) if o in ind_rank else "vyřazeno"}</td></tr>' for o in ro["objs"]) + "</tbody></table>"
+    '<p class="zcap">Pět kritérií manažerů (náklady, riziko dodavatele, služba, kapacita, kapitál) už hodnotí E1, D1, F2 a brány. Jako další kritérium by je započítalo podruhé, proto jsou kontrola: '
+    'kde se pořadí rozchází, ptáme se proč. Prázdná buňka OR · A · Služba zůstává prázdná (24 buněk u A).</p>')
+iB2, iC2 = ro["objs"].index("B2"), ro["objs"].index("C2")
+claims2 = [(f"C2 má nejvyšší doložené minimum: {cz(ro['total'][iC2], 2)}", "vede v Ekonomice (10) a Riziku (10); ztrácí na závislosti, měně a vratnosti"),
+           (f"B2 má {cz(ro['total'][iB2], 2)}–{cz(ro['thi'][iB2], 2)}: rozhodne kapacita 3PL CZ", "jediná neznámá buňka matice, která mění první místo (F2)"),
+           ("C je vyřazená bránou G1", "ve městech doručí o den později; v matici zůstává pro srovnání, do pořadí nevstupuje"),
+           ("A a A2 drží slib a dodavatele, ale padají na vratnosti (2 a 3) a Ekonomice", "investice 70 a 77 mil. Kč; hala se nedá vrátit")]
 claims_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims2))
-body2 = (WARN + sec("01", "Matice skóre: sedm možností × 15 indikátorů", "skóre 1–10 · jistota · vstupní hodnota pod číslem",
-                    matrix(so, ro, OS) + CT_LEG + '<p class="zcap">Zelená: 8 a víc. Oranžová: 3 a míň. Průměr kategorie je prostý průměr jejích indikátorů. Výška je vážený součet kategorií.</p>') +
-         sec("02", "Jak jisté jsou buňky", "počet buněk podle jistoty", cert_t + '<p class="zcap">Odhad u A a A2 je K2 (přechod do haly v plánu chybí) a D2 (indexace vlastních nákladů). Budoucnosti na SI3 mají u těchto buněk šum 1,5 bodu.</p>') +
-         sec("03", "Co z matice plyne", "jen z matice, bez mapy", claims_html))
-conv2 = ada("10:31", ["Matice je hotová. Každá buňka má pravidlo, zdroj a jistotu. Kliknutím na buňku uvidíte výpočet.",
-                      "<b>B2 vychází nejvýš (8,35).</b> To není doporučení. Pravidlo FR čte jen NPV a riziko ztráty, a tam vede C2. Matice přidává to, co pravidlo nečte: závislost, měnu, vratnost."])
+body2 = (WARN + sec("01", "Matice: brány a sedm kritérií × sedm možností", "skóre 1–10 · jistota dokladu · vstupní hodnota pod číslem",
+                    matrix(so, ro, OS) + CT_LEG + '<p class="zcap">Zelená: 8 a víc. Oranžová: 3 a míň. Šrafovaná buňka nemá doklad: místo skóre rozsah. Výška na mapě je doložené minimum.</p>') +
+         sec("02", "Kolik matice ví", "buňky podle stavu · pokrytí vah doklady", cnt_t +
+             '<p class="zcap">Neznámé jsou jen F2 u B a B2: český 3PL kapacitní limit nehlásí. Dotaz odešel 4. 11.; do odpovědi zpráva ukáže oba případy.</p>') +
+         sec("03", "Co z matice plyne", "jen z matice, bez testů", claims_html) +
+         sec("04", "Manažeři jako kontrola, ne kritérium", "hodnoceni_expertu.csv · 5 hodnotitelů × 5 kritérií", ex_t))
+conv2 = ada("10:31", ["Matice je hotová. Každá buňka má pravidlo, zdroj a stav. Neznámé buňky jsou dvě a nedostaly číslo.",
+                      f"<b>Na doloženém minimu vede C2 ({cz(ro['total'][iC2], 2)}).</b> B2 může být první, jen pokud 3PL CZ doloží kapacitu aspoň 1,0 potřeby roku 2032. Na to čekáme."])
 btn2 = BTN_MENU + '<a class="btn primary sm" href="SI3OptionsMap.dc.html">Mapa možností<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI2Matrix.dc.html", "w").write(frame("Sociomapa z indikátorů: matice skóre", "Matice skóre: možnosti", "Sociomapa · matice skóre", conv2,
-                                                    "Matice skóre", btn2, body2, ("SI1Method.dc.html", "Metoda"), ("SI3OptionsMap.dc.html", "Mapa možností"), "SI2 Matice", 2240))
+                                                    "Matice skóre", btn2, body2, ("SI1Method.dc.html", "Metoda"), ("SI3OptionsMap.dc.html", "Mapa možností"), "SI2 Matice", 2410))
 
-# ============ the aia-sociomap-5 engine's maps (engine_maps.py) ============
+# ============ the aia-sociomap-5 engine's map of the tested settings (engine_maps.py) ============
 ENG = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "engine.json")))
 BLOB = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "engine_assets.json")))
-METHOD_WORDS = {"soft_rank_spearman_coulomb": "soft-rank Spearman s Coulombem (BB1)", "interval_mds": "Interval MDS"}
-
-
-def reliable(key):
-    return sorted((p for p in ENG[key]["pairs"] if p[2] == "reliable"), key=lambda p: -abs(p[3]))
 
 
 def img(name, alt):
     return f'<div class="zstage"><img src="/_blob/{BLOB[name]}" alt="{e(alt)}"></div>'
 
 
-def eng_facts(key, rows):
-    v = ENG[key]
-    c = v["credibility"]
-    m = len(v["heights"])
-    n = m * (m - 1) // 2
-    seg = v["segments"] or {}
-    seg_words = {"TOO_FEW_RESPONDENTS": "nepočítají se (málo řádků)", "NO_CLEAR_SEGMENTS": "žádné zřetelné"}.get(seg.get("reason"), "—")
-    verdict = ('<span class="ztag lo">slabě určená</span>' if c["weakly_determined"] else '<span class="ztag hi">určená</span>')
-    rows_html = "".join(f'<div class="zrow"><span class="zk">{e(k)}</span><span class="zv">{x}</span></div>' for k, x in (
-        ("Řádky mapy", e(rows)),
-        ("Rozložení", e(METHOD_WORDS.get(v["method"], v["method"] or "—"))),
-        ("Věrohodnost", f'split-half {cz(c["split_half"], 2)} · práh {cz(c["threshold"], 2)} · {verdict}'),
-        ("Spolehlivé dvojice", f'{c["reliable_pairs"]} z {n} (Benjamini–Hochberg)'),
-        ("Segmenty", e(seg_words)),
-    ))
-    return f'<div class="zcard"><h3>Co spočítal engine</h3>{rows_html}</div>'
+def engine_section(map_key, names, n_crit):
+    figs = (f'<div class="zgrid2">{img(f"si-{map_key}-nastaveni-top", "pohled shora")}{img(f"si-{map_key}-nastaveni-3d", "pohled z boku")}</div>'
+            f'<div class="zgrid2" style="margin-top:12px">{img(f"si-{map_key}-nastaveni-respondents", "nastavení jako body")}'
+            f'<div class="zlead" style="gap:12px"><div class="zcard"><h3>Jak mapu číst</h3>'
+            f'<div class="zrow"><span class="zk">Řádky</span><span class="zv">2 000 testovaných nastavení (rodina „vše najednou“), součty 1–10</span></div>'
+            f'<div class="zrow"><span class="zk">Výška</span><span class="zv">průměrný součet přes nastavení</span></div>'
+            f'<div class="zrow"><span class="zk">Blízko sebe</span><span class="zv">vycházejí dobře ve stejných nastaveních</span></div>'
+            f'<div class="zrow"><span class="zk">Statistika enginu</span><span class="zv">nečteme: spolehlivost dvojic roste s počtem nastavení, který volíme (smlouva režimu Scénáře, MV3)</span></div>'
+            f'</div></div></div>')
+    return figs + (f'<p class="zcap">Spočítal engine aia-sociomap-5 a nakreslil renderer AIA, kterým zpráva kreslí mapy; v pohledu s body engine nazývá nastavení respondenty. '
+                   f'Objekt vyřazený bránou je na mapě pro srovnání. Mapu profilu ze {n_crit} kritérií nekreslíme: z tak málo řádků engine nespočítá věrohodnost ani jednu spolehlivou dvojici. Mapa zůstává interní.</p>')
 
 
-def pair_list(key, names, k=6):
-    ps = reliable(key)[:k]
-    if not ps:
-        return '<p class="zcap">Žádná dvojice neprošla.</p>'
-    return '<div class="plist">' + "".join(
-        f'<div><span class="pr {"w" if r > 0 else "c"}">{cz(r, 2)}</span>{e(names[a])} ↔ {e(names[b])}</div>' for a, b, _, r in ps) + "</div>"
+def sim_table(res, short):
+    objs = res["objs"]
+    th = "".join(f"<th>{e(short[o])}</th>" for o in objs)
+    rows = [f'<table class="mx"><thead><tr><th></th>{th}</tr></thead><tbody>']
+    for i, a in enumerate(objs):
+        cells = ""
+        for j in range(len(objs)):
+            if i == j:
+                cells += '<td style="color:var(--faint)">—</td>'
+                continue
+            r = res["R"][i][j]
+            cells += (f'<td><b style="font-size:15px">{res["sim"][i][j]}</b><br><span class="mono" style="font-size:11px;color:var(--muted);white-space:nowrap">r {cz(r,2)}</span>'
+                      f'<br><span class="mono" style="font-size:11px;color:var(--faint);white-space:nowrap">rel {cz(res["C"][i][j],2)} · abs {cz(res["Craw"][i][j],2)}</span></td>')
+        rows.append(f'<tr><th>{e(short[a])}</th>{cells}</tr>')
+    rows.append("</tbody></table>")
+    return "".join(rows)
 
 
-def engine_section(map_key, kind, names, rows, caption):
-    key = f"{map_key}/{kind}"
-    figs = f'<div class="zgrid2">{img(f"si-{map_key}-{kind}-top", "pohled shora")}{img(f"si-{map_key}-{kind}-3d", "pohled z boku")}</div>'
-    side = eng_facts(key, rows) + '<div class="zcard"><h3>Nejsilnější spolehlivé dvojice</h3>' + pair_list(key, names) + \
-        '<p class="zcap">teplá: daří se jim spolu · studená: když jedné, druhé ne</p></div>'
-    if kind == "budoucnosti":
-        third = f'<div class="zgrid2" style="margin-top:12px">{img(f"si-{map_key}-{kind}-respondents", "budoucnosti jako body")}<div class="zlead" style="gap:12px">{side}</div></div>'
-    else:
-        third = f'<div class="zgrid2" style="margin-top:12px">{side}</div>'
-    return figs + third + f'<p class="zcap">{caption}</p>'
-
-
-FUT_CAVEAT = ("Spočítal engine aia-sociomap-5 a nakreslil renderer AIA, kterým zpráva kreslí mapy. Místo respondentů jsou řádky 2 000 budoucností "
-              "s vahami a nejistými buňkami podle jistoty; v pohledu s body engine nazývá budoucnosti respondenty. Pozor: spolehlivost dvojic tu "
-              "roste s počtem budoucností, který volíme my, ne s počtem lidí. Statistika enginu je stavěná na respondenty, proto mapa zůstává interní.")
-PROF_CAVEAT = ("Řádky jsou indikátory: každý „hodnotí“ všechny objekty 1–10, jako v analýze cloudu. Mapa staví k sobě objekty, které bodují podobně napříč indikátory.")
+SIM_CAP = ("Velké číslo je podobnost profilů 0–10, (r + 1) × 5, z kritérií na doloženém minimu; r pod ním. Ze 7 kritérií potřebuje r aspoň {rc} na p < 0,05, a to žádná dvojice nemá: "
+           "je to popis, ne tvrzení. rel: korelace součtů napříč nastaveními po odečtení průměru nastavení (kdo je relativně lepší ve stejných nastaveních). "
+           "abs: bez odečtení (spolu stoupají a klesají, když se mění váhy a škály).")
 
 # ============ SI3 ============
-XB2, XB = ro["crossings"]["C2>B2"], ro["crossings"]["C2>B"]
-sweep = (f'<div class="claim"><span class="n">!</span><div>C2 předběhne B2 až při váze Ekonomiky <b>{cz(XB2, 3)}</b> (schváleno 0,22).'
-         f'<span class="w">ostatní váhy klesají v poměru · B zůstává před C2 jen do {cz(XB, 3)}, pak je C2 druhá · při schválených vahách vede B2 ve všech 2 000 budoucnostech</span></div></div>')
-_rf = reliable("options/budoucnosti")
-_pos = [p for p in _rf if p[3] > 0]
-_neg = [p for p in _rf if p[3] < 0]
-_prof = reliable("options/profil")
-_pc = ENG["options/profil"]["credibility"]
-claims3 = [(f"{ON[_pos[0][0]]} a {ON[_pos[0][1]]} se daří ve stejných budoucnostech (r = {cz(_pos[0][3], 2)})",
-            "nejsilnější kladná dvojice na mapě budoucností; " + ", ".join(f"{a}–{b} {cz(r, 2)}" for a, b, _, r in _pos[1:3])),
-           (f"Nejsilněji proti sobě: {ON[_neg[0][0]]} a {ON[_neg[0][1]]} (r = {cz(_neg[0][3], 2)})",
-            "když se daří jedné, druhé ne; dál " + ", ".join(f"{a}–{b} {cz(r, 2)}" for a, b, _, r in _neg[1:4])),
-           (f"Mapa profilu je slabě určená (split-half {cz(_pc['split_half'], 2)}, práh {cz(_pc['threshold'], 2)})",
-            "z 15 indikátorů tvrdíme jen " + (", ".join(f"{a} a {b} (r = {cz(r, 2)})" for a, b, _, r in _prof) or "nic") + "; víc indikátorů by ji zpevnilo"),
-           ("Mapa neříká, co doporučit", "doporučení dává pravidlo FR nad Modelem (C2); mapa ukazuje, co za to klient platí")]
+XB2 = ro["crossings"]["C2>B2"]
+fam = ro["families"]
+f_c2 = {k: v[iC2] for k, v in fam.items()}
+f_b2 = {k: v[iB2] for k, v in fam.items()}
+sweep = (f'<div class="claim"><span class="n">!</span><div>C2 zůstane před B2, dokud váha Ekonomiky neklesne pod <b>{cz(XB2, 3)}</b> (schváleno {cz(ro["W"][0], 3)}), ostatní váhy v poměru.'
+         f'<span class="w">na doloženém minimu; s kapacitou B2 na horní mezi vede B2 i při schválených vahách</span></div></div>')
+alt_cases = ('<table class="zt"><thead><tr><th>Případ</th><th>F2 u B2</th><th>B2</th><th>C2</th><th>První</th></tr></thead><tbody>'
+             f'<tr><td>3PL CZ doloží kapacitu ≥ 1,2 potřeby</td><td class="num">10</td><td class="num">{cz(ro["thi"][iB2],2)}</td><td class="num">{cz(ro["total"][iC2],2)}</td><td><b>B2</b></td></tr>'
+             f'<tr><td>doloží 1,0–1,2</td><td class="num">8</td><td class="num">{cz(ro["total"][iB2] + (8-2)*ro["W"][5],2)}</td><td class="num">{cz(ro["total"][iC2],2)}</td><td><b>{"B2" if ro["total"][iB2] + 6*ro["W"][5] > ro["total"][iC2] else "C2"}</b></td></tr>'
+             f'<tr><td>doloží pod 1,0, nebo neodpoví</td><td class="num">2–6</td><td class="num">{cz(ro["total"][iB2],2)}–{cz(ro["total"][iB2] + 4*ro["W"][5],2)}</td><td class="num">{cz(ro["total"][iC2],2)}</td><td><b>C2</b></td></tr>'
+             '</tbody></table>')
+claims3 = [(f"Na doloženém minimu vede C2 ({cz(ro['total'][iC2], 2)}) ve vahách ({cz(f_c2['váhy']*100,0)} %), důkazech ({cz(f_c2['důkazy']*100,0)} %) i stavbě ({cz(f_c2['struktura']*100,0)} %)",
+             "stejná možnost jako podle pravidla FR nad Modelem; mapa doporučení nepřepisuje"),
+           (f"Chybějící údaj to dělí napůl: C2 {cz(f_c2['chybějící údaje']*100,0)} %, B2 {cz(f_b2['chybějící údaje']*100,0)} % nastavení", "jediná rozhodující neznámá je kapacita 3PL CZ (F2 u B2)"),
+           (f"Vše najednou: B2 {cz(f_b2['vše najednou']*100,0)} %, C2 {cz(f_c2['vše najednou']*100,0)} %", "závěr „C2 i podle indikátorů“ nepřežije všechny rodiny: do zprávy jde jako podmíněný"),
+           (f"Vedoucí logistiky by s vlastními vahami dal první {ON[ro['stakeholder_first']['VL']]}", "váží závislost a vratnost víc než peníze; váhy schvaluje FR, ale rozdíl patří do zprávy"),
+           ("Podíly nejsou pravděpodobnosti", "jsou to podíly nastavení, která jsme zvolili; budoucí výsledky firmy jsou ve Výsledcích")]
 claims3_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims3))
-body3 = (WARN + sec("01", "Mapa budoucností", "aia-sociomap-5 · 2 000 budoucností jako řádky · 7 objektů",
-                    engine_section("options", "budoucnosti", ON, "2 000 budoucností (součty 1–10)", FUT_CAVEAT)) +
-         sec("02", "Mapa profilu z indikátorů", "aia-sociomap-5 · 15 indikátorů jako řádky",
-             engine_section("options", "profil", ON, "15 indikátorů (skóre 1–10)", PROF_CAVEAT)) +
-         sec("03", "Budoucnosti: kdo je nejlepší, když se váhy a nejisté buňky hýbou", "2 000 budoucností · váhy kolem schválených · šum podle jistoty",
-             scen_bars(ro, ON) + sweep) +
-         sec("04", "Podobnost profilů", "číslo 0–10 jako v analýze cloudu · r profilu · s = souběh v budoucnostech",
-             sim_table(ro, OS) + f'<p class="zcap">Podbarvené: |r| ≥ {cz(ro["rcrit"],2)}. Souběh s je korelace součtů napříč budoucnostmi po odečtení průměru budoucnosti; kladný = daří se jim ve stejných budoucnostech.</p>') +
-         sec("05", "Co mapy tvrdí a co ne", "tvrzení do osnovy zprávy", claims3_html))
-conv3 = ada("10:48", [f"Obě mapy spočítal engine aia-sociomap-5. Mapa budoucností je věrohodná (split-half {cz(ENG['options/budoucnosti']['credibility']['split_half'], 2)}), mapa profilu z 15 indikátorů ne ({cz(_pc['split_half'], 2)} pod prahem {cz(_pc['threshold'], 2)}).",
-                      f"Nejdůležitější je řádek v části 03: <b>C2 předběhne B2 až při váze Ekonomiky {cz(XB2, 2)}</b>. Rozdíl mezi Modelem a maticí je tedy otázka vah, ne chyba."],
+body3 = (WARN + sec("01", "Pořadí: doložené minimum a rozsah", "brány · rozsahy · pokrytí vah doklady", ranges(ro, ON) + sweep) +
+         sec("02", "Testy citlivosti: kdo je první", "pět rodin · podíl testovaných nastavení", families(ro, OS) + '<div class="zcard" style="margin-top:12px">' + who_first(ro, so, ON) + "</div>") +
+         sec("03", "Rozhodující neznámá", "dokud chybí doklad, zpráva ukáže případy", critical_html(ro, so, ON) + alt_cases) +
+         sec("04", "Mapa testovaných nastavení", "aia-sociomap-5 · 2 000 nastavení jako řádky · 7 objektů", engine_section("options", ON, 7)) +
+         sec("05", "Podobnost profilů a souběh v nastaveních", "číslo 0–10 jako v analýze cloudu · relativní i absolutní souběh",
+             sim_table(ro, OS) + f'<p class="zcap">{SIM_CAP.format(rc=cz(ro["rcrit"], 2))}</p>') +
+         sec("06", "Co mapa tvrdí a co ne", "tvrzení do osnovy zprávy", claims3_html))
+conv3 = ada("10:48", [f"Bez dvojího počítání a s čísly přímo z Výsledků vede <b>C2 ({cz(ro['total'][iC2], 2)})</b>, stejně jako pravidlo FR. Ve verzi 1 vedla B2, protože se pevná cena počítala třikrát.",
+                      f"Jednu věc nevíme: kapacitu 3PL CZ. Pokud doloží aspoň 1,0 potřeby, vede B2 ({cz(ro['total'][iB2] + 6*ro['W'][5], 2)}–{cz(ro['thi'][iB2], 2)}). Proto je závěr podmíněný."],
             "Co z toho řekneme FR?", "10:50",
-            ["Že pravidlo doporučí C2 a mapa ukáže cenu: dva noví dodavatelé, EUR a smlouva na 7 let. A že B2 vyhraje, kdykoli váha peněz klesne pod polovinu."])
+            ["Že doporučení dává pravidlo (C2) a indikátory s ním souhlasí, pokud 3PL CZ nedoloží kapacitu aspoň 1,0 potřeby. Odpověď na dotaz čekáme do 20. 11., před termínem 8. 12."])
 btn3 = BTN_MENU + '<a class="btn primary sm" href="SI4Suppliers.dc.html">Mapa dodavatelů<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI3OptionsMap.dc.html", "w").write(frame("Sociomapa z indikátorů: mapa možností", "Mapa možností", "Sociomapa · mapa možností", conv3,
-                                                        "Mapa možností", btn3, body3, ("SI2Matrix.dc.html", "Matice skóre"), ("SI4Suppliers.dc.html", "Mapa dodavatelů"), "SI3 Mapa možností", 3600))
+                                                        "Mapa možností", btn3, body3, ("SI2Matrix.dc.html", "Matice skóre"), ("SI4Suppliers.dc.html", "Mapa dodavatelů"), "SI3 Mapa možností", 3810))
 
 # ============ SI4 ============
 objs_t = [("Delta Fulfillment CZ", "Modřice", "dnešní 3PL", "smlouva, faktury 2025"),
@@ -492,24 +605,31 @@ objs_t = [("Delta Fulfillment CZ", "Modřice", "dnešní 3PL", "smlouva, faktury
 s4_objs = '<table class="zt"><thead><tr><th>Dodavatel</th><th>Sklad</th><th>Proč na mapě</th><th>Podklad</th></tr></thead><tbody>' + "".join(
     f"<tr><td><b>{e(a)}</b></td><td>{e(b)}</td><td>{e(c)}</td><td>{e(d)}</td></tr>" for a, b, c, d in objs_t) + "</tbody></table>"
 s4_objs += '<p class="zcap">* Smyšlení dodavatelé pro ukázku. V ostré studii je najde Rešerše a u každé hodnoty bude citace. Rychlík Kurýr na mapě není: je to dopravce, ne sklad.</p>'
-claims4 = [(f"Delta vede: {cz(rs['total'][0], 2)}, nejlepší v {cz(rs['best'][0]*100, 0)} % budoucností", "smlouva má všech 5 podmínek z checklistu a historie je doložená"),
-           (f"Wisła a Polaris se daří ve stejných budoucnostech (r = {cz([p for p in reliable('suppliers/budoucnosti') if {p[0], p[1]} == {'WI', 'PO'}][0][3], 2)})", "levnější, dál, v cizí měně, slabší smlouva; mapa profilu z 11 indikátorů nemá žádnou spolehlivou dvojici"),
-           ("Část náskoku Delty je náskok v dokladech", "Dunaj má 5 z 11 buněk Odhad a 4 Nízká; Rešerše by ho mohla posunout"),
-           (f"Vlastní provoz je druhý ({cz(rs['total'][2], 2)})", "47,1 Kč na objednávku a nejblíž Praze, ale kapacita jen 0,83 potřeby roku 2032")]
+s4_rem = ('<table class="zt"><thead><tr><th>Ve verzi 1</th><th>Teď</th><th>Proč</th></tr></thead><tbody>' + "".join(
+    f'<tr><td><b>{e(r["code"])}</b> {e(r["name"])}</td><td>{e(r["to"])}</td><td>{e(r["why"])}</td></tr>' for r in ss["removed"]) + "</tbody></table>")
+sobj = rs["objs"]
+iVL, iDE, iMO, iDU = (sobj.index(k) for k in ("VL", "DE", "MO", "DU"))
+nat = rs["na_test"]["VL"]
+claims4 = [(f"Na doloženém minimu vede vlastní provoz ({cz(rs['total'][iVL], 2)})", f"ve vahách {cz(rs['families']['váhy'][iVL]*100,0)} %, důkazech {cz(rs['families']['důkazy'][iVL]*100,0)} %, stavbě {cz(rs['families']['struktura'][iVL]*100,0)} %"),
+           (f"Smluvní podmínky se ho netýkají; s nejhorší hodnotou by měl {cz(nat['at1'], 2)}, pod Deltou ({cz(rs['total'][iDE], 2)})", "vede i proto, že nemá smlouvu s 3PL: jeho riziko je řízení vlastního skladu, které mapa neměří"),
+           (f"Delta může vést s doloženou kapacitou: až {cz(rs['thi'][iDE], 2)}", "jediná neznámá buňka, která sama mění první místo (K1)"),
+           (f"Morava* je první v {cz(rs['families']['chybějící údaje'][iMO]*100,0)} % nastavení chybějících údajů", f"pokrytí vah doklady jen {cz(rs['coverage'][iMO]*100,0)} %: rozsah {cz(rs['total'][iMO], 2)}–{cz(rs['thi'][iMO], 2)}"),
+           ("Polaris* a Dunaj* nelze doporučit, dokud nedoloží slib ve městech", f"brána G1 neznámá; Dunaj má doklady jen u {cz(rs['coverage'][iDU]*100,0)} % vah")]
 claims4_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims4))
 body4 = (WARN + sec("01", "Koho mapa porovná", "6 skladů pro e-shop Velis", s4_objs) +
-         sec("02", "Katalog indikátorů: mapa dodavatelů", "7 kategorií · 11 indikátorů · stejná pravidla", catalogue(ss, rs, SS, LOOK["suppliers"])) +
-         sec("03", "Matice skóre", "skóre 1–10 · jistota · vstupní hodnota", matrix(ss, rs, SS) + CT_LEG) +
-         sec("04", "Mapa budoucností", "aia-sociomap-5 · 2 000 budoucností jako řádky · 6 objektů",
-             engine_section("suppliers", "budoucnosti", SN, "2 000 budoucností (součty 1–10)", FUT_CAVEAT)) +
-         sec("05", "Mapa profilu z indikátorů", "aia-sociomap-5 · 11 indikátorů jako řádky",
-             engine_section("suppliers", "profil", SN, "11 indikátorů (skóre 1–10)", PROF_CAVEAT)) +
-         sec("06", "Budoucnosti", "2 000 budoucností · váhy a nejisté buňky se hýbou", scen_bars(rs, SN)) +
-         sec("07", "Co mapy tvrdí a co ne", "a co doplnit před závěrem", claims4_html +
-             '<div class="zhand" style="margin-top:10px"><i class="ph ph-magnifying-glass"></i><div><b>Další krok pro Rešerši:</b> ceník a smlouva Dunaj 3PL a kapacita Delty. To jsou buňky, které nejvíc hýbou pořadím.</div></div>'))
+         sec("02", "Brána a co se změnilo proti verzi 1", "slib ve městech se nekompenzuje", gates_table(ss, SS) + s4_rem) +
+         sec("03", "Váhy: swing weighting", f'schválil {ss["owner"]} 4. 11. před prvním skóre', swing_table(ss, rs)) +
+         sec("04", "Katalog indikátorů: mapa dodavatelů", f'{len(ss["categories"])} kritérií · {sum(len(c["indicators"]) for c in ss["categories"])} indikátorů', catalogue(ss, rs, SS, LOOK["suppliers"])) +
+         sec("05", "Matice skóre", "skóre 1–10 · jistota · rozsah u neznámých", matrix(ss, rs, SS) + CT_LEG) +
+         sec("06", "Pořadí a testy citlivosti", "doložené minimum · rozsah · pět rodin", ranges(rs, SN) + families(rs, SS) +
+             '<div class="zcard" style="margin-top:12px">' + who_first(rs, ss, SN) + "</div>") +
+         sec("07", "Mapa testovaných nastavení", "aia-sociomap-5 · 2 000 nastavení jako řádky · 6 objektů", engine_section("suppliers", SN, 7)) +
+         sec("08", "Co mapy tvrdí a co doplnit před závěrem", "rozhodující neznámé", claims4_html + critical_html(rs, ss, SN) +
+             '<div class="zhand" style="margin-top:10px"><i class="ph ph-magnifying-glass"></i><div><b>Vyžádat doklad:</b> kapacitní závazek Delty (K1); u Moravy* indexaci, historii výpadků a smluvní podmínky; '
+             'u Polaris* a Dunaj* expresního partnera pro města (G1). Do té doby zpráva uvádí rozsahy, ne pořadí.</div></div>'))
 conv4 = ada("11:05", ["Stejná metoda, jiné objekty: šest skladů. Tři znám z dokumentů klienta, tři našla Rešerše. Ty jsou v ukázce smyšlené a označené hvězdičkou.",
-                      "Pozor na <b>náskok v dokladech</b>. Delta má skoro všechno doložené, Dunaj skoro nic. Pravidla 3 a 4 za chybějící údaj nedají body navíc, takže málo prozkoumaný dodavatel vyjde hůř. Než to dáme do zprávy, doplním Dunaj."])
+                      f"Chybějící údaj už nedostává body ani nebere body. Proto je vidět, co nevíme: <b>Morava* má doklady jen u {cz(rs['coverage'][iMO]*100,0)} % vah</b> a mohla by vést. Než to dáme do zprávy, vyžádám doklady."])
 btn4 = BTN_MENU + '<a class="btn primary sm" href="MV4XRay.dc.html">Osnova zprávy<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI4Suppliers.dc.html", "w").write(frame("Sociomapa z indikátorů: mapa dodavatelů", "Mapa dodavatelů", "Sociomapa · mapa dodavatelů", conv4,
-                                                       "Mapa dodavatelů", btn4, body4, ("SI3OptionsMap.dc.html", "Mapa možností"), ("MV4XRay.dc.html", "Osnova zprávy"), "SI4 Mapa dodavatelů", 6240))
+                                                       "Mapa dodavatelů", btn4, body4, ("SI3OptionsMap.dc.html", "Mapa možností"), ("MV4XRay.dc.html", "Osnova zprávy"), "SI4 Mapa dodavatelů", 6980))
 print("ok")
