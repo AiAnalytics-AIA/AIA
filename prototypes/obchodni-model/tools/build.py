@@ -34,14 +34,49 @@ EXTRA_CSS = """
 .smx th,.smx td{border:1px solid var(--border);padding:6px 8px;vertical-align:middle}
 .smx th{background:var(--sunken);font-weight:500;color:var(--muted);font-size:12px;text-align:center}
 .smx td.l{text-align:left}
-.io{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.io .st{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 11px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;line-height:18px}
-.io .st.ai{border-color:var(--aiedge);background:var(--aiwash)}
-.io .st.you{border-color:var(--you);background:var(--youwash)}
-.io .st .k{font:600 10.5px/1 var(--mono);color:var(--faint);letter-spacing:.04em}
-.io .st h3{margin:0;font-size:14px}
-.io .st .r{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px}
-.io .st .r>span:first-child{color:var(--muted);font-size:11.5px}
+.art .abody{max-width:none}
+.tl{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.tl .tr{display:grid;grid-template-columns:34px 170px repeat(3,minmax(0,1fr));gap:14px;padding:12px 16px;border-top:1px solid var(--border);font-size:13.5px;line-height:20px;background:var(--raised);align-items:start}
+.tl .tr:first-child{border-top:0}
+.tl .tr.you{background:var(--youwash)}
+.tl .n{font:600 13px/20px var(--mono);color:var(--signal)}
+.tl .nm{display:flex;flex-direction:column}.tl .nm b{font-size:14.5px}.tl .nm span{font-size:12px;color:var(--muted)}
+.tl .lb{display:block;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.cat{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;background:var(--raised)}
+.cat .ch{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--sunken)}
+.cat .ch b{font-size:14.5px}
+.wbar{width:110px;height:8px;border-radius:4px;background:var(--border);overflow:hidden;display:inline-block}.wbar i{display:block;height:100%;background:var(--signal)}
+.wv{font:600 12.5px var(--mono)}.why{font-size:12.5px;color:var(--muted)}
+.ind{display:grid;grid-template-columns:250px minmax(0,1fr);gap:18px;padding:14px 16px;border-top:1px solid var(--border)}
+.il{display:flex;flex-direction:column;gap:5px;font-size:13.5px}
+.il .code{font:600 12px var(--mono);color:var(--signal)}
+.tags{display:flex;flex-wrap:wrap;gap:4px}.itg{font-size:11px;background:var(--sunken);color:var(--muted);border-radius:4px;padding:2px 6px}.itg.k{background:var(--swash);color:var(--signal)}
+.il .inote{font-size:12px;color:var(--muted);line-height:17px}
+.scale{display:flex;flex-direction:column;gap:5px}
+.su{font-size:11.5px;color:var(--muted)}
+.strip{display:flex;gap:5px;flex-wrap:wrap}
+.seg{flex:1 1 0;min-width:96px;border-radius:6px;border:1px solid var(--border);padding:7px 9px;display:flex;flex-direction:column;gap:4px;background:var(--surface)}
+.seg.wide{flex:1 1 100%}
+.seg.hi{background:var(--swash);border-color:color-mix(in srgb,var(--signal) 35%,var(--border))}
+.seg.lo{background:var(--youwash);border-color:color-mix(in srgb,var(--you) 35%,var(--border))}
+.seg.ex{background:var(--sunken);color:var(--muted)}
+.seg.est{border-style:dashed}
+.seg .rg{font-size:12px;color:var(--muted);line-height:16px}
+.seg .sc{font:600 18px/1.1 var(--mono)}.seg .sc.x{font:500 12px var(--sans)}
+.seg .mem{display:flex;flex-wrap:wrap;gap:3px;min-height:18px}
+.mb{font:500 11px/16px var(--mono);background:var(--raised);border:1px solid var(--border);border-radius:4px;padding:0 5px;white-space:nowrap}
+.mb.none{color:var(--faint);border-color:transparent;background:transparent}
+.tool{margin-bottom:16px}.tool h3{margin:0 0 8px;font-size:15px}
+.fgrid{display:grid;gap:10px}
+.fc{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fh{display:flex;align-items:baseline;gap:8px;font-size:12.5px;color:var(--muted);padding-bottom:4px;border-bottom:2px solid var(--border)}
+.fh b{font:600 15px var(--mono);color:var(--ink)}
+.fd{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.fd.none{background:transparent;border-style:dashed;color:var(--faint);font-size:12.5px}
+.fd .t{font-size:13.5px;font-weight:500;line-height:19px}
+.fd .src{font-size:11.5px;color:var(--muted)}
+.fd .to{display:flex;gap:5px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+.ic{font:600 11px var(--mono);background:var(--swash);color:var(--signal);border-radius:4px;padding:2px 6px}
 .bars{display:flex;flex-direction:column;gap:7px}
 .bars .b{display:grid;grid-template-columns:190px minmax(0,1fr) 190px;gap:10px;align-items:center;font-size:13px}
 .bars .t{height:18px;background:var(--sunken);border-radius:4px;position:relative;overflow:hidden}
@@ -52,7 +87,7 @@ EXTRA_CSS = """
 .claim:last-child{border-bottom:0}
 .claim .n{font:600 12px/21px var(--mono);color:var(--signal)}
 .claim .w{display:block;font-size:12.5px;color:var(--muted)}
-.mapw{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.mapw{display:grid;grid-template-columns:minmax(0,860px) minmax(260px,1fr);gap:16px;align-items:start}
 .mleg{display:flex;flex-direction:column;gap:8px;font-size:13px}
 .mleg .o{display:grid;grid-template-columns:70px minmax(0,1fr) 44px;gap:8px;align-items:baseline}
 .mleg .o b{font:600 12px var(--mono)}
@@ -68,6 +103,8 @@ def frame(title, h1, aria, conv, sees, ahd_btns, body, prev, nxt, code, height):
             l = f"<title>{e(title)}</title>"
         if l.startswith("</style>") and i < 160:
             l = EXTRA_CSS + l
+        if i == 172:
+            l = l.replace('class="leadx"', 'class="leadx" checked=""')
         if i == 177:
             l = f'  <div class="conv">{conv}</div>'
         if i == 179:
@@ -121,7 +158,7 @@ def fmt_raw(v):
     if v is None:
         return "—"
     if isinstance(v, float) and not v.is_integer():
-        return cz(v, 2 if abs(v) < 2 else 1)
+        return cz(v, 2).rstrip("0") if abs(v) < 2 else cz(v, 1)
     return cz(v, 0)
 
 
@@ -148,14 +185,83 @@ def matrix(spec, res, short):
     return "".join(rows)
 
 
-def catalogue(spec):
-    rows = ['<table class="zt"><thead><tr><th>Kód</th><th>Indikátor</th><th>Odkud</th><th>Typ</th><th>Pravidlo bodování 1–10</th></tr></thead><tbody>']
+LOOK = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "look.json")))
+
+
+def tone(score):
+    return "hi" if score >= 8 else ("lo" if score <= 3 else "mid")
+
+
+def sc_txt(x):
+    return cz(x, 0) if float(x).is_integer() else cz(x, 1)
+
+
+def band_of(v, cuts):
+    for k, (up, _) in enumerate(cuts):
+        if v <= up:
+            return k
+    return len(cuts)
+
+
+def seg(label, score, members, extra=""):
+    mem = "".join(f'<span class="mb">{e(m)}</span>' for m in members) or '<span class="mb none">—</span>'
+    sc = f'<span class="sc">{sc_txt(score)}</span>' if score is not None else '<span class="sc x">vyřazeno</span>'
+    return f'<div class="seg {tone(score) if score is not None else "ex"} {extra}"><span class="rg">{e(label)}</span>{sc}<span class="mem">{mem}</span></div>'
+
+
+def scale(ind, look, res, short):
+    sc = res["scores"][ind["code"]]
+    objs = res["objs"]
+    known = [o for o in objs if sc[o]["raw"] is not None]
+    missing = [o for o in objs if sc[o]["raw"] is None]
+    unit = ""
+    segs = []
+    if ind["kind"] == "pásmo":
+        unit = look.get("unit", "")
+        for k, ((up, score), lab) in enumerate(zip(ind["cuts"], look["bands"])):
+            segs.append(seg(lab, score, [f'{short[o]} {fmt_raw(sc[o]["raw"])}' for o in known if band_of(sc[o]["raw"], ind["cuts"]) == k]))
+        if look.get("excluded"):
+            segs.append(seg(look["excluded"], None, [], "ex"))
+    elif ind["kind"] == "slovní":
+        for lab, score, mem in look["levels"]:
+            segs.append(seg(lab, score, [short[o] for o in mem]))
+    elif ind["kind"] == "checklist":
+        n = ind["items"]
+        unit = f"splněno z {n}"
+        for k in range(n + 1):
+            segs.append(seg(f"{k} z {n}", 1 + 9 * k / n, [short[o] for o in known if sc[o]["raw"] == k]))
+    else:
+        unit = "skóre = hodnota"
+        segs.append('<div class="seg mid wide"><span class="rg">hodnota se použije přímo</span><span class="mem">' +
+                    "".join(f'<span class="mb">{e(short[o])} {sc_txt(sc[o]["score"])}</span>' for o in known) + "</span></div>")
+    if missing:
+        med = sc[missing[0]]["score"]
+        segs.append(seg("chybí → medián", med, [short[o] for o in missing], "est"))
+    head = f'<span class="su">{e(unit)}</span>' if unit else ""
+    return f'<div class="scale">{head}<div class="strip">{"".join(segs)}</div></div>'
+
+
+KIND_WORDS = {"pásmo": "číselná pásma", "slovní": "slovní škála", "checklist": "checklist", "přímo": "přímo z dat"}
+
+
+def catalogue(spec, res, short, look):
+    out = []
     for c in spec["categories"]:
-        rows.append(f'<tr><td colspan="5" style="background:var(--sunken);font-weight:600">{e(c["name"])} · váha {cz(c["w"]*100,0)} % <span style="font-weight:400;color:var(--muted)">· {e(c["why"])}</span></td></tr>')
+        out.append(f'<div class="cat"><div class="ch"><b>{e(c["name"])}</b><span class="wbar"><i style="width:{c["w"]*100/0.25:.0f}%"></i></span>'
+                   f'<span class="wv">{cz(c["w"]*100,0)} %</span><span class="why">{e(c["why"])}</span></div>')
         for ind in c["indicators"]:
-            rows.append(f'<tr><td class="num">{ind["code"]}</td><td>{e(ind["name"])}</td><td>{e(ind["from"])}</td><td>{e(ind["kind"])}</td><td style="font-size:12.5px">{e(ind["rule"])}</td></tr>')
-    rows.append("</tbody></table>")
-    return "".join(rows)
+            note = ""
+            if ind["kind"] == "checklist":
+                note = f'<span class="inote">{e(ind["rule"].split(";")[0])}</span>'
+            elif ind["kind"] == "přímo":
+                note = f'<span class="inote">{e(ind["rule"])}</span>'
+            out.append(f'<div class="ind"><div class="il"><span class="code">{ind["code"]}</span><b>{e(ind["name"])}</b>'
+                       f'<span class="tags"><span class="itg">{e(ind["from"])}</span><span class="itg k">{KIND_WORDS[ind["kind"]]}</span></span>{note}</div>'
+                       f'{scale(ind, look.get(ind["code"], {}), res, short)}</div>')
+        out.append("</div>")
+    out.append('<p class="zcap">Každý dílek je jedno pásmo nebo situace: nahoře rozsah, uprostřed skóre 1–10, dole možnosti, které do něj padly, s hodnotou. '
+               'Hodnota přesně na hranici dostane lepší skóre. Barva: zelená 8 a víc, oranžová 3 a míň.</p>')
+    return "".join(out)
 
 
 def scen_bars(res, names):
@@ -221,14 +327,15 @@ SN = {o["id"]: o["name"] for o in ss["objects"]}
 SS = {"DE": "Delta", "WI": "Wisła", "VL": "Vlastní", "MO": "Morava*", "PO": "Polaris*", "DU": "Dunaj*"}
 
 # ============ SI1 ============
-steps = [("1", "Zadání", "cíl, pravidlo, podmínky", "Ada navrhne kategorie a váhy", "kategorie s váhou a důvodem", ""),
-         ("2", "Rešerše", "Deep Research · SWOT, PESTEL, Porter", "nálezy převede na indikátory a pásma", "indikátor + pásmo + citace", "ai"),
-         ("3", "Data", "soubory klienta", "tvrdé hodnoty se použijí přímo", "hodnota + soubor a řádek", ""),
-         ("4", "Schválení", "návrh metody", "člověk upraví, schválí, zamkne", "zamčená verze v záznamu", "you"),
-         ("5", "Výpočet", "zamčená metoda + hodnoty", "kód: skóre, výška, mapa, budoucnosti", "matice, mapa, tvrzení", "")]
-s1_io = '<div class="io">' + "".join(
-    f'<div class="st {c}"><span class="k">KROK {k}</span><h3>{e(n)}</h3><div class="r"><span>vstup</span><span>{e(i)}</span></div>'
-    f'<div class="r"><span>proces</span><span>{e(p)}</span></div><div class="r"><span>výstup</span><span><b>{e(o)}</b></span></div></div>' for k, n, i, p, o, c in steps) + "</div>"
+steps = [("1", "Zadání", "Ada", "cíl, pravidlo a podmínky klienta", "navrhne kategorie a jejich váhy", "kategorie s váhou a důvodem"),
+         ("2", "Rešerše", "Ada · Deep Research", "SWOT, PESTEL, Porter, veřejné zdroje", "nálezy převede na indikátory a pásma", "indikátor, pásmo a citace"),
+         ("3", "Data", "kód", "soubory klienta", "tvrdé hodnoty použije přímo", "hodnota se souborem a řádkem"),
+         ("4", "Schválení", "výzkumník", "návrh metody", "upraví, schválí a zamkne před prvním skóre", "zamčená verze v záznamu"),
+         ("5", "Výpočet", "kód", "zamčená metoda a hodnoty", "skóre, výška, mapa, budoucnosti", "matice, mapa, tvrzení")]
+s1_io = ('<div class="tl">' + "".join(
+    f'<div class="tr{" you" if who == "výzkumník" else ""}"><span class="n">{k}</span><div class="nm"><b>{e(n)}</b><span>{e(who)}</span></div>'
+    f'<div><span class="lb">vstup</span>{e(i)}</div><div><span class="lb">proces</span>{e(p)}</div><div><span class="lb">výstup</span><b>{e(o)}</b></div></div>'
+    for k, n, who, i, p, o in steps) + "</div>")
 
 rules = [("1", "Tvrdá data se použijí přímo", "Tvrdá data se použijí přímo", "beze změny", "X1 průměr manažerů 6,60 pro A"),
          ("2", "Neověřená znalost = Střední", "Neověřený úsudek = Střední, bez dokladu Nízká", "zpřesněno", "D1, P1 slovní škály"),
@@ -239,24 +346,42 @@ rules = [("1", "Tvrdá data se použijí přímo", "Tvrdá data se použijí př
 s1_rules = '<table class="zt"><thead><tr><th>#</th><th>V analýze cloudu</th><th>Ve studii Velis</th><th>Stav</th><th>Kde to působí</th></tr></thead><tbody>' + "".join(
     f'<tr{" class=\"miss\"" if st == "upraveno" else ""}><td class="num">{n}</td><td>{e(a)}</td><td><b>{e(b)}</b></td><td>{e(st)}</td><td style="font-size:12.5px;color:var(--muted)">{e(w)}</td></tr>' for n, a, b, st, w in rules) + "</tbody></table>"
 
-finds = [("PESTEL · E", "Mzdy v dopravě a skladování rostou (ČSÚ, GUS)", "slovní škála citlivosti", "P1"),
-         ("PESTEL · E", "Wisła fakturuje v EUR (nabídka s. 1)", "slovní škála měny", "P2 · L2"),
-         ("PESTEL · L", "Výpověď 6 měsíců (smlouva s. 8, zákon 89/2012 Sb.)", "vratnost a začátek", "F1 · T1"),
-         ("PESTEL · L", "Odpisová skupina haly a daň 21 % (zákon 586/1992 Sb.)", "vstupuje do NPV v Modelu", "E1"),
-         ("PESTEL · S", "46 % zákazníků je pod 35 let; čekají rychlé doručení", "zdůvodní váhu Slibu 16 %", "váha S"),
-         ("Porter", "Síla dodavatele: jediný 3PL, indexace 3–7 % ročně", "slovní škála závislosti; pásmo indexace", "D1 · D2"),
-         ("Porter", "Konkurence doručuje ve městech druhý den", "pásmo: 1 den = norma trhu", "S1"),
-         ("SWOT · S", "Povolení haly je pravomocné (nabídka s. 2)", "začátek 1. 1. 2028", "T1"),
-         ("SWOT · W", "Hotovost 4 mil. Kč, EBITDA 27,3 mil. Kč", "pásmo investice", "K1"),
-         ("SWOT · T", "Zpoždění o den stojí 3,6 % objednávek (data o zpožděních)", "pásmo ztráty", "S2")]
-s1_finds = ('<table class="zt"><thead><tr><th>Nástroj</th><th>Nález</th><th>Stane se</th><th>Indikátor</th></tr></thead><tbody>' + "".join(
-    f'<tr><td>{e(t)}</td><td>{e(f)}</td><td>{e(b)}</td><td class="num">{e(i)}</td></tr>' for t, f, b, i in finds) + "</tbody></table>"
-            '<p class="zcap">Nálezy se nesčítají. Počet silných stránek nic neměří. Každý nález se stane indikátorem s pravidlem, nebo zdůvodní pásmo či váhu.</p>')
+def fcard(t, src, to):
+    chips = "".join(f'<span class="ic">{e(c)}</span>' for c in to[0])
+    return f'<div class="fd"><span class="t">{e(t)}</span><span class="src">{e(src)}</span><span class="to"><i class="ph ph-arrow-right"></i>{chips}<span>{e(to[1])}</span></span></div>'
+
+
+EMPTY = '<div class="fd none">Nic, co by měnilo skóre.</div>'
+PESTEL = [("P", "Politické", []), ("E", "Ekonomické", [("Mzdy v dopravě a skladování rostou", "Rešerše · ČSÚ, GUS", (["P1"], "slovní škála citlivosti")),
+                                                   ("Wisła fakturuje v EUR", "nabidka_3PL_PL.pdf s. 1", (["P2", "L2"], "slovní škála měny"))]),
+          ("S", "Sociální", [("46 % zákazníků je pod 35 let a čeká rychlé doručení", "zakaznici_souhrn_2025.xlsx", (["váha S"], "Slib a zákazníci 16 %"))]),
+          ("T", "Technologické", []), ("E", "Ekologické", []),
+          ("L", "Legislativní", [("Výpověď 6 měsíců", "smlouva s. 8 · zákon 89/2012 Sb.", (["F1", "T1"], "vratnost a začátek")),
+                                 ("Daň 21 % a odpisová skupina haly", "zákon 586/1992 Sb.", (["E1"], "přes NPV v Modelu"))])]
+PORTER = [("Dodavatelé", [("Jediný 3PL, indexace 3–7 % ročně", "smlouva s. 6", (["D1", "D2"], "závislost a indexace"))]),
+          ("Rivalita", [("Konkurence doručuje ve městech druhý den", "Rešerše", (["S1"], "1 den = norma trhu"))]),
+          ("Odběratelé", [("Po zpoždění o den odejde 3,6 % objednávek", "zpozdeni_2024.xlsx", (["S2"], "pásmo ztráty"))]),
+          ("Substituty", []), ("Noví hráči", [])]
+SWOT = [("S", "Silné stránky", [("Povolení haly je pravomocné", "nabidka_hala.pdf s. 2", (["T1"], "začátek 1. 1. 2028"))]),
+        ("W", "Slabé stránky", [("Hotovost 4 mil. Kč, EBITDA 27,3 mil. Kč", "vysledovka_rozvaha_2023-2025.xlsx", (["K1"], "pásmo investice"))]),
+        ("O", "Příležitosti", [("Polský 3PL je o 6 Kč levnější na objednávku", "nabidka_3PL_PL.pdf s. 1–3", (["E1"], "přes NPV v Modelu"))]),
+        ("T", "Hrozby", [("Český 3PL zdražuje o 3–7 % ročně", "smlouva s. 6", (["D2"], "pásmo indexace"))])]
+
+
+def tool(title, cols, n):
+    body = "".join(f'<div class="fc"><div class="fh"><b>{e(k)}</b>{e(name)}</div>{"".join(fcard(*f) for f in fs) or EMPTY}</div>'
+                   for k, name, fs in cols)
+    return f'<div class="tool"><h3>{e(title)}</h3><div class="fgrid" style="grid-template-columns:repeat({n},minmax(0,1fr))">{body}</div></div>'
+
+
+s1_finds = (tool("PESTEL", PESTEL, 6) + tool("Porter · pět sil", [(str(k + 1), n, f) for k, (n, f) in enumerate(PORTER)], 5) + tool("SWOT", SWOT, 4) +
+            '<p class="zcap">Nálezy se nesčítají: počet silných stránek nic neměří. Každý nález se stane indikátorem s pravidlem, nebo zdůvodní pásmo či váhu. '
+            'Prázdné pole znamená, že Rešerše nenašla nic, co by měnilo skóre.</p>')
 
 body1 = (WARN + sec("01", "Jak vznikne metoda pro tuto studii", "vstup → proces → výstup", s1_io) +
          sec("02", "Šest pravidel bodování", "převzato z analýzy cloudu", s1_rules) +
          sec("03", "SWOT, PESTEL a Porter jako vstupy", "z Rešerše a Zadání (Z4)", s1_finds) +
-         sec("04", "Katalog indikátorů: mapa možností", "9 kategorií · 15 indikátorů · návrh Ady, schváleno 5. 11.", catalogue(so) +
+         sec("04", "Katalog indikátorů: mapa možností", "9 kategorií · 15 indikátorů · návrh Ady, schváleno 5. 11.", catalogue(so, ro, OS, LOOK["options"]) +
              '<p class="zcap">Katalog mapy dodavatelů je na <a href="SI4Suppliers.dc.html">SI4</a>. Stejná metoda, jiné indikátory.</p>'))
 conv1 = ada("10:12", ["Metodu jsem ušila na rozhodnutí Velis. Kategorie a váhy vycházejí z pravidla FR: <b>Ekonomika 22 %</b>, <b>Slib a zákazníci 16 %</b>, ostatní pod tím.",
                       "Pásma mají zdroj: z dokumentů klienta, z Rešerše, nebo jsou označená jako úsudek. Upravila jsem pravidlo 5: zdražení, které dodavatel nezveřejní, nepočítám jako 0 %."],
@@ -264,7 +389,7 @@ conv1 = ada("10:12", ["Metodu jsem ušila na rozhodnutí Velis. Kategorie a váh
             ["Ne potichu. Metodu jsem zamkla před prvním skóre. Každá změna je nová verze s důvodem a mapa ukáže obě. Jak moc pořadí na vahách visí, ukážou budoucnosti na SI3."])
 btn1 = BTN_MENU + '<a class="btn primary sm" href="SI2Matrix.dc.html">Matice skóre<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI1Method.dc.html", "w").write(frame("Sociomapa z indikátorů: metoda", "Sociomapa z indikátorů: metoda", "Sociomapa · metoda", conv1,
-                                                    "Sociomapa · metoda", btn1, body1, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 2850))
+                                                    "Sociomapa · metoda", btn1, body1, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 4530))
 
 # ============ SI2 ============
 cert_rows = ""
@@ -286,7 +411,7 @@ conv2 = ada("10:31", ["Matice je hotová. Každá buňka má pravidlo, zdroj a j
                       "<b>B2 vychází nejvýš (8,35).</b> To není doporučení. Pravidlo FR čte jen NPV a riziko ztráty, a tam vede C2. Matice přidává to, co pravidlo nečte: závislost, měnu, vratnost."])
 btn2 = BTN_MENU + '<a class="btn primary sm" href="SI3OptionsMap.dc.html">Mapa možností<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI2Matrix.dc.html", "w").write(frame("Sociomapa z indikátorů: matice skóre", "Matice skóre: možnosti", "Sociomapa · matice skóre", conv2,
-                                                    "Matice skóre", btn2, body2, ("SI1Method.dc.html", "Metoda"), ("SI3OptionsMap.dc.html", "Mapa možností"), "SI2 Matice", 2270))
+                                                    "Matice skóre", btn2, body2, ("SI1Method.dc.html", "Metoda"), ("SI3OptionsMap.dc.html", "Mapa možností"), "SI2 Matice", 2240))
 
 # ============ SI3 ============
 svg_o = terrain_svg(ro, {"aria": "Sociomapa možností z indikátorů", "names": [OS[o] for o in ro["objs"]]}, links=links(ro))
@@ -311,7 +436,7 @@ conv3 = ada("10:48", ["Mapa ukazuje tři spolehlivé čáry z 21. Ostatní dvoji
             ["Že pravidlo doporučí C2 a mapa ukáže cenu: dva noví dodavatelé, EUR a smlouva na 7 let. A že B2 je pojistka, která vyhraje, kdykoli váha peněz klesne pod polovinu."])
 btn3 = BTN_MENU + '<a class="btn primary sm" href="SI4Suppliers.dc.html">Mapa dodavatelů<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI3OptionsMap.dc.html", "w").write(frame("Sociomapa z indikátorů: mapa možností", "Mapa možností", "Sociomapa · mapa možností", conv3,
-                                                        "Mapa možností", btn3, body3, ("SI2Matrix.dc.html", "Matice skóre"), ("SI4Suppliers.dc.html", "Mapa dodavatelů"), "SI3 Mapa možností", 2260))
+                                                        "Mapa možností", btn3, body3, ("SI2Matrix.dc.html", "Matice skóre"), ("SI4Suppliers.dc.html", "Mapa dodavatelů"), "SI3 Mapa možností", 2430))
 
 # ============ SI4 ============
 objs_t = [("Delta Fulfillment CZ", "Modřice", "dnešní 3PL", "smlouva, faktury 2025"),
@@ -331,7 +456,7 @@ claims4 = [(f"Delta vede: {cz(rs['total'][0], 2)}, nejlepší v {cz(rs['best'][0
            (f"Vlastní provoz je druhý ({cz(rs['total'][2], 2)})", "47,1 Kč na objednávku a nejblíž Praze, ale kapacita jen 0,83 potřeby roku 2032")]
 claims4_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims4))
 body4 = (WARN + sec("01", "Koho mapa porovná", "6 skladů pro e-shop Velis", s4_objs) +
-         sec("02", "Katalog indikátorů: mapa dodavatelů", "7 kategorií · 11 indikátorů · stejná pravidla", catalogue(ss)) +
+         sec("02", "Katalog indikátorů: mapa dodavatelů", "7 kategorií · 11 indikátorů · stejná pravidla", catalogue(ss, rs, SS, LOOK["suppliers"])) +
          sec("03", "Matice skóre", "skóre 1–10 · jistota · vstupní hodnota", matrix(ss, rs, SS) + CT_LEG) +
          sec("04", "Mapa dodavatelů", "výška = vážený součet", s4_map) +
          sec("05", "Budoucnosti", "2 000 budoucností · váhy a nejisté buňky se hýbou", scen_bars(rs, SN)) +
@@ -341,5 +466,5 @@ conv4 = ada("11:05", ["Stejná metoda, jiné objekty: šest skladů. Tři znám 
                       "Pozor na <b>náskok v dokladech</b>. Delta má skoro všechno doložené, Dunaj skoro nic. Pravidla 3 a 4 za chybějící údaj nedají body navíc, takže málo prozkoumaný dodavatel vyjde hůř. Než to dáme do zprávy, doplním Dunaj."])
 btn4 = BTN_MENU + '<a class="btn primary sm" href="MV4XRay.dc.html">Osnova zprávy<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI4Suppliers.dc.html", "w").write(frame("Sociomapa z indikátorů: mapa dodavatelů", "Mapa dodavatelů", "Sociomapa · mapa dodavatelů", conv4,
-                                                       "Mapa dodavatelů", btn4, body4, ("SI3OptionsMap.dc.html", "Mapa možností"), ("MV4XRay.dc.html", "Osnova zprávy"), "SI4 Mapa dodavatelů", 3850))
+                                                       "Mapa dodavatelů", btn4, body4, ("SI3OptionsMap.dc.html", "Mapa možností"), ("MV4XRay.dc.html", "Osnova zprávy"), "SI4 Mapa dodavatelů", 5050))
 print("ok")

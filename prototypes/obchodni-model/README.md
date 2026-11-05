@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 5 Nov 2026 (version 29)
+# AIA Obchodní model – prototyp, 5 Nov 2026 (version 31)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 29, artifact version `1793894963-7a53` |
+| Version | version 31, artifact version `1793895516-c49e` |
 | Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -82,7 +82,7 @@ walkthrough, W1-W28, the full record in `.planning/evidence/pivot-walkthrough-20
 
 The new numbers (after-tax NPVs, correlations, wage growth) are fictional, like every number here.
 
-**Changed in versions 23–29 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
+**Changed in versions 23–31 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
 cloud analysis's method in the business-model study, where the decision differs but the method stands, using
 SWOT, PESTEL and Porter as inputs, and saw "a big benefit of using AI and deep research to custom tailor the
 methodology to each individual study". Every report is tailored, so SI1 does not divide the method into fixed and tailored parts (an
@@ -93,7 +93,11 @@ and Porter findings become indicators instead of being counted. One rule is chan
 undocumented price rise counts as the others' median, not 0 %. SI2 is the 7 × 15 score matrix. SI3 is the map and
 its futures: **B2 ranks first (8,35) and C2 overtakes it only once Ekonomika's weight reaches 0,507 (approved
 0,22), computed exactly (totals are linear in that weight)**, the gap between the model's rule (C2) and a broader weighing. SI4 maps six suppliers: three from the
-client's documents and three, starred, that Rešerše would find (fictional here). The numbers come from
+client's documents and three, starred, that Rešerše would find (fictional here). The boards' layout (v31, the owner: the ranges in the catalogue were confusing and the frameworks needed more
+room): each indicator's scale is a strip of bands or situations showing the range, the score and the options that
+fell in it, with one boundary rule (a value on a boundary takes the better score; `tools/look.json`, checked against
+the specs). PESTEL, Porter's five forces and SWOT each have their own grid, every finding a card linked to the
+indicator it feeds. The steps are a timeline, Ada's pane starts closed and the page uses the full width. The numbers come from
 `tools/` (`specs.py`, `compute.py`, `build.py`, numpy only), which writes the four boards from MV3's frame; `check.py`
 holds the printed rules to the results (a checklist scores 1 + 9 × share, unrounded; the order flips at the printed crossing). The
 model's results they read (NPV, P(best), P(loss)) are the canvas's illustrative ones; P(loss > 10 mil.) per
@@ -148,7 +152,7 @@ in WebP at quality 88, and `renders.json`. No board had a script error or a fail
 - **Unregistered methods.** Numbers marked "odhad (interní)" and the strategy map rest on methods that are not in the
   Sociomap register. The boards say so.
 - **SI maps: few reliable links.** With 9 categories a profile link needs |r| ≥ 0,67, and 3 of 21 pairs pass; with
-  7 categories (SI4) 2 of 15. The boards draw only those. On SI4, Vlastní provoz and Morava Fulfil sit almost on one
+  7 categories (SI4) 3 of 15. The boards draw only those. On SI4, Vlastní provoz and Morava Fulfil sit almost on one
   spot and are pushed apart for legibility, which the caption says.
 - **SI4's starred suppliers and their sources are invented** for the demonstration; their values are labelled as
   public sources (veřejný ceník) that do not exist.

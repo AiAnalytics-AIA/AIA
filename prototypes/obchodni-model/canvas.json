@@ -219,7 +219,7 @@
       "y": 23010
     },
     "SI1Method.dc.html": {
-      "h": 2850,
+      "h": 4530,
       "is_interactive": true,
       "title": "SI1 · Sociomapa z indikátorů: metoda",
       "w": 1440,
@@ -227,7 +227,7 @@
       "y": 37200
     },
     "SI2Matrix.dc.html": {
-      "h": 2270,
+      "h": 2240,
       "is_interactive": true,
       "title": "SI2 · Sociomapa z indikátorů: matice skóre",
       "w": 1440,
@@ -235,7 +235,7 @@
       "y": 37200
     },
     "SI3OptionsMap.dc.html": {
-      "h": 2260,
+      "h": 2430,
       "is_interactive": true,
       "title": "SI3 · Sociomapa z indikátorů: mapa možností",
       "w": 1440,
@@ -243,7 +243,7 @@
       "y": 37200
     },
     "SI4Suppliers.dc.html": {
-      "h": 3850,
+      "h": 5050,
       "is_interactive": true,
       "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
       "w": 1440,

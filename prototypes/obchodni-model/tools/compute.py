@@ -177,7 +177,7 @@ def terrain_svg(res, labels, W=720, H=470, cell=3, sigma=0.62, links=None, cid="
     sg = sigma * s / 2.2
     for (px, py), hi in zip(P, h):
         F = np.maximum(F, hi * np.exp(-((GX - px) ** 2 + (GY - py) ** 2) / (2 * sg ** 2)))
-    parts = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="{labels["aria"]}" style="display:block;background:var(--surface-sunken,#eef0f2);border-radius:8px">']
+    parts = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="{labels["aria"]}" style="display:block;max-width:860px;background:var(--surface-sunken,#eef0f2);border-radius:8px">']
     for lv in range(1, 11):
         mask = F >= lv
         d = []

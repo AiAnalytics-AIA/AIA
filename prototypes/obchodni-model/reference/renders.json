@@ -273,8 +273,8 @@
   "board": "SI1Method.dc.html",
   "title": "SI1 · Sociomapa z indikátorů: metoda",
   "w": 1440,
-  "h": 2850,
-  "text_chars": 6452,
+  "h": 4530,
+  "text_chars": 7073,
   "errors": [],
   "failed_requests": [],
   "image": "28-SI1Method.webp"
@@ -283,8 +283,8 @@
   "board": "SI2Matrix.dc.html",
   "title": "SI2 · Sociomapa z indikátorů: matice skóre",
   "w": 1440,
-  "h": 2270,
-  "text_chars": 4105,
+  "h": 2240,
+  "text_chars": 3781,
   "errors": [],
   "failed_requests": [],
   "image": "29-SI2Matrix.webp"
@@ -293,8 +293,8 @@
   "board": "SI3OptionsMap.dc.html",
   "title": "SI3 · Sociomapa z indikátorů: mapa možností",
   "w": 1440,
-  "h": 2260,
-  "text_chars": 3992,
+  "h": 2430,
+  "text_chars": 3491,
   "errors": [],
   "failed_requests": [],
   "image": "30-SI3OptionsMap.webp"
@@ -303,8 +303,8 @@
   "board": "SI4Suppliers.dc.html",
   "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
   "w": 1440,
-  "h": 3850,
-  "text_chars": 6679,
+  "h": 5050,
+  "text_chars": 7110,
   "errors": [],
   "failed_requests": [],
   "image": "31-SI4Suppliers.webp"

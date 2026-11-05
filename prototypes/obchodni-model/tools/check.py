@@ -26,3 +26,17 @@ assert totals(x - 0.001)["B2"] > totals(x - 0.001)["C2"]
 assert totals(x + 0.001)["C2"] > totals(x + 0.001)["B2"]
 assert totals(0.22)["B2"] > max(v for k, v in totals(0.22).items() if k != "B2")
 print("ok", x, ro["crossings"]["C2>B"])
+
+# Every scale the boards draw matches its spec: one label per band, and each level holds exactly its objects
+look = json.load(open("look.json"))
+for m, path in (("options", "spec_options.json"), ("suppliers", "spec_suppliers.json")):
+    for c in json.load(open(path))["categories"]:
+        for i in c["indicators"]:
+            lk = look[m].get(i["code"], {})
+            if i["kind"] == "pásmo":
+                assert len(lk["bands"]) == len(i["cuts"]), (m, i["code"])
+            if i["kind"] == "slovní":
+                got = {o: v[0] for o, v in i["values"].items() if v}
+                assert sorted(o for _, _, mem in lk["levels"] for o in mem) == sorted(got), (m, i["code"])
+                assert all(got[o] == score for _, score, mem in lk["levels"] for o in mem), (m, i["code"])
+print("scales ok")
