@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 5 Nov 2026 (version 32)
+# AIA Obchodní model – prototyp, 5 Nov 2026 (version 33)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 32, artifact version `1793896706-9d74` |
+| Version | version 33, artifact version `1793897660-3f78` |
 | Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -82,7 +82,7 @@ walkthrough, W1-W28, the full record in `.planning/evidence/pivot-walkthrough-20
 
 The new numbers (after-tax NPVs, correlations, wage growth) are fictional, like every number here.
 
-**Changed in versions 23–32 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
+**Changed in versions 23–33 (5 Nov): a new row, Sociomapa z indikátorů.** The product owner asked to reproduce the
 cloud analysis's method in the business-model study, where the decision differs but the method stands, using
 SWOT, PESTEL and Porter as inputs, and saw "a big benefit of using AI and deep research to custom tailor the
 methodology to each individual study". Every report is tailored, so SI1 does not divide the method into fixed and tailored parts (an

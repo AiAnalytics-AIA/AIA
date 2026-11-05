@@ -37,13 +37,16 @@ LABELS = {
 }
 
 
-def engine_map(rows, row_ids, objs):
+def engine_map(rows, row_ids, objs, weights=None):
     inputs = ObjectMapInputs(
         respondent_ids=tuple(row_ids),
         donor_ids=tuple(row_ids),
         items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objs),
         values=tuple(tuple(float(v) for v in r) for r in rows),
-        weights=(1.0,) * len(rows),
+        # The engine's height (F8) is each object's weighted mean rating; the relation and the
+        # layout read the ratings unweighted. A profile row carries its category's weight shared
+        # among the category's indicators, so a height is exactly the board's weighted total.
+        weights=tuple(weights) if weights else (1.0,) * len(rows),
         object_ids=tuple(objs),
         object_items=tuple(objs),
         roles=dict.fromkeys(objs, ObjectRole.PRIMARY.value),
@@ -77,9 +80,14 @@ def main():
         objs = res["objs"]
         base = res["base"]
         ind_rows = [[base[k][o] for o in objs] for k in base]
+        share = {i["code"]: c["w"] / len(c["indicators"]) for c in spec["categories"] for i in c["indicators"]}
+        ind_weights = [share[k] for k in base]
         fut_rows = res["futures"].tolist()
         for view, rows, ids in (("profil", ind_rows, list(base)), ("budoucnosti", fut_rows, [f"f{k}" for k in range(len(fut_rows))])):
-            art = engine_map(rows, ids, objs)
+            art = engine_map(rows, ids, objs, ind_weights if view == "profil" else None)
+            if view == "profil":  # the height is the weighted total on the engine's 0-1 scale
+                for h, t in zip(art.heights.values, res["total"]):
+                    assert h is not None and abs(h - (t - 1) / 9) < 5e-3, (name, h, t)
             out[f"{name}/{view}"] = summary(art)
             if art.outcome != "MAPPED":
                 continue
