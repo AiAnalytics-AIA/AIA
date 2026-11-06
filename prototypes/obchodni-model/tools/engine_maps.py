@@ -4,8 +4,9 @@ renderer of that engine's maps (the report's figures, infrastructure/report_docx
 Two readings of the same scores, each a ratings table the engine maps as it maps respondents:
 - indicators as the rows: each indicator "rates" every option 1-10 (the cloud method's profile:
   options close when they score alike across indicators);
-- the 2 000 futures as the rows: each future's weighted total per option (options close when
-  they do well in the same futures).
+- the 2 000 tested settings as the rows (weights, evidence, missing data and structure varied at
+  once): each setting's weighted total per option (options close when they come out well in the
+  same settings). They are sensitivity settings we chose, not futures and not people.
 
 Run from this folder with the repository's Python 3.12 environment and PYTHONPATH pointing at
 packages/aia_core/src (numpy 2.5, scipy 1.18, numba 0.68, matplotlib):
@@ -42,7 +43,7 @@ def engine_map(rows, row_ids, objs, weights=None):
         respondent_ids=tuple(row_ids),
         donor_ids=tuple(row_ids),
         items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objs),
-        values=tuple(tuple(float(v) for v in r) for r in rows),
+        values=tuple(tuple(None if v is None else float(v) for v in r) for r in rows),
         # The engine's height (F8) is each object's weighted mean rating; the relation and the
         # layout read the ratings unweighted. A profile row carries its category's weight shared
         # among the category's indicators, so a height is exactly the board's weighted total.
@@ -78,20 +79,27 @@ def main():
         spec = json.load(open(os.path.join(HERE, f"spec_{name}.json")))
         res = compute(spec, keep_futures=True)
         objs = res["objs"]
-        base = res["base"]
-        ind_rows = [[base[k][o] for o in objs] for k in base]
-        share = {i["code"]: c["w"] / len(c["indicators"]) for c in spec["categories"] for i in c["indicators"]}
-        ind_weights = [share[k] for k in base]
-        fut_rows = res["futures"].tolist()
-        for view, rows, ids in (("profil", ind_rows, list(base)), ("budoucnosti", fut_rows, [f"f{k}" for k in range(len(fut_rows))])):
-            art = engine_map(rows, ids, objs, ind_weights if view == "profil" else None)
-            if view == "profil":  # the height is the weighted total on the engine's 0-1 scale
-                for h, t in zip(art.heights.values, res["total"]):
-                    assert h is not None and abs(h - (t - 1) / 9) < 5e-3, (name, h, t)
+        cells = res["cells"]
+        W = dict(zip(res["cat_codes"], res["W"]))
+        # profile rows: the scored indicators; a cell that is not fully known gets no value
+        codes, ind_w = [], []
+        for c in spec["categories"]:
+            for i in c["indicators"]:
+                codes.append(i["code"])
+                ind_w.append(W[c["code"]] / len(c["indicators"]))
+        ind_rows = [[cells[k][o]["lo"] if cells[k][o]["state"] == "known" else None for o in objs] for k in codes]
+        fut_rows = res["settings"].tolist()
+        for view, rows, ids in (("profil", ind_rows, codes), ("nastaveni", fut_rows, [f"t{k}" for k in range(len(fut_rows))])):
+            art = engine_map(rows, ids, objs, ind_w if view == "profil" else None)
+            if view == "profil":  # the height is the weighted mean of the object's known cells
+                for oi, h in enumerate(art.heights.values):
+                    kn = [(w, r[oi]) for w, r in zip(ind_w, ind_rows) if r[oi] is not None]
+                    want = (sum(w * v for w, v in kn) / sum(w for w, _ in kn) - 1) / 9
+                    assert h is not None and abs(h - want) < 5e-3, (name, objs[oi], h, want)
             out[f"{name}/{view}"] = summary(art)
-            if art.outcome != "MAPPED":
+            if art.outcome != "MAPPED" or view == "profil":  # from 7 criteria the profile map is undetermined: not drawn
                 continue
-            for key, png in signed_off_snapshots(art, LABELS[name], respondents=(view == "budoucnosti")).items():
+            for key, png in signed_off_snapshots(art, LABELS[name], respondents=(view == "nastaveni")).items():
                 # JPEG at quality 88, as the canvas's other map images; the renderer's PNG is 1-1.4 MB
                 Image.open(io.BytesIO(png)).convert("RGB").save(
                     os.path.join(HERE, "..", "assets", f"si-{name}-{view}-{key}.jpg"), "JPEG", quality=88)

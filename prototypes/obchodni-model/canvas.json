@@ -7,96 +7,88 @@
       "is_interactive": true,
       "title": "M4e · Výsledky: Velikost trhu",
       "w": 1440,
-      "x": 12160,
-      "y": 29300
+      "x": 9120,
+      "y": 29600
     },
     "KM11Logistics.dc.html": {
       "h": 1620,
       "is_interactive": true,
       "title": "M4f · Výsledky: Logistika",
       "w": 1440,
-      "x": 10640,
-      "y": 29300
+      "x": 7600,
+      "y": 29600
     },
     "KM1Data.dc.html": {
-      "h": 2730,
+      "h": 3410,
       "is_interactive": true,
       "title": "M1 · Model: Data",
       "w": 1440,
       "x": 0,
-      "y": 29300
+      "y": 25590
     },
     "KM2Assumptions.dc.html": {
-      "h": 1940,
+      "h": 3100,
       "is_interactive": true,
       "title": "M2 · Model: Předpoklady",
       "w": 1440,
-      "x": 1520,
-      "y": 29300
+      "x": 6080,
+      "y": 25590
     },
     "KM3Model.dc.html": {
-      "h": 1820,
+      "h": 2500,
       "is_interactive": true,
       "title": "M3 · Model: Model",
       "w": 1440,
-      "x": 3040,
-      "y": 29300
+      "x": 0,
+      "y": 29600
     },
     "KM4Results.dc.html": {
-      "h": 2420,
+      "h": 3060,
       "is_interactive": true,
       "title": "M4 · Model: Výsledky",
       "w": 1440,
-      "x": 4560,
-      "y": 29300
-    },
-    "KM5Map.dc.html": {
-      "h": 2340,
-      "is_interactive": true,
-      "title": "M5 · Nahrazeno: dosavadní mapa (aia-sociomap-5)",
-      "w": 1440,
-      "x": 13680,
-      "y": 29300
+      "x": 1520,
+      "y": 29600
     },
     "KM6Report.dc.html": {
       "h": 1840,
       "is_interactive": true,
       "title": "M6 · Model: Zpráva",
       "w": 1440,
-      "x": 15200,
-      "y": 29300
+      "x": 3040,
+      "y": 40840
     },
     "KM7Finance.dc.html": {
       "h": 2248,
       "is_interactive": true,
       "title": "M4b · Výsledky: Business case a finance",
       "w": 1440,
-      "x": 6080,
-      "y": 29300
+      "x": 3040,
+      "y": 29600
     },
     "KM8Accounting.dc.html": {
       "h": 1400,
       "is_interactive": true,
       "title": "M4c · Výsledky: Účetnictví",
       "w": 1440,
-      "x": 7600,
-      "y": 29300
+      "x": 4560,
+      "y": 29600
     },
     "KM9Operations.dc.html": {
       "h": 1600,
       "is_interactive": true,
       "title": "M4d · Výsledky: Operační výzkum",
       "w": 1440,
-      "x": 9120,
-      "y": 29300
+      "x": 6080,
+      "y": 29600
     },
     "MV0Scope.dc.html": {
-      "h": 3050,
+      "h": 3440,
       "is_interactive": true,
       "title": "MVP · Definované MVP: přehled",
       "w": 1440,
       "x": 0,
-      "y": 32700
+      "y": 45130
     },
     "MV1Contract.dc.html": {
       "h": 1940,
@@ -104,7 +96,7 @@
       "title": "MV1 · Data: datová smlouva",
       "w": 1440,
       "x": 1520,
-      "y": 32700
+      "y": 25590
     },
     "MV2PublicData.dc.html": {
       "h": 2260,
@@ -112,7 +104,7 @@
       "title": "MV2 · Rešerše: typované vstupy",
       "w": 1440,
       "x": 3040,
-      "y": 32700
+      "y": 25590
     },
     "MV2bFindings.dc.html": {
       "h": 1700,
@@ -120,50 +112,42 @@
       "title": "MV2b · Rešerše: zjištění podle analýz",
       "w": 1440,
       "x": 4560,
-      "y": 32700
+      "y": 25590
     },
     "MV3SystemMap.dc.html": {
-      "h": 2430,
+      "h": 3480,
       "is_interactive": true,
       "title": "MV3 · Výsledky: Sociomapa systémů",
       "w": 1440,
-      "x": 6080,
-      "y": 32700
+      "x": 0,
+      "y": 33260
     },
     "MV4XRay.dc.html": {
-      "h": 2725,
+      "h": 3690,
       "is_interactive": true,
       "title": "MV4 · Osnova zprávy",
       "w": 1440,
-      "x": 7600,
-      "y": 32700
+      "x": 0,
+      "y": 40840
     },
     "MV5Validation.dc.html": {
-      "h": 1870,
+      "h": 2540,
       "is_interactive": true,
       "title": "MV5 · Metodika: validační sada a otázky",
       "w": 1440,
-      "x": 9120,
-      "y": 32700
+      "x": 1520,
+      "y": 45130
     },
     "MV6Catalogue.dc.html": {
       "h": 3823,
       "is_interactive": true,
       "title": "MV6 · Katalog analýz",
       "w": 1440,
-      "x": 10640,
-      "y": 32700
-    },
-    "MV7UXAudit.dc.html": {
-      "h": 2400,
-      "is_interactive": true,
-      "title": "MV7 · Kontrola UX",
-      "w": 1440,
-      "x": 12160,
-      "y": 32700
+      "x": 3040,
+      "y": 45130
     },
     "Z0Flow.dc.html": {
-      "h": 2160,
+      "h": 2440,
       "is_interactive": true,
       "title": "Z0 · Zadání: průchod",
       "w": 1440,
@@ -187,7 +171,7 @@
       "y": 20600
     },
     "Z3Decision.dc.html": {
-      "h": 2220,
+      "h": 2290,
       "is_interactive": true,
       "title": "Z3 · Zadání: rozhodnutí a pravidlo",
       "w": 1440,
@@ -199,56 +183,64 @@
       "is_interactive": true,
       "title": "Z4 · Zadání: analýzy do zprávy",
       "w": 1440,
-      "x": 0,
-      "y": 23010
+      "x": 6080,
+      "y": 20600
     },
     "Z5Model.dc.html": {
-      "h": 3560,
+      "h": 3580,
       "is_interactive": true,
       "title": "Z5 · Zadání: obchodní model",
       "w": 1440,
-      "x": 1520,
-      "y": 23010
+      "x": 7600,
+      "y": 20600
     },
     "Z7Ready.dc.html": {
-      "h": 1360,
+      "h": 1520,
       "is_interactive": true,
       "title": "Z7 · Zadání: připravenost a předání",
       "w": 1440,
-      "x": 4560,
-      "y": 23010
+      "x": 9120,
+      "y": 20600
     },
     "SI1Method.dc.html": {
-      "h": 4530,
+      "h": 4980,
       "is_interactive": true,
       "title": "SI1 · Sociomapa z indikátorů: metoda",
       "w": 1440,
-      "x": 0,
-      "y": 37200
+      "x": 1520,
+      "y": 33260
     },
     "SI2Matrix.dc.html": {
-      "h": 2240,
+      "h": 2410,
       "is_interactive": true,
       "title": "SI2 · Sociomapa z indikátorů: matice skóre",
       "w": 1440,
-      "x": 1520,
-      "y": 37200
+      "x": 3040,
+      "y": 33260
     },
     "SI3OptionsMap.dc.html": {
-      "h": 3600,
+      "h": 3810,
       "is_interactive": true,
       "title": "SI3 · Sociomapa z indikátorů: mapa možností",
       "w": 1440,
-      "x": 3040,
-      "y": 37200
+      "x": 4560,
+      "y": 33260
     },
     "SI4Suppliers.dc.html": {
-      "h": 6240,
+      "h": 6980,
       "is_interactive": true,
       "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
       "w": 1440,
-      "x": 4560,
-      "y": 37200
+      "x": 6080,
+      "y": 33260
+    },
+    "MV8Validity.dc.html": {
+      "h": 2000,
+      "is_interactive": true,
+      "title": "MV8 · Zpráva: kontrola platnosti modelu",
+      "w": 1440,
+      "x": 1520,
+      "y": 40840
     }
   },
   "createdOnFiles": {
@@ -262,7 +254,7 @@
   "notes": {
     "t6": {
       "kind": "title1",
-      "maxW": 6940,
+      "maxW": 10560,
       "text": "Zadání · případ Velis Commerce s.r.o. (smyšlený)",
       "w": 240,
       "x": 0,
@@ -270,27 +262,43 @@
     },
     "t8": {
       "kind": "title1",
-      "maxW": 8000,
-      "text": "Velis · Obchodní model: Strategie skladu a logistiky 2026–2032",
+      "maxW": 7520,
+      "text": "Vstupy · Data, Rešerše, Předpoklady",
       "w": 240,
       "x": 0,
-      "y": 29000
+      "y": 25290
     },
     "t9": {
       "kind": "title1",
-      "maxW": 8000,
-      "text": "MVP · obchodní rozhodnutí: co postavíme (podle rešerše 2. 11. 2026)",
+      "maxW": 10560,
+      "text": "Výpočet · Model a Výsledky",
       "w": 240,
       "x": 0,
-      "y": 32400
+      "y": 29300
     },
     "t10": {
       "kind": "title1",
-      "maxW": 5920,
-      "text": "Sociomapa z indikátorů · metoda z analýzy cloudu na rozhodnutí Velis",
+      "maxW": 7520,
+      "text": "Sociomapa · Sociomapa systémů a Sociomapa z indikátorů",
       "w": 240,
       "x": 0,
-      "y": 36900
+      "y": 32960
+    },
+    "t11": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Předání · Osnova zprávy, kontrola platnosti, Zpráva",
+      "w": 240,
+      "x": 0,
+      "y": 40540
+    },
+    "t12": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "MVP a Metodika · rozsah, validace, katalog analýz",
+      "w": 240,
+      "x": 0,
+      "y": 44830
     }
   },
   "order": [
@@ -302,6 +310,9 @@
     "Z5Model.dc.html",
     "Z7Ready.dc.html",
     "KM1Data.dc.html",
+    "MV1Contract.dc.html",
+    "MV2PublicData.dc.html",
+    "MV2bFindings.dc.html",
     "KM2Assumptions.dc.html",
     "KM3Model.dc.html",
     "KM4Results.dc.html",
@@ -310,21 +321,17 @@
     "KM9Operations.dc.html",
     "KM11Logistics.dc.html",
     "KM10Market.dc.html",
-    "KM5Map.dc.html",
-    "KM6Report.dc.html",
-    "MV0Scope.dc.html",
-    "MV1Contract.dc.html",
-    "MV2PublicData.dc.html",
-    "MV2bFindings.dc.html",
     "MV3SystemMap.dc.html",
-    "MV4XRay.dc.html",
-    "MV5Validation.dc.html",
-    "MV6Catalogue.dc.html",
-    "MV7UXAudit.dc.html",
     "SI1Method.dc.html",
     "SI2Matrix.dc.html",
     "SI3OptionsMap.dc.html",
-    "SI4Suppliers.dc.html"
+    "SI4Suppliers.dc.html",
+    "MV4XRay.dc.html",
+    "MV8Validity.dc.html",
+    "KM6Report.dc.html",
+    "MV0Scope.dc.html",
+    "MV5Validation.dc.html",
+    "MV6Catalogue.dc.html"
   ],
   "pages": [],
   "title": "AIA Obchodní model – prototyp"

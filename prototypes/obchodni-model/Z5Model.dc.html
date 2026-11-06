@@ -160,7 +160,7 @@ label.cfib{cursor:pointer}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":3550}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":3580}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { mode: 'missing', off: {} }; }
 renderVals() {
@@ -199,8 +199,8 @@ renderVals() {
       ['Operační výzkum', 'Kapacita ve špičkách po měsících, optimální plán expedice, zásoby', 'sezónnost objednávek, kapacity dodavatelů, zásoby', filled ? ok : you, filled ? 'má' : 'čeká na kapacity'],
       ['Velikost trhu', 'Jak velký trh lze obsloužit, kolik z něj Velis má, je plán růstu realistický', 'veřejné zdroje (Deep Research) a souhrn zákazníků z CRM', prop, 'dohledá AIA']
     ].map(([t, q, need, g, st], i) => ({ t, q, need, gl: g[0], ic: g[1], st, on: !s.off[i], toggle: () => this.setState({ off: { ...s.off, [i]: !s.off[i] } }) })),
-    inside: [['Příspěvek z objednávek, které firma udrží', 'všechny možnosti'], ['Ztracené objednávky při doručení o den delší', 'C, C2, H'], ['Poplatky 3PL, zdražování, skladné, doprava do ČR', 'B, B2, C, C2, H'], ['Investice, provoz a kapacita haly; zůstatková hodnota v roce 7', 'A, A2'], ['Expres ve velkých městech', 'C2'], ['Jednorázový přechod k jinému 3PL', 'C, C2, H']].map(([t, d]) => ({ t, d: 'možnosti ' + d })),
-    outside: [['Daně a odpisy', 'počítá se před daní; finanční ředitel posuzuje daňový dopad zvlášť (potvrzeno 14. 10.)'], ['Režie firmy', 'stejná pro všechny možnosti'], ['Marketing na udržení zákazníků', 'mimo rozhodnutí; zpráva ho zmíní jako možnost']].map(([t, d]) => ({ t, d })),
+    inside: [['Příspěvek z objednávek, které firma udrží', 'všechny možnosti'], ['Ztracené objednávky při doručení o den delší', 'C, C2, H'], ['Poplatky 3PL, zdražování, skladné, doprava do ČR', 'B, B2, C, C2, H'], ['Investice, provoz a kapacita haly; zůstatková hodnota v roce 7', 'A, A2'], ['Expres ve velkých městech', 'C2'], ['Jednorázový přechod k jinému 3PL', 'C, C2, H'], ['Daň z příjmů 21 % a daňové odpisy rovnoměrně podle odpisových skupin (pevný parametr): NPV před daní i po dani; pravidlo čte NPV před daní', 'všechny']].map(([t, d]) => ({ t, d: 'možnosti ' + d })),
+    outside: [['DPH a daňová optimalizace', 'DPH je pro Velis jako plátce neutrální; zrychlené odpisy, ztráty minulých let a daňové pobídky posoudí finanční ředitel zvlášť (potvrzeno 14. 10.)'], ['Režie firmy', 'stejná pro všechny možnosti'], ['Marketing na udržení zákazníků', 'mimo rozhodnutí; zpráva ho zmíní jako možnost']].map(([t, d]) => ({ t, d })),
     inv: INV.map(([file, where, what, val, g, st]) => ({ file, where, what, val, gl: g[0], ic: g[1], st, cls: st === 'chybí' ? 'miss' : '' })),
     ass: ASS.map(([id, t, val, src, who, g, st]) => ({ id, t, val, src, who, gl: g[0], ic: g[1], st })),
     sens: [['Ztráta objednávek', 'nejširší rozsah: rozhoduje mezi polskými a českými variantami'], ['Poplatek polského 3PL', 'největší položka variant C, C2, H'], ['Zdražování českého 3PL', 'smlouva připouští 3–7 % ročně; proto varianta B2'], ['Souvisí některé předpoklady spolu?', 'Ceníky obou 3PL jsou pevné a nezávisí na objemu; obchodní ředitel nevidí souvislost s růstem. Losují se nezávisle.']].map(([t, d]) => ({ t, d }))

@@ -23,8 +23,8 @@
   "board": "KM1Data.dc.html",
   "title": "M1 · Model: Data",
   "w": 1440,
-  "h": 2730,
-  "text_chars": 5175,
+  "h": 3410,
+  "text_chars": 6648,
   "errors": [],
   "failed_requests": [],
   "image": "03-KM1Data.webp"
@@ -33,8 +33,8 @@
   "board": "KM2Assumptions.dc.html",
   "title": "M2 · Model: Předpoklady",
   "w": 1440,
-  "h": 1940,
-  "text_chars": 4082,
+  "h": 3100,
+  "text_chars": 6851,
   "errors": [],
   "failed_requests": [],
   "image": "04-KM2Assumptions.webp"
@@ -43,8 +43,8 @@
   "board": "KM3Model.dc.html",
   "title": "M3 · Model: Model",
   "w": 1440,
-  "h": 1820,
-  "text_chars": 3667,
+  "h": 2500,
+  "text_chars": 5262,
   "errors": [],
   "failed_requests": [],
   "image": "05-KM3Model.webp"
@@ -53,41 +53,31 @@
   "board": "KM4Results.dc.html",
   "title": "M4 · Model: Výsledky",
   "w": 1440,
-  "h": 2420,
-  "text_chars": 4421,
+  "h": 3060,
+  "text_chars": 6794,
   "errors": [],
   "failed_requests": [],
   "image": "06-KM4Results.webp"
- },
- {
-  "board": "KM5Map.dc.html",
-  "title": "M5 · Nahrazeno: dosavadní mapa (aia-sociomap-5)",
-  "w": 1440,
-  "h": 2340,
-  "text_chars": 3809,
-  "errors": [],
-  "failed_requests": [],
-  "image": "07-KM5Map.webp"
  },
  {
   "board": "KM6Report.dc.html",
   "title": "M6 · Model: Zpráva",
   "w": 1440,
   "h": 1840,
-  "text_chars": 5211,
+  "text_chars": 5434,
   "errors": [],
   "failed_requests": [],
-  "image": "08-KM6Report.webp"
+  "image": "07-KM6Report.webp"
  },
  {
   "board": "KM7Finance.dc.html",
   "title": "M4b · Výsledky: Business case a finance",
   "w": 1440,
   "h": 2248,
-  "text_chars": 4004,
+  "text_chars": 4064,
   "errors": [],
   "failed_requests": [],
-  "image": "09-KM7Finance.webp"
+  "image": "08-KM7Finance.webp"
  },
  {
   "board": "KM8Accounting.dc.html",
@@ -97,7 +87,7 @@
   "text_chars": 2681,
   "errors": [],
   "failed_requests": [],
-  "image": "10-KM8Accounting.webp"
+  "image": "09-KM8Accounting.webp"
  },
  {
   "board": "KM9Operations.dc.html",
@@ -107,17 +97,17 @@
   "text_chars": 3164,
   "errors": [],
   "failed_requests": [],
-  "image": "11-KM9Operations.webp"
+  "image": "10-KM9Operations.webp"
  },
  {
   "board": "MV0Scope.dc.html",
   "title": "MVP · Definované MVP: přehled",
   "w": 1440,
-  "h": 3050,
-  "text_chars": 8018,
+  "h": 3440,
+  "text_chars": 9494,
   "errors": [],
   "failed_requests": [],
-  "image": "12-MV0Scope.webp"
+  "image": "11-MV0Scope.webp"
  },
  {
   "board": "MV1Contract.dc.html",
@@ -127,7 +117,7 @@
   "text_chars": 3726,
   "errors": [],
   "failed_requests": [],
-  "image": "13-MV1Contract.webp"
+  "image": "12-MV1Contract.webp"
  },
  {
   "board": "MV2PublicData.dc.html",
@@ -137,7 +127,7 @@
   "text_chars": 3611,
   "errors": [],
   "failed_requests": [],
-  "image": "14-MV2PublicData.webp"
+  "image": "13-MV2PublicData.webp"
  },
  {
   "board": "MV2bFindings.dc.html",
@@ -147,37 +137,37 @@
   "text_chars": 3163,
   "errors": [],
   "failed_requests": [],
-  "image": "15-MV2bFindings.webp"
+  "image": "14-MV2bFindings.webp"
  },
  {
   "board": "MV3SystemMap.dc.html",
   "title": "MV3 · Výsledky: Sociomapa systémů",
   "w": 1440,
-  "h": 2430,
-  "text_chars": 4025,
+  "h": 3480,
+  "text_chars": 6407,
   "errors": [],
   "failed_requests": [],
-  "image": "16-MV3SystemMap.webp"
+  "image": "15-MV3SystemMap.webp"
  },
  {
   "board": "MV4XRay.dc.html",
   "title": "MV4 · Osnova zprávy",
   "w": 1440,
-  "h": 2725,
-  "text_chars": 4809,
+  "h": 3690,
+  "text_chars": 7575,
   "errors": [],
   "failed_requests": [],
-  "image": "17-MV4XRay.webp"
+  "image": "16-MV4XRay.webp"
  },
  {
   "board": "MV5Validation.dc.html",
   "title": "MV5 · Metodika: validační sada a otázky",
   "w": 1440,
-  "h": 1870,
-  "text_chars": 4051,
+  "h": 2540,
+  "text_chars": 5835,
   "errors": [],
   "failed_requests": [],
-  "image": "18-MV5Validation.webp"
+  "image": "17-MV5Validation.webp"
  },
  {
   "board": "MV6Catalogue.dc.html",
@@ -187,27 +177,17 @@
   "text_chars": 7920,
   "errors": [],
   "failed_requests": [],
-  "image": "19-MV6Catalogue.webp"
- },
- {
-  "board": "MV7UXAudit.dc.html",
-  "title": "MV7 · Kontrola UX",
-  "w": 1440,
-  "h": 2400,
-  "text_chars": 4098,
-  "errors": [],
-  "failed_requests": [],
-  "image": "20-MV7UXAudit.webp"
+  "image": "18-MV6Catalogue.webp"
  },
  {
   "board": "Z0Flow.dc.html",
   "title": "Z0 · Zadání: průchod",
   "w": 1440,
-  "h": 2160,
-  "text_chars": 6227,
+  "h": 2440,
+  "text_chars": 7266,
   "errors": [],
   "failed_requests": [],
-  "image": "21-Z0Flow.webp"
+  "image": "19-Z0Flow.webp"
  },
  {
   "board": "Z1Start.dc.html",
@@ -217,7 +197,7 @@
   "text_chars": 2861,
   "errors": [],
   "failed_requests": [],
-  "image": "22-Z1Start.webp"
+  "image": "20-Z1Start.webp"
  },
  {
   "board": "Z2Triage.dc.html",
@@ -227,17 +207,17 @@
   "text_chars": 4359,
   "errors": [],
   "failed_requests": [],
-  "image": "23-Z2Triage.webp"
+  "image": "21-Z2Triage.webp"
  },
  {
   "board": "Z3Decision.dc.html",
   "title": "Z3 · Zadání: rozhodnutí a pravidlo",
   "w": 1440,
-  "h": 2220,
-  "text_chars": 5126,
+  "h": 2290,
+  "text_chars": 5284,
   "errors": [],
   "failed_requests": [],
-  "image": "24-Z3Decision.webp"
+  "image": "22-Z3Decision.webp"
  },
  {
   "board": "Z4Analyses.dc.html",
@@ -247,66 +227,76 @@
   "text_chars": 6550,
   "errors": [],
   "failed_requests": [],
-  "image": "25-Z4Analyses.webp"
+  "image": "23-Z4Analyses.webp"
  },
  {
   "board": "Z5Model.dc.html",
   "title": "Z5 · Zadání: obchodní model",
   "w": 1440,
-  "h": 3560,
-  "text_chars": 6343,
+  "h": 3580,
+  "text_chars": 6571,
   "errors": [],
   "failed_requests": [],
-  "image": "26-Z5Model.webp"
+  "image": "24-Z5Model.webp"
  },
  {
   "board": "Z7Ready.dc.html",
   "title": "Z7 · Zadání: připravenost a předání",
   "w": 1440,
-  "h": 1360,
-  "text_chars": 2960,
+  "h": 1520,
+  "text_chars": 3555,
   "errors": [],
   "failed_requests": [],
-  "image": "27-Z7Ready.webp"
+  "image": "25-Z7Ready.webp"
  },
  {
   "board": "SI1Method.dc.html",
   "title": "SI1 · Sociomapa z indikátorů: metoda",
   "w": 1440,
-  "h": 4530,
-  "text_chars": 7073,
+  "h": 4980,
+  "text_chars": 9496,
   "errors": [],
   "failed_requests": [],
-  "image": "28-SI1Method.webp"
+  "image": "26-SI1Method.webp"
  },
  {
   "board": "SI2Matrix.dc.html",
   "title": "SI2 · Sociomapa z indikátorů: matice skóre",
   "w": 1440,
-  "h": 2240,
-  "text_chars": 3781,
+  "h": 2410,
+  "text_chars": 4125,
   "errors": [],
   "failed_requests": [],
-  "image": "29-SI2Matrix.webp"
+  "image": "27-SI2Matrix.webp"
  },
  {
   "board": "SI3OptionsMap.dc.html",
   "title": "SI3 · Sociomapa z indikátorů: mapa možností",
   "w": 1440,
-  "h": 3600,
-  "text_chars": 4623,
+  "h": 3810,
+  "text_chars": 6370,
   "errors": [],
   "failed_requests": [],
-  "image": "30-SI3OptionsMap.webp"
+  "image": "28-SI3OptionsMap.webp"
  },
  {
   "board": "SI4Suppliers.dc.html",
   "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
   "w": 1440,
-  "h": 6240,
-  "text_chars": 8289,
+  "h": 6980,
+  "text_chars": 11194,
   "errors": [],
   "failed_requests": [],
-  "image": "31-SI4Suppliers.webp"
+  "image": "29-SI4Suppliers.webp"
+ },
+ {
+  "board": "MV8Validity.dc.html",
+  "title": "MV8 · Zpráva: kontrola platnosti modelu",
+  "w": 1440,
+  "h": 2000,
+  "text_chars": 4489,
+  "errors": [],
+  "failed_requests": [],
+  "image": "30-MV8Validity.webp"
  }
 ]
