@@ -11,6 +11,7 @@ chunks:
   - "[ ] CPR8. Klienti's 'Čeká na vás dnes': the cross-client portfolio of client-knowledge-lifecycle#K9 at the top of the directory (W3, with K9)"
   - "[ ] CPR9. Výzkumy: a status segment, the Krok column in the eleven stages' words, the rejected-knowledge count per study, the table's one search matching the designs' text as project memory does, and Použít jako základ on every study (W1, after CPR10)"
   - "[ ] CPR10. One stage vocabulary: the client pages' stage names (apps/web/src/i18n/cs.ts:251-262) replaced by the eleven stages of lib/workbench-stages.ts (W1)"
+  - "[x] CPR23. The workbench stage a study was left on, the server: PUT …/workspace/stage takes the workbench stage beside the classic step, a migration keeps it on study_workspaces, and the study answers it, so the client pages can name all eleven stages (W1, before CPR10 reads it and before CPR9; Nigel, 1 Nov)"
   - "[ ] CPR11. Profil: fields edited in place, the data posture in words (Nesmí / Smí), the budget without a false zero, and the history with budget and rule changes (W1, after CPR3; with input-interactions#8)"
   - "[ ] CPR12. Přidat podklady: the destination folder as a tree and AI extraction as a switch showing its ceiling, 'Cena nejvýše' (W2, after study-files#SF3 and client-knowledge-lifecycle#K16)"
   - "[ ] CPR13. Přidat podklady: Vložit odkaz, one public URL kept as the client's source (W2, after client-knowledge-lifecycle#K2e)"
@@ -145,6 +146,31 @@ calling the existing `POST /clients/{id}/memory/reuse` (`application/design_reus
 **CPR10. One stage vocabulary** (W1). `cs.ts:251-262` names ten stages of the classic flow (Audience, Kontrola a
 spuštění, Ověření, Další krok). The client pages read the eleven stages of `lib/workbench-stages.ts` instead. Test:
 a guard test that the client pages import no stage word but the workbench's.
+
+**CPR23. The workbench stage a study was left on** (W1, server; Nigel, 1 Nov 2026, 15:02 UTC, relayed by the PM
+coordinator: "Server chunk first"). A study's `last_stage` keeps the classic step alone
+(`StudyWorkspaceRepository.record_stage`, `packages/aia_core/src/aia_core/infrastructure/study_workspace_repository.py:630-645`;
+`STAGE_KEYS`, `packages/aia_core/src/aia_core/domain/workspace.py:79-92`; `StageRequest`,
+`apps/api/src/aia_api/routers/workspace.py:647-652` @ b99527a9), so Vzorek reads as Dimenze and Sociomapa, Analýza and Zpráva
+as Výsledky on the client pages (CPR10's finding). The work:
+
+- `domain/workspace.py`: `WORKBENCH_STAGE_KEYS`, the eleven stages of `apps/web/src/lib/workbench-stages.ts` (`STAGE_ORDER`),
+  held to the web's list by a shared fixture so neither side can drift;
+- `study_workspaces.last_workbench_stage`, nullable (`String(32)`), one migration; null for every row written before;
+- `PUT /studies/{id}/workspace/stage` takes an optional `workbench_stage` beside `stage`: one of the eleven whose
+  route is that step (`WORKBENCH_STAGE_STEPS`, the web's `stageOf`; fieldwork's run or progress), else 422
+  `unknown_stage` as an unknown step is, so a stored pair never disagrees; recorded with the step, as the step is (a no-op for a role that may not edit);
+  a request naming only the step clears it, so the two never disagree;
+- the study's workspace read (`WorkspaceStudy`, `workspace.py:158`) answers `last_workbench_stage` beside `last_stage`.
+
+Not here: the web sending it and reading it (CPR10). Tests: a recorded stage reads back with its step; an unknown one, or
+one its step's route never shows, is 422 and records nothing; a step alone clears it; a role that may not edit records
+nothing; a row from before reads null. Built: migration `06636082e03b` (on `5cc62edde24e`), checked by hand on PostgreSQL
+16 (upgrade, a nullable `varchar(32)`, `alembic check` clean, downgrade and upgrade); CI's backend job runs upgrade,
+check and the base round trip on every push. The fixture carries each stage's steps too. Tests:
+`test_study_workspaces.py::test_the_workbench_stage_is_remembered_beside_its_step_and_never_disagrees_with_it`,
+`::test_the_workbench_stages_are_the_webs_eleven_in_order`, `test_client_api.py` (recorded and read back on the studies list,
+an unknown stage or a pair that disagrees 422, the classic layout's step alone clearing it, a row from before null), `apps/web/src/lib/workbench-stages.test.ts` (STAGE_ORDER held to the fixture).
 
 **CPR11. Profil** (W1). Fields edited in place (`input-interactions#8`); the data posture in words: "Nesmí" /
 "Smí" for what Deep Research may send (`clients.data_posture`, `deep-research-web-search#53`); the budget unset

@@ -678,6 +678,27 @@ def test_a_new_study_starts_empty_with_the_template_and_its_first_save_is_revisi
         True,
         "NATIVE",
     )
+    assert row["last_workbench_stage"] is None  # recorded before CPR23: not known
+
+    # CPR23: the workbench stage beside the step; an unknown one is refused and records nothing.
+    assert (
+        lead.put(f"{url}/stage", json={"stage": "results", "workbench_stage": "report"}).status_code
+        == 204
+    )
+    for refused_pair in (
+        {"stage": "results", "workbench_stage": "nowhere"},
+        {"stage": "brief", "workbench_stage": "report"},
+    ):
+        refused = lead.put(f"{url}/stage", json=refused_pair)
+        assert refused.status_code == 422 and refused.json()["code"] == "unknown_stage"
+    listed = lead.get(f"{API}/clients/{world.client_id()}/studies").json()
+    row = next(s for s in listed if s["study_id"] == world.study_id())
+    assert (row["last_stage"], row["last_workbench_stage"]) == ("results", "report")
+    # The classic layout names the step alone: the study was left there, its stage not known.
+    assert lead.put(f"{url}/stage", json={"stage": "plan"}).status_code == 204
+    listed = lead.get(f"{API}/clients/{world.client_id()}/studies").json()
+    row = next(s for s in listed if s["study_id"] == world.study_id())
+    assert (row["last_stage"], row["last_workbench_stage"]) == ("plan", None)
 
 
 def test_a_save_from_a_stale_revision_is_a_conflict_that_names_the_current_one(

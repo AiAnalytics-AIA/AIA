@@ -25,6 +25,7 @@ from typing import Any
 
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from ..domain.attachments import (
     ATTACHMENT_ARTIFACT_TYPE,
@@ -44,6 +45,7 @@ from ..domain.scope import ClientContext, Permission, ScopeDenied, StudyContext,
 from ..domain.workspace import (
     SAVE_REASON,
     STAGE_KEYS,
+    WORKBENCH_STAGE_STEPS,
     WORKSPACE_PROJECT_OWNER,
     ContentState,
     StudyWorkspace,
@@ -88,6 +90,7 @@ def _to_domain(row: StudyWorkspaceRow) -> StudyWorkspace:
         unit_project_id=row.unit_project_id,
         lineage=dict(row.lineage or {}),
         last_stage=row.last_stage,
+        last_workbench_stage=row.last_workbench_stage,
         bound_at=as_utc(row.bound_at),
         modified_at=as_utc(row.modified_at),
     )
@@ -627,21 +630,34 @@ class StudyWorkspaceRepository:
             raise ArtifactNotFound(attachment_id)
         return artifact, artifacts.read(attachment_id)
 
-    def record_stage(self, scope: StudyContext, *, stage: str) -> StudyWorkspace | None:
-        """Remember the stage the study was opened on.
+    def record_stage(
+        self, scope: StudyContext, *, stage: str, workbench_stage: str | None = None
+    ) -> StudyWorkspace | None:
+        """Remember the stage the study was opened on: its classic step and, when the workbench
+        names it, the workbench stage beside it, which must be one the step's route shows. A step
+        recorded alone (the classic layout's) clears the workbench stage: the study was left on
+        that step and nothing says which stage, so the two never disagree.
 
         A no-op without a workspace or without ``EDIT_STUDY``.
         """
         if stage not in STAGE_KEYS:
             raise ValueError("unknown stage")
+        if workbench_stage is not None and stage not in WORKBENCH_STAGE_STEPS.get(
+            workbench_stage, frozenset()
+        ):
+            # An unknown stage, or one the step's route never shows: the pair would disagree.
+            raise ValueError("unknown workbench stage")
         if not scope.has(Permission.EDIT_STUDY):
             return self.get(scope)
         row = self._row(scope)
         if row is None:
             return None
-        if row.last_stage != stage:
-            row.last_stage = stage
-            self._session.flush()
+        # Both columns in one UPDATE, every time: the ORM writes only the columns it sees change,
+        # and a concurrent request's committed step would otherwise end beside this stage.
+        row.last_stage, row.last_workbench_stage = stage, workbench_stage
+        flag_modified(row, "last_stage")
+        flag_modified(row, "last_workbench_stage")
+        self._session.flush()
         return _to_domain(row)
 
 
