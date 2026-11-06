@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 5 Nov 2026 (version 38)
+# AIA Obchodní model – prototyp, 6 Nov 2026 (version 51)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,11 +16,11 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 38, artifact version `1793908215-017a` |
+| Version | version 51, artifact version `1793960854-7e5c` (versions 39–50 changed no board this export holds) |
 | Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then; versions 34–36 were uploads only) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
-| Other assets | `assets/thinking-orbs.js`, the same bytes as research-stages' copy. Six uploaded images for SI3 and SI4, the aia-sociomap-5 engine's maps of the tested settings as AIA's report renderer draws them (`tools/engine_assets.json` names each). Three uploaded images: the -5 strategy map's top, 3D and scenario views (`KM5Map`; `MV3SystemMap` reuses the top view) |
+| Other assets | `assets/thinking-orbs.js`, the same bytes as research-stages' copy. Six uploaded images for SI3 and SI4, the aia-sociomap-5 engine's maps of the tested settings as AIA's report renderer draws them (`tools/engine_assets.json` names each). One uploaded image: the scenario map's top view on `MV3SystemMap` |
 
 In the exported files, the canvas's asset URLs (`/_blob/<id>`) are rewritten to `assets/<id>.jpg`. `canvas.json` lists the
 boards, their titles, sizes and positions, and their order.
@@ -29,17 +29,28 @@ boards, their titles, sizes and positions, and their order.
 
 Every study board carries the same nine-step navigator: Zadání (with its sub-steps), Data, Rešerše, Předpoklady, Model,
 Výsledky, Sociomapa, Osnova zprávy and Zpráva. Each also carries a collapsible Lead pane (Ada; a CSS checkbox, `#leadx`)
-and a ⋯ menu per stage. The canvas has four rows:
+and a ⋯ menu per stage. Since version 51 the canvas has one row per phase of the navigator, in the order a study walks
+through them, and each board's arrows at the bottom follow that order (Z1 → … → M6 Zpráva):
+
+| Row | Boards |
+|---|---|
+| Zadání | Z0 průchod · Z1 · Z2 · Z3 · Z4 · Z5 · Z7 |
+| Vstupy | M1 Data · MV1 datová smlouva · MV2 typované vstupy · MV2b zjištění podle analýz · M2 Předpoklady |
+| Výpočet | M3 Model · M4 Výsledky: Rozhodnutí · M4b Finance · M4c Účetnictví · M4d Provoz · M4f Logistika · M4e Trh |
+| Sociomapa | MV3 Sociomapa systémů · SI1–SI4 Sociomapa z indikátorů |
+| Předání | MV4 Osnova zprávy · MV8 kontrola platnosti modelu · M6 Zpráva |
+| MVP a Metodika | MV0 přehled MVP · MV5 validační sada a otázky · MV6 katalog analýz |
+
+The board codes keep the row they were first drawn in (Z, M, MV, SI), so every link and file name still resolves.
 
 - **Zadání (Z0–Z7).** Free text and files come first. Ada then triages the brief into eight parts. Next come the shared
   core (the decision, the options, a rule with its threshold and risk bound) and the analyses the report will include
   (Z4, the framework picker). Then the model's parts and the hand-off.
 - **The model study (M1–M6).** Data, assumptions, the model, and the results in six tabs: Rozhodnutí, Finance,
-  Účetnictví, Provoz, Logistika and Trh. M5 is the earlier `aia-sociomap-5` strategy map, labelled internal. M6 is the
-  report.
+  Účetnictví, Provoz, Logistika and Trh. M6 is the report.
 - **The MVP (MV0–MV8).** The scope, the data contract, typed inputs and findings by framework from Rešerše, Sociomapa
-  systémů, the report outline (Osnova zprávy), Metodika's validation set and questions, the framework catalogue, a
-  UX audit of open items, and the model-validity review that the recommendation waits for (MV8).
+  systémů, the report outline (Osnova zprávy), Metodika's validation set and questions, the framework catalogue, and
+  the model-validity review that the recommendation waits for (MV8).
 - **Sociomapa z indikátorů (SI1–SI4).** The indicator method of the product owner's cloud-provider analysis
   (indicators scored 1–10 by rule, each with a source and a certainty; category means; a weighted total as height;
   z-scores; profile similarity (r + 1) × 5; futures over weights and certainty), applied to Velis's decision: the
@@ -164,6 +175,16 @@ with an option to 31. 5. 2027); the C2 pilot is three months in Olomoucký kraj,
 six weeks). The remaining "záloha" wording on MV4 and KM6 now says "přechod". Found while writing the methodology's
 version 2 (acceptance criterion K6).
 
+**Changed in version 51 (6 Nov): one study, no old versions.** At the product owner's word ("we need to consolidate the
+mvp prototype screens. get rid of any old versions. lets leave the latest working idea up"):
+
+- **Removed.** M5 (`KM5Map`, the earlier `aia-sociomap-5` strategy map, marked "Nahrazeno" since version 11; MV3 and
+  SI1–SI4 replace it) and MV7 (`MV7UXAudit`, the UX audit of 2 Nov, whose findings the boards already carry), with M5's
+  two images that no other board uses. Git history keeps them.
+- **One path.** The rows follow the navigator (table above), and the arrows run Z1 → … → M6: MV3 now leads to SI1, Osnova
+  zprávy to MV8, MV8 to Zpráva. Z0's board list is in the same order and names every board (MV2b and M4f were missing);
+  MV0 no longer points at M5 or MV7.
+
 | # | File | Board |
 |---|---|---|
 | 1 | `Z0Flow.dc.html` | Z0 · Zadání: průchod |
@@ -174,36 +195,34 @@ version 2 (acceptance criterion K6).
 | 6 | `Z5Model.dc.html` | Z5 · Zadání: obchodní model |
 | 7 | `Z7Ready.dc.html` | Z7 · Zadání: připravenost a předání |
 | 8 | `KM1Data.dc.html` | M1 · Model: Data |
-| 9 | `KM2Assumptions.dc.html` | M2 · Model: Předpoklady |
-| 10 | `KM3Model.dc.html` | M3 · Model: Model |
-| 11 | `KM4Results.dc.html` | M4 · Model: Výsledky |
-| 12 | `KM7Finance.dc.html` | M4b · Výsledky: Business case a finance |
-| 13 | `KM8Accounting.dc.html` | M4c · Výsledky: Účetnictví |
-| 14 | `KM9Operations.dc.html` | M4d · Výsledky: Operační výzkum |
-| 15 | `KM11Logistics.dc.html` | M4f · Výsledky: Logistika |
-| 16 | `KM10Market.dc.html` | M4e · Výsledky: Velikost trhu |
-| 17 | `KM5Map.dc.html` | M5 · Dosavadní mapa (aia-sociomap-5) |
-| 18 | `KM6Report.dc.html` | M6 · Model: Zpráva |
-| 19 | `MV0Scope.dc.html` | MVP · Definované MVP: přehled |
-| 20 | `MV1Contract.dc.html` | MV1 · Data: datová smlouva |
-| 21 | `MV2PublicData.dc.html` | MV2 · Rešerše: typované vstupy |
-| 22 | `MV2bFindings.dc.html` | MV2b · Rešerše: zjištění podle analýz |
-| 23 | `MV3SystemMap.dc.html` | MV3 · Výsledky: Sociomapa systémů |
-| 24 | `MV4XRay.dc.html` | MV4 · Osnova zprávy |
-| 25 | `MV5Validation.dc.html` | MV5 · Metodika: validační sada a otázky |
-| 26 | `MV6Catalogue.dc.html` | MV6 · Katalog analýz |
-| 27 | `MV7UXAudit.dc.html` | MV7 · Kontrola UX |
-| 28 | `SI1Method.dc.html` | SI1 · Sociomapa z indikátorů: metoda |
-| 29 | `SI2Matrix.dc.html` | SI2 · Sociomapa z indikátorů: matice skóre |
-| 30 | `SI3OptionsMap.dc.html` | SI3 · Sociomapa z indikátorů: mapa možností |
-| 31 | `SI4Suppliers.dc.html` | SI4 · Sociomapa z indikátorů: mapa dodavatelů |
-| 32 | `MV8Validity.dc.html` | MV8 · Zpráva: kontrola platnosti modelu |
+| 9 | `MV1Contract.dc.html` | MV1 · Data: datová smlouva |
+| 10 | `MV2PublicData.dc.html` | MV2 · Rešerše: typované vstupy |
+| 11 | `MV2bFindings.dc.html` | MV2b · Rešerše: zjištění podle analýz |
+| 12 | `KM2Assumptions.dc.html` | M2 · Model: Předpoklady |
+| 13 | `KM3Model.dc.html` | M3 · Model: Model |
+| 14 | `KM4Results.dc.html` | M4 · Model: Výsledky |
+| 15 | `KM7Finance.dc.html` | M4b · Výsledky: Business case a finance |
+| 16 | `KM8Accounting.dc.html` | M4c · Výsledky: Účetnictví |
+| 17 | `KM9Operations.dc.html` | M4d · Výsledky: Operační výzkum |
+| 18 | `KM11Logistics.dc.html` | M4f · Výsledky: Logistika |
+| 19 | `KM10Market.dc.html` | M4e · Výsledky: Velikost trhu |
+| 20 | `MV3SystemMap.dc.html` | MV3 · Výsledky: Sociomapa systémů |
+| 21 | `SI1Method.dc.html` | SI1 · Sociomapa z indikátorů: metoda |
+| 22 | `SI2Matrix.dc.html` | SI2 · Sociomapa z indikátorů: matice skóre |
+| 23 | `SI3OptionsMap.dc.html` | SI3 · Sociomapa z indikátorů: mapa možností |
+| 24 | `SI4Suppliers.dc.html` | SI4 · Sociomapa z indikátorů: mapa dodavatelů |
+| 25 | `MV4XRay.dc.html` | MV4 · Osnova zprávy |
+| 26 | `MV8Validity.dc.html` | MV8 · Zpráva: kontrola platnosti modelu |
+| 27 | `KM6Report.dc.html` | M6 · Model: Zpráva |
+| 28 | `MV0Scope.dc.html` | MVP · Definované MVP: přehled |
+| 29 | `MV5Validation.dc.html` | MV5 · Metodika: validační sada a otázky |
+| 30 | `MV6Catalogue.dc.html` | MV6 · Katalog analýz |
 
 ## Reference renders
 
-`reference/` holds every board as drawn by `tools/prototype_renders/render.js` with the Design type's runtime: 32 images
+`reference/` holds every board as drawn by `tools/prototype_renders/render.js` with the Design type's runtime: 30 images
 in WebP at quality 88, and `renders.json`. No board had a script error or a failed request. The images are numbered in
-`canvas.json`'s board order (alphabetical since version 8), not in the order of the table above.
+`canvas.json`'s board order, not in the order of the table above.
 
 ## Known wrong
 

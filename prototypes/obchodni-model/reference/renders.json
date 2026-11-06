@@ -60,24 +60,14 @@
   "image": "06-KM4Results.webp"
  },
  {
-  "board": "KM5Map.dc.html",
-  "title": "M5 · Nahrazeno: dosavadní mapa (aia-sociomap-5)",
-  "w": 1440,
-  "h": 2340,
-  "text_chars": 3809,
-  "errors": [],
-  "failed_requests": [],
-  "image": "07-KM5Map.webp"
- },
- {
   "board": "KM6Report.dc.html",
   "title": "M6 · Model: Zpráva",
   "w": 1440,
   "h": 1840,
-  "text_chars": 5422,
+  "text_chars": 5434,
   "errors": [],
   "failed_requests": [],
-  "image": "08-KM6Report.webp"
+  "image": "07-KM6Report.webp"
  },
  {
   "board": "KM7Finance.dc.html",
@@ -87,7 +77,7 @@
   "text_chars": 4064,
   "errors": [],
   "failed_requests": [],
-  "image": "09-KM7Finance.webp"
+  "image": "08-KM7Finance.webp"
  },
  {
   "board": "KM8Accounting.dc.html",
@@ -97,7 +87,7 @@
   "text_chars": 2681,
   "errors": [],
   "failed_requests": [],
-  "image": "10-KM8Accounting.webp"
+  "image": "09-KM8Accounting.webp"
  },
  {
   "board": "KM9Operations.dc.html",
@@ -107,17 +97,17 @@
   "text_chars": 3164,
   "errors": [],
   "failed_requests": [],
-  "image": "11-KM9Operations.webp"
+  "image": "10-KM9Operations.webp"
  },
  {
   "board": "MV0Scope.dc.html",
   "title": "MVP · Definované MVP: přehled",
   "w": 1440,
   "h": 3440,
-  "text_chars": 9506,
+  "text_chars": 9494,
   "errors": [],
   "failed_requests": [],
-  "image": "12-MV0Scope.webp"
+  "image": "11-MV0Scope.webp"
  },
  {
   "board": "MV1Contract.dc.html",
@@ -127,7 +117,7 @@
   "text_chars": 3726,
   "errors": [],
   "failed_requests": [],
-  "image": "13-MV1Contract.webp"
+  "image": "12-MV1Contract.webp"
  },
  {
   "board": "MV2PublicData.dc.html",
@@ -137,7 +127,7 @@
   "text_chars": 3611,
   "errors": [],
   "failed_requests": [],
-  "image": "14-MV2PublicData.webp"
+  "image": "13-MV2PublicData.webp"
  },
  {
   "board": "MV2bFindings.dc.html",
@@ -147,27 +137,27 @@
   "text_chars": 3163,
   "errors": [],
   "failed_requests": [],
-  "image": "15-MV2bFindings.webp"
+  "image": "14-MV2bFindings.webp"
  },
  {
   "board": "MV3SystemMap.dc.html",
   "title": "MV3 · Výsledky: Sociomapa systémů",
   "w": 1440,
   "h": 3480,
-  "text_chars": 6430,
+  "text_chars": 6407,
   "errors": [],
   "failed_requests": [],
-  "image": "16-MV3SystemMap.webp"
+  "image": "15-MV3SystemMap.webp"
  },
  {
   "board": "MV4XRay.dc.html",
   "title": "MV4 · Osnova zprávy",
   "w": 1440,
   "h": 3690,
-  "text_chars": 7550,
+  "text_chars": 7575,
   "errors": [],
   "failed_requests": [],
-  "image": "17-MV4XRay.webp"
+  "image": "16-MV4XRay.webp"
  },
  {
   "board": "MV5Validation.dc.html",
@@ -177,7 +167,7 @@
   "text_chars": 5835,
   "errors": [],
   "failed_requests": [],
-  "image": "18-MV5Validation.webp"
+  "image": "17-MV5Validation.webp"
  },
  {
   "board": "MV6Catalogue.dc.html",
@@ -187,27 +177,17 @@
   "text_chars": 7920,
   "errors": [],
   "failed_requests": [],
-  "image": "19-MV6Catalogue.webp"
- },
- {
-  "board": "MV7UXAudit.dc.html",
-  "title": "MV7 · Kontrola UX",
-  "w": 1440,
-  "h": 2400,
-  "text_chars": 4098,
-  "errors": [],
-  "failed_requests": [],
-  "image": "20-MV7UXAudit.webp"
+  "image": "18-MV6Catalogue.webp"
  },
  {
   "board": "Z0Flow.dc.html",
   "title": "Z0 · Zadání: průchod",
   "w": 1440,
   "h": 2440,
-  "text_chars": 7122,
+  "text_chars": 7266,
   "errors": [],
   "failed_requests": [],
-  "image": "21-Z0Flow.webp"
+  "image": "19-Z0Flow.webp"
  },
  {
   "board": "Z1Start.dc.html",
@@ -217,7 +197,7 @@
   "text_chars": 2861,
   "errors": [],
   "failed_requests": [],
-  "image": "22-Z1Start.webp"
+  "image": "20-Z1Start.webp"
  },
  {
   "board": "Z2Triage.dc.html",
@@ -227,7 +207,7 @@
   "text_chars": 4359,
   "errors": [],
   "failed_requests": [],
-  "image": "23-Z2Triage.webp"
+  "image": "21-Z2Triage.webp"
  },
  {
   "board": "Z3Decision.dc.html",
@@ -237,7 +217,7 @@
   "text_chars": 5284,
   "errors": [],
   "failed_requests": [],
-  "image": "24-Z3Decision.webp"
+  "image": "22-Z3Decision.webp"
  },
  {
   "board": "Z4Analyses.dc.html",
@@ -247,7 +227,7 @@
   "text_chars": 6550,
   "errors": [],
   "failed_requests": [],
-  "image": "25-Z4Analyses.webp"
+  "image": "23-Z4Analyses.webp"
  },
  {
   "board": "Z5Model.dc.html",
@@ -257,7 +237,7 @@
   "text_chars": 6571,
   "errors": [],
   "failed_requests": [],
-  "image": "26-Z5Model.webp"
+  "image": "24-Z5Model.webp"
  },
  {
   "board": "Z7Ready.dc.html",
@@ -267,7 +247,7 @@
   "text_chars": 3555,
   "errors": [],
   "failed_requests": [],
-  "image": "27-Z7Ready.webp"
+  "image": "25-Z7Ready.webp"
  },
  {
   "board": "SI1Method.dc.html",
@@ -277,7 +257,7 @@
   "text_chars": 9496,
   "errors": [],
   "failed_requests": [],
-  "image": "28-SI1Method.webp"
+  "image": "26-SI1Method.webp"
  },
  {
   "board": "SI2Matrix.dc.html",
@@ -287,7 +267,7 @@
   "text_chars": 4125,
   "errors": [],
   "failed_requests": [],
-  "image": "29-SI2Matrix.webp"
+  "image": "27-SI2Matrix.webp"
  },
  {
   "board": "SI3OptionsMap.dc.html",
@@ -297,7 +277,7 @@
   "text_chars": 6370,
   "errors": [],
   "failed_requests": [],
-  "image": "30-SI3OptionsMap.webp"
+  "image": "28-SI3OptionsMap.webp"
  },
  {
   "board": "SI4Suppliers.dc.html",
@@ -307,7 +287,7 @@
   "text_chars": 11194,
   "errors": [],
   "failed_requests": [],
-  "image": "31-SI4Suppliers.webp"
+  "image": "29-SI4Suppliers.webp"
  },
  {
   "board": "MV8Validity.dc.html",
@@ -317,6 +297,6 @@
   "text_chars": 4489,
   "errors": [],
   "failed_requests": [],
-  "image": "32-MV8Validity.webp"
+  "image": "30-MV8Validity.webp"
  }
 ]
