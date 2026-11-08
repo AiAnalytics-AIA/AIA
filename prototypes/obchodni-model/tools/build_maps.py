@@ -529,7 +529,7 @@ def mv9():
     ])
     body = s01 + s02 + s03 + s04 + s05 + s06 + s07
     return frame("Model – Sociomapa: mapa scénářů vah (MVP)", "Sociomapa: mapa scénářů vah", "Sociomapa · mapa scénářů vah", conv, "Mapa scénářů vah",
-                 body, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI1Method.dc.html", "Sociomapa z indikátorů"), "MV9 Mapa scénářů vah", 7620, banner, "Sociomapa z indikátorů")
+                 body, ("MV3SystemMap.dc.html", "Sociomapa systémů"), ("SI1Method.dc.html", "Sociomapa z indikátorů"), "MV9 Mapa scénářů vah", 7560, banner, "Sociomapa z indikátorů")
 
 
 if __name__ == "__main__":

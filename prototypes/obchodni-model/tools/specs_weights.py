@@ -108,7 +108,7 @@ chemvitro = {
                  [18, 0], {**{s: [9, 15] for s in CZ}, **{s: 0 for s in DE}, **{s: [12, 18] for s in PL}}, state="Česko 9–15, Polsko 12–18, Německo bez kompenzace"),
             comp("E3", "Předčištění odpadních vod", "mil. EUR", "T5, T9", "z dat klienta · odhad", "part",
                  [15, 0], vals([0, [6.7, 14.1], 0, 0, [6.7, 14.1], 0, 0, 0]), state="Lipová a Lindenau: 6,7–14,1 ze srovnatelných závodů, základní případ 10"),
-            comp("E4", "Poplatek chemického parku", "mil. EUR ročně", "T9", "z dat klienta", "part", [1.5, 0], vals([0, 0, 0, 1.1, 0, 0, 0, 0])),
+            info("Poplatek chemického parku (Wendelstedt 1,1 mil. EUR ročně)", "uvnitř P2, údržba a park (T6): počítá se jednou, tady ne podruhé", "T9", "z dat klienta"),
             info("Emise CO₂ a EU ETS", "stejné pro všechny lokality: 56 EUR/t", "T6", "výpočet"),
         ]},
         {"code": "H", "name": "Lidé", "components": [
