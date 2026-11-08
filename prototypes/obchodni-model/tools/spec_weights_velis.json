@@ -32,6 +32,15 @@
   }
  ],
  "owner_scenario": "FR",
+ "families": {
+  "a": {
+   "name": "Úspora proti tomu, co model nepočítá",
+   "roles": [
+    "saving",
+    "outside"
+   ]
+  }
+ },
  "perspectives": [
   {
    "code": "F",
@@ -43,6 +52,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Výsledky (M4)",
      "grade": "výpočet",
+     "role": "saving",
      "anchors": [
       1,
       10
@@ -64,6 +74,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Výsledky (M4)",
      "grade": "výpočet",
+     "role": "saving",
      "anchors": [
       1,
       10
@@ -85,6 +96,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Rešerše · PESTEL E",
      "grade": "úsudek",
+     "role": "outside",
      "anchors": [
       1,
       10
@@ -112,6 +124,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Rešerše · Porter",
      "grade": "úsudek",
+     "role": "outside",
      "anchors": [
       1,
       10
@@ -133,6 +146,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Rešerše · PESTEL L",
      "grade": "úsudek",
+     "role": "outside",
      "anchors": [
       1,
       10
@@ -160,6 +174,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Zadání · dokumenty",
      "grade": "úsudek",
+     "role": "outside",
      "anchors": [
       1,
       10
@@ -180,7 +195,7 @@
   {
    "code": "M",
    "name": "Marketingová a obchodní",
-   "note": "Slib doručení do 1 dne ve velkých městech je brána G1 a nekompenzuje se; skórovaná součást není.",
+   "note": "Slib doručení do 1 dne ve velkých městech je brána G1 (doba doručení 1 den, C 2 dny) a nekompenzuje se; růst poptávky je pro všechny stejný: skórovaná součást není.",
    "components": []
   },
   {
@@ -193,6 +208,7 @@
      "unit": "skóre 1–10 podle pravidla SI1",
      "source": "Data · Předpoklady",
      "grade": "výpočet",
+     "role": "outside",
      "anchors": [
       1,
       10
@@ -309,11 +325,13 @@
    "override": {}
   }
  ],
+ "composed": "swing weighting ze SI1, schváleno FR 4. 11. před prvním skóre; rovné váhy ilustrační",
  "scenarios": [
   {
    "code": "FR",
    "name": "FR",
-   "who": "finanční ředitel (vlastník rozhodnutí) (swing weighting, SI1)",
+   "who": "finanční ředitel (vlastník rozhodnutí)",
+   "family": "a",
    "weights": {
     "F": 165,
     "S": 65,
@@ -324,7 +342,8 @@
   {
    "code": "OR",
    "name": "OR",
-   "who": "obchodní ředitelka (swing weighting, SI1)",
+   "who": "obchodní ředitelka",
+   "family": "a",
    "weights": {
     "F": 110,
     "S": 70,
@@ -335,7 +354,8 @@
   {
    "code": "VL",
    "name": "VL",
-   "who": "vedoucí logistiky (swing weighting, SI1)",
+   "who": "vedoucí logistiky",
+   "family": "a",
    "weights": {
     "F": 100,
     "S": 100,
@@ -347,6 +367,7 @@
    "code": "EQ",
    "name": "Rovné váhy",
    "who": "každá neprázdná perspektiva stejně",
+   "family": "a",
    "weights": {
     "F": 1,
     "S": 1,

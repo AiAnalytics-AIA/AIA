@@ -1,24 +1,28 @@
-"""The weighting-scenario map (MV9): two specs, ChemVitro and Velis.
+"""The weighting-scenario map (MV9): two specs, ChemVitro and Velis, after MVP-SCOPE.md § 3 and § 4.
 
-A perspective is a set of components of the decision; a component is one measure per option with
-a source, a direction and a declared value scale (the worst and the best anchor, 0 and 10, linear
-between them, clipped outside). A component the documents do not give per option keeps a range
-of values, never a single number. A perspective with no component for the case stays empty and
-says why. A scenario is a named weight vector over the perspectives; the components of one
-perspective share its weight equally, so a perspective counts once however many components it
-has (the overlap check: components that read the same model result are named, not weighted
-twice).
+A perspective is a set of components of the decision; a component is one measure per option with a
+source, a grade, a direction and a declared value scale (the worst and the best anchor, 0 and 10,
+linear between them, clipped outside). Each component says whether the model's saving already holds
+its mechanism (role "part": v modelu), whether it restates the saving itself (role "saving"), or
+whether the model leaves it out (role "outside": mimo model). A component the documents do not give
+per option keeps a range of values, never a single number; one that does not apply to an option is
+null and takes no weight there. Gates are not components. A row that is the same for every site, or
+informational, is listed and not scored.
 
-ChemVitro's numbers come from report 2's tables (T1, T4, T5, T6), chapter 4 (the compensation
-chance), chapter 6 (hiring) and chapter 9 (incentives), and the named site ratings in the case
-pack (hodnoceni_lokalit.csv, read from git). Velis reuses the indicator spec (spec_options.json)
-and its scored cells. The scenario weights are illustrative: in a study the decision owner and
-the client's people compose them.
+Two scenario families keep one mechanism counted once (the overlap check, § 4 line 6):
+  a  the saving against what the model leaves out: roles saving + outside;
+  b  the parts of the saving against each other, without the saving itself: roles part + outside.
+A scenario is a named weight vector over the perspectives with its family; the admitted components of
+a perspective share its weight equally. A vector over every component that weights the saving and one
+of its parts is refused by name and offered the two families.
+
+ChemVitro's numbers come from report 2's tables (T1, T4, T5, T6, T8, T9) and chapters 4, 6 and 9.
+Velis reuses the indicator spec (spec_options.json) and its scored cells. The scenario weights are
+illustrative: in a study the decision owner and the client's people compose them, and the approval
+ledger records who and when, before the results.
 """
 import json
 import os
-import statistics as st
-import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,100 +33,95 @@ from compute import score_cell  # noqa: E402
 SITES = ["VR", "LI", "KA", "WE", "LN", "ES", "OD", "BO"]
 SITE_NAMES = {"VR": "Vrbice", "LI": "Lipová", "KA": "Kamenec", "WE": "Wendelstedt", "LN": "Lindenau",
               "ES": "Eschfeld", "OD": "Odrzyca", "BO": "Bory"}
-CASE_CODES = {"CZ1": "VR", "CZ2": "LI", "CZ3": "KA", "DE1": "WE", "DE2": "LN", "DE3": "ES", "PL1": "OD", "PL2": "BO"}
+CZ, DE, PL = ["VR", "LI", "KA"], ["WE", "LN", "ES"], ["OD", "BO"]
 
 
 def vals(xs):
     return dict(zip(SITES, xs))
 
 
-def site_ratings(criterion):
-    """The named raters' mean score per site for one criterion of hodnoceni_lokalit.csv (1–10, 10 best)."""
-    text = subprocess.run(["git", "show", "origin/chore/case-chemvitro:prototypes/case-chemvitro/data/hodnoceni_lokalit.csv"],
-                          cwd=HERE, capture_output=True, text=True, check=True).stdout
-    rows = [r.split(";") for r in text.strip().splitlines()[1:]]
-    out, raters = {}, set()
-    for hodnotitel, _role, code, krit, score, *_ in rows:
-        if krit == criterion and score:
-            out.setdefault(CASE_CODES[code], []).append(int(score))
-            raters.add(hodnotitel)
-    return {k: round(st.mean(v), 2) for k, v in out.items()}, len(raters)
+def comp(code, name, unit, source, grade, role, anchors, values, **more):
+    return {"code": code, "name": name, "unit": unit, "source": source, "grade": grade, "role": role,
+            "anchors": anchors, "values": values, **more}
 
 
-risk_rating, n_raters = site_ratings("Rizika lokality")
-labour_rating, _ = site_ratings("Pracovní síla")
+def info(name, text, source=None, grade=None):
+    """A row shown and not scored: the same for every site, informational, or not applicable."""
+    return {"info": True, "name": name, "text": text, "source": source, "grade": grade}
+
 
 chemvitro = {
     "case": "ChemVitro",
     "decision": "Vlastní závod na VTX-40: která z osmi lokalit",
     "objects": [{"id": s, "name": SITE_NAMES[s]} for s in SITES],
-    "owner_scenario": "FR",
+    "owner_scenario": "FR_A",
+    "families": {
+        "a": {"name": "Úspora proti tomu, co model nepočítá", "roles": ["saving", "outside"]},
+        "b": {"name": "Části úspory proti sobě, bez úspory samé", "roles": ["part", "outside"]},
+    },
     "perspectives": [
         {"code": "F", "name": "Finanční", "components": [
-            {"code": "F1", "name": "Medián úspory proti nákupu", "unit": "mil. EUR, NPV 8 %", "source": "T1", "grade": "odhad",
-             "anchors": [60, 140], "values": vals([110.8, 126.0, 132.4, 82.3, 86.5, 61.2, 134.7, 123.2])},
-            {"code": "F2", "name": "Investice v základním případě", "unit": "mil. EUR", "source": "T5", "grade": "výpočet",
-             "anchors": [180, 140], "values": vals([160.6, 158.6, 152.3, 171.8, 170.8, 175.5, 148.9, 143.9])},
-            {"code": "F3", "name": "IRR", "unit": "%", "source": "T4", "grade": "výpočet",
-             "anchors": [12, 22], "values": vals([18.2, 19.2, 19.9, 14.8, 15.5, 14.4, 20.5, 20.1]),
-             "overlap": "týž výpočet jako F1 (NPV nákladů na zásobování)"},
-            {"code": "F4", "name": "Návratnost", "unit": "rok", "source": "T4", "grade": "výpočet",
-             "anchors": [2037, 2033], "values": vals([2035, 2034, 2034, 2035, 2035, 2036, 2034, 2035]),
-             "overlap": "týž výpočet jako F1"},
-            {"code": "F5", "name": "Medián úspory po zdanění", "unit": "mil. EUR, 8 %", "source": "T4", "grade": "odhad",
-             "state": "prozatímní: daňové sazby čekají na ověření",
-             "anchors": [40, 110], "values": vals([87.5, 99.9, 107.3, 72.1, 80.0, 45.9, 107.2, 96.0])},
-            {"code": "F6", "name": "P(ztráta > 20 mil. EUR)", "unit": "podíl budoucností", "source": "T1", "grade": "odhad",
-             "anchors": [0.25, 0.0], "values": vals([0.08, 0.06, 0.05, 0.15, 0.14, 0.21, 0.05, 0.06])},
+            comp("F1", "Medián úspory proti nákupu", "mil. EUR, NPV 2027–2044 při 8 %", "T1", "odhad", "saving",
+                 [60, 140], vals([110.8, 126.0, 132.4, 82.3, 86.5, 61.2, 134.7, 123.2])),
+            comp("F2", "Investice v základním případě", "mil. EUR", "T5", "výpočet", "part",
+                 [180, 140], vals([160.6, 158.6, 152.3, 171.8, 170.8, 175.5, 148.9, 143.9]), gate="G4"),
+            comp("F3", "P(investice ≤ 175 mil. EUR)", "podíl budoucností", "T5", "odhad", "part",
+                 [0.4, 1.0], vals([0.79, 0.82, 0.90, 0.56, 0.57, 0.50, 0.92, 0.92])),
+            comp("F4", "IRR", "%", "T4", "výpočet", "saving", [12, 22], vals([18.2, 19.2, 19.9, 14.8, 15.5, 14.4, 20.5, 20.1])),
+            comp("F5", "Rok návratnosti", "rok", "T4", "výpočet", "saving", [2037, 2033], vals([2035, 2034, 2034, 2035, 2035, 2036, 2034, 2035])),
+            comp("F6", "NPV po zdanění při 8 %", "mil. EUR, základní případ", "T4", "výpočet", "saving",
+                 [60, 130], vals([96.6, 116.3, 121.3, 84.3, 92.4, 69.3, 118.6, 99.7]), state="daň je pevný parametr; sazby prozatímní"),
+            info("Pobídky: daňová úleva (CZ, PL) nebo dotace (DE), podíl a P(schválení) 0,5",
+                 "informační: CZ 20–25 %, Odrzyca 35 %, Bory 50 %, Wendelstedt 15 %, Lindenau 20 %, Eschfeld 0; v základním případě nezapočteno, ve výhledu po zdanění ano",
+                 "R2-P10, T9", "z dat klienta · právní předpis · úsudek"),
         ]},
-        {"code": "S", "name": "Strategická",
-         "note": "Závislost na dodavateli, vratnost a podmínky po roce 2035 jsou pro všech osm lokalit stejné: nerozlišují, nevstupují.",
-         "components": [
-            {"code": "S1", "name": "Pobídky: nejvyšší uváděná podpora", "unit": "% investice", "source": "Nabídky lokalit s. 1–8; kap. 9",
-             "grade": "z dat klienta", "state": "prozatímní: schvaluje úřad; v základním případě nezapočteno; české nabídky uvádějí 20–25 % bez rozlišení lokalit",
-             "anchors": [0, 50], "values": {"VR": [20, 25], "LI": [20, 25], "KA": [20, 25], "WE": 15, "LN": 20, "ES": 0, "OD": 35, "BO": 50}},
-            {"code": "S2", "name": "Rizika lokality podle vedení", "unit": f"průměr 1–10, {n_raters} hodnotitelů", "source": "hodnoceni_lokalit.csv",
-             "grade": "jmenovaní hodnotitelé", "state": "úsudek lidí klienta, ne doklad",
-             "anchors": [1, 10], "values": risk_rating},
+        {"code": "S", "name": "Strategická", "components": [
+            comp("S1", "Společné selhání s vedoucí lokalitou (Odrzyca)", "podíl budoucností, v nichž je horší než nákup i tato lokalita", "T8, R2-P12", "odhad", "outside",
+                 [1.0, 0.7], vals([0.90, 0.84, 0.79, 0.98, 0.97, 0.99, None, 0.91]), state="Odrzyca je vedoucí lokalita sama: neuplatní se"),
+            info("Závislost na jednom dodavateli · přirážka při prodloužení 12–22 % · podmínky po roce 2035 · zůstatková hodnota 30 %",
+                 "stejné pro všechny lokality: páky nákupu proti vlastní výrobě, ne rozdíly mezi lokalitami", "R2-P03 §2.4, R2-P08 §7.2, T9", "z dat klienta · úsudek"),
+            info("Tržní pozice", "neuplatní se: závod zásobuje jen Brno (62 %) a Pardubice (38 %)"),
         ]},
         {"code": "P", "name": "Provozní", "components": [
-            {"code": "P1", "name": "Provozní náklad na tunu v roce 2032", "unit": "EUR/t", "source": "T6", "grade": "výpočet",
-             "anchors": [1500, 1250], "values": vals([1311, 1300, 1295, 1455, 1434, 1463, 1292, 1290]),
-             "overlap": "provoz je uvnitř F1; zde jako samostatný pohled provozu"},
-            {"code": "P2", "name": "Doba obsazení místa operátora", "unit": "dny", "source": "Trh práce v regionech; kap. 6.2", "grade": "z dat klienta",
-             "state": "zpráva uvádí jen Eschfeld a rozpětí ostatních regionů: rozsah",
-             "anchors": [120, 40], "values": {s: ([49, 71] if s != "ES" else 118) for s in SITES}},
+            comp("P1", "Energie na tunu 2032", "EUR/t", "T6", "výpočet", "part", [200, 170], vals([179, 179, 179, 182, 190, 190, 192, 192])),
+            comp("P2", "Údržba, pojištění a poplatek parku na tunu 2032", "EUR/t", "T6", "výpočet", "part", [160, 100], vals([113, 124, 111, 157, 132, 122, 105, 103])),
+            comp("P3", "Odpad a voda na tunu 2032", "EUR/t", "T6", "výpočet", "part", [50, 35], vals([43, 45, 42, 38, 47, 48, 39, 37])),
+            info("Provozní náklad na tunu 2032 celkem", "součet položek (P1–P3, L1, H1, suroviny 760 a CO₂ 56): 1 311 · 1 300 · 1 295 · 1 455 · 1 434 · 1 463 · 1 292 · 1 290 EUR/t; kreslí se po položkách, aby se mechanismus nepočítal dvakrát", "T6", "výpočet"),
+            info("Najíždění 60–90 % v prvním půlroce", "stejné pro všechny lokality", "T9", "úsudek"),
         ]},
         {"code": "M", "name": "Marketingová a obchodní",
-         "note": "Pro ChemVitro prázdná: závod zásobuje jen vlastní závody v Brně a Pardubicích, poptávka není otázkou.",
+         "note": "Pro ChemVitro prázdná: vázaná poptávka, žádný slib zákazníkům. Pro Velis ústřední (slib doručení, doba doručení, růst poptávky).",
          "components": []},
         {"code": "L", "name": "Logistická", "components": [
-            {"code": "L1", "name": "Doprava produktu do Brna a Pardubic", "unit": "EUR/t", "source": "T6", "grade": "výpočet",
-             "anchors": [60, 15], "values": vals([38, 20, 24, 58, 53, 55, 37, 33])},
-            {"code": "L2", "name": "Infrastruktura mimo areál, kterou lokalita vyžaduje", "unit": "mil. EUR", "source": "T5 (most, vlečka)", "grade": "výpočet",
-             "anchors": [8, 0], "values": vals([0, 0, 0, 0, 0, 4.1, 6.8, 0])},
+            comp("L1", "Doprava produktu do Brna a Pardubic", "EUR/t", "T6", "výpočet", "part", [60, 15], vals([38, 20, 24, 58, 53, 55, 37, 33])),
+            comp("L2", "Vlečka k postavení: 3,4 km × 1,9–2,8 mil. EUR/km", "mil. EUR", "T5, T9", "z dat klienta · odhad", "part",
+                 [8, 0], vals([0, 0, 0, 0, 0, 0, [6.5, 9.5], 0]), state="Odrzyca: cena za km je rozpětí; získání pozemků 6–24 měsíců (úsudek)"),
+            comp("L3", "Silniční přístup: zesílení mostu (nosnost 16 t proti 40 t)", "mil. EUR", "T5, T9", "z dat klienta", "part",
+                 [6, 0], vals([0, 0, 0, 0, 0, [3.2, 5.0], 0, 0]), state="Eschfeld: 3,2–5,0 mil. EUR, základní případ 4,1"),
+            comp("L4", "Doprava surovin přes překladiště do stavby vlečky", "EUR/t surovin navíc", "T9", "úsudek", "part",
+                 [40, 0], vals([0, 0, 0, 0, 0, 0, [10, 40], 0]), state="Odrzyca: žádná nabídka, úsudek 10–40"),
         ]},
-        {"code": "E", "name": "Prostředí a povolování",
-         "note": "Emise a odpady jsou dány návrhem procesu, na všech lokalitách stejné: nevstupují.",
-         "components": [
-            {"code": "E1", "name": "P(výroba k 1. 7. 2030)", "unit": "podíl budoucností", "source": "T1", "grade": "odhad",
-             "anchors": [0, 1], "values": vals([0.21, 0.76, 0.76, 0.94, 0.77, 0.67, 0.75, 0.19])},
-            {"code": "E2", "name": "Šance na kompenzační opatření", "unit": "podíl", "source": "kap. 4", "grade": "úsudek",
-             "state": "bez dokladu o konkrétní lokalitě; rozhoduje o bráně termínu",
-             "anchors": [1, 0], "values": vals([0.8, 0.2, 0.2, 0, 0, 0, 0.2, 0.8])},
-            {"code": "E3", "name": "Předčištění odpadních vod", "unit": "mil. EUR", "source": "T5", "grade": "výpočet",
-             "anchors": [15, 0], "values": vals([0, 10.0, 0, 0, 10.0, 0, 0, 0])},
+        {"code": "E", "name": "Prostředí a povolování", "components": [
+            comp("E1", "Šance na kompenzační opatření (stanice nad limitem memoranda)", "podíl", "R2-P05, T9", "z dat klienta · úsudek", "part",
+                 [1, 0], vals([0.8, 0.2, 0.2, 0, 0, 0, 0.2, 0.8]), state="rozhodující vstup modelu; bez dokladu o konkrétní lokalitě", gate="G3"),
+            comp("E2", "Prodloužení povolování s kompenzací", "měsíce", "T9", "z dat klienta", "part",
+                 [18, 0], {**{s: [9, 15] for s in CZ}, **{s: 0 for s in DE}, **{s: [12, 18] for s in PL}}, state="Česko 9–15, Polsko 12–18, Německo bez kompenzace"),
+            comp("E3", "Předčištění odpadních vod", "mil. EUR", "T5, T9", "z dat klienta · odhad", "part",
+                 [15, 0], vals([0, [6.7, 14.1], 0, 0, [6.7, 14.1], 0, 0, 0]), state="Lipová a Lindenau: 6,7–14,1 ze srovnatelných závodů, základní případ 10"),
+            comp("E4", "Poplatek chemického parku", "mil. EUR ročně", "T9", "z dat klienta", "part", [1.5, 0], vals([0, 0, 0, 1.1, 0, 0, 0, 0])),
+            info("Emise CO₂ a EU ETS", "stejné pro všechny lokality: 56 EUR/t", "T6", "výpočet"),
         ]},
         {"code": "H", "name": "Lidé", "components": [
-            {"code": "H1", "name": "Náklady na zaměstnance", "unit": "EUR/t", "source": "T6", "grade": "výpočet",
-             "anchors": [250, 90], "values": vals([121, 116, 124, 203, 195, 232, 102, 109]),
-             "overlap": "položka P1"},
-            {"code": "H2", "name": "Pracovní síla podle vedení", "unit": f"průměr 1–10, {n_raters} hodnotitelů", "source": "hodnoceni_lokalit.csv",
-             "grade": "jmenovaní hodnotitelé", "state": "úsudek lidí klienta, ne doklad",
-             "anchors": [1, 10], "values": labour_rating},
+            comp("H1", "Náklady na zaměstnance na tunu 2032", "EUR/t", "T6, T9", "výpočet · právní předpis (prozatímní)", "part",
+                 [250, 90], vals([121, 116, 124, 203, 195, 232, 102, 109])),
+            comp("H2", "Doba obsazení místa operátora", "dny", "R2-P07 §6.2, Trh práce v regionech", "z dat klienta", "outside",
+                 [120, 40], {s: ([49, 71] if s != "ES" else 118) for s in SITES}, state="jen zátěžová zkouška modelu; zpráva uvádí Eschfeld a rozpětí ostatních regionů"),
+            comp("H3", "Velký nábor v okolí do roku 2028", "lidí", "Trh práce v regionech, kap. 13", "z dat klienta", "outside",
+                 [400, 0], vals([0, 0, 380, 0, 0, 0, 0, [0, 380]]), state="Kamenec 380; u Borů zpráva nábor jmenuje bez čísla: rozsah"),
+            info("Růst mezd po roce 2031", "stejné pro všechny lokality", "T9", "úsudek"),
         ]},
     ],
-    # The CFO's rule as written on 2. 11. 2026: four conditions, every one a gate. T1 at 8 %.
+    # The CFO's rule as written on 2. 11. 2026: four conditions, every one a gate, none a component. T1 at 8 %.
     "gates": [
         {"code": "G1", "name": "Porazí nákup s pravděpodobností ≥ 0,75", "source": "T1",
          "values": vals([["pass", "0,88"], ["pass", "0,91"], ["pass", "0,92"], ["pass", "0,80"], ["pass", "0,81"], ["fail", "0,73"], ["pass", "0,92"], ["pass", "0,91"]])},
@@ -138,12 +137,16 @@ chemvitro = {
         {"code": "urady", "name": "Po písemném stanovisku úřadů: bez kompenzace (0 %)", "source": "kap. 5.3 a 6.1",
          "override": {"G3": {"LI": ["pass", "0,942"], "KA": ["pass", "0,942"], "OD": ["pass", "0,942"]}}},
     ],
+    "composed": "ilustrační, 8. 11. 2026; ve studii zapsáno do schvalovací knihy před výsledky",
     "scenarios": [
-        {"code": "FR", "name": "FŘ", "who": "finanční ředitelka (vlastník pravidla)", "weights": {"F": 0.5, "E": 0.3, "P": 0.1, "L": 0.1}},
-        {"code": "VR", "name": "VŘ", "who": "výrobní ředitel", "weights": {"P": 0.4, "H": 0.2, "L": 0.2, "F": 0.2}},
-        {"code": "LOG", "name": "LOG", "who": "vedoucí logistiky (zadání: logistika 0,3 · provoz 0,5 · finance 0,2)", "weights": {"L": 0.3, "P": 0.5, "F": 0.2}},
-        {"code": "EHS", "name": "EHS", "who": "vedoucí EHS", "weights": {"E": 0.5, "F": 0.3, "S": 0.2}},
-        {"code": "EQ", "name": "Rovné váhy", "who": "každá neprázdná perspektiva stejně", "weights": {"F": 1, "S": 1, "P": 1, "L": 1, "E": 1, "H": 1}},
+        # the owner's vector over every component: the overlap check refuses it
+        {"code": "FR_ALL", "name": "FŘ, jak zadáno", "who": "finanční ředitelka", "family": None, "weights": {"F": 0.5, "P": 0.3, "L": 0.2}},
+        {"code": "FR_A", "name": "FŘ · a", "who": "finanční ředitelka (vlastník pravidla)", "family": "a", "weights": {"F": 0.6, "S": 0.2, "H": 0.2}},
+        {"code": "EQ_A", "name": "Rovné váhy · a", "who": "každá perspektiva rodiny stejně", "family": "a", "weights": {"F": 1, "S": 1, "H": 1}},
+        {"code": "VR_B", "name": "VŘ · b", "who": "výrobní ředitel", "family": "b", "weights": {"P": 0.4, "H": 0.2, "L": 0.2, "F": 0.2}},
+        {"code": "LOG_B", "name": "LOG · b", "who": "vedoucí logistiky (zadání: logistika 0,3 · provoz 0,5 · finance 0,2)", "family": "b", "weights": {"L": 0.3, "P": 0.5, "F": 0.2}},
+        {"code": "EHS_B", "name": "EHS · b", "who": "vedoucí EHS", "family": "b", "weights": {"E": 0.5, "L": 0.3, "F": 0.2}},
+        {"code": "EQ_B", "name": "Rovné váhy · b", "who": "každá perspektiva rodiny stejně", "family": "b", "weights": {"F": 1, "P": 1, "L": 1, "E": 1, "H": 1}},
     ],
     "fan": {"concentration": 60, "draws": 300, "seed": 20261108},
 }
@@ -151,11 +154,12 @@ chemvitro = {
 # ---------------- Velis: the seven options, from the indicator spec ----------------
 so = json.load(open(os.path.join(HERE, "spec_options.json")))
 IND = {i["code"]: (c, i) for c in so["categories"] for i in c["indicators"]}
+ROLE = {"E1": "saving", "R1": "saving", "P2": "outside", "D1": "outside", "F1": "outside", "T1": "outside", "F2": "outside"}
 PERSP = {  # which indicator serves which perspective
     "F": ("Finanční", ["E1", "R1", "P2"], None),
     "S": ("Strategická", ["D1", "F1"], None),
     "P": ("Provozní", ["T1"], None),
-    "M": ("Marketingová a obchodní", [], "Slib doručení do 1 dne ve velkých městech je brána G1 a nekompenzuje se; skórovaná součást není."),
+    "M": ("Marketingová a obchodní", [], "Slib doručení do 1 dne ve velkých městech je brána G1 (doba doručení 1 den, C 2 dny) a nekompenzuje se; růst poptávky je pro všechny stejný: skórovaná součást není."),
     "L": ("Logistická", ["F2"], None),
     "E": ("Prostředí a povolování", [], "Pro Velis prázdná: sklad ani 3PL povolení nepotřebují."),
     "H": ("Lidé", [], "Růst mezd je předpoklad Modelu, uvnitř E1 (překryv P1 vypuštěn v SI1)."),
@@ -166,14 +170,11 @@ GRADE = {"pásmo": "výpočet", "slovní": "úsudek", "přímo": "jmenovaní hod
 def velis_component(code):
     cat, ind = IND[code]
     cells = {o: score_cell(ind, ind["values"][o]) for o in ind["values"]}
-    values = {}
-    for o, x in cells.items():
-        values[o] = x["lo"] if x["lo"] == x["hi"] else [x["lo"], x["hi"]]
+    values = {o: (x["lo"] if x["lo"] == x["hi"] else [x["lo"], x["hi"]]) for o, x in cells.items()}
     unknown = [o for o, x in cells.items() if x["state"] == "unknown"]
-    return {"code": code, "name": ind["name"], "unit": "skóre 1–10 podle pravidla SI1", "source": ind["from"],
-            "grade": GRADE[ind["kind"]], "anchors": [1, 10], "values": values,
-            **({"overlap": ind["contains"]} if ind.get("contains") else {}),
-            **({"state": "neznámo u " + ", ".join(unknown) + ": rozsah skóre"} if unknown else {})}
+    return comp(code, ind["name"], "skóre 1–10 podle pravidla SI1", ind["from"], GRADE[ind["kind"]], ROLE[code], [1, 10], values,
+                **({"overlap": ind["contains"]} if ind.get("contains") else {}),
+                **({"state": "neznámo u " + ", ".join(unknown) + ": rozsah skóre"} if unknown else {}))
 
 
 def velis_weights(points):
@@ -190,19 +191,21 @@ velis = {
     "decision": "Strategie skladu a logistiky 2026–2032: sedm možností",
     "objects": [{"id": o["id"], "name": o["name"]} for o in so["objects"]],
     "owner_scenario": "FR",
+    "families": {"a": {"name": "Úspora proti tomu, co model nepočítá", "roles": ["saving", "outside"]}},
     "perspectives": [
         {"code": p, "name": name, **({"note": note} if note else {}), "components": [velis_component(c) for c in codes]}
         for p, (name, codes, note) in PERSP.items()
     ],
     "gates": [{"code": g["code"], "name": g["name"], "source": g["from"], "values": g["values"]} for g in so["gates"]],
     "gate_settings": [{"code": "dnes", "name": "Brány podle dokladů", "override": {}}],
+    "composed": "swing weighting ze SI1, schváleno FR 4. 11. před prvním skóre; rovné váhy ilustrační",
     "scenarios": [
-        {"code": k, "name": k, "who": so["stakeholders"][k] + " (swing weighting, SI1)", "weights": velis_weights(pts)}
+        {"code": k, "name": k, "who": so["stakeholders"][k], "family": "a", "weights": velis_weights(pts)}
         for k, pts in so["swing"].items()
-    ] + [{"code": "EQ", "name": "Rovné váhy", "who": "každá neprázdná perspektiva stejně", "weights": {"F": 1, "S": 1, "P": 1, "L": 1}}],
+    ] + [{"code": "EQ", "name": "Rovné váhy", "who": "každá neprázdná perspektiva stejně", "family": "a", "weights": {"F": 1, "S": 1, "P": 1, "L": 1}}],
     "fan": {"concentration": 60, "draws": 300, "seed": 20261108},
 }
 
 json.dump(chemvitro, open(os.path.join(HERE, "spec_weights_chemvitro.json"), "w"), ensure_ascii=False, indent=1)
 json.dump(velis, open(os.path.join(HERE, "spec_weights_velis.json"), "w"), ensure_ascii=False, indent=1)
-print("site ratings", risk_rating, labour_rating, n_raters)
+print("chemvitro scored components", sum(1 for p in chemvitro["perspectives"] for c in p["components"] if not c.get("info")))

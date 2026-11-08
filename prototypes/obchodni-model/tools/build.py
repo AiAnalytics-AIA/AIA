@@ -358,7 +358,7 @@ conv1 = ada("10:12", ["Metodu jsem postavila na rozhodnutí Velis ve verzi 2. Sl
             ["Ne potichu. Váhy a škály schválil FR před prvním skóre a metoda je zamčená. Váhy OR a VL jsou test citlivosti na SI3; jiné váhy perspektiv zkouší mapa scénářů vah (MV9)."])
 btn1 = BTN_MENU + '<a class="btn primary sm" href="SI2Matrix.dc.html">Matice skóre<i class="ph ph-caret-right s"></i></a>'
 open(f"{OUT}/SI1Method.dc.html", "w").write(frame("Sociomapa z indikátorů: metoda", "Sociomapa z indikátorů: metoda", "Sociomapa · metoda", conv1,
-                                                    "Sociomapa · metoda", btn1, body1, ("MV9WeightMap.dc.html", "Mapa scénářů vah"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 2080))
+                                                    "Sociomapa · metoda", btn1, body1, ("MV9ScenarioWeights.dc.html", "Mapa scénářů vah"), ("SI2Matrix.dc.html", "Matice skóre"), "SI1 Metoda", 2080))
 
 # ============ SI2 ============
 from collections import Counter
@@ -414,7 +414,7 @@ claims3 = [(f"Na doloženém minimu vede C2 ({cz(ro['total'][iC2], 2)}) ve vahá
 claims3_html = "".join(f'<div class="claim"><span class="n">{i+1}</span><div>{e(a)}<span class="w">{e(b)}</span></div></div>' for i, (a, b) in enumerate(claims3))
 body3 = (WARN + sec("01", "Pořadí: doložené minimum a rozsah", "brány · rozsahy · pokrytí vah doklady", ranges(ro, ON) + sweep) +
          sec("02", "Testy citlivosti: kdo je první", "pět rodin · podíl testovaných nastavení", families(ro, OS) + '<div class="zcard" style="margin-top:12px">' + who_first(ro, so, ON) + "</div>" +
-             '<p class="zcap">Mapu enginu z testovaných nastavení kreslí <a href="MV9WeightMap.dc.html">MV9</a>: řádky jsou tam pojmenované scénáře vah nad perspektivami a jejich vějíře.</p>') +
+             '<p class="zcap">Mapu enginu z testovaných nastavení kreslí <a href="MV9ScenarioWeights.dc.html">MV9</a>: řádky jsou tam pojmenované scénáře vah nad perspektivami a jejich vějíře.</p>') +
          sec("03", "Rozhodující neznámá", "dokud chybí doklad, zpráva ukáže případy", critical_html(ro, so, ON) + alt_cases) +
          sec("04", "Co mapa tvrdí a co ne", "tvrzení do osnovy zprávy", claims3_html))
 conv3 = ada("10:48", [f"Bez dvojího počítání a s čísly přímo z Výsledků vede <b>C2 ({cz(ro['total'][iC2], 2)})</b>, stejně jako pravidlo FR. Ve verzi 1 vedla B2, protože se pevná cena počítala třikrát.",

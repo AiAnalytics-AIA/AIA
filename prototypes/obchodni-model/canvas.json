@@ -242,8 +242,8 @@
       "x": 1520,
       "y": 40840
     },
-    "MV9WeightMap.dc.html": {
-      "h": 6240,
+    "MV9ScenarioWeights.dc.html": {
+      "h": 7620,
       "is_interactive": true,
       "title": "MV9 · Sociomapa: mapa scénářů vah",
       "w": 1440,
@@ -330,7 +330,7 @@
     "KM11Logistics.dc.html",
     "KM10Market.dc.html",
     "MV3SystemMap.dc.html",
-    "MV9WeightMap.dc.html",
+    "MV9ScenarioWeights.dc.html",
     "SI1Method.dc.html",
     "SI2Matrix.dc.html",
     "SI3OptionsMap.dc.html",

@@ -80,17 +80,36 @@ for case in ("chemvitro", "velis"):
     spec = json.load(open(f"spec_weights_{case}.json"))
     res = json.load(open(f"res_weights_{case}.json"))
     objs = res["objs"]
-    # a scored cell is on the declared value scale; a ranged value is a range of scores, never a single number
+    # a scored cell is on the declared value scale; a ranged value is a range of scores, never a single
+    # number; a null value does not apply; an informational row has no cell; a gate is never a component
+    comps = [c for p in spec["perspectives"] for c in p["components"] if not c.get("info")]
+    assert len(comps) == res["scored"]
+    for c in comps:
+        assert c["role"] in ("saving", "part", "outside"), (case, c["code"])
+        for o, v in c["values"].items():
+            x = res["cells"][c["code"]][o]
+            if v is None:
+                assert x is None, (case, c["code"], o)
+                continue
+            assert 0 <= x["lo"] <= x["hi"] <= 10, (case, c["code"], o)
+            assert x["ranged"] == isinstance(v, list), (case, c["code"], o)
     for p in spec["perspectives"]:
         for c in p["components"]:
-            for o, v in c["values"].items():
-                x = res["cells"][c["code"]][o]
-                assert 0 <= x["lo"] <= x["hi"] <= 10, (case, c["code"], o)
-                assert x["ranged"] == isinstance(v, list), (case, c["code"], o)
-    # every scenario's weights sum to one over the active perspectives, an empty perspective takes none
+            if c.get("info"):
+                assert c["name"] not in res["cells"]
+    # the overlap check: a vector weighting the saving and one of its parts is refused, every admitted scenario
+    # weights only the roles its family admits, and its weights sum to one with none on a perspective its family
+    # leaves empty
+    for r in res["refused"]:
+        assert {"saving", "part"} <= set(r["roles"]), (case, r["code"])
     for s in res["scenarios"]:
-        assert abs(sum(s["w"].values()) - 1) < 5e-3 and set(s["w"]) == set(res["active"]), (case, s["code"])
-        assert abs(sum(s["share"].values()) - 1) < 1e-3, (case, s["code"])
+        fam = spec["families"][s["family"]]
+        assert set(s["roles"]) <= set(fam["roles"]), (case, s["code"], s["roles"])
+        assert abs(sum(s["w"].values()) - 1) < 5e-3, (case, s["code"])
+        for p in spec["perspectives"]:
+            if not any(not c.get("info") and c["role"] in fam["roles"] for c in p["components"]):
+                assert s["w"][p["code"]] == 0, (case, s["code"], p["code"])
+        assert abs(sum(s["share"].values()) - 1) < 5e-3, (case, s["code"])  # shares are rounded to 3 places
         # the centre's first is the option with the highest total; an option a gate rules out is never first after the gates
         assert s["first"] == max(s["centre"], key=s["centre"].get)
         for code, st in res["settings"].items():
@@ -98,14 +117,18 @@ for case in ("chemvitro", "velis"):
             assert (f is None) == (not st["alive"]) and (f is None or st["state"][f] == "pass"), (case, s["code"], code)
             if s["by_setting"][code]["share"]:
                 assert all(v == 0 for o, v in s["by_setting"][code]["share"].items() if st["state"][o] != "pass")
-    assert abs(sum(res["pooled"].values()) - 1) < 1e-3
+    assert abs(sum(res["pooled"].values()) - 1) < 5e-3
     # the engine's height is the owner's scenario score (its fan's mean), within 0.2 of a point
     eng = json.load(open("engine_weights.json"))[case]
     centre = next(s for s in res["scenarios"] if s["code"] == res["owner_scenario"])["centre"]
     for o, h in zip(objs, eng["heights_as_scores"]):
         assert abs(h - centre[o]) < 0.2, (case, o, h, centre[o])
-    assert eng["rows"] == res["rows"] == len(spec["scenarios"]) * (spec["fan"]["draws"] + 1)
+    assert eng["rows"] == res["rows"] == (len(spec["scenarios"]) - len(res["refused"])) * (spec["fan"]["draws"] + 1)
 # ChemVitro today: the rule as written lets no site through, so nobody is first after the gates
 rc = json.load(open("res_weights_chemvitro.json"))
 assert rc["settings"]["dnes"]["alive"] == [] and sorted(rc["settings"]["urady"]["alive"]) == ["KA", "LI", "OD"]
+# the owner's "finance 0,5 · provoz 0,3 · logistika 0,2" over every component is the refused vector
+assert [r["code"] for r in rc["refused"]] == ["FR_ALL"]
+# Odrzyca is the leading site itself, so the shared-failure component does not apply to it
+assert rc["cells"]["S1"]["OD"] is None
 print("weights ok")
