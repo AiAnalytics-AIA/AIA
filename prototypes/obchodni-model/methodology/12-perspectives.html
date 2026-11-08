@@ -1,0 +1,77 @@
+<section class="chapter" id="perspectives">
+  <p class="chapter-label">Chapter 11</p>
+  <h1 data-label="11">Perspectives, components and the two maps</h1>
+  <p class="lede">The owner asked for every business perspective: financial, strategic, operational, marketing, logistics, "just everything". A perspective is a set of components of the decision; a component is one measure per option with a source, a grade and a direction. The components feed one new map, the weighting-scenario map, which sits beside the futures map and is never merged with it. This chapter takes its definitions and ChemVitro's components from the scope, § 3 and § 4.</p>
+
+  <h2 data-label="11.1" id="persp-def">Perspectives and components</h2>
+  <p>A <b>component</b> is one measure per option, with a <b>source</b> (a model result, a client-data number, a cited finding, or a named expert's score), a <b>grade</b> (one of the exemplar's seven, chapter 12) and a <b>direction</b> (↑ higher is better, ↓ lower is better). A <b>perspective</b> is a set of components. The weighting-scenario map scores components; the client's rule does not read them.</p>
+  <p>Five rules, from the review of 5 November:</p>
+  <ul>
+    <li><b>Gates are not components</b> (R2). The rule's four conditions are pass / fail / unknown per option. An unknown gate is "cannot be recommended until evidenced", and no weight compensates a failed one.</li>
+    <li><b>A missing component keeps a range, never a score</b> (R2). The cell shows the range it could take; the map is drawn at the documented minimum with the range beside it.</li>
+    <li><b>One mechanism, one component</b> (R3, "no double counting"). A component whose mechanism the model's saving already holds is marked <i lang="cs">v modelu</i>; one the model does not hold is <i lang="cs">mimo model</i>. A scenario may weight the saving or its parts; the overlap check (§ 11.3, line 6) refuses a vector that weights both.</li>
+    <li><b>Judgement is labelled</b> (A3). A component scored by a person carries that person's name and the grade <i lang="cs">úsudek</i>.</li>
+    <li><b>An empty perspective stays and says so.</b> For ChemVitro the marketing perspective is empty; for Velis it is central.</li>
+  </ul>
+
+  <h3>ChemVitro's components</h3>
+  <p>Sources are the exemplar's tables and parts. <i lang="cs">Stejné pro všechny lokality</i> names a build-versus-buy component that does not separate the sites; it is shown in the report and not scored on the map. The last column says whether the saving already holds the component's mechanism.</p>
+  <table class="tight">
+    <thead><tr><th style="width:12%">Perspective</th><th style="width:38%">Component (per site)</th><th style="width:12%">Source</th><th style="width:14%">Grade</th><th style="width:8%">Direction</th><th>In the saving?</th></tr></thead>
+    <tbody>
+      <tr><td><b><i lang="cs">Finanční</i></b></td><td><i lang="cs">Medián úspory proti nákupu, NPV 2027–2044 při 8 %</i></td><td>T1, R2-P06</td><td>odhad</td><td>↑</td><td>the saving itself</td></tr>
+      <tr><td></td><td><i lang="cs">P(porazí nákup) ≥ 0,75</i></td><td>T1</td><td>odhad</td><td>gate</td><td></td></tr>
+      <tr><td></td><td><i lang="cs">P(ztráta &gt; 20 mil. EUR) ≤ 0,10</i></td><td>T1</td><td>odhad</td><td>gate</td><td></td></tr>
+      <tr><td></td><td><i lang="cs">Investice v základním případě ≤ 175 mil. EUR</i></td><td>T5</td><td>výpočet</td><td>gate; ↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">P(investice ≤ 175)</i></td><td>T5</td><td>odhad</td><td>↑</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">IRR; rok návratnosti</i></td><td>T4</td><td>výpočet</td><td>↑; ↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">NPV po zdanění při 8 %</i></td><td>T4</td><td>výpočet</td><td>↑</td><td><i lang="cs">v modelu</i> (tax is a fixed parameter, I4)</td></tr>
+      <tr><td></td><td><i lang="cs">Forma pobídky: daňová úleva (CZ, PL) nebo dotace (DE), podíl a P(schválení) 0,5</i></td><td>R2-P10, T9</td><td>z dat klienta; právní předpis; úsudek</td><td>informational</td><td><i lang="cs">v modelu</i> (the after-tax view)</td></tr>
+      <tr><td><b><i lang="cs">Strategická</i></b></td><td><i lang="cs">Společné selhání s vedoucí lokalitou: podíl budoucností, v nichž je i tato lokalita horší než nákup</i></td><td>T8, R2-P12</td><td>odhad</td><td>↓</td><td><i lang="cs">mimo model</i></td></tr>
+      <tr><td></td><td><i lang="cs">Závislost na jednom dodavateli; přirážka při prodloužení 12–22 %; podmínky po roce 2035; zůstatková hodnota 30 %</i></td><td>R2-P03 § 2.4, R2-P08 § 7.2, T9</td><td>z dat klienta; úsudek</td><td><i lang="cs">stejné pro všechny lokality</i></td><td>levers of build vs buy</td></tr>
+      <tr><td></td><td><i lang="cs">Tržní pozice</i></td><td>—</td><td>—</td><td colspan="2">not applicable: the plant supplies Brno (62 %) and Pardubice (38 %) only</td></tr>
+      <tr><td><b><i lang="cs">Provozní</i></b></td><td><i lang="cs">Provozní náklad na tunu 2032, celkem</i></td><td>T6</td><td>výpočet</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">z toho energie; údržba a park; odpad a voda</i></td><td>T6</td><td>výpočet</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">Najíždění 60–90 % v prvním půlroce</i></td><td>T9</td><td>úsudek</td><td><i lang="cs">stejné pro všechny lokality</i></td><td></td></tr>
+      <tr><td><b><i lang="cs">Marketingová / obchodní</i></b></td><td>—</td><td>—</td><td>—</td><td colspan="2">empty for ChemVitro: captive demand, no customer promise at stake. Velis: customer promise, delivery time, demand growth</td></tr>
+      <tr><td><b><i lang="cs">Logistická</i></b></td><td><i lang="cs">Doprava produktu do Brna a Pardubic, EUR/t</i></td><td>T6</td><td>výpočet</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">Vlečka k postavení: délka, cena za km, získání pozemků (Odrzyca)</i></td><td>T5, T9</td><td>z dat klienta; odhad; úsudek</td><td>↓</td><td><i lang="cs">v modelu</i> (capex, delay)</td></tr>
+      <tr><td></td><td><i lang="cs">Silniční přístup: nosnost mostu 16 t proti 40 t, zesílení (Eschfeld)</i></td><td>T5, T9</td><td>z dat klienta; úsudek</td><td>↓</td><td><i lang="cs">v modelu</i> (capex, start)</td></tr>
+      <tr><td></td><td><i lang="cs">Doprava surovin přes překladiště do stavby vlečky, EUR/t</i></td><td>T9</td><td>úsudek</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td><b><i lang="cs">Prostředí a povolování</i></b></td><td><i lang="cs">Stanice nad limitem memoranda (BaP, PM2,5) → šance kompenzace 0,8 / 0,2 / 0</i></td><td>R2-P05, T9</td><td>z dat klienta; úsudek</td><td>↓</td><td><i lang="cs">v modelu</i> (the decisive input)</td></tr>
+      <tr><td></td><td><i lang="cs">Prodloužení povolování s kompenzací, měsíce (CZ 9–15, PL 12–18)</i></td><td>T9</td><td>z dat klienta</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">P(výroba k 1. 7. 2030) ≥ 0,80</i></td><td>T1, R2-P07</td><td>odhad</td><td>gate</td><td></td></tr>
+      <tr><td></td><td><i lang="cs">Předčištění odpadních vod: potřeba a cena (Lipová, Lindenau)</i></td><td>T5, T9</td><td>z dat klienta; odhad</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">Poplatek chemického parku (Wendelstedt)</i></td><td>T9</td><td>z dat klienta</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">Emise CO₂ a EU ETS, 56 EUR/t</i></td><td>T6</td><td>výpočet</td><td><i lang="cs">stejné pro všechny lokality</i></td><td></td></tr>
+      <tr><td><b><i lang="cs">Lidé</i></b></td><td><i lang="cs">Náklady na zaměstnance na tunu (mzda operátora × skladba mezd × odvody)</i></td><td>T6, T9</td><td>výpočet; právní předpis (<i lang="cs">prozatímní</i>)</td><td>↓</td><td><i lang="cs">v modelu</i></td></tr>
+      <tr><td></td><td><i lang="cs">Doba obsazení místa operátora, dny (Eschfeld 118, jinde 49–71)</i></td><td>R2-P07 § 6.2, <i lang="cs">Trh práce v regionech</i></td><td>z dat klienta</td><td>↓</td><td><i lang="cs">mimo model</i> (stress test only)</td></tr>
+      <tr><td></td><td><i lang="cs">Velký nábor v okolí (Kamenec: 380 lidí do 2028)</i></td><td><i lang="cs">Trh práce v regionech</i></td><td>z dat klienta</td><td>↓</td><td><i lang="cs">mimo model</i></td></tr>
+      <tr><td></td><td><i lang="cs">Růst mezd po roce 2031</i></td><td>T9</td><td>úsudek</td><td><i lang="cs">stejné pro všechny lokality</i></td><td></td></tr>
+    </tbody>
+  </table>
+  <p>What the table shows for the map: 22 scored components, of which 18 are <i lang="cs">v modelu</i>. A scenario that weights "finance 0,5 · provoz 0,3 · logistika 0,2" over these scores operations and logistics twice, because the saving already holds their cost per tonne. Two honest scenario families exist: <b>(a) the saving against what the model leaves out</b> (shared failure, hiring time, hiring competition), and <b>(b) the parts of the saving against each other</b> (people, maintenance, transport, permitting cost) without the saving itself. The map records which family a scenario belongs to. Which family the owner's example means is his open decision (chapter 13).</p>
+
+  <h2 data-label="11.2" id="map-futures">The futures map</h2>
+  <p>Chapter 8 describes it. In one line each: rows are the model's draws; the claim is about the model; the cell is the rule's measure; centring per future makes the reading relative; the uncentred shared-failure table reads the absolute; links only where the mode contract allows; a stability test over settings declared in advance; relative apart from absolute; internal until the futures mode has its register entry.</p>
+
+  <h2 data-label="11.3" id="map-weights">The weighting-scenario map (<i lang="cs">Mapa scénářů vah</i>, board MV9)</h2>
+  <p>The owner's request: "allocate different weights to different components … whether logistics is a 0,3 and operations management is 0,5 … run the scenarios and display the scenarios on the Sociomaps." The ten lines of its contract, as the scope writes them (§ 4; chunk <code>sociomapa-systemu#SYS13</code>, <b>new</b>):</p>
+  <ol>
+    <li><b>Objects</b> are the options: the eight sites. The buy baseline is the rule's reference, not an object.</li>
+    <li><b>Rows</b> are named weight vectors over perspectives or components, composed by the researcher or the client's people ("FR: finance 0,5 · provoz 0,3 · logistika 0,2"), each with who composed it and when, recorded in the approval ledger before results, by a composer who has not seen them (swing weighting, R3).</li>
+    <li><b>The fan</b> around each row is k perturbed vectors from a declared concentration; it is a sensitivity setting, never a probability (R4). The map prints <i lang="cs">podíl testovaných nastavení, v nichž je možnost první</i>, never P.</li>
+    <li><b>A cell</b> is the option's weighted score: each component scaled on its declared extremes and direction (<code>cost-model-study#CS1</code>), gates excluded and shown as pass / fail / unknown beside the map (R2).</li>
+    <li><b>A missing component</b> keeps its range: the cell is an interval, the map is drawn at the documented minimum, and the row says what the top of the range would change (R2).</li>
+    <li><b>The overlap check</b> marks components with one mechanism (§ 11.1, <i lang="cs">v modelu</i>); a vector that weights the saving and one of its parts is refused by name and offered the two honest families.</li>
+    <li><b>Height</b> is the weighted score under the scenario the reader chooses; relative (centred per row) and absolute readings side by side, as MV3's contract for the scenario mode (R5).</li>
+    <li><b>Layout</b> is the <code>aia-sociomap-5</code> engine's over the rows × objects table, as the prototype already runs it (<code>tools/engine_maps.py</code>, <code>compute_object_map</code>); its pair statistics are not read, because the rows are settings we chose (MV3). Options close together win under the same weightings.</li>
+    <li><b>Apart from the futures map.</b> The futures map's rows are the model's draws; this map's rows are preferences. They sit side by side and are never merged.</li>
+    <li><b>Where it goes.</b> The map is preference information. It enters the report under <i lang="cs">Co by závěr změnilo</i>, never the recommendation; the client's rule decides (R3). Its method is a Metodika register entry of its own (<code>sociomapa-systemu#SYS12</code>), internal until the methodologist approves it, labelled <i lang="cs">metoda čeká na schválení metodikem</i> wherever it appears.</li>
+  </ol>
+  <h3>What the exemplar shows for it</h3>
+  <p>The exemplar has no weighting map; it has the material for one. Its components per site are in T1, T4, T5, T6, T8 and T9, and its text already weighs them in words: the Czech and Polish sites win on finance and operations, Wendelstedt on the schedule, the German sites on permitting certainty, and none on all. A family (a) map would show that the three leaders win under every weighting that keeps the saving first, and that only a heavy weight on shared failure or hiring competition moves Kamenec and Odrzyca apart; a family (b) map would show where the German sites lose (people, maintenance, transport) and where they do not (permitting cost). Wendelstedt's deadline certainty is a gate, not a weight, and the gate is what keeps it out. That is the kind of statement the map may make: what the preferences would favour, not what the rule chooses.</p>
+  <div class="note open">
+    <p><b>In revision.</b> The definitions and the component table above are the scope's (session A, 8 November). Session D builds MV9 on the real engine from them; the fan's k and concentration and the scenarios' names wait for D's board and for the owner's and the methodologist's answers (chapter 13).</p>
+  </div>
+</section>

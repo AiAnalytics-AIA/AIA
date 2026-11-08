@@ -1,0 +1,59 @@
+<section class="chapter" id="reserse">
+  <p class="chapter-label">Chapter 4 · Step 3</p>
+  <h1 data-label="4"><i lang="cs">Rešerše</i>: public inputs with a state</h1>
+  <p class="lede">What the client's files cannot give, public sources give: prices, rates, taxes, limits and law. Each is a typed input with a quote, a source and a date, and it stays provisional until someone has verified it at the source.</p>
+
+  <h2 class="part" data-n="4.1">What goes in</h2>
+  <ul>
+    <li>The list of public inputs the model needs, from the decision record and the contracts. For ChemVitro, <code>CASE.md</code> § 10: the EU ETS allowance price and its outlook and whether a 24 MW boiler falls under the scheme; air-quality limit values and the permitting rules of three countries; hazardous-waste fees; wages, employer contributions and unemployment; corporate income tax, depreciation and the nature of each incentive; industrial energy price outlooks; exchange rates.</li>
+    <li>The client's data posture (<i lang="cs">Pravidla</i>, <code>domain/client_rules.py</code>) and the study's budget, which bound what a priced route may spend.</li>
+    <li>Findings that frame the problem: the literature the report cites (R2-P03), found and quoted the same way.</li>
+  </ul>
+
+  <h2 class="part" data-n="4.2">What comes out</h2>
+  <ul>
+    <li><b>Typed public inputs</b> (board MV2): a value with its unit, the quote it was read from, the source and its date, the kind of source (<i lang="cs">Úřední / Oborový / Ostatní</i>), the grade (<i lang="cs">veřejný zdroj</i> or <i lang="cs">právní předpis</i>) and the state: <i lang="cs">ověřeno</i> once checked at the source, else <i lang="cs">prozatímní</i>.</li>
+    <li><b>Findings by analysis</b> (board MV2b): PESTEL, Porter or benchmark findings as proposals a person accepts, each a quote in a captured source.</li>
+    <li><b>The literature review</b> as the report prints it: for each work, what it says and what follows for this report (R2-P03, five works).</li>
+    <li><b>The state line for the report's first page:</b> how many inputs are public, how many unverified, and whether the unverified ones could change the verdict (R2-P01 <i lang="cs">Stav podkladů</i>).</li>
+  </ul>
+
+  <h2 class="part" data-n="4.3">Checks</h2>
+  <ul>
+    <li>A finding is a quote in a captured source, or it is nothing (ADR 0017). A value without a quote and a date is not an input.</li>
+    <li>A query's data class is inherited from what it was written from and never lowered by its words (ADR 0017, <code>domain/deep_research/classification.py</code>). A client's dataset never leaves as a query.</li>
+    <li>A provision is cited; no legal advice is given (<code>CASE.md</code> § 10, R2-P04 § 3.3).</li>
+    <li>An unverified input is marked <i lang="cs">prozatímní</i> in the input table, in the chapter that uses it and on page 1. Verification at the source is a dated act by a named person and changes the state, nothing else.</li>
+    <li>A public input the exemplar's method tests for sensitivity says whether its range changes the verdict (chapter 7).</li>
+  </ul>
+
+  <h2 class="part" data-n="4.4">How the exemplar did it</h2>
+  <p>Sixteen of the 54 inputs are public: the allowance price (89,10 EUR/t on 28. 10. 2026, Investing.com, unverified), its growth from December 2030 futures, free allocation, energy price volatility and long-term movement, three price correlations, the CZK and PLN rates, employer contributions in three countries, inflation (T9). The report says, on page 1, that the authors could not verify them at the source because access to public sources was closed while the report was written, that the amounts may change after verification, and that the correlations and the energy trend do not change the verdict while stricter 2030 air-quality limits could (R2-P01). The tax rates, depreciation, the form of incentives and Directive (EU) 2024/2881 are likewise provisional; the incentives are read correctly as tax reliefs in Czechia and Poland and a cash grant in Germany (R2-P10). The literature chapter cites AACE 18R-97, Flyvbjerg, Merrow, Vose, Strong and Oakley, Williamson and Lempert, Popper and Bankes, each with the consequence for the report (R2-P03).</p>
+
+  <h2 class="part" data-n="4.5">In AIA today</h2>
+  <ul>
+    <li>Deep Research, frozen since #166: plan, investigate, merge, verify, synthesize, publish; grounding of every quote in a content-addressed snapshot of the same track (<code>domain/deep_research/</code>, <code>grounding.py</code>, <code>web.py</code>, <code>sources.py</code>); the sealed bundle.</li>
+    <li>The one way a query or URL leaves: <code>application/web_retrieval.py</code> <code>RetrievalGate</code> (classify, egress, metering, reserve, journal, call, journal). Live routes: Czech and English Wikipedia, priced Brave, Common Crawl (<code>aia_executors.deep_research_runtime</code>).</li>
+    <li>Design Research and Interpretation Research as the two purposes; a finding never writes a design or a deterministic artefact (ADR 0021).</li>
+    <li>A captured source a person checked becomes a SOURCE knowledge item, <i lang="cs">Ověřeno, přidat zdroj</i> (<code>application/verified_sources.py</code>).</li>
+    <li>The Lead's web lookup, accepted and not built (ADR 0040).</li>
+  </ul>
+
+  <h2 class="part" data-n="4.6">New</h2>
+  <ul>
+    <li>Typed inputs (value, unit, period, range, source, as-of date) extracted by code from accepted quotes and from structured routes, with the state <i lang="cs">prozatímní / ověřeno u pramene</i> (<code>deep-research-v2#DRV1</code> the typed input, <code>#DRV2</code> the extractor, <code>#DRV3</code> the extraction step); credibility tiers <i lang="cs">Úřední / Oborový / Ostatní</i> (<code>#DRV5</code>); as a provenance of a model input, <code>cost-model-study#CP1</code>'s <code>public_source</code>. Board MV2 <span class="tag planned">in revision, session B</span>.</li>
+    <li>Structured public routes: SDMX for Eurostat and the ECB (<code>public-data-routes#PDR1</code>), ČNB rates (<code>#PDR2</code>).</li>
+    <li>A legal point as a verbatim provision that becomes a parameter (tax rate, depreciation, contributions): e-Sbírka and EUR-Lex routes, the legal point, legal parameters (<code>legal-context#LGL1</code>, <code>#LGL2</code>, <code>#LGL3</code>).</li>
+    <li>The first-page state line composed from the input table's states (part of the report-2 recipe, <code>research-findings-stage#FND13</code>, chapter 9).</li>
+    <li>Findings by analysis (PESTEL, Porter, benchmark) as proposals, each a quote (board MV2b, unchanged in this round).</li>
+  </ul>
+
+  <h2 class="part" data-n="4.7">ChemVitro acceptance</h2>
+  <ul>
+    <li>Every public value in the model carries a quote, a source, a date and a state; none is invented (<code>CASE.md</code> § 11).</li>
+    <li>The 24 MW boiler is above the 20 MW threshold: carbon is a cost at every site (answer key § 3, memo p. 1).</li>
+    <li>Incentives are read by their nature: the Czech investment incentive and the Polish CIT exemption are tax reliefs and do not change the pre-tax figure the rule reads; only the German GRW is a cash grant. Subtracting PL2's "CIT exemption up to 50 %" from the investment is a misreading (answer key § 3).</li>
+    <li>The revised directive (EU) 2024/2881 with its 2030 limits is noted as a caveat, as the exemplar does; it is not planted and earns credit, not a requirement.</li>
+    <li>Criteria: K2, where a public range is a decisive input; K5, where verification at the source has a date that the plan of action depends on.</li>
+  </ul>
+</section>
