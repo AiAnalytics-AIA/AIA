@@ -507,7 +507,7 @@ def rule_table_8() -> str:
         ["Lokalita", "Medián úspory", "90% interval", "P(porazí nákup) ≥ 0,75", "P(ztráta > 20) ≤ 0,10", "P(výroba k 1. 7. 2030) ≥ 0,80", "Investice ≤ 175 (základ)", "Splnila pravidlo"],
         rows, {7: 90},
     )
-    body += cap(f"Pravidlo finanční ředitelky, zapsané 2. 11. 2026 před prvním výsledkem: lokalita s nejvyšším mediánem úspory proti dalšímu nákupu (NPV nákladů 2027–2044 při 8 %, před zdaněním), splní-li čtyři podmínky; jinak žádná, a říci, který předpoklad stojí za ověření. Investiční podmínku pravidlo neuvádí s pravděpodobností: posuzuje se na základním případu, výklad čeká na potvrzení. Verdikt: <b>nic</b>. Lipová, Kamenec a Odrzyca nesplní jen termín (0,75–0,76 proti 0,80), německé lokality hlavně riziko ztráty. Medián, interval a pravděpodobnosti {G_EST}, investice {G_CALC}. Další nákup v mediánu 897 mil. EUR.")
+    body += cap(f"Pravidlo finanční ředitelky, zapsané 2. 11. 2026 před prvním výsledkem: lokalita s nejvyšším mediánem úspory proti dalšímu nákupu (NPV nákladů 2027–2044 při 8 %, před zdaněním), splní-li čtyři podmínky; jinak žádná, a říci, který předpoklad stojí za ověření. Investiční podmínku pravidlo neuvádí s pravděpodobností: posuzuje se na základním případu, výklad čeká na potvrzení. Složka <i>Medián úspory proti nákupu, NPV 2027–2044 při 8 %</i> (finanční, úspora sama); P(porazí nákup), P(ztráta > 20) a P(výroba včas) jsou brány pravidla, ne složky. Verdikt: <b>nic</b>. Lipová, Kamenec a Odrzyca nesplní jen termín (0,75–0,76 proti 0,80), německé lokality hlavně riziko ztráty. Medián, interval a pravděpodobnosti {G_EST}, investice {G_CALC}. Další nákup v mediánu 897 mil. EUR.")
     return section("Pravidlo při 8 %", "tabulka T1 zprávy", body)
 
 
@@ -555,7 +555,7 @@ def hiring() -> str:
         note = {1: "", 2: "tatáž čísla jako dvouměsíční odklad", 3: f"Wendelstedt {p3(HIRING_WENDELSTEDT_3)}, nad 0,80; riziko ztráty dál nesplňuje"}[m]
         rows.append([f"<b>+{m} měsíc{'e' if m > 1 else ''}</b>", *[f"#{p3(v)}" for v in vals], note])
     body = '<div style="max-width:820px">' + table(["Zpoždění náboru", "Lipová", "Kamenec", "Odrzyca", "Poznámka"], rows, {0: 130}) + "</div>"
-    body += cap("Zátěžová zkouška, ne předpověď: podklady neuvádějí, jak dlouho potrvá najmout 95 lidí (obsazení místa operátora 49–71 dní, v Eschfeldu 118; u Kamence do roku 2028 nábor 380 lidí jinde). Zpoždění náboru posouvá start stejně jako odklad rozhodnutí a oba vlivy se sčítají: dva měsíce odkladu a dva měsíce náboru odpovídají čtyřměsíčnímu odkladu, po kterém pravidlo nevybere nic ani s příznivou odpovědí. " + G_EST)
+    body += cap("Složka <i>Doba obsazení místa operátora, dny</i> (lidé, mimo model: jen tato zátěžová zkouška). Zátěžová zkouška, ne předpověď: podklady neuvádějí, jak dlouho potrvá najmout 95 lidí (obsazení místa operátora 49–71 dní, v Eschfeldu 118; u Kamence do roku 2028 nábor 380 lidí jinde). Zpoždění náboru posouvá start stejně jako odklad rozhodnutí a oba vlivy se sčítají: dva měsíce odkladu a dva měsíce náboru odpovídají čtyřměsíčnímu odkladu, po kterém pravidlo nevybere nic ani s příznivou odpovědí. " + G_EST)
     return section("Zpoždění náboru", "zátěžová zkouška, sčítá se s odkladem", body)
 
 
@@ -616,7 +616,7 @@ def t4() -> str:
     for site, pre, post, medpost, irr, pay, inv, start in T4:
         rows.append([f"<b>{site}</b>", *[f"#{cz(v)}" for v in pre], *[f"#{cz(v)}" for v in post], f"#{cz(medpost)}", f"#{irr}", f"#{pay}", f"#{cz(inv)}", f"#{start}"])
     body = table(["Lokalita", "Před zdaněním 6 %", "8 %", "10 %", "Po zdanění 6 %", "8 %", "10 %", "Medián po zdanění 8 %", "IRR", "Návratnost", "Investice (ceny 2026)", "Zahájení výroby (základ)"], rows, cls="zt small")
-    body += cap(f"Základní případ, mil. EUR; úspora = nákup minus vlastní výroba. Další nákup (NPV nákladů 2027–2044) {cz(BUY_NPV[0])} / {cz(BUY_NPV[1])} / {cz(BUY_NPV[2])} mil. EUR při 6 / 8 / 10 %. Před zdaněním vedou při každé sazbě Odrzyca, Kamenec a Lipová; sazba mění výši, ne pořadí. IRR 18,2–20,5 % v Česku a Polsku, 14,4–15,5 % v Německu; investice se vrátí 2034 až 2036. Po zdanění jsou Kamenec a Odrzyca rovnocenné (121,3 a 118,6; medián 107,3 a 107,2), německé lokality ztrácejí zdaněním méně (vyšší sazba zvyšuje daňovou hodnotu nákladů a odpisů); pravidlo pracuje jen s NPV před zdaněním. Základ {G_CALC}, medián po zdanění {G_EST}, daňové sazby {G_PROV}.")
+    body += cap(f"Složky <i>IRR; rok návratnosti</i> a <i>NPV po zdanění při 8 %</i> (finanční, v modelu). Základní případ, mil. EUR; úspora = nákup minus vlastní výroba. Další nákup (NPV nákladů 2027–2044) {cz(BUY_NPV[0])} / {cz(BUY_NPV[1])} / {cz(BUY_NPV[2])} mil. EUR při 6 / 8 / 10 %. Před zdaněním vedou při každé sazbě Odrzyca, Kamenec a Lipová; sazba mění výši, ne pořadí. IRR 18,2–20,5 % v Česku a Polsku, 14,4–15,5 % v Německu; investice se vrátí 2034 až 2036. Po zdanění jsou Kamenec a Odrzyca rovnocenné (121,3 a 118,6; medián 107,3 a 107,2), německé lokality ztrácejí zdaněním méně (vyšší sazba zvyšuje daňovou hodnotu nákladů a odpisů); pravidlo pracuje jen s NPV před zdaněním. Základ {G_CALC}, medián po zdanění {G_EST}, daňové sazby {G_PROV}.")
     return section("NPV před zdaněním a po zdanění při třech sazbách, IRR, návratnost", "tabulka T4", body)
 
 
@@ -627,7 +627,7 @@ def t5() -> str:
     body = table(["Lokalita", *T5_COLS, "Celkem"], rows, cls="zt small")
     rows2 = [[f"<b>{site}</b>", f"#{p(pr)} {mark(pr >= 0.5)}", *[f"#{x}" for x in pct.split(" / ")]] for site, items, total, pr, pct in T5]
     body += '<div style="max-width:620px;margin-top:12px">' + table(["Lokalita", "P(investice ≤ 175)", "p10", "p50", "p90"], rows2, {1: 150}) + "</div>"
-    body += cap("Základní případ, mil. EUR, ceny 2026. Odhad EPC (třída 4, ±25 %) je navýšen o medián překročení 36 srovnatelných závodů (17 %, 90. percentil 30,2 %, maximum 61 %); překročení a zpoždění se losují z téhož závodu najednou. Položky a součet " + G_CALC + "; druhá tabulka: P(investice ≤ 175) a percentily investice z budoucností " + G_EST + ", značka od 0,5 výše.")
+    body += cap("Složky <i>Investice v základním případě</i> (brána ≤ 175 a směr ↓) a <i>P(investice ≤ 175)</i> (finanční, v modelu). Základní případ, mil. EUR, ceny 2026. Odhad EPC (třída 4, ±25 %) je navýšen o medián překročení 36 srovnatelných závodů (17 %, 90. percentil 30,2 %, maximum 61 %); překročení a zpoždění se losují z téhož závodu najednou. Položky a součet " + G_CALC + "; druhá tabulka: P(investice ≤ 175) a percentily investice z budoucností " + G_EST + ", značka od 0,5 výše.")
     body += '<div class="zcols" style="margin-top:12px"><div class="zcard"><h3>Co odhad EPC výslovně nezahrnuje</h3><p>pozemek · infrastruktura mimo areál (vlečky, přípojky, úpravy komunikací a mostů) · předčištění odpadních vod nad rámec neutralizace · kompenzační opatření · poplatky chemického parku · pobídky</p><p class="muted">Doplněno podle dokumentů lokalit: pozemek 18 ha všude; most u Eschfeldu 3,2–5,0 mil. EUR (nosnost 16 t, cisterny 40 t); vlečka v Odrzyci 3,4 km za 1,9–2,8 mil. EUR/km; předčištění v Lipové a Lindenau 6,7–14,1 mil. EUR; kompenzace 3–15 mil. EUR tam, kde ji úřad uloží; poplatek parku ve Wendelstedtu 1,1 mil. EUR ročně (v provozu, ne v investici).</p></div><div class="zcard"><h3>Výklad investiční podmínky</h3><p>Pravidlo neuvádí pravděpodobnost, investice se proto posuzuje na základním případu; vedle toho P(investice ≤ 175). Přísnější výklad „v každé budoucnosti“ by vyřadil všech osm lokalit a verdikt „nic“ by nezměnil. Strop ohrožuje hlavně německé lokality (0,50–0,57). Výklad čeká na potvrzení finanční ředitelkou.</p></div></div>'
     return section("Investice podle položek", "tabulka T5 · co odhad EPC nezahrnuje", body)
 
@@ -635,7 +635,7 @@ def t5() -> str:
 def incentives() -> str:
     rows = [[f"<b>{a}</b>", b, c, d] for a, b, c, d in INCENTIVES]
     body = table(["Kde", "Pobídka podle agentur", "Forma", "Dopad na výpočet"], rows, {0: 220, 2: 150})
-    body += cap("Základní případ pobídky nezapočítává: musí je schválit úřad a klient neví, zda je dostane; v budoucnostech je model přiznává s pravděpodobností 0,5 " + G_JUD + ". Proč je pravidlo před zdaněním nevidí: daňová úleva snižuje daň, tedy jen NPV po zdanění, a má hodnotu jen při dostatečném zisku, který model neověřuje; hotovostní dotace by snížila investici, ale ta je v základu bez ní. Forma pobídek " + G_PROV + ", čeká na ověření u pramene.")
+    body += cap("Složka <i>Forma pobídky: daňová úleva (CZ, PL) nebo dotace (DE)</i> (finanční, informační, v modelu po zdanění). Základní případ pobídky nezapočítává: musí je schválit úřad a klient neví, zda je dostane; v budoucnostech je model přiznává s pravděpodobností 0,5 " + G_JUD + ". Proč je pravidlo před zdaněním nevidí: daňová úleva snižuje daň, tedy jen NPV po zdanění, a má hodnotu jen při dostatečném zisku, který model neověřuje; hotovostní dotace by snížila investici, ale ta je v základu bez ní. Forma pobídek " + G_PROV + ", čeká na ověření u pramene.")
     return section("Pobídky: daňové úlevy proti hotovostním dotacím", "proč je pravidlo před zdaněním nevidí", body)
 
 
@@ -649,7 +649,7 @@ def t6_section() -> str:
     ) + "</div>"
     rows = [[f"<b>{site}</b>", *[f"#{v}" for v in vals], f"#<b>{cz(total,0)}</b>"] for site, vals, total in T6]
     body += table(["Lokalita", *T6_COLS, "Celkem"], rows)
-    body += cap("Rok 2032, kdy závod v základním případě všude běží naplno; nominálně, bez investice; z návrhu procesu, nabídek lokalit a cenových cest modelu. " + G_CALC)
+    body += cap("Složky <i>Provozní náklad na tunu 2032, celkem</i> a <i>z toho energie; údržba a park; odpad a voda</i> (provozní, v modelu); <i>Náklady na zaměstnance na tunu</i> (lidé, v modelu); <i>doprava</i> (logistická, v modelu); CO₂ 56 EUR/t stejné pro všechny lokality. Rok 2032, kdy závod v základním případě všude běží naplno; nominálně, bez investice; z návrhu procesu, nabídek lokalit a cenových cest modelu. " + G_CALC)
     body += '<div class="zcols" style="margin-top:12px"><div class="zcard"><h3>Co se mezi lokalitami liší</h3><p><b>Lidé</b> 102–124 EUR/t v Česku a Polsku, 195–232 v Německu (vyšší mzdy). <b>Údržba, pojištění a poplatek parku</b> 103–124 proti 122–157: údržba se počítá z odhadu investice, nejvyššího v Německu; Wendelstedt platí poplatek parku 1,1 mil. EUR ročně. <b>Doprava</b> produktu do Brna a Pardubic 20–38 proti 53–58, protože německé lokality jsou dál.</p></div><div class="zcard"><h3>Co se neliší</h3><p><b>Suroviny</b> 760 EUR/t všude, protože je klient oceňuje stejnou cenou franko závod; největší položka. <b>CO₂</b> 56 EUR/t všude; <b>energie</b> 179–192; voda a odpad v jednotkách EUR. I nejdražší německý provoz (1 463) je výrazně levnější než nakoupená tuna (asi 2 340 včetně přirážky a dopravy); z rozdílu se splácí investice, a ztrácí se čekáním, dokud závod neběží.</p></div></div>'
     return section("Provozní náklad na tunu podle položek, rok 2032", "tabulka T6 · základní případ", body)
 
@@ -665,7 +665,7 @@ def schedule_section() -> str:
 def tail_drivers() -> str:
     rows = [[f"<b>{site}</b>", COUNTRY[i], drv, f"#{p(RULE[8][i][5])}"] for i, (site, _, _, _, drv) in enumerate(SCHEDULE)]
     body = table(["Lokalita", "Země", "Co prodlužuje chvost", "P(výroba včas)"], rows, {1: 60, 3: 120})
-    body += cap("Všem lokalitám je společné povolování 8–11 měsíců, výstavba 22 měsíců se zpožděním vylosovaného srovnatelného závodu (medián 3, nejvýše 15 měsíců) a najíždění půl roku. Kompenzační opatření prodlouží povolování o 9–15 měsíců v Česku a 12–18 v Polsku; u srovnatelných závodů byla uložena u 5 z 9 českých, 4 z 9 polských a u žádného ze 14 německých. Z dat klienta: memorandum k povolování, srovnatelné závody, měření ovzduší, vyjádření k dopravě a čistíren. Šance 0,2 tam, kde stanice limity nepřekračuje, je " + G_JUD + ".")
+    body += cap("Složky <i>Stanice nad limitem memoranda → šance kompenzace 0,8 / 0,2 / 0</i> a <i>Prodloužení povolování s kompenzací, měsíce</i> (prostředí a povolování, v modelu); P(výroba k 1. 7. 2030) je brána pravidla. Všem lokalitám je společné povolování 8–11 měsíců, výstavba 22 měsíců se zpožděním vylosovaného srovnatelného závodu (medián 3, nejvýše 15 měsíců) a najíždění půl roku. Kompenzační opatření prodlouží povolování o 9–15 měsíců v Česku a 12–18 v Polsku; u srovnatelných závodů byla uložena u 5 z 9 českých, 4 z 9 polských a u žádného ze 14 německých. Z dat klienta: memorandum k povolování, srovnatelné závody, měření ovzduší, vyjádření k dopravě a čistíren. Šance 0,2 tam, kde stanice limity nepřekračuje, je " + G_JUD + ".")
     return section("Co prodlužuje chvost", "povolování, kompenzace, most, vlečka", body)
 
 
@@ -730,14 +730,14 @@ def m4f_access() -> str:
         ["ostatních šest", "–", "příjezd a vlečka podle nabídek lokalit bez položky navíc", '#<span class="muted">–</span>', "–"],
     ]
     body = table(["Lokalita", "Složka", "Co dokumenty uvádějí", "V investici (základ, mil. EUR)", "Co to dělá v modelu"], rows, {0: 110, 3: 120})
-    body += cap("Obě položky odhad EPC výslovně nezahrnuje (infrastruktura mimo areál); doplněny podle Vyjádření k dopravě s. 6 a 7 a Srovnatelných závodů, v investici podle tabulky T5 (Finance). Každá je v modelu: jako investice i jako čas před zahájením výroby. " + G_DATA + " " + G_JUD)
+    body += cap("Obě položky odhad EPC výslovně nezahrnuje (infrastruktura mimo areál); doplněny podle Vyjádření k dopravě s. 6 a 7 a Srovnatelných závodů, v investici podle tabulky T5 (Finance). Složky <i>Vlečka k postavení: délka, cena za km, získání pozemků</i> a <i>Silniční přístup: nosnost mostu 16 t proti 40 t, zesílení</i> (logistická, v modelu: investice i čas před zahájením výroby). " + G_DATA + " " + G_JUD)
     return section("Vlečka a most: přístup, který odhad stavby nezahrnuje", "T5 · T9 · nález kontroly dat P1", body)
 
 
 def m4f_inputs() -> str:
     rows = [[f"<b>{a}</b>", b, f"#{lo}", f"#{li}", f"#{hi}", src, f'<span class="zg {"data" if g == "z dat klienta" else ("est" if g == "odhad" else "mod")}">{g}</span>', who, st] for a, b, lo, li, hi, src, g, who, st in LOGISTICS_INPUTS]
     body = table(["Vstup", "Jednotka", "Dolní", "Nejspíš", "Horní", "Zdroj", "Stupeň", "Stojí za ním", "Stav"], rows, {2: 55, 3: 60, 4: 55}, cls="zt small")
-    body += cap("Logistické řádky tabulky T9 zprávy. Cena surovin 540 EUR/t franko závod je stejná pro všechny lokality; přičtení dopravy surovin z nabídek by úspory snížilo o 9–14 mil. EUR a verdikt by nezměnilo (nález P1). Co chybí, jde za vedoucím logistiky: pozemky pro vlečku se Zarząd Infrastruktury Kolejowej Opole a cena silniční dopravy do jejího postavení, pro kterou nabídka není (Rozhodnutí, zjištění před rozhodnutím).")
+    body += cap("Logistické řádky tabulky T9 zprávy; řádek překladiště je složka <i>Doprava surovin přes překladiště do stavby vlečky, EUR/t</i> (logistická, v modelu). Cena surovin 540 EUR/t franko závod je stejná pro všechny lokality; přičtení dopravy surovin z nabídek by úspory snížilo o 9–14 mil. EUR a verdikt by nezměnilo (nález P1). Co chybí, jde za vedoucím logistiky: pozemky pro vlečku se Zarząd Infrastruktury Kolejowej Opole a cena silniční dopravy do jejího postavení, pro kterou nabídka není (Rozhodnutí, zjištění před rozhodnutím).")
     return section("Logistické vstupy modelu", "T9 · rozpětí, zdroj, stupeň, kdo za ním stojí", body)
 
 

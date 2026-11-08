@@ -11,7 +11,7 @@
       "y": 29600
     },
     "KM11Logistics.dc.html": {
-      "h": 3194,
+      "h": 3234,
       "is_interactive": true,
       "title": "M4f · Výsledky: Logistika",
       "w": 1440,
@@ -43,7 +43,7 @@
       "y": 29600
     },
     "KM4Results.dc.html": {
-      "h": 8302,
+      "h": 8342,
       "is_interactive": true,
       "title": "M4 · Model: Výsledky",
       "w": 1440,
@@ -59,7 +59,7 @@
       "y": 40840
     },
     "KM7Finance.dc.html": {
-      "h": 4201,
+      "h": 4220,
       "is_interactive": true,
       "title": "M4b · Výsledky: Business case a finance",
       "w": 1440,
@@ -75,7 +75,7 @@
       "y": 29600
     },
     "KM9Operations.dc.html": {
-      "h": 2615,
+      "h": 2655,
       "is_interactive": true,
       "title": "M4d · Výsledky: Operační výzkum",
       "w": 1440,
@@ -243,7 +243,7 @@
       "y": 40840
     },
     "KM12Schedule.dc.html": {
-      "h": 1942,
+      "h": 1962,
       "is_interactive": true,
       "title": "M4g · Výsledky: Harmonogram",
       "w": 1440,
