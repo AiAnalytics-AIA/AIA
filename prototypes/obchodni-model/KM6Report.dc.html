@@ -160,6 +160,30 @@ label.cfib{cursor:pointer}
 .kv2{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:12.5px;line-height:18px}
 .kv2>span:nth-child(odd){color:var(--muted)}
 .zcode td{font-size:12px;line-height:17px}.zcode .mono{font-size:11px}
+.abody{max-width:none}
+.zrep{padding:0 0 18px;font-size:13.5px;line-height:1.6}
+.zrep>*:not(.zban):not(.zrun):not(.zfoot):not(.zpb){margin-left:34px;margin-right:34px}
+.zban{background:#f3d9c6;color:#4a2a12;font:600 11px/1 var(--mono);letter-spacing:.08em;text-align:center;padding:9px 12px;border-radius:4px 4px 0 0}
+.zrun{display:flex;justify-content:space-between;gap:12px;padding:8px 34px 0;font:11px/1.4 var(--sans);color:#44484e}
+.zlede{margin-top:16px !important;padding:8px 10px;background:#f1f0ea;border-radius:3px;font-size:12.5px;color:#2b2f35}
+.pid{margin-top:18px !important;font:500 10.5px/1 var(--mono);color:#7a7e86;letter-spacing:.06em}
+.zrep h3{margin-top:4px !important}
+.zrep p{margin:6px 34px}
+.gr{font:500 9.5px/1 var(--mono);color:#6b4a2a;background:#f6e9dd;border-radius:2px;padding:1px 4px;vertical-align:2px;white-space:nowrap}
+.zrt{border-collapse:collapse;width:calc(100% - 68px);margin:12px 34px 4px;font-size:11.5px;line-height:1.35}
+.zrt th{text-align:left;font-weight:500;color:#44484e;border-bottom:1px solid #8b8f96;padding:5px 6px;vertical-align:bottom}
+.zrt td{padding:5px 6px;border-bottom:1px solid #dedcd5;vertical-align:top}
+.zrt td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ok{color:#2f7a4f}.no{color:#b3412f}
+.tnote{font-size:11.5px !important;color:#44484e}
+.zsp{margin:14px 34px;padding:10px 12px;border:1px solid #c6c4be;background:#faf8f2;border-radius:3px;font-size:12.5px;line-height:1.55}
+.zsrcl{display:flex;flex-direction:column;gap:1px;margin:16px 34px 0;font-size:11.5px;color:#44484e}
+.zsrcl b{font:600 10.5px/1.6 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#0f1216}
+.zfoot{display:flex;justify-content:space-between;gap:12px;margin:18px 34px 0;padding-top:8px;border-top:1px solid #c6c4be;font:11px/1.4 var(--sans);color:#44484e}
+.zpb{height:14px;margin:12px 0;border-top:2px dashed #c6c4be;border-bottom:2px dashed #c6c4be;background:var(--surface)}
+.kv2{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:12.5px;line-height:18px}
+.kv2>span:nth-child(odd){color:var(--muted)}
+.zcode td{font-size:12px;line-height:17px}.zcode .mono{font-size:11px}
 </style>
 </helmet>
 <div class="aia wb" data-theme="{{theme}}" data-phase="navrh">
@@ -209,7 +233,8 @@ label.cfib{cursor:pointer}
 <h3>Shrnutí</h3>
 <p><b>Doporučení.</b> Na zasedání 29. 1. 2027 neschvalovat žádnou lokalitu. Požádat vojvodský úřad v Opolí a krajské úřady v Ostravě a Olomouci o písemné stanovisko ke kompenzačním opatřením a prověřit s nákupem cenu Hanshinu z roku 2026. K lokalitě se vrátit do 26. 3. 2027 <small class="gr">úsudek</small>.</p>
 <p><b>Důvod.</b> Pravidlo finanční ředitelky nesplnila žádná z osmi lokalit, ani při sazbě 6 % či 10 %. Lipová, Kamenec a Odrzyca splní všechny podmínky kromě termínu: výrobu k 1. 7. 2030 zahájí s pravděpodobností 0,75 až 0,76 místo požadovaných 0,80 <small class="gr">odhad 1</small>. Jistotu jim bere jediný předpoklad: 20% šance na uložení kompenzačních opatření i tam, kde měřicí stanice limity nepřekračuje <small class="gr">úsudek</small>. Wendelstedt termín stihne, ztráta vyšší než 20 mil. EUR však nastává v 15 % budoucností místo nejvýše 10 % <small class="gr">odhad 1</small>. Žádná lokalita není zálohou jiné.</p>
-<p><b>Jistota.</b> Verdikt je hranice, nikoli jedno číslo: při šanci na kompenzaci do 14 % by pravidlo vybralo Odrzycu, při 15 % Kamenec a od 16 % žádnou lokalitu; předpoklady o korelaci cen energie verdikt nemění <small class="gr">odhad 1</small>. Zda stavět, rozhoduje cena Hanshinu, v roce 2026 o 19 až 41 % vyšší než v roce 2025 <small class="gr">z dat klienta 2</small>. Bez přirážky po roce 2035 by se úspora každé lokality snížila zhruba o 53 mil. EUR <small class="gr">odhad 1</small>.</p>
+<p><b>Jistota.</b> Verdikt je hranice, nikoli jedno číslo: při šanci na kompenzaci do 14 % by pravidlo vybralo Odrzycu, při 15 % Kamenec a od 16 % žádnou lokalitu; předpoklady o korelaci cen energie verdikt nemění <small class="gr">odhad 1</small>. Zda stavět, rozhoduje cena Hanshinu, v roce 2026 o 19 až 41 % vyšší než v roce 2025 <small class="gr">z dat klienta 2</small>. Bez přirážky po roce 2035 by se úspora každé lokality snížila zhruba o 53 mil. EUR <small class="gr">odhad 1</small>.
+<p><b>Jiné vážení.</b> Mapa scénářů vah (kapitola 12) ukazuje, které lokality vyhrávají při stejných vahách perspektiv: finanční, strategické, provozní, logistické, prostředí a povolování, lidí; marketingová je pro ChemVitro prázdná. Je to informace o preferencích: uvádí podíl testovaných nastavení, v nichž je lokalita první, nikoli pravděpodobnost, a do doporučení nevstupuje; rozhoduje pravidlo finanční ředitelky <small class="gr">odhad 1</small>.</p>
 <p><b>Další rozhodnutí.</b> Potvrdí-li úřad v Opolí písemně, že kompenzační opatření neuloží, vybere pravidlo Odrzycu i po dvouměsíčním odkladu, po čtyřměsíčním už ne <small class="gr">odhad 1</small>. Dotazy odešle vedoucí ochrany životního prostředí a bezpečnosti do 20. 11. 2026, cenu prověří vedoucí nákupu do 15. 1. 2027. Představenstvo rozhodne do 26. 3. 2027 a samo určí, co uzná za potvrzení <small class="gr">úsudek</small>.</p>
 <table class="zrt"><thead><tr><th>Lokalita</th><th>Medián úspory</th><th>P(porazí nákup)</th><th>P(ztráta &gt; 20)</th><th>P(výroba k 1. 7. 2030)</th><th>Investice (základ)</th><th>Splní pravidlo</th></tr></thead><tbody><tr><td>Vrbice</td><td class="n">110,8</td><td class="n">0,88 <span class="ok">✔</span></td><td class="n">0,08 <span class="ok">✔</span></td><td class="n">0,21 <span class="no">✘</span></td><td class="n">160,6 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Lipová</td><td class="n">126,0</td><td class="n">0,91 <span class="ok">✔</span></td><td class="n">0,06 <span class="ok">✔</span></td><td class="n">0,76 <span class="no">✘</span></td><td class="n">158,6 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Kamenec</td><td class="n">132,4</td><td class="n">0,92 <span class="ok">✔</span></td><td class="n">0,05 <span class="ok">✔</span></td><td class="n">0,76 <span class="no">✘</span></td><td class="n">152,3 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Wendelstedt</td><td class="n">82,3</td><td class="n">0,80 <span class="ok">✔</span></td><td class="n">0,15 <span class="no">✘</span></td><td class="n">0,94 <span class="ok">✔</span></td><td class="n">171,8 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Lindenau</td><td class="n">86,5</td><td class="n">0,81 <span class="ok">✔</span></td><td class="n">0,14 <span class="no">✘</span></td><td class="n">0,77 <span class="no">✘</span></td><td class="n">170,8 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Eschfeld</td><td class="n">61,2</td><td class="n">0,73 <span class="no">✘</span></td><td class="n">0,21 <span class="no">✘</span></td><td class="n">0,67 <span class="no">✘</span></td><td class="n">175,5 <span class="no">✘</span></td><td>ne</td></tr><tr><td>Odrzyca</td><td class="n">134,7</td><td class="n">0,92 <span class="ok">✔</span></td><td class="n">0,05 <span class="ok">✔</span></td><td class="n">0,75 <span class="no">✘</span></td><td class="n">148,9 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Bory</td><td class="n">123,2</td><td class="n">0,91 <span class="ok">✔</span></td><td class="n">0,06 <span class="ok">✔</span></td><td class="n">0,19 <span class="no">✘</span></td><td class="n">143,9 <span class="ok">✔</span></td><td>ne</td></tr></tbody></table>
 <p class="tnote">Medián a pravděpodobnosti <small class="gr">odhad 1</small>, investice <small class="gr">výpočet</small>; prahy a intervaly v tabulce T1 v příloze. Tabulku generuje model z výstupů téhož výpočtu jako text.</p>
@@ -263,7 +288,7 @@ label.cfib{cursor:pointer}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2200}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2290}}'>
 class Component extends DCLogic {
 renderVals() { return { theme: this.props.theme ?? 'light', busy: false, idle: true }; }
 }
