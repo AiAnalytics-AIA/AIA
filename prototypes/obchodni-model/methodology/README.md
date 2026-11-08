@@ -38,6 +38,12 @@ English prose; Czech on-screen and report terms in italics; files, modules and p
 number is the exemplar's or the case pack's. "The review" is ADR 0046 § The methodology review (R1–R10, K1–K6);
 "the answer key" is `prototypes/case-chemvitro/ANSWER-KEY.md` on branch `chore/case-chemvitro`.
 
+## Agreement with the scope
+
+On 8 Nov the perspectives chapter, the chunk ids in every step's "New" part, the eight-step count and the open-question
+lists were aligned to session A's `MVP-SCOPE.md` (§ 3–4, § 2, § 8; branch `chore/mvp-r2-a`). The scope's wording is the
+source; a disagreement is reported to the coordinator, not resolved here.
+
 ## Folding in the other sessions
 
 Sessions A–E change boards while this document is written (appendix C marks them "in revision"). When their branches

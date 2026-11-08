@@ -45,9 +45,9 @@
 
   <h2 class="part" data-n="2.6">New</h2>
   <ul>
-    <li>A study kind for a business decision, <code>StudyKind.BUSINESS_MODEL</code> (ADR 0044; <code>cost-model-study</code> CP3), and the six sub-steps of <i lang="cs">Zadání</i> on boards Z1–Z7: start, triage, the decision core with the rule, the analyses, the model's parts, readiness.</li>
-    <li>The rule as a typed object with conditions, thresholds and the measure each reads, frozen as a Design Revision and judged as written (<code>cost-model-study</code> CR7, board Z3 <span class="tag planned">in revision, session B</span>).</li>
-    <li>Interpretation records as a type: reading, alternative, effect, who confirms (new; board Z3).</li>
+    <li>A study kind for a business decision, <code>StudyKind.BUSINESS_MODEL</code> (ADR 0044; <code>cost-model-study#CP3</code>), and the business <i lang="cs">Zadání</i> as data on boards Z1–Z7: the eight parts (<code>decision-brief#DB0</code>), triage as a Lead turn (<code>#DB2</code>), the decision core and the rule (<code>#DB3</code>), readiness R1–R7 (<code>#DB4</code>), the hand-off naming the files each step takes (<code>#DB5</code>).</li>
+    <li>The rule as a typed object of n conditions, each with its own threshold and, where stated, a probability, judged per option at the stated rate and two alternates, frozen as a Design Revision (<code>decision-brief#DB3b</code>, <b>new</b>, extending <code>cost-model-study#CR7</code>, which judges one quantity against one threshold; board Z3 <span class="tag planned">in revision, session B</span>).</li>
+    <li>The interpretation record a named person confirms: reading, alternative, effect, who confirms (<code>decision-brief#DB3b</code>; board Z3).</li>
     <li>The perspectives chosen for the case (chapter 11), each with its components, in <i lang="cs">Zadání</i> rather than in the model.</li>
   </ul>
 

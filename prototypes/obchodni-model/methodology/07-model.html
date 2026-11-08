@@ -43,11 +43,11 @@
 
   <h2 class="part" data-n="6.6">New</h2>
   <ul>
-    <li>The platform: quantity types, the model-type contract with a registry and a run's pin of type and version, the business-model workflow with inputs frozen by artefact id, the API and the stage screens (<code>cost-model-study</code> CP1–CP7; boards M3, M4 <span class="tag planned">in revision, session C</span>).</li>
-    <li><b>A model type for a type-2 study:</b> a cost of supply (or cost of operation) over a shared timeline with permitting, construction, ramp-up, a baseline bought until start and a residual value. The planned type <i lang="cs">scénáře nákladů</i> (CM1–CM7) has cost lines, drivers and up to twelve scenarios without a timeline or a baseline; type 2 needs the timeline. Whether this is a second model type or an extension of the first is a design decision for sessions A and C.</li>
-    <li>Monte Carlo with the input table's distributions and correlations, the joint draw from comparables, the stopping rule, and PCG64 under the run's seed (CR3; board M3).</li>
-    <li>The extra computations as declared operations on a stored run: a boundary over one input's range, a shift of the timeline, an alternative terms table, the correlation settings (new; board M4).</li>
-    <li>NPV, IRR and payback at a stated rate (CM7, <code>quantitative-families</code> FIN2), and a tax parameter per country inside the model.</li>
+    <li>The platform: the model-type contract and the determinism harness (<code>cost-model-study#CP2</code>), the kind and the working copy (<code>#CP3</code>), the run with inputs frozen by artefact id (<code>#CP5</code>), the API (<code>#CP6</code>), the ESTIMATED grade with seed and method pinned and the Metodika module of defaults (<code>#CP10</code>); boards M3, M4 <span class="tag planned">in revision, session C</span>.</li>
+    <li><b>A model type of its own, <code>site_cost_of_supply</code></b> (<code>cost-model-study#CM8</code>, <b>new</b>): a timeline per option whose dates are inputs, purchases, operations, residual value, tax as a fixed parameter, yearly cash flows, NPV before and after tax at a stated rate, T4–T6 as its results, and the convergence rule tied to the decision (the futures run until the rule's verdict is stable, ±0,5 pp). The planned type <i lang="cs">scénáře nákladů</i> (<code>#CM1</code>–<code>#CM7</code>) has no timeline and no bought baseline, so the scope makes type 2 a second type rather than an extension.</li>
+    <li>Monte Carlo with the input table's distributions and correlations (<code>#CR3</code>), the joint draw from comparables (<code>#CR3b</code>), PCG64 under the run's seed; board M3.</li>
+    <li>The cash-flow schedule, NPV and discounted payback, and IRR by a stated root rule (<code>#CM7</code>; <code>quantitative-families#FIN1</code>, <code>#FIN2</code>).</li>
+    <li>The extra computations as declared operations on a stored run, each one change at a time and said so: the boundary, delay and hiring tables, post-2035 and correlation recomputations (<code>cost-model-study#CR7b</code>, <b>new</b>, chapter 7; board M4).</li>
   </ul>
 
   <h2 class="part" data-n="6.7">ChemVitro acceptance</h2>
