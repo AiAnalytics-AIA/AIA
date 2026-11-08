@@ -51,7 +51,7 @@
       "y": 29600
     },
     "KM6Report.dc.html": {
-      "h": 1840,
+      "h": 2200,
       "is_interactive": true,
       "title": "M6 · Model: Zpráva",
       "w": 1440,
@@ -123,7 +123,7 @@
       "y": 33260
     },
     "MV4XRay.dc.html": {
-      "h": 3690,
+      "h": 5530,
       "is_interactive": true,
       "title": "MV4 · Osnova zprávy",
       "w": 1440,
@@ -131,7 +131,7 @@
       "y": 40840
     },
     "MV5Validation.dc.html": {
-      "h": 2540,
+      "h": 2360,
       "is_interactive": true,
       "title": "MV5 · Metodika: validační sada a otázky",
       "w": 1440,
@@ -235,7 +235,7 @@
       "y": 33260
     },
     "MV8Validity.dc.html": {
-      "h": 2000,
+      "h": 2750,
       "is_interactive": true,
       "title": "MV8 · Zpráva: kontrola platnosti modelu",
       "w": 1440,
