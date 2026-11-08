@@ -32,8 +32,8 @@ Zpráva. The navigator keeps nine; the last two are one step here, built once (t
 ### 2.1 Zadání (boards Z1–Z5, Z7)
 
 - **Needs.** The decision, eight options plus the buy baseline, four constraints, the CFO's rule written on 2. 11. 2026
-  before any result, with four conditions (median saving; P(beats buying) ≥ 0,75; P(loss > 20) ≤ 0,10; P(start by
-  1. 7. 2030) ≥ 0,80; investment ≤ 175) and one interpretation record (investment judged on the base case, confirmed
+  before any result: the objective (the highest median saving against buying) and four conditions (P(beats buying)
+  ≥ 0,75; P(loss > 20) ≤ 0,10; P(start by 1. 7. 2030) ≥ 0,80; investment ≤ 175) and one interpretation record (investment judged on the base case, confirmed
   by the CFO) (R2-P02 §1.3). The hand-off names the files each step takes (R2-P18 A).
 - **Today.** A research study's Brief on the working copy with revision-checked saves
   (`infrastructure/study_workspace_repository.py:241`, a stale save refused; `:194` one revision read back), the edit
