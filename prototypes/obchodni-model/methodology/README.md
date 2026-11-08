@@ -46,6 +46,6 @@ source; a disagreement is reported to the coordinator, not resolved here.
 
 ## Folding in the other sessions
 
-Sessions A–E change boards while this document is written (appendix C marks them "in revision"). When their branches
-land, the chapters that cite those boards are aligned to them, chapter 11 to A's perspectives in `MVP-SCOPE.md` and
-D's MV9 first, and the PDF is rebuilt and checked page by page before the push.
+Sessions A, B, C and E landed on 8 Nov and are folded in (appendix C says which board each changed); D (the maps,
+MV3, MV9, SI1–SI4) is in progress and E has one alignment commit pending. When a branch lands, the chapters that cite
+its boards are aligned to it and the PDF is rebuilt and checked page by page before the push.
