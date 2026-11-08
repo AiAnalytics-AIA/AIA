@@ -41,8 +41,9 @@ number is the exemplar's or the case pack's. "The review" is ADR 0046 § The met
 ## Agreement with the scope
 
 On 8 Nov the perspectives chapter, the chunk ids in every step's "New" part, the eight-step count and the open-question
-lists were aligned to session A's `MVP-SCOPE.md` (§ 3–4, § 2, § 8; branch `chore/mvp-r2-a`). The scope's wording is the
-source; a disagreement is reported to the coordinator, not resolved here.
+lists were aligned to session A's `MVP-SCOPE.md` (§ 3–4, § 2, § 8; branch `chore/mvp-r2-a`, final head 6b710d4d:
+20 scored components, the park fee inside P2). The scope's wording is the source; a disagreement is reported to the
+coordinator, not resolved here. None is open at this head.
 
 ## Folding in the other sessions
 
