@@ -5,7 +5,7 @@
 `exemplar/ChemVitro_2_model-lokality_nigel.pdf` (parts R2-P01 to R2-P18, tables T1 to T9). Code anchors are
 `file:line @ b28ce091` (`origin/develop`, the base of this branch; `apps/` and `packages/` are identical there).
 Paths under `packages/aia_core/src/aia_core/` are written from `domain/`, `application/` or `infrastructure/`.
-Plan ids are `plan#CHUNK`; a chunk marked **new** exists in no plan file yet and is defined here in one line.
+Plan ids are `plan#CHUNK`; a chunk marked **new** exists in no plan file yet and is defined here in one line. `cost-model-study`, `client-data-in-analysis`, `quantitative-families`, `situation-reports`, `report-delivery` and `lead-orchestration` are on `develop`; `decision-brief`, `deep-research-v2`, `public-data-routes`, `legal-context`, `sociomapa-systemu`, `research-findings-stage`, `analysis-frameworks`, `diagrams` and `register-personal-data` are read from `origin/chore/pivot-business-decisions` @ d8dc8ec5 (ADR 0046, Proposed, unmerged).
 Board codes are the canvas's (`README.md`); the brief's session table says who builds which.
 
 ## 1. The decision
@@ -110,7 +110,8 @@ Each step: what the exemplar needs, what AIA has today (anchored), what is new, 
   declared rank correlations; empirical joint draws from a client table; the scope check of an estimate against each
   option's documents; the stability test declared before computing.
 - **Builds it.** `cost-model-study#CP1` (the input with its provenance), `#CR2` (low / base / high and a guarantor),
-  `#CR3` (PERT, Iman-Conover correlations, a non-PSD matrix refused), W13–W16 as written there; **new**
+  `#CR3` (PERT, Iman-Conover correlations, a non-PSD matrix refused; people who disagree sampled as a mixture, W14, R6),
+  W13–W16 as written there; **new**
   `cost-model-study#CR3b`: empirical joint draws, one row of a client table per future carrying several inputs
   together (overrun and delay), the table pinned by SHA-256; **new** `cost-model-study#CR1b`: the scope check, what
   an estimate's document excludes against what each option's documents require, each exclusion an input with its
