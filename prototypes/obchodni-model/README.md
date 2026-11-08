@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 8 Nov 2026 (version 65)
+# AIA Obchodní model – prototyp, 8 Nov 2026 (version 66)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,7 +16,7 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 65, artifact version `1794158436-3ff0` (versions 53–64 came from the Design type's own releases; the four boards this export did not change were identical on the canvas) |
+| Version | version 66, artifact version `1794159099-d2fb` (versions 53–64 came from the Design type's own releases; the four boards this export did not change were identical on the canvas) |
 | Exported | 8 Nov 2026 (version 14 on 2 Nov; versions 15–22 and 34–36 changed no board file; version 51 on 6 Nov) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
@@ -185,7 +185,7 @@ mvp prototype screens. get rid of any old versions. lets leave the latest workin
   zprávy to MV8, MV8 to Zpráva. Z0's board list is in the same order and names every board (MV2b and M4f were missing);
   MV0 no longer points at M5 or MV7.
 
-**Changed in version 65 (8 Nov): the MVP that produces report 2.** The executive chose study type 2 of the ChemVitro case
+**Changed in versions 65–66 (8 Nov): the MVP that produces report 2.** The executive chose study type 2 of the ChemVitro case
 (`exemplar/ChemVitro_2_model-lokality_nigel.pdf`, 44 pages) as the report AIA must produce. The owner: "focus the MVP to
 be able to create the reports like report 2 … all business perspectives: financial, strategic, operational, marketing,
 logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six sessions built it from `BRIEF-mvp-r2.md`:
@@ -204,7 +204,7 @@ logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six se
   number is held to the exemplar's text by `tools/results_build.py`. M4c and M4e carry one parked line.
 - **Maps** (MV3, new **MV9 Mapa scénářů vah**, SI1–SI4): the futures map as the exemplar draws it (T7, T8, "no site is a
   backup of another", the three-setting stability test the map failed); the weighting-scenario map on the real engine:
-  21 scored components by perspective with their role (úspora / v modelu / mimo model), gates never compensated, six named
+  20 scored components by perspective with their role (úspora / v modelu / mimo model), gates never compensated, six named
   weight vectors in two families with a Dirichlet fan (concentration 60 × 300 draws, 1 806 tested weightings as rows),
   the owner's "finance 0,5 · provoz 0,3 · logistika 0,2" shown refused by the overlap check, first-per-scenario and
   shares of tested settings, decision-critical ranges. SI1–SI4 keep only the method MV9 reads.
