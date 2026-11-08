@@ -136,6 +136,30 @@ label.cfib{cursor:pointer}
 .kv2{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:12.5px;line-height:18px}
 .kv2>span:nth-child(odd){color:var(--muted)}
 .zcode td{font-size:12px;line-height:17px}.zcode .mono{font-size:11px}
+.abody{max-width:none}
+.zrep{padding:0 0 18px;font-size:13.5px;line-height:1.6}
+.zrep>*:not(.zban):not(.zrun):not(.zfoot):not(.zpb){margin-left:34px;margin-right:34px}
+.zban{background:#f3d9c6;color:#4a2a12;font:600 11px/1 var(--mono);letter-spacing:.08em;text-align:center;padding:9px 12px;border-radius:4px 4px 0 0}
+.zrun{display:flex;justify-content:space-between;gap:12px;padding:8px 34px 0;font:11px/1.4 var(--sans);color:#44484e}
+.zlede{margin-top:16px !important;padding:8px 10px;background:#f1f0ea;border-radius:3px;font-size:12.5px;color:#2b2f35}
+.pid{margin-top:18px !important;font:500 10.5px/1 var(--mono);color:#7a7e86;letter-spacing:.06em}
+.zrep h3{margin-top:4px !important}
+.zrep p{margin:6px 34px}
+.gr{font:500 9.5px/1 var(--mono);color:#6b4a2a;background:#f6e9dd;border-radius:2px;padding:1px 4px;vertical-align:2px;white-space:nowrap}
+.zrt{border-collapse:collapse;width:calc(100% - 68px);margin:12px 34px 4px;font-size:11.5px;line-height:1.35}
+.zrt th{text-align:left;font-weight:500;color:#44484e;border-bottom:1px solid #8b8f96;padding:5px 6px;vertical-align:bottom}
+.zrt td{padding:5px 6px;border-bottom:1px solid #dedcd5;vertical-align:top}
+.zrt td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ok{color:#2f7a4f}.no{color:#b3412f}
+.tnote{font-size:11.5px !important;color:#44484e}
+.zsp{margin:14px 34px;padding:10px 12px;border:1px solid #c6c4be;background:#faf8f2;border-radius:3px;font-size:12.5px;line-height:1.55}
+.zsrcl{display:flex;flex-direction:column;gap:1px;margin:16px 34px 0;font-size:11.5px;color:#44484e}
+.zsrcl b{font:600 10.5px/1.6 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#0f1216}
+.zfoot{display:flex;justify-content:space-between;gap:12px;margin:18px 34px 0;padding-top:8px;border-top:1px solid #c6c4be;font:11px/1.4 var(--sans);color:#44484e}
+.zpb{height:14px;margin:12px 0;border-top:2px dashed #c6c4be;border-bottom:2px dashed #c6c4be;background:var(--surface)}
+.kv2{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:12.5px;line-height:18px}
+.kv2>span:nth-child(odd){color:var(--muted)}
+.zcode td{font-size:12px;line-height:17px}.zcode .mono{font-size:11px}
 </style>
 </helmet>
 <div class="aia wb" data-theme="{{theme}}" data-phase="navrh">
@@ -167,7 +191,7 @@ label.cfib{cursor:pointer}
 <div class="ahd">
 <label for="leadx" class="btn quiet sm leadopen" title="Ukázat Vedoucího"><i class="ph ph-sidebar-simple s"></i>Ada</label>
 <h1>Zpráva</h1>
-<span class="pill you"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>Předběžné doporučení · 4 výhrady · prozatímní</span>
+<span class="pill you"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>Předběžné doporučení · 4 výhrady · 1 nález K6 · prozatímní</span>
 <span class="grow"></span>
 <details class="mnu"><summary class="btn quiet sm ic" aria-label="Další akce" title="Další akce"><i class="ph ph-dots-three"></i></summary>
 <div class="mnu-p" role="menu"><button type="button"><i class="ph ph-clock-counter-clockwise s"></i>Historie verzí</button><button type="button"><i class="ph ph-download-simple s"></i>Stáhnout DOCX</button><button type="button"><i class="ph ph-download-simple s"></i>Stáhnout PDF</button><button type="button"><i class="ph ph-table s"></i>Tabulky T1–T9 (CSV, XLSX)</button><a href="MV4XRay.dc.html"><i class="ph ph-eye s"></i>Zpět do osnovy</a></div></details>
@@ -189,7 +213,7 @@ label.cfib{cursor:pointer}
 <p><b>Další rozhodnutí.</b> Potvrdí-li úřad v Opolí písemně, že kompenzační opatření neuloží, vybere pravidlo Odrzycu i po dvouměsíčním odkladu, po čtyřměsíčním už ne <small class="gr">odhad 1</small>. Dotazy odešle vedoucí ochrany životního prostředí a bezpečnosti do 20. 11. 2026, cenu prověří vedoucí nákupu do 15. 1. 2027. Představenstvo rozhodne do 26. 3. 2027 a samo určí, co uzná za potvrzení <small class="gr">úsudek</small>.</p>
 <table class="zrt"><thead><tr><th>Lokalita</th><th>Medián úspory</th><th>P(porazí nákup)</th><th>P(ztráta &gt; 20)</th><th>P(výroba k 1. 7. 2030)</th><th>Investice (základ)</th><th>Splní pravidlo</th></tr></thead><tbody><tr><td>Vrbice</td><td class="n">110,8</td><td class="n">0,88 <span class="ok">✔</span></td><td class="n">0,08 <span class="ok">✔</span></td><td class="n">0,21 <span class="no">✘</span></td><td class="n">160,6 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Lipová</td><td class="n">126,0</td><td class="n">0,91 <span class="ok">✔</span></td><td class="n">0,06 <span class="ok">✔</span></td><td class="n">0,76 <span class="no">✘</span></td><td class="n">158,6 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Kamenec</td><td class="n">132,4</td><td class="n">0,92 <span class="ok">✔</span></td><td class="n">0,05 <span class="ok">✔</span></td><td class="n">0,76 <span class="no">✘</span></td><td class="n">152,3 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Wendelstedt</td><td class="n">82,3</td><td class="n">0,80 <span class="ok">✔</span></td><td class="n">0,15 <span class="no">✘</span></td><td class="n">0,94 <span class="ok">✔</span></td><td class="n">171,8 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Lindenau</td><td class="n">86,5</td><td class="n">0,81 <span class="ok">✔</span></td><td class="n">0,14 <span class="no">✘</span></td><td class="n">0,77 <span class="no">✘</span></td><td class="n">170,8 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Eschfeld</td><td class="n">61,2</td><td class="n">0,73 <span class="no">✘</span></td><td class="n">0,21 <span class="no">✘</span></td><td class="n">0,67 <span class="no">✘</span></td><td class="n">175,5 <span class="no">✘</span></td><td>ne</td></tr><tr><td>Odrzyca</td><td class="n">134,7</td><td class="n">0,92 <span class="ok">✔</span></td><td class="n">0,05 <span class="ok">✔</span></td><td class="n">0,75 <span class="no">✘</span></td><td class="n">148,9 <span class="ok">✔</span></td><td>ne</td></tr><tr><td>Bory</td><td class="n">123,2</td><td class="n">0,91 <span class="ok">✔</span></td><td class="n">0,06 <span class="ok">✔</span></td><td class="n">0,19 <span class="no">✘</span></td><td class="n">143,9 <span class="ok">✔</span></td><td>ne</td></tr></tbody></table>
 <p class="tnote">Medián a pravděpodobnosti <small class="gr">odhad 1</small>, investice <small class="gr">výpočet</small>; prahy a intervaly v tabulce T1 v příloze. Tabulku generuje model z výstupů téhož výpočtu jako text.</p>
-<div class="zsp"><b>Stav podkladů.</b> Zpráva vychází ze dvou druhů nedokončených vstupů. <b>(a)</b> Mezery v podkladech klienta: tři mohou změnit výsledek. Žádný dokument neuvádí, zda úřady na konkrétních lokalitách uloží kompenzační opatření; šance 20 % je úsudek a rozhoduje o verdiktu. Ze souborů nelze určit, proč cena Hanshinu v roce 2026 vzrostla více, než dovoluje smluvní strop ±10 % ročně. Dopis dodavatele nepokrývá podmínky nákupu po roce 2035 (kapitola 7). Ostatní mezery zpřesní úspory a investici, verdikt podle očekávání nezmění <small class="gr">úsudek</small>. <b>(b)</b> Veřejné vstupy dosud neověřené u pramene: 16 z 54 vstupů modelu (cena povolenek, bezplatná alokace, ceny energie, tři korelace, kurzy, odvody, inflace, daňové sazby, odpisy, forma pobídek, směrnice (EU) 2024/2881). Po ověření se částky mohou změnit; korelace ani vývoj cen energie verdikt nemění (kapitola 7). Stav každého vstupu uvádí tabulka T9.</div>
+<div class="zsp"><b>Stav podkladů.</b> Zpráva vychází ze dvou druhů nedokončených vstupů. <b>(a)</b> Mezery v podkladech klienta: tři mohou změnit výsledek. Žádný dokument neuvádí, zda úřady na konkrétních lokalitách uloží kompenzační opatření; šance 20 % je úsudek a rozhoduje o verdiktu. Ze souborů nelze určit, proč cena Hanshinu v roce 2026 vzrostla více, než dovoluje smluvní strop ±10 % ročně. Dopis dodavatele nepokrývá podmínky nákupu po roce 2035 (kapitola 7). Ostatní mezery zpřesní úspory a investici, verdikt podle očekávání nezmění <small class="gr">úsudek</small>. <b>(b)</b> Veřejné vstupy dosud neověřené u pramene: 16 ze 67 vstupů modelu (cena povolenek, bezplatná alokace, ceny energie, tři korelace, kurzy, odvody, inflace, daňové sazby, odpisy, forma pobídek, směrnice (EU) 2024/2881). Po ověření se částky mohou změnit; korelace ani vývoj cen energie verdikt nemění (kapitola 7). Stav každého vstupu uvádí tabulka T9.</div>
 <div class="zsrcl"><b>Zdroje a stupně</b><span>1. odhad (metoda čeká na schválení metodikem)</span><span>2. z dat klienta: Nákupy VTX-40 2023–2026</span></div>
 <div class="zfoot"><span>Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.</span><span>strana 1 z 44</span></div>
 <div class="zpb"></div>
@@ -209,7 +233,7 @@ label.cfib{cursor:pointer}
 <span>Stav</span><b>Předběžné doporučení</b>
 <span>Verze</span><span class="mono">zpráva pracovní 5. 11. 2026 · běh 20 000 budoucností · semínko 20270201</span>
 <span>Výhrady</span><span>4 nevyřešené: 16 veřejných vstupů neověřeno u pramene · šance na kompenzaci je úsudek bez dokumentu · výklad investiční podmínky čeká na finanční ředitelku · mapa budoucností neobstála ve zkoušce stability</span>
-<span>Kontrola tvrzení</span><span>tabulky T1–T9 z téhož výpočtu jako text (automaticky) · lidská kontrola po částech R2-P01 až P18 (zpětná vazba výkonného ředitele)</span>
+<span>Kontrola tvrzení</span><span>tabulky T1–T9 z téhož výpočtu jako text (automaticky) · 1 nález K6: text zprávy říká 54 vstupů a „16 z 54“, tabulka T9 má 67 řádků (29 ověřeno · 16 prozatímních · 22 úsudků); rámeček Stav podkladů bere počet z T9 (16 ze 67) · lidská kontrola po částech R2-P01 až P18</span>
 <span>Metody</span><span>Monte Carlo, hodnota informace, hranice rozhodnutí, mapa budoucností: <span class="zg mod">čeká na metodika</span></span>
 </div>
 <p class="cap" style="margin: 8px 0 0">Schválení zapíše tuto verzi a čtyři výhrady. Jako schválená investiční rada se nevydá. Pravidlo vydání mění RD0 z 22. 10. jen pro doporučení obchodní studie a čeká na rozhodnutí vlastníka produktu.</p>
