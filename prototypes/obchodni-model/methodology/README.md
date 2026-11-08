@@ -41,11 +41,12 @@ number is the exemplar's or the case pack's. "The review" is ADR 0046 § The met
 ## Agreement with the scope
 
 On 8 Nov the perspectives chapter, the chunk ids in every step's "New" part, the eight-step count and the open-question
-lists were aligned to session A's `MVP-SCOPE.md` (§ 3–4, § 2, § 8; branch `chore/mvp-r2-a`). The scope's wording is the
-source; a disagreement is reported to the coordinator, not resolved here.
+lists were aligned to session A's `MVP-SCOPE.md` (§ 3–4, § 2, § 8; branch `chore/mvp-r2-a`, final head 6b710d4d:
+20 scored components, the park fee inside P2). The scope's wording is the source; a disagreement is reported to the
+coordinator, not resolved here. None is open at this head.
 
 ## Folding in the other sessions
 
-Sessions A–E change boards while this document is written (appendix C marks them "in revision"). When their branches
-land, the chapters that cite those boards are aligned to them, chapter 11 to A's perspectives in `MVP-SCOPE.md` and
-D's MV9 first, and the PDF is rebuilt and checked page by page before the push.
+Sessions A, B, C and E landed on 8 Nov and are folded in (appendix C says which board each changed); D (the maps,
+MV3, MV9, SI1–SI4) landed last and is folded in; the board index names every board's file and state. When a branch lands, the chapters that cite
+its boards are aligned to it and the PDF is rebuilt and checked page by page before the push.
