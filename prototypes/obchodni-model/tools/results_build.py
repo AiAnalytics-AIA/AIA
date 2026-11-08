@@ -188,6 +188,23 @@ T6 = [
 ]
 BOUGHT_TONNE_2032 = 2340
 
+
+# T6 doprava column: product transport to Brno (62 %) and Pardubice (38 %), EUR/t, 2032 base case
+TRANSPORT = [(site, vals[1]) for site, vals, _ in T6]
+TRANSPORT_ASIA = 96  # EUR/t, keep-buying baseline, T9 (45-month average 96,4)
+# T9 logistics inputs: (input, unit, low, likely, high, source, grade, who, state)
+LOGISTICS_INPUTS = [
+    ("Odrzyca: délka vlečky", "km", "3,40", "3,40", "3,40", "Vyjádření k dopravě s. 7", "z dat klienta", "vedoucí logistiky", "ověřeno"),
+    ("Odrzyca: vlečka, cena za km", "mil. EUR/km", "1,90", "2,00", "2,80", "Srovnatelné závody: 4 vlečky 1,94–2,76 mil. EUR/km", "odhad", "vedoucí logistiky", "ověřeno"),
+    ("Odrzyca: získání pozemků pro vlečku", "měsíce", "6", "12", "24", "není v podkladech", "úsudek", "vedoucí logistiky", "úsudek"),
+    ("Odrzyca: stavba vlečky od získání pozemků", "měsíce", "14", "19", "24", "Vyjádření k dopravě s. 7: 14–24 měsíců", "z dat klienta", "vedoucí logistiky", "ověřeno"),
+    ("Odrzyca: silniční doprava surovin přes překladiště navíc", "EUR/t surovin", "10", "20", "40", "žádná nabídka", "úsudek", "vedoucí logistiky", "úsudek"),
+    ("Eschfeld: zesílení mostu", "mil. EUR", "3,20", "4,10", "5,00", "Vyjádření k dopravě s. 6: 3,2–5,0 mil. EUR", "z dat klienta", "vedoucí logistiky", "ověřeno"),
+    ("Eschfeld: zesílení mostu od rozhodnutí do povolení těžké dopravy", "měsíce", "12", "18", "30", "Vyjádření k dopravě s. 6: povolení až po dokončení; délka není uvedena", "úsudek", "vedoucí logistiky", "úsudek"),
+    ("Doprava z Asie (další nákup)", "EUR/t", "96", "96", "96", "Nákupy VTX-40 2023–2026: průměr za 45 měsíců 96,4", "z dat klienta", "vedoucí logistiky", "ověřeno"),
+    ("Připočíst dopravu surovin z nabídek", "–", "0", "0", "1", "cena surovin je franko závod; nabídky dopravy surovin by ji počítaly dvakrát; základ nepřičítat, citlivost přičíst", "úsudek", "autor", "úsudek"),
+]
+
 # ch. 6 start of production: median and 90th percentile where the report states them (decimal years), P(in time) from T1
 # Base-case start from T4; medians from the text (leden 2030 = 2030,0; listopad 2030 = 2030,83; únor 2031 = 2031,08;
 # konec 2029 = 2029,92; jaro 2030 = the base case, 2030,17 and 2030,25).
@@ -676,6 +693,67 @@ def velis_schedule_note() -> str:
     return section("Pevné termíny", "bez rozdělení", body, case=CASE_VE)
 
 
+
+# ---------------------------------------------------------------- M4f Logistika sections
+
+def transport_svg() -> str:
+    w = 900
+    rowh = 26
+    h = 16 + rowh * len(TRANSPORT) + 40
+    x0 = 130
+    scale = 7.0
+    s = svg_open(w, h, "Doprava produktu do Brna a Pardubic podle lokalit, EUR na tunu, rok 2032")
+    y = 12
+    for site, v in TRANSPORT:
+        col = "var(--v1)" if v < 45 else "var(--v2)"
+        s += f'<text class="k" x="{x0-10}" y="{y+12}" text-anchor="end">{esc(site)}</text>'
+        s += f'<rect x="{x0}" y="{y}" width="{v*scale:.1f}" height="16" rx="2" style="fill:{col}"/>'
+        s += f'<text class="b" x="{x0+v*scale+6:.1f}" y="{y+12}">{v}</text>'
+        y += rowh
+    xa = x0 + TRANSPORT_ASIA * scale
+    s += f'<line x1="{xa:.1f}" x2="{xa:.1f}" y1="6" y2="{y+4}" style="stroke:var(--ink);stroke-dasharray:4 3"/>'
+    s += f'<text class="t" x="{xa-6:.1f}" y="{y}" text-anchor="end">doprava z Asie při dalším nákupu: {TRANSPORT_ASIA} EUR/t</text>'
+    s += f'<text class="t" x="{x0}" y="{h-8}">EUR na tunu produktu, rok 2032, základní případ; z nabídek dopravy (Nabídky dopravy), 62 % do Brna, 38 % do Pardubic</text>'
+    return s + "</svg>"
+
+
+def m4f_transport() -> str:
+    body = transport_svg()
+    body += cap("Složka <i>Doprava produktu do Brna a Pardubic, EUR/t</i> (perspektiva logistická, v modelu): 20–38 EUR/t z českých a polských lokalit, 53–58 z německých, protože jsou vzdálenější; třetí z položek, kterými se země liší (vedle lidí a údržby, Provoz). Doprava surovin se nepřičítá: cena surovin je franko závod. " + G_CALC)
+    return section("Doprava produktu do Brna a Pardubic", "T6, sloupec doprava", body)
+
+
+def m4f_access() -> str:
+    rows = [
+        ["<b>Odrzyca</b>", "Vlečka k postavení: délka, cena za km, získání pozemků", "nabídka dopravy počítá s vlečkou, která neexistuje; 3,4 km, 1,9–2,8 mil. EUR/km, pozemky 6–24 měsíců, stavba 14–24 měsíců", "#6,8", "do postavení vlečky silniční doprava surovin přes překladiště s přirážkou 10–40 EUR/t surovin; start výroby na vlečce nezávisí"],
+        ["<b>Eschfeld</b>", "Silniční přístup: nosnost mostu 16 t proti 40 t, zesílení", "cisterny váží 40 t, most unese 16 t; zesílení 3,2–5,0 mil. EUR, 12–30 měsíců do povolení těžké dopravy", "#4,1", "výroba začne nejdříve po zesílení mostu (Harmonogram); investice 175,5 proti stropu 175"],
+        ["ostatních šest", "–", "příjezd a vlečka podle nabídek lokalit bez položky navíc", '#<span class="muted">–</span>', "–"],
+    ]
+    body = table(["Lokalita", "Složka", "Co dokumenty uvádějí", "V investici (základ, mil. EUR)", "Co to dělá v modelu"], rows, {0: 110, 3: 120})
+    body += cap("Obě položky odhad EPC výslovně nezahrnuje (infrastruktura mimo areál); doplněny podle Vyjádření k dopravě s. 6 a 7 a Srovnatelných závodů, v investici podle tabulky T5 (Finance). Každá je v modelu: jako investice i jako čas před zahájením výroby. " + G_DATA + " " + G_JUD)
+    return section("Vlečka a most: přístup, který odhad stavby nezahrnuje", "T5 · T9 · nález kontroly dat P1", body)
+
+
+def m4f_inputs() -> str:
+    rows = [[f"<b>{a}</b>", b, f"#{lo}", f"#{li}", f"#{hi}", src, f'<span class="zg {"data" if g == "z dat klienta" else ("est" if g == "odhad" else "mod")}">{g}</span>', who, st] for a, b, lo, li, hi, src, g, who, st in LOGISTICS_INPUTS]
+    body = table(["Vstup", "Jednotka", "Dolní", "Nejspíš", "Horní", "Zdroj", "Stupeň", "Stojí za ním", "Stav"], rows, {2: 55, 3: 60, 4: 55}, cls="zt small")
+    body += cap("Logistické řádky tabulky T9 zprávy. Cena surovin 540 EUR/t franko závod je stejná pro všechny lokality; přičtení dopravy surovin z nabídek by úspory snížilo o 9–14 mil. EUR a verdikt by nezměnilo (nález P1). Co chybí, jde za vedoucím logistiky: pozemky pro vlečku se Zarząd Infrastruktury Kolejowej Opole a cena silniční dopravy do jejího postavení, pro kterou nabídka není (Rozhodnutí, zjištění před rozhodnutím).")
+    return section("Logistické vstupy modelu", "T9 · rozpětí, zdroj, stupeň, kdo za ním stojí", body)
+
+
+def build_m4f() -> None:
+    path = ROOT / "KM11Logistics.dc.html"
+    html = rebuild(
+        path,
+        ["Cost-to-serve podle zón", m4f_transport, "Vlastní sklad, nebo 3PL", m4f_access, m4f_inputs, ("grid", "Dimenzování skladu (hala A)", "Úroveň služby a OTIF"), "Síť a umístění skladu (těžiště)"],
+        extra={
+            TABS_OLD: TABS_NEW,
+            '<a href="KM9Operations.dc.html"><i class="ph ph-caret-left s"></i>Provoz</a>': '<a href="KM12Schedule.dc.html"><i class="ph ph-caret-left s"></i>Harmonogram</a>',
+        },
+    )
+    path.write_text(html, encoding="utf-8")
+
+
 # ---------------------------------------------------------------- splicing
 
 EXTRA_CSS = """
@@ -707,7 +785,7 @@ def rebuild(path: Path, order: list, *, extra: dict | None = None, drop_kept: bo
     html = path.read_text(encoding="utf-8")
     head, inner, _, tail = split_body(html)
     sections = SEC_RE.findall(inner)
-    preamble = SEC_RE.sub("", inner).strip()
+    preamble = SEC_RE.sub("", inner).strip().replace('<div class="zgrid2"></div>', "")
     kept = {}
     for s in sections:
         if 'data-gen="r2"' in s:
@@ -715,14 +793,19 @@ def rebuild(path: Path, order: list, *, extra: dict | None = None, drop_kept: bo
         m = re.search(r"<h2>(.*?)</h2>", s, re.S)
         kept[m.group(1)] = s
     out = []
+    def kept_section(title: str) -> str:
+        s = kept.pop(title)
+        if 'class="zcase"' not in s:
+            s = s.replace('<span class="grow"></span><span class="cap">', f'<span class="grow"></span>{CASE_VE}<span class="cap">', 1)
+        return s
+
     for item in order:
         if callable(item):
             out.append(item())
+        elif isinstance(item, tuple):  # ("grid", title, title): two kept sections side by side
+            out.append('<div class="zgrid2">' + "".join(kept_section(t) for t in item[1:]) + "</div>")
         else:
-            s = kept.pop(item)
-            if 'class="zcase"' not in s:
-                s = s.replace('<span class="grow"></span><span class="cap">', f'<span class="grow"></span>{CASE_VE}<span class="cap">', 1)
-            out.append(s)
+            out.append(kept_section(item))
     assert drop_kept or not kept, f"{path.name}: kept sections not placed: {list(kept)}"
     body = "".join(out)
     # renumber
@@ -771,9 +854,8 @@ def build_m4() -> None:
         path,
         [
             "Doporučení podle pravidla", rule_table_8, rule_table_other, boundary,
-            "Rozdíl C2 − B ve 20 000 budoucnostech", delays, hiring,
-            "Co výsledek otáčí", tornado, "Bod zvratu", breakeven, post2035, correlation,
-            "Předpověď objednávek, ověřená zpětně",
+            ("grid", "Rozdíl C2 − B ve 20 000 budoucnostech", "Co výsledek otáčí"), delays, hiring,
+            tornado, ("grid", "Bod zvratu", "Předpověď objednávek, ověřená zpětně"), breakeven, post2035, correlation,
             "Hodnota informace podle pravidla", voi, enquiry,
             "Přechod na B2: posouzení",
         ],
@@ -839,6 +921,9 @@ def build_m4g() -> None:
     src = (ROOT / "KM9Operations.dc.html").read_text(encoding="utf-8")
     dst = ROOT / "KM12Schedule.dc.html"
     html = src
+    if dst.exists():  # keep the board's own measured height
+        m_h = re.search(r'"\$preview":\{"width":1440,"height":(\d+)', dst.read_text(encoding="utf-8"))
+        html = re.sub(r'("\$preview":\{"width":1440,"height":)\d+', rf"\g<1>{m_h.group(1)}", html)
     rep = {
         "<title>Model – Výsledky: Provoz</title>": "<title>Model – Výsledky: Harmonogram</title>",
         '<main class="art" aria-label="Výsledky · Provoz">': '<main class="art" aria-label="Výsledky · Harmonogram">',
@@ -951,6 +1036,9 @@ def check() -> int:
         if m:
             for v in vals:
                 need(p3(v))
+    for a, b, lo, li, hi, *_ in LOGISTICS_INPUTS:
+        for v in (lo, li, hi):
+            need(v)
     for s in missing:
         print("not in the exemplar:", s)
     print(f"check: {len(missing)} missing")
@@ -968,6 +1056,7 @@ if __name__ == "__main__":
     build_m4b()
     build_m4d()
     build_m4g()
+    build_m4f()
     park("KM8Accounting.dc.html")
     park("KM10Market.dc.html")
     set_heights({})
