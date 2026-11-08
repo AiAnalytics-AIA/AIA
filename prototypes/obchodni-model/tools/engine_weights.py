@@ -13,7 +13,7 @@ chose, not people (MV3's contract for the scenario mode).
 Run from this folder with the repository's Python 3.12 environment (numpy 2.5, scipy 1.18,
 numba 0.68, matplotlib, python-docx, Pillow) and PYTHONPATH at packages/aia_core/src:
     python3 engine_weights.py
-It writes ../assets/si-weights-<case>-{top,3d,respondents}.jpg and engine_weights.json.
+It writes ../assets/si-weights-<case>-{top,3d,respondents}.jpg and engine_scenarios.json.
 """
 import io
 import json
@@ -59,7 +59,7 @@ def engine_map(rows, row_ids, objs, weights):
 def main():
     out = {}
     for case, labels in CASES.items():
-        spec = json.load(open(os.path.join(HERE, f"spec_weights_{case}.json")))
+        spec = json.load(open(os.path.join(HERE, f"spec_scenarios_{case}.json")))
         res = compute(spec, keep_rows=True)
         objs = res["objs"]
         owner = res["owner_scenario"]
@@ -82,7 +82,7 @@ def main():
         for key, png in signed_off_snapshots(art, labels, respondents=True).items():
             Image.open(io.BytesIO(png)).convert("RGB").save(
                 os.path.join(HERE, "..", "assets", f"si-weights-{case}-{key}.jpg"), "JPEG", quality=88)
-    with open(os.path.join(HERE, "engine_weights.json"), "w") as f:
+    with open(os.path.join(HERE, "engine_scenarios.json"), "w") as f:
         json.dump(out, f, ensure_ascii=False, indent=1, default=str)
 
 
