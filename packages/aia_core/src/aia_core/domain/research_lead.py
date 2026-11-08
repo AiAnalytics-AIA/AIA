@@ -669,11 +669,11 @@ def request_refusal(request: Any, ids: RequestIds) -> str | None:
             return "request.target is needed: the targets layer has no default"
         if request.target is not None and request.target not in ids.targets:
             return f"request.target {request.target} is not a candidate of the targets layer"
-    elif isinstance(request, DeepResearchRetryRequest):
-        if request.run_id not in ids.deep_research_runs:
-            return (
-                f"request.run_id {request.run_id} is not a retryable run of the deep_research layer"
-            )
+    elif (
+        isinstance(request, DeepResearchRetryRequest)
+        and request.run_id not in ids.deep_research_runs
+    ):
+        return f"request.run_id {request.run_id} is not a retryable run of the deep_research layer"
     return None
 
 
