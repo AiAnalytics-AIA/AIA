@@ -273,7 +273,7 @@ not separate the sites, *informační* one the model holds in another form; both
 | **Prostředí a povolování** | E1 Šance na kompenzační opatření: 0,8 kde stanice překračuje limit memoranda, 0,2 jinde v CZ a PL, 0 v DE | R2-P05, T9 | z dat klienta; úsudek | ↓ | v modelu (the decisive input) |
 | | E2 Prodloužení povolování s kompenzací: CZ 9–15, PL 12–18 měsíců (ranges) | T9 | z dat klienta | ↓ | v modelu |
 | | E3 Předčištění odpadních vod: 6,7–14,1 mil. EUR (Lipová, Lindenau; a range) | T5, T9 | z dat klienta; odhad | ↓ | v modelu |
-| | E4 Poplatek chemického parku, 1,1 mil. EUR ročně (Wendelstedt) | T9 | z dat klienta | ↓ | v modelu |
+| | Poplatek chemického parku, 1,1 mil. EUR ročně (Wendelstedt) | T9 | z dat klienta | inside P2, counted once | |
 | | P(výroba k 1. 7. 2030) ≥ 0,80 | T1, R2-P07 | odhad | gate | |
 | | Emise CO₂ a EU ETS, 56 EUR/t | T6 | výpočet | stejné pro všechny lokality | |
 | **Lidé** | H1 Náklady na zaměstnance na tunu 2032 (mzda × skladba mezd × odvody) | T6, T9 | výpočet; právní předpis (prozatímní) | ↓ | v modelu |
@@ -281,7 +281,7 @@ not separate the sites, *informační* one the model holds in another form; both
 | | H3 Velký nábor v okolí do roku 2028: Kamenec 380; Bory named without a number, 0–380 (R2-P14) | Trh práce v regionech | z dat klienta | ↓ | mimo model |
 | | Růst mezd po roce 2031 | T9 | úsudek | stejné pro všechny lokality | |
 
-What the table shows for the map: 21 scored components; 4 are the saving (F1, F4, F5, F6), 14 are *v modelu* and 3
+What the table shows for the map: 20 scored components; 4 are the saving (F1, F4, F5, F6), 13 are *v modelu* and 3
 *mimo model* (S1, H2, H3). The owner's vector "finance 0,5 · provoz 0,3 · logistika 0,2" over every component would
 count operations and logistics twice, because the saving already holds their cost per tonne. Two honest scenario
 families exist: (a) **úspora + mimo model**, the saving against what the model leaves out; (b) **v modelu + mimo
