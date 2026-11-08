@@ -1,0 +1,59 @@
+<section class="chapter" id="governance">
+  <p class="chapter-label">Chapter 13</p>
+  <h1 data-label="13">Governance</h1>
+  <p class="lede">Reproducibility proves the code computes what is written. It does not prove the model is the right one for the decision. That needs a review by someone who did not accept the inputs, a register that says which methods are approved, and a record of what is still open and whose word closes it.</p>
+
+  <h2 data-label="13.1" id="gov-review">The validity review (R1)</h2>
+  <p>Before a recommendation is approved, an independent reviewer answers five questions; the researcher who accepted the inputs answers to them, never reviews them (board MV8 § 01; review R1).</p>
+  <table class="compact">
+    <thead><tr><th style="width:4%">#</th><th>Question</th><th style="width:40%">In the ChemVitro exemplar</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Is every option represented comparably?</td><td>the same plant, horizon, rate and timeline; site-specific months and costs from the site's documents (R2-P02, Appendix B)</td></tr>
+      <tr><td>2</td><td>Are the material costs, benefits, constraints and implementation dependencies in the model?</td><td>the EPC exclusions priced; outside the model: transfer prices, hiring time in the schedule, raw-material freight, the annual step (R2-P15)</td></tr>
+      <tr><td>3</td><td>Could an excluded item reverse the recommendation?</td><td>raw-material freight would lower savings by 9–14 mil. EUR without changing the verdict (P1); the 2030 air limits could (R2-P01)</td></tr>
+      <tr><td>4</td><td>Do extreme inputs give sensible results?</td><td>the decision boundary 0–30 %, delays to 6 months, premium 0 and 30 %, three correlation settings (Appendix B); not run as named extreme-input tests</td></tr>
+      <tr><td>5</td><td>Has an independent reviewer challenged the structure and the decisive assumptions?</td><td>not recorded in the exemplar; the MVP adds the record (board MV8)</td></tr>
+    </tbody>
+  </table>
+  <p>With the questions: four extreme-input tests with the expected behaviour written before they run (MV8 § 02), the statement that validity is not reproducibility (§ 03), and the six acceptance criteria K1–K6 with their state (§ 04). The review's record is part of the approval; its open items keep the recommendation <i lang="cs">předběžné</i>.</p>
+
+  <h2 data-label="13.2" id="gov-register">Register entries the exemplar waits on</h2>
+  <p>The Sociomap register (<code>domain/sociomap_register.py</code>) and Metodika's versions (<code>domain/methodology/</code>, ADR 0023) hold what is approved. A type-2 study needs entries that do not exist. Until each exists, its results print <i lang="cs">odhad (metoda čeká na schválení metodikem)</i>.</p>
+  <table class="compact">
+    <thead><tr><th style="width:30%">Method</th><th>What the entry must fix</th><th style="width:24%">Where it is used</th></tr></thead>
+    <tbody>
+      <tr><td>Monte Carlo over the input table: PERT, declared correlations (Iman–Conover), empirical joint draws from comparables, yes/no events, mixtures</td><td>the default distribution by source; the correlation method; the stopping rule and its margin; the seed convention</td><td>every median, interval and probability (T1–T3, T5)</td></tr>
+      <tr><td>The decision boundary</td><td>the grid over an input's range; recomputation of the futures per value; how the flip is reported</td><td>R2-P06 § 5.3</td></tr>
+      <tr><td>Value of information for the rule, and EVPPI</td><td>the partition of futures by the answer; the rule applied per partition; EVPPI by Strong and Oakley (2013); the order of the two measures; the enquiry table's columns</td><td>R2-P09</td></tr>
+      <tr><td>The futures map (observers = futures) under <code>aia-sociomap-5</code></td><td>the mode contract: which pair statistic, if any; the determinedness test; the stability test's settings, agreement measure and threshold; the relative and absolute readings</td><td>R2-P12, T7, T8</td></tr>
+      <tr><td>The weighting-scenario map (indicator method v2)</td><td>states, gates, swing weights, value scales, the fan's distance, shares of tested settings</td><td>board MV9</td></tr>
+      <tr><td>Estimates from comparables</td><td>the filter, the statistic, the minimum sample, how a joint draw is recorded</td><td>overrun and delay, pre-treatment, spur costs (T9)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 data-label="13.3" id="gov-methodologist">The methodologist's open questions</h2>
+  <p>ADR 0046 lists ten (§ Open: multiple testing on maps; levels or changes; effective sample size; resampling for 24–36 rows; the surrogate null; the relation statistic; the synthetic suite's thresholds; the discount rate in probabilistic rules; PERT inputs; forecast evaluation), with board MV5's recommendation for each. The exemplar adds five:</p>
+  <ol>
+    <li><b>Which contract governs the futures map.</b> The exemplar drew links by the <code>-5</code> pair test with the false-discovery correction and tested determinedness by split-half; board MV3's scenario contract says no null applies when the model creates the relations and asks for stability across seeds and settings instead. One of the two, or a stated combination.</li>
+    <li><b>The stability test.</b> The agreement measure over the 28 distances and the 0,8 threshold are the author's; the three correlation settings ("strong" = 0,95 / 0,85 / 0,4) are judgements.</li>
+    <li><b>PERT from three judged points</b> for the 22 inputs the files do not hold, and when a mixture or a uniform is the better default.</li>
+    <li><b>The empirical joint draw</b> of overrun and delay from 36 plants: whether a sample of that size supports it, and how a 91 kt outlier is treated.</li>
+    <li><b>Value for the rule</b> as a measure: its definition when the rule's choice is "nothing", and how it combines across several enquiries (the exemplar's 152,1 for all three authorities).</li>
+  </ol>
+
+  <h2 data-label="13.4" id="gov-owner">The owner's open decisions</h2>
+  <table class="compact">
+    <thead><tr><th style="width:10%">Id</th><th>Decision</th><th style="width:32%">Recommendation on the canvas</th></tr></thead>
+    <tbody>
+      <tr><td>R9 / Q7</td><td>The release gate: a recommendation on an unregistered method stays <i lang="cs">předběžné</i>; changes W27 and RD0 of 22 October</td><td>accept, for the business study's recommendation only; warnings elsewhere stay (MV0 § 06)</td></tr>
+      <tr><td>Q1</td><td>The four attributes of a number as the vocabulary of the outline and the report</td><td>the legend on M6 and the labels on MV4</td></tr>
+      <tr><td>Q2</td><td>Enforce data classes before a client's data flows into a model</td><td>yes for Class A in staging and production</td></tr>
+      <tr><td>Q4</td><td>The SOMECS name and licence</td><td>until checked, the map is <i lang="cs">Sociomapa systémů</i></td></tr>
+      <tr><td>—</td><td>Whether the type-2 model is a second model type or an extension of <i lang="cs">scénáře nákladů</i> (chapter 6)</td><td>for sessions A and C to propose</td></tr>
+    </tbody>
+  </table>
+  <p>Settled by the brief of 8 November: the case for the review's step 5 is ChemVitro, and the MVP's spine is type 2 end to end on it. Settled by the exemplar's client, not the owner: the interpretation of the investment condition (the CFO confirms).</p>
+
+  <h2 data-label="13.5" id="gov-change">Change propagation (K4)</h2>
+  <p>A revised input is a new revision of the input table. Every result, table, map and approval that read the old revision is marked stale until someone reviews it; the report's version carries the revision it was composed from. In AIA today the pipeline's fingerprints and the impact rule (<code>domain/pipeline.py</code>, the research impact route) do this for a research design; the model platform reuses the rule (<code>cost-model-study</code> CP5: inputs frozen by artefact id and SHA-256).</p>
+</section>

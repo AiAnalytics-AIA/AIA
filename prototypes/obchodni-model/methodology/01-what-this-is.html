@@ -1,0 +1,33 @@
+<section class="chapter" id="what">
+  <p class="chapter-label">Before the chapters</p>
+  <h1 data-label="">What this is</h1>
+  <p class="lede">On 8 November 2026 the executive chose report 2 of the ChemVitro case study as the report AIA must produce. This document is the methodology behind that report, step by step, and the measure the MVP will be held to.</p>
+
+  <h2 data-toc="no">The three outcomes of the pivot</h2>
+  <table class="compact">
+    <thead><tr><th style="width:22%">Outcome</th><th>Where it lives</th><th style="width:18%">Who</th></tr></thead>
+    <tbody>
+      <tr><td>One MVP prototype</td><td>The Design canvas <i lang="cs">AIA Obchodní model</i>, <code>prototypes/obchodni-model/</code>; thirty boards, Czech, one path from <i lang="cs">Zadání</i> to <i lang="cs">Zpráva</i></td><td>sessions A–E</td></tr>
+      <tr><td>One methodology PDF</td><td>This document, <code>prototypes/obchodni-model/methodology/</code></td><td>session F</td></tr>
+      <tr><td>One MVP scope</td><td><code>prototypes/obchodni-model/MVP-SCOPE.md</code> and board MV0; the methodology and the scope must agree</td><td>session A</td></tr>
+    </tbody>
+  </table>
+
+  <h2 data-toc="no">What the MVP produces</h2>
+  <p>Study type 2, <i lang="cs">Model nákladů lokality</i>: a decision between options, judged by a rule the client wrote before any result, on a cost model computed by code, with the uncertainty of every input carried through to the verdict. The exemplar is a type-2 report on a fictional client, ChemVitro, choosing among eight sites for a chemical plant or keeping its supplier. Its parts carry the ids R2-P01 to R2-P18 and its tables T1 to T9; this document cites them by those ids.</p>
+  <p>Types 1 and 3 of the case pack (the situation report without a model; the model beside a worker survey) are not the MVP. The survey lane is frozen (ADR 0046, decision 2).</p>
+
+  <h2 data-toc="no">How to read it</h2>
+  <ul>
+    <li>Chapter 1 is the spine: the nine steps in one table.</li>
+    <li>Chapters 2 to 9 take one step each, all in the same shape: what goes in, what comes out, the checks, how the exemplar did it, what AIA has today, what is new, and what the ChemVitro acceptance expects.</li>
+    <li>Chapter 10 says, truthfully, what is built and what is designed. No type-2 code is on <code>develop</code>.</li>
+    <li>Chapters 11 to 13 cross the steps: the business perspectives and the two Sociomaps; grades, sources and the release gate; governance.</li>
+    <li>The appendices hold the glossary, the exemplar in numbers and the index of the canvas boards.</li>
+  </ul>
+  <p>Czech words in italics are terms a person sees on AIA's screens or in the report. English words in <code>code</code> are files, modules or plan chunks in the repository. "The review" is the product owner's methodology review of 5 November 2026 (ADR 0046 § The methodology review, R1–R10, K1–K6). "The answer key" is <code>prototypes/case-chemvitro/ANSWER-KEY.md</code>. "The owner" is the product owner; "the methodologist" is the methodology owner, A. Bahbouh.</p>
+
+  <div class="note">
+    <p><b>Three things this document does not do.</b> It does not invent a number: every ChemVitro figure comes from the exemplar's tables or the case pack. It does not decide what waits on the owner or the methodologist; chapter 13 lists those items. It does not describe how a screen works: the boards do that.</p>
+  </div>
+</section>

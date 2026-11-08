@@ -1,0 +1,50 @@
+<section class="chapter" id="perspectives">
+  <p class="chapter-label">Chapter 11</p>
+  <h1 data-label="11">Perspectives, components and the two maps</h1>
+  <p class="lede">The owner asked for every business perspective: financial, strategic, operational, marketing, logistics, "just everything". A perspective is not a view of the results. It is a set of components of the decision, each a measure per option with a source and a direction. The components feed one new map, the weighting-scenario map, which sits beside the futures map and is never merged with it.</p>
+
+  <h2 data-label="11.1" id="persp-def">Perspectives and components</h2>
+  <p>A <b>component</b> is one measure per option with: a <b>source</b> (a model result, a client datum, a cited finding, or a named expert's score); a <b>direction</b> (higher is better, or lower is); a <b>value scale</b> with declared extremes, so that the component can be read on 0–1; and a <b>state</b> per option (known, unknown, not applicable, evidenced absent or present; review R2). A <b>perspective</b> groups components. A perspective with no component for a case stays empty and says so.</p>
+  <p>The seven perspectives, with ChemVitro's components read from the exemplar. Every value below is the exemplar's or the case pack's; a component the case does not have is marked so.</p>
+  <table class="tight">
+    <thead><tr><th style="width:16%">Perspective</th><th style="width:34%">Components in the ChemVitro case</th><th style="width:22%">Source</th><th>Direction and state</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">finanční</i></td><td>median saving; P(beats buying); P(loss &gt; 20); investment in the base case and P(≤ 175); IRR; payback; after-tax NPV</td><td>model: T1, T4, T5</td><td>saving, probabilities of beating, IRR higher; loss, investment, payback lower; known for every site</td></tr>
+      <tr><td><i lang="cs">strategická</i></td><td>supplier dependence (binding offer only mid-2029; renewal at +12–22 % and a 30 000 t minimum); reversibility (a plant is built once, no pilot); post-2035 terms as a lever; market position</td><td>client documents (the supplier's letter), <code>CASE.md</code> § 8; model § 7.2</td><td>dependence and irreversibility lower; post-2035 terms known only as scenarios; market position <b>not applicable</b>: the plant supplies ChemVitro alone</td></tr>
+      <tr><td><i lang="cs">provozní</i></td><td>cost per tonne in 2032 by category; staffing 95 FTE; ramp-up 60–90 %; time to fill an operator post (49–118 days); a large employer hiring 380 nearby</td><td>model T6; <code>trh_prace_regiony.xlsx</code></td><td>cost and hiring time lower; staffing identical by design; the Kamenec hiring is a risk, not a cost</td></tr>
+      <tr><td><i lang="cs">marketingová / obchodní</i></td><td>customer promise, delivery time, demand growth</td><td>—</td><td><b>thin for ChemVitro</b>: demand is the client's own consumption (34 000 t, +1–3 %); the perspective is central for Velis and stays empty here, and the report says so</td></tr>
+      <tr><td><i lang="cs">logistická</i></td><td>product freight to Brno and Pardubice (20–38 EUR/t from CZ and PL, 53–58 from DE); rail access (the PL1 spur, 3,4 km); road access (the DE3 bridge, 16 t); distance</td><td>model T6; <code>vyjadreni_doprava.pdf</code> p. 6–7; <code>doprava_nabidky.csv</code></td><td>freight and distance lower; the spur and the bridge are costs and months in the model and gates until evidenced</td></tr>
+      <tr><td><i lang="cs">prostředí a povolování</i></td><td>permitting 8–11 months plus extensions; compensation chance (0,8 / 0,2 / 0); wastewater pre-treatment (CZ2, DE2); emissions in the EU ETS (0,62 t CO₂ per tonne); station values against limits; the 2030 limits of (EU) 2024/2881</td><td>model T9; <code>memo_povolovani_ovzdusi.pdf</code>; <code>ovzdusi_stanice.csv</code>; <code>vyjadreni_cov.pdf</code></td><td>months, chance and cost lower; the compensation chance is a judgement with no document, so its state is <b>unknown</b> at the three leading sites</td></tr>
+      <tr><td><i lang="cs">lidé</i></td><td>operator wage and the wage mix (× 1,10–1,50); employer contributions (CZ 34–39 %, DE 20–23 %, PL 20–24 %); unemployment; hiring time</td><td><code>trh_prace_regiony.xlsx</code>; Rešerše (provisional)</td><td>wage and contributions lower; contributions are <i lang="cs">prozatímní</i></td></tr>
+    </tbody>
+  </table>
+  <p>A component whose mechanism the model already holds is not scored a second time (the review's "no double counting"; the canvas's version 1 counted one option's fixed price three times). For ChemVitro, most components above are already inside the saving; the perspectives make them visible per option, so that the board can weigh them, and that is what the second map is for.</p>
+
+  <h2 data-label="11.2" id="map-futures">The futures map</h2>
+  <p>Chapter 8 describes it. In one line each: rows are futures; the claim is about the model; the cell is the rule's measure; centring per future makes the reading relative; the uncentred shared-failure table reads the absolute; links only where the mode contract allows; a stability test over settings declared in advance; relative apart from absolute; internal until the futures mode is registered.</p>
+
+  <h2 data-label="11.3" id="map-weights">The weighting-scenario map (<i lang="cs">Mapa scénářů vah</i>, board MV9)</h2>
+  <p>The owner's request: "allocate different weights to different components … whether logistics is a 0,3 and operations management is 0,5 … run the scenarios and display the scenarios on the Sociomaps."</p>
+  <dl class="kv">
+    <dt>Rows</dt><dd><b>Scenarios</b>: named weight vectors over the components or the perspectives, composed by the researcher or the client's people. Example names, to be replaced by the case's own: <i lang="cs">FR: finance 0,5 · provoz 0,3 · logistika 0,2</i>; <i lang="cs">EHS: povolování 0,5 · prostředí 0,3 · finance 0,2</i>; <i lang="cs">Rovné váhy</i>. Around each named scenario a <b>fan</b>: perturbed weight vectors within a declared distance, renormalised, so that a scenario is a region, not a point.</dd>
+    <dt>Objects</dt><dd>The options (the eight sites; the baseline where it has components).</dd>
+    <dt>Cell</dt><dd>The option's weighted score under that weight vector: each component read on its 0–1 value scale in its direction, multiplied by its weight, summed.</dd>
+    <dt>Height</dt><dd>The weighted score under the scenario chosen for display.</dd>
+    <dt>Distance</dt><dd>Options close together score alike across the tested weightings: they win or lose under the same preferences.</dd>
+    <dt>Statistics</dt><dd>None of the engine's pair statistics are read: the rows are settings we chose, not a sample (board MV3's scenario contract; README "Known wrong"). Instead, <b>shares of tested settings</b>: for each option, the share of the fan's settings in which it ranks first (review R4). A share is a share of tested settings, never a probability.</dd>
+  </dl>
+  <h3>The rules the map keeps</h3>
+  <ul>
+    <li><b>The client's rule decides.</b> The map is <b>preference information</b>. It goes to the report's part 3, <i lang="cs">Co by závěr změnilo</i>, and to the appendix, never into the recommendation (review R3; K3).</li>
+    <li><b>Gates are never compensated.</b> The rule's four conditions and any non-compensable requirement are gates: an option that fails one cannot rank first under any weighting; an option whose gate is unknown "cannot be recommended until evidenced" (review R2). The map shows gated options apart or marks them.</li>
+    <li><b>A missing component keeps a range, never a score.</b> An option with an unknown component is scored as an interval over the component's possible values; the share counts the settings in which it ranks first under its worst value and under its best, and the map prints the coverage of each option's weights.</li>
+    <li><b>Weights come from the decision-maker's trade-offs</b> (swing weighting), approved with the value scales before any score is read; other stakeholders' weights are a sensitivity test (review R3).</li>
+    <li><b>Two maps, never one.</b> The weighting map and the futures map answer different questions (preferences; shared risks in the model). They are shown side by side with their own contracts and are not merged, as the respondent and model maps are not (ADR 0046).</li>
+    <li><b>The engine is reused, the statistics are not.</b> The layout and terrain of <code>aia-sociomap-5</code> draw the map; the split-half and the pair tests are not printed for this mode. The map is internal until the indicator method v2 (states, gates, swing weights, value scales) has a register entry (chapter 13).</li>
+  </ul>
+  <h3>What the exemplar shows for it</h3>
+  <p>The exemplar has no weighting map; it has the material for one. Its components per site are in T1, T4, T5, T6 and T9, and its text already weighs them in words: the Czech and Polish sites win on finance and operations, Wendelstedt on the schedule, the German sites on permitting certainty, and none on all. A weighting map would show that the three leaders win under every finance-heavy weighting, that Wendelstedt wins only when the deadline condition is read as a weight rather than a gate, and that the gate is what keeps it out. That is exactly the kind of statement the map may make: what the preferences would favour, not what the rule chooses.</p>
+  <div class="note open">
+    <p><b>In revision.</b> Session D builds MV9 on the real engine with the perspectives above; session A defines the perspectives for every session in <code>MVP-SCOPE.md</code>. The names, the fan distance and the value scales in this chapter are placeholders until those land, and this chapter will be aligned to them.</p>
+  </div>
+</section>
