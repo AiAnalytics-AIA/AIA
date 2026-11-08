@@ -1,0 +1,55 @@
+<section class="chapter step" id="sociomapa">
+  <p class="chapter-label">Část 2 · krok 7 · desky MV3, MV9; SI1–SI4 zúžené</p>
+  <h2 data-label="2.7">Sociomapa: mapa budoucností a&nbsp;mapa scénářů vah vedle sebe</h2>
+  <figure class="full">
+    <svg viewBox="0 0 680 262" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dvě mapy téhož enginu s různými řádky: budoucnosti modelu a vektory vah; nikdy se neslučují">
+      <!-- left map -->
+      <rect x="0" y="0" width="318" height="196" rx="3" fill="#f3f1ec"/>
+      <text x="10" y="16" font-size="10.5" fill="#0d5279" class="mono">MAPA BUDOUCNOSTÍ · MV3 · R2-P12, T7</text>
+      <g font-size="11" fill="#0f1216">
+        <text x="10" y="36" font-weight="600">řádky</text><text x="70" y="36">20 000 budoucností modelu jako pozorovatelé</text>
+        <text x="10" y="50" font-weight="600">objekty</text><text x="70" y="50">osm lokalit</text>
+        <text x="10" y="64" font-weight="600">výšky</text><text x="70" y="64">průměrná úspora, každá budoucnost centrovaná</text>
+        <text x="10" y="78" font-weight="600">vazby</text><text x="70" y="78">jen spolehlivé; relativní a absolutní čtení</text>
+      </g>
+      <!-- schematic contour map -->
+      <g fill="none" stroke="#0d5279" stroke-width="0.8" opacity="0.7">
+        <ellipse cx="90" cy="140" rx="62" ry="36"/><ellipse cx="90" cy="140" rx="42" ry="24"/><ellipse cx="90" cy="140" rx="22" ry="12"/>
+        <ellipse cx="230" cy="150" rx="50" ry="28"/><ellipse cx="230" cy="150" rx="28" ry="15"/>
+      </g>
+      <g fill="#0f1216"><circle cx="80" cy="134" r="3"/><circle cx="104" cy="146" r="3"/><circle cx="120" cy="128" r="3"/><circle cx="226" cy="146" r="3"/><circle cx="240" cy="160" r="3"/><circle cx="160" cy="170" r="3"/><circle cx="62" cy="170" r="3"/><circle cx="276" cy="130" r="3"/></g>
+      <rect x="10" y="176" width="298" height="14" rx="2" fill="#fbe7e6"/>
+      <text x="14" y="186" font-size="10" fill="#971c11">zkouška tří nastavení: Spearman 0,75 proti 0,8 — neprošla</text>
+      <!-- divider -->
+      <rect x="326" y="0" width="28" height="196" rx="3" fill="#fff" stroke="#971c11" stroke-width="0.75" stroke-dasharray="3 2"/>
+      <text x="340" y="98" font-size="10" fill="#971c11" text-anchor="middle" transform="rotate(-90 340 98)" class="mono">NIKDY SE NESLUČUJÍ</text>
+      <!-- right map -->
+      <rect x="362" y="0" width="318" height="196" rx="3" fill="#f3f1ec"/>
+      <text x="372" y="16" font-size="10.5" fill="#0d5279" class="mono">MAPA SCÉNÁŘŮ VAH · MV9 · ČÁST 4</text>
+      <g font-size="11" fill="#0f1216">
+        <text x="372" y="36" font-weight="600">řádky</text><text x="432" y="36">vektory vah nad perspektivami</text>
+        <text x="372" y="50" font-weight="600">objekty</text><text x="432" y="50">osm lokalit; nákup je reference, ne objekt</text>
+        <text x="372" y="64" font-weight="600">výšky</text><text x="432" y="64">vážené skóre pod zvoleným scénářem</text>
+        <text x="372" y="78" font-weight="600">vějíř</text><text x="432" y="78">300 losů kolem řádku; citlivost, ne P</text>
+      </g>
+      <g fill="none" stroke="#576574" stroke-width="0.8" opacity="0.7">
+        <ellipse cx="470" cy="144" rx="60" ry="34"/><ellipse cx="470" cy="144" rx="38" ry="21"/><ellipse cx="470" cy="144" rx="18" ry="10"/>
+        <ellipse cx="600" cy="138" rx="46" ry="30"/><ellipse cx="600" cy="138" rx="24" ry="15"/>
+      </g>
+      <g fill="#0f1216"><circle cx="462" cy="140" r="3"/><circle cx="486" cy="150" r="3"/><circle cx="450" cy="160" r="3"/><circle cx="596" cy="134" r="3"/><circle cx="612" cy="148" r="3"/><circle cx="540" cy="170" r="3"/><circle cx="420" cy="126" r="3"/><circle cx="650" cy="166" r="3"/></g>
+      <rect x="372" y="176" width="298" height="14" rx="2" fill="#e3e8ee"/>
+      <text x="376" y="186" font-size="10" fill="#576574">preference · „Co by závěr změnilo“, ne doporučení</text>
+      <!-- shared -->
+      <text x="0" y="216" font-size="10.5" fill="#44484e" class="mono">SPOLEČNÉ</text>
+      <text x="0" y="230" font-size="11" fill="#0f1216">engine <tspan class="mono">aia-sociomap-5</tspan> nad tabulkou řádky × objekty · párové statistiky se nečtou: řádky jsou losy nebo nastavení,</text>
+      <text x="0" y="243" font-size="11" fill="#0f1216">ne respondenti (ADR 0046, rozhodnutí 5) · každý režim má vlastní zápis v Metodice, interní, dokud ho metodik neschválí</text>
+      <text x="0" y="256" font-size="11" fill="#0f1216">T8 „žádná lokalita není zálohou“: společné selhání s vedoucí lokalitou pravidla</text>
+    </svg>
+    <figcaption><b>Jeden engine, dva druhy řádků.</b> Mapa budoucností čte losy modelu; mapa scénářů vah čte preference. Stojí vedle sebe a&nbsp;nikdy se neslučují. Zkouška stability je vyhlášená před výpočtem; když mapa neprojde, zpráva to vytiskne, jak to vytiskl vzor. Obrysy jsou schematické, ne data.</figcaption>
+  </figure>
+  <dl class="four">
+    <dt>Dnes v AIA</dt><dd>Engine <code>-5</code>: centrování po řádcích, párové statistiky s&nbsp;prahy a&nbsp;Benjamini-Hochbergem, shoda polovin, rozvržení od 4 objektů; registr schvaluje <code>aia-sociomap-5</code> pro hodnocení respondentů; obrázky zprávy z&nbsp;uložených map; důkaz prototypu, že engine vezme tabulku budoucností jako řádky. Statistiky enginu platí pro respondenty, ne pro zvolené řádky.</dd>
+    <dt class="new">Nové</dt><dd>Smlouva režimu scénářů: řádky jsou losy modelu, základnou uložená korelace vstupů, stabilita je citlivost na semínka a&nbsp;nastavení korelací, bez p-hodnoty; zkouška tří nastavení s&nbsp;prahem vyhlášeným předem; T8; mapa scénářů vah; zápis v&nbsp;registru za každý režim.</dd>
+    <dt>Staví</dt><dd><code>sociomapa-systemu#SYS9</code> (režim scénářů), <code>#SYS12</code> (každý režim svůj zápis v&nbsp;Metodice); <code>cost-model-study#CS1</code> (deklarované krajní body a&nbsp;směr), <code>#CS5</code> (mapa ve Výsledcích a&nbsp;ve zprávě); <span class="tile n">SYS9b</span> tabulka T8 a&nbsp;zkouška stability (Spearman na 28 vzdálenostech mezi každými dvěma nastaveními ≥&nbsp;0,8); <span class="tile n">SYS13</span> Mapa scénářů vah, deska MV9. SI1–SI4 si nechají jen to, co MV9 čte: stavy, brány, pokrytí, kontrolu překryvu.</dd>
+  </dl>
+</section>

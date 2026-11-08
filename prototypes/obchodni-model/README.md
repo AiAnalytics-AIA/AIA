@@ -214,6 +214,9 @@ logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six se
   the exemplar waits on. One claim-integrity case found on the way: the exemplar's text says 54 inputs, its table T9 has 67.
 - **Methodology** version 3 (`methodology/`, 37 pages): one chapter per step, the perspectives and the two maps, grades and
   the release gate, governance, built vs designed.
+- **MVP scope, Czech visual edition** (`scope/`, `AIA_MVP-scope_cs.pdf`, 24 pages): `MVP-SCOPE.md` as a figure-led Czech
+  document for the owner and the methodologist, one figure per part, built by `scope/build.js` from the methodology's style
+  and fonts; the markdown stays the record, the PDF names the revision it was built from.
 
 | # | File | Board |
 |---|---|---|
