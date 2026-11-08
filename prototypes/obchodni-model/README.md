@@ -1,4 +1,4 @@
-# AIA Obchodní model – prototyp, 6 Nov 2026 (version 51)
+# AIA Obchodní model – prototyp, 8 Nov 2026 (version 65)
 
 This is the business-decision study's Design canvas. It is the prototype of the pivot that ADR 0046 records
 (`docs/architecture/adr/0046-business-decisions-pivot.md`, Proposed, in
@@ -16,11 +16,11 @@ designed in a plain browser.
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/HM9rmiwAM9asP8hfyn1XHp>, in the product owner's first account, which owns it (2 Nov 2026). Edit this one and export from it |
-| Version | version 51, artifact version `1793960854-7e5c` (versions 39–50 changed no board this export holds) |
-| Exported | 5 Nov 2026 (version 14 on 2 Nov; versions 15–22 left every board file as exported then; versions 34–36 were uploads only) |
+| Version | version 65, artifact version `1794158436-3ff0` (versions 53–64 came from the Design type's own releases; the four boards this export did not change were identical on the canvas) |
+| Exported | 8 Nov 2026 (version 14 on 2 Nov; versions 15–22 and 34–36 changed no board file; version 51 on 6 Nov) |
 | Core stylesheet | `assets/aia-core.css`, core v4.3 (Petrol), SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`, the same bytes as `../research-stages/assets/aia-core.css` |
 | Study stylesheet | `assets/aia-study.css`, the same bytes as `../research-stages/assets/aia-study.css` (`d1a2d23b…`) |
-| Other assets | `assets/thinking-orbs.js`, the same bytes as research-stages' copy. Six uploaded images for SI3 and SI4, the aia-sociomap-5 engine's maps of the tested settings as AIA's report renderer draws them (`tools/engine_assets.json` names each). One uploaded image: the scenario map's top view on `MV3SystemMap` |
+| Other assets | `assets/thinking-orbs.js`, the same bytes as research-stages' copy. Six uploaded images for SI3 and SI4, the aia-sociomap-5 engine's maps of the tested settings as AIA's report renderer draws them (`tools/engine_assets.json` names each). Eleven uploaded images: the Velis scenario map's top view (`MV3SystemMap`), the exemplar's four futures-map figures (`MV3SystemMap`), and six renders of the weighting-scenario map by the aia-sociomap-5 engine (`MV9ScenarioWeights`; `tools/engine_assets.json` names each) |
 
 In the exported files, the canvas's asset URLs (`/_blob/<id>`) are rewritten to `assets/<id>.jpg`. `canvas.json` lists the
 boards, their titles, sizes and positions, and their order.
@@ -36,10 +36,10 @@ through them, and each board's arrows at the bottom follow that order (Z1 → �
 |---|---|
 | Zadání | Z0 průchod · Z1 · Z2 · Z3 · Z4 · Z5 · Z7 |
 | Vstupy | M1 Data · MV1 datová smlouva · MV2 typované vstupy · MV2b zjištění podle analýz · M2 Předpoklady |
-| Výpočet | M3 Model · M4 Výsledky: Rozhodnutí · M4b Finance · M4c Účetnictví · M4d Provoz · M4f Logistika · M4e Trh |
-| Sociomapa | MV3 Sociomapa systémů · SI1–SI4 Sociomapa z indikátorů |
+| Výpočet | M3 Model · M4 Rozhodnutí · M4b Finance · M4d Provoz · M4g Harmonogram · M4f Logistika · M4c Účetnictví (parked) · M4e Trh (parked) |
+| Sociomapa | MV3 Sociomapa systémů · MV9 Mapa scénářů vah · SI1–SI4 the indicator method, reduced to what MV9 reads |
 | Předání | MV4 Osnova zprávy · MV8 kontrola platnosti modelu · M6 Zpráva |
-| MVP a Metodika | MV0 přehled MVP · MV5 validační sada a otázky · MV6 katalog analýz |
+| MVP a Metodika | MV0 scope · MV5 validation and register · MV6 catalogue (parked) |
 
 The board codes keep the row they were first drawn in (Z, M, MV, SI), so every link and file name still resolves.
 
@@ -185,6 +185,36 @@ mvp prototype screens. get rid of any old versions. lets leave the latest workin
   zprávy to MV8, MV8 to Zpráva. Z0's board list is in the same order and names every board (MV2b and M4f were missing);
   MV0 no longer points at M5 or MV7.
 
+**Changed in version 65 (8 Nov): the MVP that produces report 2.** The executive chose study type 2 of the ChemVitro case
+(`exemplar/ChemVitro_2_model-lokality_nigel.pdf`, 44 pages) as the report AIA must produce. The owner: "focus the MVP to
+be able to create the reports like report 2 … all business perspectives: financial, strategic, operational, marketing,
+logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six sessions built it from `BRIEF-mvp-r2.md`:
+
+- **Scope** (`MVP-SCOPE.md`, MV0, Z0): type 2 is the MVP's spine, replacing "Keep all in MVP" (A1 of 2 Nov); eight steps,
+  each with what the exemplar needs, what AIA has today (`file:line @ b28ce091`), what is new and the plan chunk; seven
+  perspectives with ChemVitro's 22 components; the weighting-scenario map's contract; acceptance = the ChemVitro answer
+  key plus K1–K6; five two-week waves.
+- **Inputs** (Z3, Z5, M1, MV1, MV2, M2): a rule of four gated conditions with an interpretation record; the data-check
+  findings table with dispositions and the planted problems located by row; a contract per file; 16 provisional public
+  inputs with a state (ověřeno u pramene / prozatímní / úsudek); the T9 inputs table, estimates from the 36 comparable
+  plants, the EPC scope check, correlations as judgement with the stability test declared first.
+- **Model and results** (M3, M4, M4b, M4d, M4f, new **M4g Harmonogram**): shared timeline and stopping rule; the rule
+  table at three rates with ✔/✘, the decision boundary (14 / 15 / 16 %), delay and hiring tables, value of information
+  for the rule before EVPPI, the enquiry table; T4–T6; start-date distributions against the deadline. Every ChemVitro
+  number is held to the exemplar's text by `tools/results_build.py`. M4c and M4e carry one parked line.
+- **Maps** (MV3, new **MV9 Mapa scénářů vah**, SI1–SI4): the futures map as the exemplar draws it (T7, T8, "no site is a
+  backup of another", the three-setting stability test the map failed); the weighting-scenario map on the real engine:
+  21 scored components by perspective with their role (úspora / v modelu / mimo model), gates never compensated, six named
+  weight vectors in two families with a Dirichlet fan (concentration 60 × 300 draws, 1 806 tested weightings as rows),
+  the owner's "finance 0,5 · provoz 0,3 · logistika 0,2" shown refused by the overlap check, first-per-scenario and
+  shares of tested settings, decision-critical ranges. SI1–SI4 keep only the method MV9 reads.
+- **Report** (MV4, M6, MV8, MV5): the outline in the exemplar's 18 parts with typed judgement and inference records; the
+  report as AIA renders it with grades after numbers, numbered sources per chapter, the Stav podkladů box and the dated
+  plan; the validity review run on the exemplar's own ten admitted limits (3 caught today, 7 open); the register entries
+  the exemplar waits on. One claim-integrity case found on the way: the exemplar's text says 54 inputs, its table T9 has 67.
+- **Methodology** version 3 (`methodology/`, 37 pages): one chapter per step, the perspectives and the two maps, grades and
+  the release gate, governance, built vs designed.
+
 | # | File | Board |
 |---|---|---|
 | 1 | `Z0Flow.dc.html` | Z0 · Zadání: průchod |
@@ -202,25 +232,27 @@ mvp prototype screens. get rid of any old versions. lets leave the latest workin
 | 13 | `KM3Model.dc.html` | M3 · Model: Model |
 | 14 | `KM4Results.dc.html` | M4 · Model: Výsledky |
 | 15 | `KM7Finance.dc.html` | M4b · Výsledky: Business case a finance |
-| 16 | `KM8Accounting.dc.html` | M4c · Výsledky: Účetnictví |
-| 17 | `KM9Operations.dc.html` | M4d · Výsledky: Operační výzkum |
+| 16 | `KM9Operations.dc.html` | M4d · Výsledky: Operační výzkum |
+| 17 | `KM12Schedule.dc.html` | M4g · Výsledky: Harmonogram |
 | 18 | `KM11Logistics.dc.html` | M4f · Výsledky: Logistika |
-| 19 | `KM10Market.dc.html` | M4e · Výsledky: Velikost trhu |
-| 20 | `MV3SystemMap.dc.html` | MV3 · Výsledky: Sociomapa systémů |
-| 21 | `SI1Method.dc.html` | SI1 · Sociomapa z indikátorů: metoda |
-| 22 | `SI2Matrix.dc.html` | SI2 · Sociomapa z indikátorů: matice skóre |
-| 23 | `SI3OptionsMap.dc.html` | SI3 · Sociomapa z indikátorů: mapa možností |
-| 24 | `SI4Suppliers.dc.html` | SI4 · Sociomapa z indikátorů: mapa dodavatelů |
-| 25 | `MV4XRay.dc.html` | MV4 · Osnova zprávy |
-| 26 | `MV8Validity.dc.html` | MV8 · Zpráva: kontrola platnosti modelu |
-| 27 | `KM6Report.dc.html` | M6 · Model: Zpráva |
-| 28 | `MV0Scope.dc.html` | MVP · Definované MVP: přehled |
-| 29 | `MV5Validation.dc.html` | MV5 · Metodika: validační sada a otázky |
-| 30 | `MV6Catalogue.dc.html` | MV6 · Katalog analýz |
+| 19 | `KM8Accounting.dc.html` | M4c · Výsledky: Účetnictví |
+| 20 | `KM10Market.dc.html` | M4e · Výsledky: Velikost trhu |
+| 21 | `MV3SystemMap.dc.html` | MV3 · Výsledky: Sociomapa systémů |
+| 22 | `MV9ScenarioWeights.dc.html` | MV9 · Sociomapa: mapa scénářů vah |
+| 23 | `SI1Method.dc.html` | SI1 · Sociomapa z indikátorů: metoda |
+| 24 | `SI2Matrix.dc.html` | SI2 · Sociomapa z indikátorů: matice skóre |
+| 25 | `SI3OptionsMap.dc.html` | SI3 · Sociomapa z indikátorů: mapa možností |
+| 26 | `SI4Suppliers.dc.html` | SI4 · Sociomapa z indikátorů: mapa dodavatelů |
+| 27 | `MV4XRay.dc.html` | MV4 · Osnova zprávy |
+| 28 | `MV8Validity.dc.html` | MV8 · Zpráva: kontrola platnosti modelu |
+| 29 | `KM6Report.dc.html` | M6 · Model: Zpráva |
+| 30 | `MV0Scope.dc.html` | MVP · Definované MVP: přehled |
+| 31 | `MV5Validation.dc.html` | MV5 · Metodika: validační sada a otázky |
+| 32 | `MV6Catalogue.dc.html` | MV6 · Katalog analýz |
 
 ## Reference renders
 
-`reference/` holds every board as drawn by `tools/prototype_renders/render.js` with the Design type's runtime: 30 images
+`reference/` holds every board as drawn by `tools/prototype_renders/render.js` with the Design type's runtime: 32 images
 in WebP at quality 88, and `renders.json`. No board had a script error or a failed request. The images are numbered in
 `canvas.json`'s board order, not in the order of the table above.
 
@@ -232,16 +264,15 @@ in WebP at quality 88, and `renders.json`. No board had a script error or a fail
   from the removed customer-research lane. No board references it, so it is not in `assets/`.
 - **Unregistered methods.** Numbers marked "odhad (interní)" and the strategy map rest on methods that are not in the
   Sociomap register. The boards say so.
-- **The engine's statistics on tested settings are not read.** The engine still computes them (10 of 21 and 9 of 15
-  pairs "reliable"), but the rows are 2 000 settings we chose, so the boards print no pair statistic and keep the maps
-  internal (MV3's contract for the scenario mode).
-- **No profile map.** From 7 criteria the engine computes no split-half and no reliable pair, so SI3 and SI4 do not draw
-  it; `tools/engine.json` keeps the engine's answer.
+- **The engine's statistics on tested weightings are not read.** MV9's rows are weight vectors we chose, so the board
+  prints no pair statistic and keeps the map internal (MV3's contract for the scenario mode).
+- **The exemplar's futures-map figures on MV3 are images cut from the report**, not renders from this repository; the
+  weighting map's images are the engine's own renders.
 - **The release policy is a proposal.** MV0, MV5 and KM6 show "Předběžné doporučení" as proposed; it changes the product
   owner's RD0 decision of 22 Oct and waits for his word.
 - **Number chips on most boards keep the single grade.** MV4 and KM6 split a number's grade into source, method,
   uncertainty and validation status; the other boards' chips still show one grade.
-- **The swing points and the managers' alternative weights are invented**, like every number here; so are MV8's reviewer
-  and its extreme-input results.
+- **The swing points, the named weight scenarios and the managers' alternative weights are invented**, like every number
+  here; MV8's reviewer is fictional and its extreme-input rows are the exemplar's own additional computations.
 - **SI4's starred suppliers and their sources are invented** for the demonstration; their values are labelled as
   public sources (veřejný ceník) that do not exist.
