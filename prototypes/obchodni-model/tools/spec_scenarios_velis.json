@@ -1,0 +1,384 @@
+{
+ "case": "Velis Commerce",
+ "decision": "Strategie skladu a logistiky 2026–2032: sedm možností",
+ "objects": [
+  {
+   "id": "A",
+   "name": "A · Hala"
+  },
+  {
+   "id": "A2",
+   "name": "A2 · Hala po etapách"
+  },
+  {
+   "id": "B",
+   "name": "B · 3PL CZ"
+  },
+  {
+   "id": "B2",
+   "name": "B2 · 3PL CZ pevná cena"
+  },
+  {
+   "id": "C",
+   "name": "C · 3PL PL"
+  },
+  {
+   "id": "C2",
+   "name": "C2 · 3PL PL + expres"
+  },
+  {
+   "id": "H",
+   "name": "H · Hybrid"
+  }
+ ],
+ "owner_scenario": "FR",
+ "families": {
+  "a": {
+   "name": "Úspora proti tomu, co model nepočítá",
+   "roles": [
+    "saving",
+    "outside"
+   ]
+  }
+ },
+ "perspectives": [
+  {
+   "code": "F",
+   "name": "Finanční",
+   "components": [
+    {
+     "code": "E1",
+     "name": "Medián NPV proti B (mil. Kč, 8 %)",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Výsledky (M4)",
+     "grade": "výpočet",
+     "role": "saving",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 5,
+      "A2": 6,
+      "B": 4,
+      "B2": 8,
+      "C": 6,
+      "C2": 10,
+      "H": 4
+     },
+     "overlap": "investici, přechod, ztrátu objednávek ze zpoždění, indexaci cen, mzdy a daň"
+    },
+    {
+     "code": "R1",
+     "name": "P(ztráta > 10 mil. Kč proti B) (% budoucností)",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Výsledky (M4)",
+     "grade": "výpočet",
+     "role": "saving",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 6,
+      "A2": 8,
+      "B": 10,
+      "B2": 10,
+      "C": 6,
+      "C2": 10,
+      "H": 10
+     },
+     "overlap": "stejný model jako E1, jiná vlastnost: chvost, ne medián"
+    },
+    {
+     "code": "P2",
+     "name": "Měna nákladu",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Rešerše · PESTEL E",
+     "grade": "úsudek",
+     "role": "outside",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 9,
+      "A2": 9,
+      "B": 9,
+      "B2": 9,
+      "C": 5,
+      "C2": 5,
+      "H": 7
+     },
+     "overlap": "mimo model: kurz v Modelu není"
+    }
+   ]
+  },
+  {
+   "code": "S",
+   "name": "Strategická",
+   "components": [
+    {
+     "code": "D1",
+     "name": "Závislost na jednom dodavateli",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Rešerše · Porter",
+     "grade": "úsudek",
+     "role": "outside",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 8,
+      "A2": 8,
+      "B": 4,
+      "B2": 5,
+      "C": 4,
+      "C2": 3,
+      "H": 7
+     },
+     "overlap": "mimo model: vyjednávací síla, ne cena"
+    },
+    {
+     "code": "F1",
+     "name": "Jak rychle se dá rozhodnutí změnit",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Rešerše · PESTEL L",
+     "grade": "úsudek",
+     "role": "outside",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 2,
+      "A2": 3,
+      "B": 9,
+      "B2": 6,
+      "C": 3,
+      "C2": 3,
+      "H": 4
+     },
+     "overlap": "mimo model: Model počítá jeden průběh na 7 let"
+    }
+   ]
+  },
+  {
+   "code": "P",
+   "name": "Provozní",
+   "components": [
+    {
+     "code": "T1",
+     "name": "Začátek nového stavu",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Zadání · dokumenty",
+     "grade": "úsudek",
+     "role": "outside",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 5,
+      "A2": 5,
+      "B": 10,
+      "B2": 9,
+      "C": 7,
+      "C2": 7,
+      "H": 7
+     },
+     "overlap": "mimo model jako termín; náklad čekání je v E1"
+    }
+   ]
+  },
+  {
+   "code": "M",
+   "name": "Marketingová a obchodní",
+   "note": "Slib doručení do 1 dne ve velkých městech je brána G1 (doba doručení 1 den, C 2 dny) a nekompenzuje se; růst poptávky je pro všechny stejný: skórovaná součást není.",
+   "components": []
+  },
+  {
+   "code": "L",
+   "name": "Logistická",
+   "components": [
+    {
+     "code": "F2",
+     "name": "Kapacita na rok 2032 (podíl potřeby)",
+     "unit": "skóre 1–10 podle pravidla SI1",
+     "source": "Data · Předpoklady",
+     "grade": "výpočet",
+     "role": "outside",
+     "anchors": [
+      1,
+      10
+     ],
+     "values": {
+      "A": 4,
+      "A2": 4,
+      "B": [
+       2,
+       10
+      ],
+      "B2": [
+       2,
+       10
+      ],
+      "C": 8,
+      "C2": 8,
+      "H": 10
+     },
+     "overlap": "částečně v E1 (přetečení k 3PL); zde rezerva pro růst nad 9 %",
+     "state": "neznámo u B, B2: rozsah skóre"
+    }
+   ]
+  },
+  {
+   "code": "E",
+   "name": "Prostředí a povolování",
+   "note": "Pro Velis prázdná: sklad ani 3PL povolení nepotřebují.",
+   "components": []
+  },
+  {
+   "code": "H",
+   "name": "Lidé",
+   "note": "Růst mezd je předpoklad Modelu, uvnitř E1 (překryv P1 vypuštěn v SI1).",
+   "components": []
+  }
+ ],
+ "gates": [
+  {
+   "code": "G1",
+   "name": "Slib ve velkých městech: doručení do 1 pracovního dne",
+   "source": "Zadání · podmínka OR",
+   "values": {
+    "A": [
+     "pass",
+     "úsudek: vlastní expedice z Jihlavy (ověří MV8)"
+    ],
+    "A2": [
+     "pass",
+     "úsudek, jako A"
+    ],
+    "B": [
+     "pass",
+     "smlouva s. 3"
+    ],
+    "B2": [
+     "pass",
+     "smlouva s. 3"
+    ],
+    "C": [
+     "fail",
+     "nabidka_3PL_PL s. 3: 2 dny"
+    ],
+    "C2": [
+     "pass",
+     "nabidka_kuryr_expres s. 1"
+    ],
+    "H": [
+     "pass",
+     "města z CZ, smlouva s. 3"
+    ]
+   }
+  },
+  {
+   "code": "G2",
+   "name": "Investice nejvýš 90 mil. Kč",
+   "source": "Zadání · strop FR",
+   "values": {
+    "A": [
+     "pass",
+     "70 mil., nabidka_hala s. 1"
+    ],
+    "A2": [
+     "pass",
+     "77 mil., s. 2"
+    ],
+    "B": [
+     "pass",
+     "0"
+    ],
+    "B2": [
+     "pass",
+     "0"
+    ],
+    "C": [
+     "pass",
+     "0"
+    ],
+    "C2": [
+     "pass",
+     "0"
+    ],
+    "H": [
+     "pass",
+     "0"
+    ]
+   }
+  }
+ ],
+ "gate_settings": [
+  {
+   "code": "dnes",
+   "name": "Brány podle dokladů",
+   "override": {}
+  }
+ ],
+ "composed": "swing weighting ze SI1, schváleno FR 4. 11. před prvním skóre; rovné váhy ilustrační",
+ "scenarios": [
+  {
+   "code": "FR",
+   "name": "FR",
+   "who": "finanční ředitel (vlastník rozhodnutí)",
+   "family": "a",
+   "weights": {
+    "F": 165,
+    "S": 65,
+    "L": 25,
+    "P": 10
+   }
+  },
+  {
+   "code": "OR",
+   "name": "OR",
+   "who": "obchodní ředitelka",
+   "family": "a",
+   "weights": {
+    "F": 110,
+    "S": 70,
+    "L": 60,
+    "P": 20
+   }
+  },
+  {
+   "code": "VL",
+   "name": "VL",
+   "who": "vedoucí logistiky",
+   "family": "a",
+   "weights": {
+    "F": 100,
+    "S": 100,
+    "L": 50,
+    "P": 30
+   }
+  },
+  {
+   "code": "EQ",
+   "name": "Rovné váhy",
+   "who": "každá neprázdná perspektiva stejně",
+   "family": "a",
+   "weights": {
+    "F": 1,
+    "S": 1,
+    "P": 1,
+    "L": 1
+   }
+  }
+ ],
+ "fan": {
+  "concentration": 60,
+  "draws": 300,
+  "seed": 20261108
+ }
+}

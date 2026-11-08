@@ -1,0 +1,62 @@
+<section class="chapter" id="sociomapa">
+  <p class="chapter-label">Chapter 8 · Step 7</p>
+  <h1 data-label="8"><i lang="cs">Sociomapa</i>: the futures map</h1>
+  <p class="lede">A Sociomap places the options as points in a landscape: two options lie close when the same observers rate them alike, and the height shows the mean rating. In a type-2 study the observers are the model's futures. The map is evidence about the structure of the options' risks, never about the recommendation.</p>
+
+  <h2 class="part" data-n="8.1">What goes in</h2>
+  <ul>
+    <li>The futures of step 5 as a table: one row per future, one column per option, the cell the measure the rule reads (the saving against the baseline in that future).</li>
+    <li>The mode contract for futures (board MV3 § 02, mode <i lang="cs">Scénáře</i>): what a row is, what the claim is about, what is measured, what the null means, the resampling, what the stability measures.</li>
+    <li>The stability test, declared before the computation: which alternative settings the map is recomputed under and what agreement counts as stable.</li>
+    <li>The method pinned: <code>aia-sociomap-5</code>, the organization's methodology in force.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.2">What comes out</h2>
+  <ul>
+    <li><b>The futures map</b> in two views: the 3D terrain and the top view that does not distort distances by perspective (R2-P12 § 11.2). Heights are mean saving; links are drawn only between pairs the method marks reliable; a warm link means co-movement, its width the relation's strength.</li>
+    <li><b>The relation matrix</b>, the exemplar's T7: each pair's relation across the futures, from which the map is drawn.</li>
+    <li><b>The shared-failure table</b>, T8: when an option is worse than the baseline, the share of those futures in which each other option is worse too. This reads the absolute, uncentred futures; the map reads the centred, relative ones.</li>
+    <li><b>The stability result:</b> the maps under each setting, the pairwise agreement of their distance orders, and pass or fail against the declared threshold.</li>
+    <li><b>The register status:</b> the map's method at its spec fingerprint, approved or <i lang="cs">interní</i> (<code>domain/sociomap_register.py</code>), printed on the map and in the report.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.3">Checks</h2>
+  <ul>
+    <li><b>Mode contract.</b> A row is one independent draw of the model. The claim is about the model and its assumptions, not about the market. Centring each future on the mean of the options makes the map show relative performance: who does better in the same future, not whether all do well (R2-P04 § 3.3; review R5).</li>
+    <li><b>Relative apart from absolute.</b> The question "is option B a backup for A" is answered by the uncentred shared-failure table, not by the map: centring removes the common level, which is exactly what shared failure is made of (R2-P12 § 11.3; board MV3 § 05).</li>
+    <li><b>Links only where the contract allows.</b> The exemplar drew links where the <code>-5</code> method's pair test, with the false-discovery correction, marked a pair reliable (2 of 28). Board MV3's contract for the futures mode (session D, § 02) says a null makes no sense when the model creates the relations, asks for no p-value, and measures stability as the sensitivity of the shape to assumptions declared in advance; its § 03 still draws the exemplar's two reliable pairs. Which of the two applies to futures is an open question for the methodologist (chapter 13); until it is answered, the report prints which rule it drew by.</li>
+    <li><b>Determinedness.</b> Split-half agreement of two halves of the futures against the method's threshold says the layout is not an artefact of the draw (0,91 against 0,59 in the exemplar). It does not say the layout is stable under the assumptions.</li>
+    <li><b>Stability, declared in advance.</b> The map is recomputed under the alternative settings written down in step 4 (the exemplar: no correlations, the judgement's correlations, strong correlations) and counts as stable only if every pair of versions agrees in the order of the inter-option distances at or above the threshold (0,8 in the exemplar, Appendix B). Failure is printed, not softened.</li>
+    <li><b>What the map never claims</b> (board MV3 § 06): causation; the behaviour of the market or the firm; that a relation is observed rather than a property of the model; that a distance is an effect size in any unit; that the terrain between points is an estimate; validity borrowed from team-communication Sociomaps, which do not cover this use.</li>
+    <li><b>Internal until approved.</b> Maps whose observers are futures or properties are an estimate awaiting the methodologist's approval; they print <i lang="cs">odhad (metoda čeká na schválení metodikem)</i> and carry the internal label (R2-P04 § 3.2). The Sociomap of people's ratings is approved since 21. 10. 2026; this is a different mode.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.4">How the exemplar did it</h2>
+  <p>Eight sites, 20 000 futures as observers, each future centred on the mean of the eight (R2-P04 § 3.3). The map divides the sites by country: the German sites lie together in a valley (74,2 mil. EUR mean saving at Eschfeld), the Czech and Polish sites on a ridge (147,6 at Odrzyca). Within countries the relations are strong (Lindenau–Eschfeld 0,71, Wendelstedt–Eschfeld 0,70; Lipová–Kamenec 0,55; Odrzyca–Bory 0,48); between countries weak and negative, −0,07 to −0,27, the sign partly a consequence of centring (T7). Two of 28 pairs were marked reliable. Split-half agreement 0,91 against a threshold of 0,59: determined. The stability test failed: the judgement version agrees with the no-correlation version at 0,95 and with the strong version at 0,84, but those two agree only at 0,75, under 0,8; the relations in the matrix are steadier than the drawn positions (0,966, 0,899, 0,826). Without correlations seven pairs are reliable and the Czech sites merge; with strong correlations no pair is and Vrbice moves away. The report therefore reads from the map only the heights and the split into a German group and a Czech–Polish side, which appears in every version, and nothing about fine positions, causes or probabilities (R2-P12 § 11.2). For the backup question it uses T8: the best backup fails together with the chosen site in 75–79 % of its bad futures, the German sites in 97–100 %; no site is a backup of another (§ 11.1, 11.3). The version without correlations did not converge in the program's log, one more reason to read positions carefully (R2-P15).</p>
+
+  <h2 class="part" data-n="8.5">In AIA today</h2>
+  <ul>
+    <li>The <code>aia-sociomap-5</code> engine, signed off by the methodologist on 21. 10. 2026 and what a new run pins: <code>domain/sociomap/signed_off_inputs.py</code> (per-person centring, the baseline, pair floors, Benjamini–Hochberg), <code>signed_off_layout.py</code>, <code>signed_off_credibility.py</code> (split-half agreement, map uncertainty), <code>signed_off_respondents.py</code>, <code>signed_off_segments.py</code>; <code>engine_v2.py</code> <code>compute_object_map</code> and the contract-3 artefact.</li>
+    <li>The register: which method at which spec fingerprint is approved; anything absent is <code>INTERNAL_ONLY</code>, never presumed (<code>domain/sociomap_register.py</code>, ADR 0038).</li>
+    <li>Map snapshots drawn on the server from the stored map at the report's camera and approved as artefacts (<code>application/map_snapshots.py</code>, RD4); the map chapters of the report (<code>application/report_maps.py</code>, <code>infrastructure/report_docx/object_map_figure.py</code>).</li>
+    <li>The canvas's own proof that the engine takes a futures table as rows: <code>prototypes/obchodni-model/tools/engine_maps.py</code> ran <code>compute_object_map</code> on 2 000 futures and drew the maps with the report's renderer; session D's <code>build_maps.py</code> and <code>engine_weights.py</code> did the same for the exemplar's futures map in its three settings and for 1 806 tested weightings.</li>
+    <li>The web's map: <code>ObjectMapPanel</code>, <code>lib/object-map-signed-off.ts</code>, <code>lib/sociomap-display.ts</code>, display only.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.6">New</h2>
+  <ul>
+    <li>The futures mode's contract (<code>sociomapa-systemu#SYS9</code>): rows a model's draws, each centred on the mean of the objects; the claim about the model and its assumptions, not the market or causes; no p-value; determinedness from the maps of two halves of the futures (threshold 0,59); stability as the shape's sensitivity to assumptions declared before the computation. Board MV3 (session D) prints it as the first of five readings of one engine (futures, experts, units, periods, and the weighting map as the fifth), and renders the exemplar's map in § 03–07: the map in the judgement's setting, T7, T8, the relative and absolute readings side by side (Odrzyca · Kamenec −0,14 on the map against 75–79 % shared failures; Odrzyca · Eschfeld −0,15 against 99 %), and the stability test with its three results (0,95 · 0,84 · 0,75) and verdict.</li>
+    <li>The shared-failure table T8 and the stability test: Spearman on the 28 distances between every two settings ≥ 0,8, three settings declared before computing, a failure printed as the exemplar prints it (<code>#SYS9b</code>, <b>new</b>; board MV3 § 05 and § 07). For the Velis case the board says the three-setting test is not yet written and must be declared before the next computation.</li>
+    <li>Each mode its own Metodika entry, internal until approved (<code>#SYS12</code>); the map on Výsledky and in the report (<code>cost-model-study#CS5</code>), declared extremes and direction per property (<code>#CS1</code>, reused by the weighting map).</li>
+    <li>The weighting-scenario map, a second map beside this one, on board MV9 (<code>sociomapa-systemu#SYS13</code>, <b>new</b>; chapter 11). SI1–SI4 keep only what MV9 reads: states, gates, coverage, the overlap check.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.7">ChemVitro acceptance</h2>
+  <ul>
+    <li>The eight sites placed by whether they do well in the same futures; links only where the declared rule allows; the view chosen and the reason stated (<code>STUDIES.md</code> § 2).</li>
+    <li>The map labelled internal until Metodika approves the method.</li>
+    <li>The relation matrix and the shared-failure table printed; the backup question answered from the table.</li>
+    <li>The stability test declared before the computation, and its result printed whether it passed or failed.</li>
+    <li>Criteria: K3 (the map is not part of the recommendation), K6 (the matrix, the text and the figure agree).</li>
+  </ul>
+</section>

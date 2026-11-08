@@ -1,8 +1,12 @@
 {
- "si-options-nastaveni-top": "8ac2c825daa7f4174168a21f9624a90c",
- "si-options-nastaveni-3d": "ee9cdaaa2a1e0612d3f62f795113cd37",
- "si-options-nastaveni-respondents": "12e889c6256c4691d77aede65d92db49",
- "si-suppliers-nastaveni-top": "1294b11f2f7785ea61c20b5d04a270e2",
- "si-suppliers-nastaveni-3d": "bf88f5dd3ff4105e0262cc2283a39690",
- "si-suppliers-nastaveni-respondents": "84b952cf690e901308d85439de577d52"
+ "mv3-velis-scenarios": "dc98a9b6b44ac2138ab0097cf37430bf",
+ "si-weights-chemvitro-top": "2e28790a9081a1eb434367f29a82c543",
+ "si-weights-chemvitro-3d": "1f934a9b25b6a31f8026f59dcd4da888",
+ "si-weights-chemvitro-respondents": "914872843eaa61eae988d234ac0e095f",
+ "si-weights-velis-top": "bce0402524962925fab15e08b0684a25",
+ "si-weights-velis-respondents": "8844e3281ac907b9b0064933985e326c",
+ "mv3-futures-chemvitro-3d": "499bb93c09d2b60fe4297b1134b9ea5f",
+ "mv3-futures-chemvitro-top": "0dc9783db84f1219f5f71b9d0613db77",
+ "mv3-futures-chemvitro-nocorr": "3a860bda6d22cbfb621719cc829c20c5",
+ "mv3-futures-chemvitro-strong": "491fecb0f547b3c9581d896bc9e990ca"
 }

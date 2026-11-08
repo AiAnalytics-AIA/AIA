@@ -61,9 +61,9 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 </helmet>
 <div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px; background: var(--surface)">
 <div style="max-width: 1344px; display: flex; flex-direction: column; gap: 20px">
-  <div><div class="cap">Návrh · Zadání a obchodní model · případ Velis Commerce s.r.o. (smyšlený) · 2. 11. 2026</div>
-    <h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Zadání začíná rozhodnutím; obchodní model ho spočítá z dat klienta</h1>
-    <p class="muted" style="max-width: 860px; font-size: 14px; line-height: 21px">Výzkum s <b>obchodním modelem</b> říká, co která varianta firmě přinese: náklady, zisk, rizika a provedení, spočítané kódem z čísel klienta pod datovou smlouvou, z veřejných zdrojů a z předpokladů s ručitelem. Zadání vyplňuje výzkumník AIA podle klienta: nejdřív co se rozhoduje a jaký výsledek by rozhodnutí změnil. Pak předá každému dalšímu kroku jen to, co potřebuje. Desky se dají proklikat v pořadí; dole na každé je šipka dál. Klient i čísla jsou smyšlené.</p></div>
+  <div><div class="cap">Průchod studií · zpráva typu 2 · případ ChemVitro (smyšlený) · 8. 11. 2026</div>
+    <h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Zadání začíná rozhodnutím; model nákladů ho spočítá z dat klienta</h1>
+    <p class="muted" style="max-width: 900px; font-size: 14px; line-height: 21px">Studie typu 2 jde devíti kroky: <b>Zadání</b> (rozhodnutí, osm lokalit a nákup, pravidlo se čtyřmi podmínkami zapsané před výsledkem) → <b>Data</b> (každý soubor pod smlouvou, nálezy kontroly s rozhodnutím) → <b>Rešerše</b> (veřejné vstupy typované, prozatímní do ověření u pramene) → <b>Předpoklady</b> (54 vstupů s rozsahem, zdrojem, stupněm a ručitelem) → <b>Model</b> (základní případ a 20 000 budoucností na společné časové ose) → <b>Výsledky</b> (Rozhodnutí při 8, 6 a 10 %, Finance, Provoz, Harmonogram) → <b>Sociomapa</b> (mapa budoucností a mapa scénářů vah vedle sebe) → <b>Osnova zprávy</b> (každý bod s odkazem) → <b>Zpráva</b> (R2-P01–P18, každé číslo se stupněm a zdrojem). Zadání vyplňuje výzkumník AIA podle klienta a předá každému kroku jen to, co potřebuje. Desky se dají proklikat v pořadí; dole na každé je šipka dál. Klient i čísla jsou smyšlené; desky Velis, které nikdo nepřestavuje, nechávají svá čísla.</p></div>
 
   <section class="sec" aria-labelledby="z0-flow"><div class="sh"><span class="num">01</span><h2 id="z0-flow">Šest kroků Zadání</h2><span class="grow"></span><span class="cap">kliknutím otevřete desku</span></div>
     <div class="sb"><div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
@@ -81,45 +81,46 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
     <section class="sec" aria-labelledby="z0-keep"><div class="sh"><span class="num">04</span><h2 id="z0-keep">Co zůstává, jak je rozhodnuto</h2></div>
       <div class="sb"><sc-for list="{{keep}}" as="k" hint-placeholder-count="6"><div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx">{{k.t}}<span class="cap" style="display: block">{{k.d}}</span></div></div></sc-for></div></section>
   </div>
-  <p class="cap">Vychází z návrhu koordinátora (zásady, katalog polí, R1–R7, D1–D7) a ze schválené desky 1 · Zadání. Ta zůstává beze změny, dokud nerozhodnete. Otázky D1–D7 jsou na stránce koordinátora.</p>
-  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova zprávy a Zpráva. Studie bez výpočtu skryje jen Předpoklady, Model a modelové pohledy Výsledků; Data s datovými smlouvami zůstávají v každé studii. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
+  <p class="cap">Vychází z briefu z 8. 11. 2026 a z exempláře zprávy typu 2 (<span class="mono">exemplar/</span>); rozsah MVP je v <span class="mono">MVP-SCOPE.md</span> a na desce MVP.</p>
+  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě; pak Vstupy, Výpočet, Evidence a Předání. Všechny desky studie mají stejnou lištu: Zadání (s podkroky), Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova zprávy a Zpráva. Studie bez výpočtu skryje jen Předpoklady, Model a modelové pohledy Výsledků; Data s datovými smlouvami zůstávají v každé studii. Nové desky: M4g Harmonogram a MV9 Mapa scénářů vah. Zaparkované: M4c, M4e, MV6. Cesta Výzkum zákazníků s AI respondenty v tomto prototypu není: je zmrazená (ADR 0046).</div></div>
 </div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2440}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2956}}'>
 class Component extends DCLogic {
 renderVals() {
   const B = [
     ['Z1', 'Z1Start', 'Začátek', 'Jedno povinné pole a podklady; Ada z textu vyčte, co už ví, a navrhne, které další podklady by pomohly a kam půjdou.', 'Velis'],
     ['Z2', 'Z2Triage', 'Triáž', 'Ada rozepíše Zadání v 8 částech, každou se zdrojem a s tím, kam půjde; otázky seřazené podle toho, jak moc mohou změnit doporučení, první tři otevřené.', 'Velis'],
-    ['Z3', 'Z3Decision', 'Společné jádro', 'Rozhodnutí a cíl firmy, sedm možností a omezení, pravidlo s prahem a mezí rizika, cíle, provedení a výstup. Stav „chybí mez rizika“.', 'Velis'],
-    ['Z4', 'Z4Analyses', 'Analýzy do zprávy', 'SWOT, PESTEL, Porter, Blue Ocean, TAM/SAM/SOM, finance, provoz, logistika, řízení a architektura: Ada navrhne podle rozhodnutí, výzkumník vybere; co každá potřebuje a kam ve zprávě půjde.', 'Velis'],
-    ['Z5', 'Z5Model', 'Části modelu', 'Příspěvek po logistice, horizont a časování, hranice, data (soubor → číslo, dvě chybí), předpoklady s ručitelem, souvislosti, co může výsledek otočit.', 'Velis · model'],
-    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání drží chybějící mez rizika; co převezmou Data, Předpoklady, Model a Zpráva.', 'Velis'],
-    ['M1', 'KM1Data', 'Model · Data', 'Devět souborů, u každého, která část Zadání ho vyžádala; čísla se stránkou; kontrola dat a kapacity.', 'Velis · model'],
-    ['MV1', 'MV1Contract', 'Data · datová smlouva', 'Sloupce, osobní údaje, zpráva o kvalitě; bez přijaté smlouvy nic do výpočtu.', 'MVP'],
-    ['MV2', 'MV2PublicData', 'Veřejná data', 'Typované vstupy z rejstříků a statistik, rozpor řeší člověk, kvalita citací, GDPR.', 'MVP'],
-    ['MV2b', 'MV2bFindings', 'Rešerše · zjištění podle analýz', 'PESTEL, Porter a benchmark: každé zjištění s citací a třídou zdroje; přijetí, odložení a rozpor.', 'MVP'],
-    ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Devatenáct předpokladů s rozsahem, zdrojem a ručitelem; dva z dat o zpožděních.', 'Velis · model'],
-    ['M3', 'KM3Model', 'Model · Model', 'Sedm variant, příspěvek po logistice, časování, kapacita, zůstatková hodnota a přechod.', 'Velis · model'],
-    ['M4', 'KM4Results', 'Model · Výsledky: Rozhodnutí', 'Pravidlo pro sedm variant, rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace podle pravidla, posouzení přechodu na B2.', 'Velis · model'],
-    ['M4b', 'KM7Finance', 'Model · Výsledky: Finance', 'NPV, IRR, návratnost, ceny pro bod zvratu, cenová elasticita dopravy.', 'Velis · model'],
-    ['M4c', 'KM8Accounting', 'Model · Výsledky: Účetnictví', 'Výsledovka a rozvaha 2025, plán proti skutečnosti, ukazatele zdraví firmy v roce 2028.', 'Velis · model'],
-    ['M4d', 'KM9Operations', 'Model · Výsledky: Provoz', 'Předpověď po měsících proti kapacitě, lineární program pro špičky, pojistné zásoby.', 'Velis · model'],
-    ['M4f', 'KM11Logistics', 'Model · Výsledky: Logistika', 'Cost-to-serve podle zón, vlastní sklad proti 3PL a doprava; čísla z nabídek a smluv.', 'Velis · model'],
-    ['M4e', 'KM10Market', 'Model · Výsledky: Trh', 'TAM, SAM a podíl Velis; je plán růstu realistický; data klienta jako vstup.', 'Velis · model'],
-    ['MV3', 'MV3SystemMap', 'Sociomapa systémů', 'Čtyři režimy, nové statistiky a testy věrohodnosti, expertní mapa.', 'MVP'],
-    ['SI1', 'SI1Method', 'Sociomapa z indikátorů: metoda', 'Jak vznikla metoda této studie: indikátory, čtyři stavy důkazu, váhy, brány.', 'Velis · indikátory'],
-    ['SI2', 'SI2Matrix', 'Sociomapa z indikátorů: matice skóre', 'Skóre 1–10 podle pravidel, se zdrojem, jistotou a stavem důkazu.', 'Velis · indikátory'],
-    ['SI3', 'SI3OptionsMap', 'Sociomapa z indikátorů: mapa možností', 'Sedm možností na mapě enginu -5; podíl testovaných nastavení, kde je možnost první.', 'Velis · indikátory'],
-    ['SI4', 'SI4Suppliers', 'Sociomapa z indikátorů: mapa dodavatelů', 'Šest dodavatelů fulfilmentu; neznámé zůstávají neznámé, brána slibu ve městech.', 'Velis · indikátory'],
-    ['MV4', 'MV4XRay', 'Osnova zprávy', 'Body zprávy s odkazem u každého čísla, vizualizace a zastávky.', 'MVP'],
-    ['MV8', 'MV8Validity', 'Kontrola platnosti modelu', 'Nezávislá kontrola před schválením doporučení: srovnatelné varianty, co chybí, krajní vstupy, rozhodující předpoklady.', 'MVP'],
-    ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení C2 s posouzeným přechodem na B2, plán provedení s pilotem a hranice k hlídání; každé číslo se stupněm.', 'Velis · model'],
-    ['MVP', 'MV0Scope', 'Definované MVP', 'Cesta studie, funkce, pořadí stavby, kritéria přijetí M-1 až M-16.', 'MVP'],
-    ['MV5', 'MV5Validation', 'Metodika', 'Validační sada, deset rozhodnutí pro metodika, registr metod.', 'MVP'],
-    ['MV6', 'MV6Catalogue', 'Katalog analýz', 'Všechny analýzy v sedmi skupinách: z čeho vznikají, stupeň, kapitola osnovy, MVP nebo později.', 'MVP'],
-  ];
-  return {
+    ['Z3', 'Z3Decision', 'Rozhodnutí a pravidlo', 'Rozhodnutí, osm lokalit a nákup, čtyři omezení; pravidlo finanční ředitelky se čtyřmi podmínkami zapsané 2. 11. 2026; záznam výkladu podmínky bez pravděpodobnosti.', 'ChemVitro · typ 2'],
+    ['Z4', 'Z4Analyses', 'Analýzy do zprávy', 'Perspektivy a jejich složky místo katalogu: finanční, strategická, provozní, obchodní, logistická, prostředí a povolování, lidé; prázdná perspektiva to říká.', 'Velis'],
+    ['Z5', 'Z5Model', 'Části modelu', 'Náklady zásobování 2027–2044, osm lokalit a nákup, časová osa, hranice modelu, soubory → čísla, předpoklady s ručitelem, souvislosti, co může verdikt otočit.', 'ChemVitro · typ 2'],
+    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R9 jako čipy a v panelu; co převezmou Data, Předpoklady, Model a Zpráva.', 'Velis'],
+    ['M1', 'KM1Data', 'Data', '18 souborů a dokumentů, u každého, která část Zadání ho vyžádala; 42 nálezů kontroly (jednotky, měny, cenové roky, duplicity) a jejich rozhodnutí, tabulka P1.', 'ChemVitro · typ 2'],
+    ['MV1', 'MV1Contract', 'Datová smlouva', 'Sloupce, osobní údaje, převody jednotek a měn, zpráva o kvalitě; bez přijaté smlouvy nic do výpočtu.', 'ChemVitro · typ 2'],
+    ['MV2', 'MV2PublicData', 'Rešerše: typované vstupy', '16 veřejných vstupů (povolenky, energie, kurzy, odvody, daně, pobídky, směrnice 2024/2881) se stavem prozatímní / ověřeno u pramene; třídy zdrojů Úřední / Oborový / Ostatní.', 'ChemVitro · typ 2'],
+    ['MV2b', 'MV2bFindings', 'Rešerše: zjištění podle analýz', 'PESTEL, Porter a benchmark: každé zjištění s citací a třídou zdroje; přijetí, odložení a rozpor.', 'Velis'],
+    ['M2', 'KM2Assumptions', 'Předpoklady', 'Tabulka T9: 54 vstupů, dolní / nejspíš / horní, rozdělení, zdroj, stupeň, ručitel, stav; překročení a zpoždění ze 36 srovnatelných závodů; kontrola rozsahu EPC; korelace jako úsudek se zkouškou stability předem.', 'ChemVitro · typ 2'],
+    ['M3', 'KM3Model', 'Model', 'Jeden model nákladů zásobování: časová osa od 1. 2. 2027, nákup do startu, provoz, zůstatková hodnota, daň; základní případ a 20 000 budoucností, semínko 20270201.', 'ChemVitro · typ 2'],
+    ['M4', 'KM4Results', 'Výsledky: Rozhodnutí', 'Pravidlo při 8, 6 a 10 % (T1–T3), verdikt jako hranice, odklady a nábor, tornádo, body zvratu, podmínky po 2035, korelace; hodnota informace pro pravidlo a EVPPI, tabulka zjištění.', 'ChemVitro · typ 2'],
+    ['M4b', 'KM7Finance', 'Výsledky: Finance', 'NPV před a po zdanění při 6 / 8 / 10 %, IRR, návratnost, investice po položkách (T4, T5); pobídky jako daňová úleva nebo dotace.', 'ChemVitro · typ 2'],
+    ['M4d', 'KM9Operations', 'Výsledky: Provoz', 'Provozní náklad na tunu v roce 2032 po položkách a lokalitách (T6).', 'ChemVitro · typ 2'],
+    ['M4g', 'KM12Schedule', 'Výsledky: Harmonogram', 'Rozdělení data zahájení výroby po lokalitách proti 1. 7. 2030, P(včas), každý měsíc odkladu. Nová deska.', 'ChemVitro · typ 2 · nová'],
+    ['M4f', 'KM11Logistics', 'Výsledky: Logistika', 'Cost-to-serve podle zón, vlastní sklad proti 3PL a doprava; čísla z nabídek a smluv.', 'Velis'],
+    ['M4c', 'KM8Accounting', 'Výsledky: Účetnictví', 'Výsledovka a rozvaha, plán proti skutečnosti, ukazatele. Zaparkováno: zpráva 2 je nečte.', 'Velis · zaparkováno'],
+    ['M4e', 'KM10Market', 'Výsledky: Trh', 'TAM, SAM a podíl. Zaparkováno: zpráva 2 je nečte.', 'Velis · zaparkováno'],
+    ['MV3', 'MV3SystemMap', 'Sociomapa systémů', 'Mapa budoucností: osm lokalit, 20 000 budoucností jako pozorovatelé, výšky = průměrná úspora, matice T7, společná selhání T8, relativní a absolutní čtení, zkouška tří nastavení korelací a její výsledek.', 'ChemVitro · typ 2'],
+    ['MV9', 'MV9ScenarioWeights', 'Mapa scénářů vah', 'Řádky pojmenované vektory vah nad perspektivami s vějířem, objekty lokality, výška vážené skóre; kontrola překryvu; jen do „Co by závěr změnilo“. Nová deska.', 'ChemVitro · typ 2 · nová'],
+    ['SI1', 'SI1Method', 'Sociomapa z indikátorů: metoda', 'Jen to, co čte MV9: stavy důkazu, brány, pokrytí vah, kontrola překryvu.', 'zúženo'],
+    ['SI2', 'SI2Matrix', 'Sociomapa z indikátorů: matice skóre', 'Složky perspektiv po lokalitách se zdrojem, stupněm a stavem důkazu.', 'zúženo'],
+    ['SI3', 'SI3OptionsMap', 'Sociomapa z indikátorů: mapa možností', 'Podíl testovaných nastavení, v nichž je lokalita první; co z toho MV9 přebírá.', 'zúženo'],
+    ['SI4', 'SI4Suppliers', 'Sociomapa z indikátorů: mapa dodavatelů', 'Šest dodavatelů fulfilmentu Velis; zůstává jako ukázka neznámých, které zůstanou neznámé.', 'Velis · zúženo'],
+    ['MV4', 'MV4XRay', 'Osnova zprávy', 'Části R2-P01–P18 s body, vizualizacemi a odkazem u každého čísla; sedm stupňů; zdroje číslované u kapitol; Stav podkladů; zastávky.', 'ChemVitro · typ 2'],
+    ['MV8', 'MV8Validity', 'Kontrola platnosti modelu', 'Nezávislý posudek před schválením: srovnatelné lokality, co chybí, krajní vstupy, rozhodující předpoklady; meze, které exemplář sám přiznává (kapitola 14).', 'ChemVitro · typ 2'],
+    ['M6', 'KM6Report', 'Zpráva', 'Zpráva typu 2, jak ji AIA vykreslí z dokumentového modelu: Shrnutí s tabulkou pravidla, kapitoly, Doporučení a provedení s termíny, Meze, Přílohy, T1–T9; každé číslo se stupněm.', 'ChemVitro · typ 2'],
+    ['MVP', 'MV0Scope', 'Definované MVP', 'Osm kroků: dnes / nové / plán; perspektivy; mapa scénářů vah; zaparkováno; kritéria přijetí A1–A6 a K1–K6; vlny W1–W5.', 'MVP'],
+    ['MV5', 'MV5Validation', 'Metodika', 'Registr metod: co exemplář čeká na schválení (Monte Carlo, hodnota informace, hranice rozhodnutí, mapa budoucností, mapa vah); validační sada; otázky pro metodika.', 'MVP'],
+    ['MV6', 'MV6Catalogue', 'Katalog analýz', 'Všechny analýzy v sedmi skupinách. Zaparkováno: MVP čte perspektivy, ne katalog.', 'MVP · zaparkováno'],
+  ];  return {
     theme: this.props.theme ?? 'light',
     steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada rozepíše Zadání', 'Osm částí se zdrojem a otázky podle toho, jak moc mohou změnit doporučení. Rozhoduje výzkumník.', 'Z2Triage'], ['3 · Rozhodnutí', 'Rozhodnutí, cíl, riziko', 'Co se rozhoduje a proč, zda je potřeba výpočet, možnosti a omezení, pravidlo s mezí rizika, provedení.', 'Z3Decision'], ['4 · Analýzy', 'Co zpráva zahrne', 'Analýzy do zprávy podle rozhodnutí: co potřebují a do které kapitoly půjdou.', 'Z4Analyses'], ['5 · Model', 'Jen s výpočtem', 'Veličina, horizont, hranice, data a předpoklady s ručitelem.', 'Z5Model'], ['6 · Připravenost', 'Předání', 'Kontrola R1–R7, pak Data a Předpoklady převezmou, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
     boards: B.map(([id, f, t, d, c]) => ({ id, t, d, c, href: f + '.dc.html' })), boardCount: B.length,

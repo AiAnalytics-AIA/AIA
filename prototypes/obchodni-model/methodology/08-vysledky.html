@@ -1,0 +1,62 @@
+<section class="chapter" id="vysledky">
+  <p class="chapter-label">Chapter 7 · Step 6</p>
+  <h1 data-label="7"><i lang="cs">Výsledky</i>: the rule applied, and what could change it</h1>
+  <p class="lede">The results answer four questions in order: what the rule chooses, how far the verdict is from flipping, what information would change it, and what the finance, operations and schedule of each option look like. The first question is the recommendation; the rest is evidence about it.</p>
+
+  <h2 class="part" data-n="7.1">What goes in</h2>
+  <p>The futures and the base case of step 5; the rule of step 1; the extra computations declared in step 5.</p>
+
+  <h2 class="part" data-n="7.2">What comes out</h2>
+  <p>Five views, each a set of tables the report reuses (the exemplar's T1–T6, R2-P06 to R2-P11):</p>
+  <table class="compact">
+    <thead><tr><th style="width:17%">View</th><th>Content</th><th style="width:24%">Exemplar</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">Rozhodnutí</i></td><td>the rule table per option (the measure's median and 90 % interval, each condition's value against its threshold, pass or fail), at the rule's rate and the client's other rates; the <b>decision boundary</b>: the rule's choice as one decisive assumption moves over its range; delay tables; stress tests; the tornado; break-even values; alternative terms; the correlation check</td><td>T1–T3; the flip at 14 / 15 / 16 %; delay 0/2/4/6 months with and without compensation; hiring delay; tornado; break-even prices; post-2035 terms; three correlation settings (R2-P06–P08); board M4 § 02–04</td></tr>
+      <tr><td><i lang="cs">Hodnota informace</i></td><td>two measures, in this order: <b>the value for the rule</b> (what knowing an answer in advance and applying the rule again would bring, averaged over the possible answers), then <b>EVPPI</b> (the gain in mean saving from knowing one input); then <b>the enquiry table</b>: what would be learned, the output, the duration, the cost, and the consequence of waiting</td><td>122,5 mil. EUR for the rule at Odrzyca against 4,9 by EVPPI; four enquiries (R2-P09); board M4</td></tr>
+      <tr><td><i lang="cs">Finance</i></td><td>pre- and post-tax NPV at the rates, IRR, payback, investment by item with the probability of staying under the ceiling; incentives by their nature</td><td>T4, T5 with P(investment ≤ 175) and its percentiles (R2-P10); board M4b § 02–03</td></tr>
+      <tr><td><i lang="cs">Provoz</i></td><td>cost per unit by category in a full year of operation, base case</td><td>T6, 2032 (R2-P11); board M4d § 04, each column named as its component; freight, the spur, the bridge and the trucking surcharge on board M4f § 02–05</td></tr>
+      <tr><td><i lang="cs">Harmonogram</i></td><td>the start-date distribution per option against the deadline (median, 10th–90th percentile), P(on time), and the effect of each month of delay</td><td>the start chart and the delay tables (R2-P07); board M4g (new, session C): the start against the deadline per site, what lengthens each tail, and decision delay × hiring delay as one grid whose empty cells the report did not compute</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="part" data-n="7.3">Checks</h2>
+  <ul>
+    <li>The rule is applied exactly as written, condition by condition; the pass column is computed, never typed. The report prints the value of every condition against its threshold, pass and fail alike (T1).</li>
+    <li>The verdict is given as a boundary, not a point: for the one or two assumptions the verdict rests on, the table of what the rule chooses at each value (R2-P06 § 5.3). A verdict with no boundary table has not been tested.</li>
+    <li>A probability is a share of the model's futures under the inputs that produced it; every probability says which assumption it stands on (R2-P04 § 3.3). The report claims no probability for anything the model does not compute (R2-P15).</li>
+    <li>The value of information is computed for the rule first and for the mean second; neither is a budget for the enquiry; the enquiry table carries duration and the consequence of waiting (review R7; K5).</li>
+    <li>A median is not a mean: the rule's choice of statistic is kept, and the report says what the right tail does to the other (R2-P06 § 5.1).</li>
+    <li>The base case and the futures may disagree; the report explains why when they do (R2-P08 § 7.1: break-even in the base case against loss in the median).</li>
+    <li>Every extra computation names the one assumption it changes (R2-P15).</li>
+  </ul>
+
+  <h2 class="part" data-n="7.4">How the exemplar did it</h2>
+  <p>No site passes at 8, 6 or 10 % (T1–T3). The Czech and Polish sites fail only the deadline condition (0,75–0,76 against 0,80 for the three leaders, 0,19–0,21 for Vrbice and Bory); the German sites fail mainly the loss condition (0,14–0,21 against 0,10). The verdict is a boundary: at a compensation chance up to 14 % the rule picks Odrzyca, at 15 % Kamenec, from 16 % nothing; the model uses 20 % (R2-P06 § 5.3). Delay of the decision by 2, 4 or 6 months lowers every P(on time); with compensation ruled out, the rule still picks Odrzyca after two months and nothing after four (R2-P07 § 6.1). Hiring delay is a stress test that adds to decision delay (§ 6.2). The tornado puts the 2026 Hanshin price first (a swing of 134,6–152,7 mil. EUR), the renewal premium second (57,7) and overrun third (34,2–44,5) (R2-P08). Break-even prices lie 1 249–1 308 EUR/t for Czech and Polish sites, 1 413–1 450 for German ones; at the 2025 average of 1 296 EUR/t the median of every site turns negative (§ 7.1). Post-2035 terms are the second lever: at a 30 % premium Wendelstedt would pass (§ 7.2). Three correlation settings move medians by at most 1,4 mil. EUR and probabilities by at most 0,01 (§ 7.3). The value for the rule of the authorities' answer is 115,2–152,1 mil. EUR; EVPPI of the same information is 4,9 mil. EUR, of all inputs 14,2 (R2-P09). Finance: base-case saving 170,7 / 165,9 / 159,9 mil. EUR for the three leaders at 8 %, IRR 18,2–20,5 % in Czechia and Poland, payback 2034–2036; after tax Kamenec and Odrzyca are level (T4). Operations: 1 290–1 311 EUR/t in Czechia and Poland against 1 434–1 463 in Germany in 2032, the difference in staff, maintenance and freight (T6).</p>
+
+  <h2 class="part" data-n="7.5">In AIA today</h2>
+  <ul>
+    <li>A number reaches a result only as an admitted claim (<code>domain/evidence/admission.py</code>, <code>application/admitted_results.py</code>); suppression is decided on the server and a suppressed row prints its reasons, never a number. The pattern holds for model results: a cell the method does not support is not printed.</li>
+    <li>The results screens of a research run and their reading in words (<code>ExecutionSteps.tsx</code>, <code>lib/result-reading.ts</code>): unknown is never ordered, an interval missing means no order.</li>
+    <li>The report's print grades and the evidence ledger (<code>domain/report/evidence.py</code>), the per-question tables as exports (<code>domain/report/table_export.py</code>, RD12).</li>
+    <li>The budget line and spend reading as the pattern for "unknown never zero" (<code>lib/budget-line.ts</code>, <code>lib/run-spend.ts</code>).</li>
+  </ul>
+
+  <h2 class="part" data-n="7.6">New</h2>
+  <ul>
+    <li>The rule judged as written (<code>cost-model-study#CR7</code>) and, new, the rule at three rates, the decision boundary over one input's range, delay and hiring tables, post-2035 and correlation recomputations, each one change at a time and said so (<code>#CR7b</code>, <b>new</b>); the method on screen (<code>#CR8</code>); grades ESTIMATED for everything from the futures and CALCULATED for the base case (<code>#CP8</code>, <code>#CP10</code>). Boards M4, M4b, M4d, M4f and M4g (session C) carry the ChemVitro tables beside the Velis sections, each result section naming the component it feeds in the scope's words with <i lang="cs">v modelu / mimo model</i>.</li>
+    <li>Value of information for the rule: the rule re-applied per answer branch, the average of what it then picks against today's "nic", and the enquiry table with its effect on the deadline (<code>#CR6b</code>, <b>new</b>; K5); EVPPI beside it (<code>#CR6</code>).</li>
+    <li>Break-even and one-way sensitivity (<code>#CM2</code>), global sensitivity beside the tornado (<code>#CR4</code>), three chart kinds the exemplar needs and the model lacks: the absolute stacked bar, the tornado, the line with marked points (<code>#CP8</code>).</li>
+    <li>Finance: scenarios on NPV and IRR (<code>quantitative-families#FIN3</code>), tax relief against grant as legal parameters (<code>legal-context#LGL3</code>); board M4b.</li>
+    <li>Operations: cost per unit by category in a stated year (board M4d); <i lang="cs">Harmonogram</i>, the start-date distribution per option against the deadline, P(<i lang="cs">včas</i>) and the months-of-delay table (<code>cost-model-study#CM9</code>, <b>new</b>; board M4g, <code>KM12Schedule.dc.html</code>, new).</li>
+    <li>Boards M4c <i lang="cs">Účetnictví</i> and M4e <i lang="cs">Trh</i> are parked for type 2: they have no component in the ChemVitro case. The Výsledky row now runs M4d → M4g → M4f → M4e.</li>
+  </ul>
+
+  <h2 class="part" data-n="7.7">ChemVitro acceptance</h2>
+  <p>The answer key's reference model finds CZ3 Kamenec passing at 8 % (median +39,8 mil. EUR, P(beats) 0,82, P(loss &gt; 20) 0,09, P(start) 1,00), CZ2 close behind, PL1 on the edge of the loss limit, nothing at 10 %, and names the renewal premium (12–22 %) as the assumption most worth checking (answer key § 1). The exemplar finds no site passing at any rate and names the compensation chance first and the Hanshin price second. The two differ on one judgement: the reference prices offsets only where a station exceeds the limits; the exemplar adds a 0,2 chance everywhere else in Czechia and Poland, and says that this judgement decides the verdict and has no document behind it (R2-P15).</p>
+  <ul>
+    <li>The acceptance therefore does not require the exemplar's verdict or the reference's numbers. The key says so itself: "judge a report by whether it found the planted facts and applied the rule honestly, not by whether it hit these numbers."</li>
+    <li>It requires: the rule applied as written with every condition's value printed; the verdict given with its boundary on the assumption it rests on; the assumption most worth checking named with its value for the rule; the three traps and the overrun from the comparables visible in the investment and the schedule (CZ1 and PL2 fail the start date; DE3's P(start) falls with the bridge).</li>
+    <li>Both the exemplar and the reference agree that the brochure favourite, PL2 Bory, cannot start on time. A study that recommends Bory has read the brochure, not the files.</li>
+    <li>Criteria: K3 (the rule's choice kept apart from supplementary scoring), K5 (every enquiry states its effect on the deadline), K6 (the rule table, the summary and the boundary table say the same numbers).</li>
+  </ul>
+</section>
