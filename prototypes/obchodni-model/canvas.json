@@ -56,7 +56,7 @@
       "title": "M6 · Model: Zpráva",
       "w": 1440,
       "x": 3040,
-      "y": 50296
+      "y": 50236
     },
     "KM7Finance.dc.html": {
       "h": 4220,
@@ -88,7 +88,7 @@
       "title": "MVP · Definované MVP: přehled",
       "w": 1440,
       "x": 0,
-      "y": 56481
+      "y": 56421
     },
     "MV1Contract.dc.html": {
       "h": 3719,
@@ -128,7 +128,7 @@
       "title": "MV4 · Osnova zprávy",
       "w": 1440,
       "x": 0,
-      "y": 50296
+      "y": 50236
     },
     "MV5Validation.dc.html": {
       "h": 2516,
@@ -136,7 +136,7 @@
       "title": "MV5 · Metodika: validační sada a otázky",
       "w": 1440,
       "x": 1520,
-      "y": 56481
+      "y": 56421
     },
     "MV6Catalogue.dc.html": {
       "h": 3919,
@@ -144,7 +144,7 @@
       "title": "MV6 · Katalog analýz",
       "w": 1440,
       "x": 3040,
-      "y": 56481
+      "y": 56421
     },
     "Z0Flow.dc.html": {
       "h": 2956,
@@ -240,7 +240,7 @@
       "title": "MV8 · Zpráva: kontrola platnosti modelu",
       "w": 1440,
       "x": 1520,
-      "y": 50296
+      "y": 50236
     },
     "KM12Schedule.dc.html": {
       "h": 1962,
@@ -251,7 +251,7 @@
       "y": 33134
     },
     "MV9ScenarioWeights.dc.html": {
-      "h": 7620,
+      "h": 7560,
       "is_interactive": true,
       "title": "MV9 · Sociomapa: mapa scénářů vah",
       "w": 1440,
@@ -306,7 +306,7 @@
       "text": "Předání · Osnova zprávy, kontrola platnosti, Zpráva",
       "w": 240,
       "x": 0,
-      "y": 49996
+      "y": 49936
     },
     "t12": {
       "kind": "title1",
@@ -314,7 +314,7 @@
       "text": "MVP a Metodika · rozsah, validace, katalog analýz",
       "w": 240,
       "x": 0,
-      "y": 56181
+      "y": 56121
     }
   },
   "order": [

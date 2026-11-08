@@ -537,26 +537,11 @@
      "state": "Lipová a Lindenau: 6,7–14,1 ze srovnatelných závodů, základní případ 10"
     },
     {
-     "code": "E4",
-     "name": "Poplatek chemického parku",
-     "unit": "mil. EUR ročně",
+     "info": true,
+     "name": "Poplatek chemického parku (Wendelstedt 1,1 mil. EUR ročně)",
+     "text": "uvnitř P2, údržba a park (T6): počítá se jednou, tady ne podruhé",
      "source": "T9",
-     "grade": "z dat klienta",
-     "role": "part",
-     "anchors": [
-      1.5,
-      0
-     ],
-     "values": {
-      "VR": 0,
-      "LI": 0,
-      "KA": 0,
-      "WE": 1.1,
-      "LN": 0,
-      "ES": 0,
-      "OD": 0,
-      "BO": 0
-     }
+     "grade": "z dat klienta"
     },
     {
      "info": true,
