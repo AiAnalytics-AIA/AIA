@@ -47,5 +47,5 @@ source; a disagreement is reported to the coordinator, not resolved here.
 ## Folding in the other sessions
 
 Sessions A, B, C and E landed on 8 Nov and are folded in (appendix C says which board each changed); D (the maps,
-MV3, MV9, SI1–SI4) has landed and is being aligned, and is folded in on the coordinator's word. When a branch lands, the chapters that cite
+MV3, MV9, SI1–SI4) landed last and is folded in; the board index names every board's file and state. When a branch lands, the chapters that cite
 its boards are aligned to it and the PDF is rebuilt and checked page by page before the push.
