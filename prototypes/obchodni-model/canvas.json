@@ -35,7 +35,7 @@
       "y": 25590
     },
     "KM3Model.dc.html": {
-      "h": 2500,
+      "h": 5019,
       "is_interactive": true,
       "title": "M3 · Model: Model",
       "w": 1440,
@@ -43,7 +43,7 @@
       "y": 29600
     },
     "KM4Results.dc.html": {
-      "h": 3060,
+      "h": 9714,
       "is_interactive": true,
       "title": "M4 · Model: Výsledky",
       "w": 1440,
@@ -59,7 +59,7 @@
       "y": 40840
     },
     "KM7Finance.dc.html": {
-      "h": 2248,
+      "h": 4201,
       "is_interactive": true,
       "title": "M4b · Výsledky: Business case a finance",
       "w": 1440,
@@ -75,7 +75,7 @@
       "y": 29600
     },
     "KM9Operations.dc.html": {
-      "h": 1600,
+      "h": 2615,
       "is_interactive": true,
       "title": "M4d · Výsledky: Operační výzkum",
       "w": 1440,
@@ -241,6 +241,14 @@
       "w": 1440,
       "x": 1520,
       "y": 40840
+    },
+    "KM12Schedule.dc.html": {
+      "h": 1942,
+      "is_interactive": true,
+      "title": "M4g · Výsledky: Harmonogram",
+      "w": 1440,
+      "x": 10640,
+      "y": 29600
     }
   },
   "createdOnFiles": {
@@ -270,7 +278,7 @@
     },
     "t9": {
       "kind": "title1",
-      "maxW": 10560,
+      "maxW": 12080,
       "text": "Výpočet · Model a Výsledky",
       "w": 240,
       "x": 0,
@@ -321,6 +329,7 @@
     "KM9Operations.dc.html",
     "KM11Logistics.dc.html",
     "KM10Market.dc.html",
+    "KM12Schedule.dc.html",
     "MV3SystemMap.dc.html",
     "SI1Method.dc.html",
     "SI2Matrix.dc.html",
