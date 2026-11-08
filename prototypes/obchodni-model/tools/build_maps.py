@@ -17,11 +17,11 @@ OUT = os.path.join(HERE, "..")
 FRAME = subprocess.run(["git", "show", "2a2bb471:prototypes/obchodni-model/MV3SystemMap.dc.html"], cwd=OUT,
                        capture_output=True, text=True, check=True).stdout
 e = html.escape
-RC = json.load(open(os.path.join(HERE, "res_weights_chemvitro.json")))
-RV = json.load(open(os.path.join(HERE, "res_weights_velis.json")))
-SC = json.load(open(os.path.join(HERE, "spec_weights_chemvitro.json")))
-SV = json.load(open(os.path.join(HERE, "spec_weights_velis.json")))
-ENG = json.load(open(os.path.join(HERE, "engine_weights.json")))
+RC = json.load(open(os.path.join(HERE, "res_scenarios_chemvitro.json")))
+RV = json.load(open(os.path.join(HERE, "res_scenarios_velis.json")))
+SC = json.load(open(os.path.join(HERE, "spec_scenarios_chemvitro.json")))
+SV = json.load(open(os.path.join(HERE, "spec_scenarios_velis.json")))
+ENG = json.load(open(os.path.join(HERE, "engine_scenarios.json")))
 ASSETS = json.load(open(os.path.join(HERE, "engine_assets.json")))
 
 

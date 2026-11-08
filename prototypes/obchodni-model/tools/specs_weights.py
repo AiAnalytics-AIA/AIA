@@ -206,6 +206,6 @@ velis = {
     "fan": {"concentration": 60, "draws": 300, "seed": 20261108},
 }
 
-json.dump(chemvitro, open(os.path.join(HERE, "spec_weights_chemvitro.json"), "w"), ensure_ascii=False, indent=1)
-json.dump(velis, open(os.path.join(HERE, "spec_weights_velis.json"), "w"), ensure_ascii=False, indent=1)
+json.dump(chemvitro, open(os.path.join(HERE, "spec_scenarios_chemvitro.json"), "w"), ensure_ascii=False, indent=1)
+json.dump(velis, open(os.path.join(HERE, "spec_scenarios_velis.json"), "w"), ensure_ascii=False, indent=1)
 print("chemvitro scored components", sum(1 for p in chemvitro["perspectives"] for c in p["components"] if not c.get("info")))

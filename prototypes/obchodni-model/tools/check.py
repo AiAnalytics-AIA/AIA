@@ -77,8 +77,8 @@ print("scales ok")
 
 # ---------------- the weighting-scenario map (MV9): compute_weights.py and engine_weights.py ----------------
 for case in ("chemvitro", "velis"):
-    spec = json.load(open(f"spec_weights_{case}.json"))
-    res = json.load(open(f"res_weights_{case}.json"))
+    spec = json.load(open(f"spec_scenarios_{case}.json"))
+    res = json.load(open(f"res_scenarios_{case}.json"))
     objs = res["objs"]
     # a scored cell is on the declared value scale; a ranged value is a range of scores, never a single
     # number; a null value does not apply; an informational row has no cell; a gate is never a component
@@ -119,13 +119,13 @@ for case in ("chemvitro", "velis"):
                 assert all(v == 0 for o, v in s["by_setting"][code]["share"].items() if st["state"][o] != "pass")
     assert abs(sum(res["pooled"].values()) - 1) < 5e-3
     # the engine's height is the owner's scenario score (its fan's mean), within 0.2 of a point
-    eng = json.load(open("engine_weights.json"))[case]
+    eng = json.load(open("engine_scenarios.json"))[case]
     centre = next(s for s in res["scenarios"] if s["code"] == res["owner_scenario"])["centre"]
     for o, h in zip(objs, eng["heights_as_scores"]):
         assert abs(h - centre[o]) < 0.2, (case, o, h, centre[o])
     assert eng["rows"] == res["rows"] == (len(spec["scenarios"]) - len(res["refused"])) * (spec["fan"]["draws"] + 1)
 # ChemVitro today: the rule as written lets no site through, so nobody is first after the gates
-rc = json.load(open("res_weights_chemvitro.json"))
+rc = json.load(open("res_scenarios_chemvitro.json"))
 assert rc["settings"]["dnes"]["alive"] == [] and sorted(rc["settings"]["urady"]["alive"]) == ["KA", "LI", "OD"]
 # the owner's "finance 0,5 · provoz 0,3 · logistika 0,2" over every component is the refused vector
 assert [r["code"] for r in rc["refused"]] == ["FR_ALL"]
