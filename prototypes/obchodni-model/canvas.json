@@ -115,7 +115,7 @@
       "y": 25590
     },
     "MV3SystemMap.dc.html": {
-      "h": 3480,
+      "h": 5250,
       "is_interactive": true,
       "title": "MV3 · Výsledky: Sociomapa systémů",
       "w": 1440,
@@ -203,11 +203,11 @@
       "y": 20600
     },
     "SI1Method.dc.html": {
-      "h": 4980,
+      "h": 2080,
       "is_interactive": true,
       "title": "SI1 · Sociomapa z indikátorů: metoda",
       "w": 1440,
-      "x": 1520,
+      "x": 3040,
       "y": 33260
     },
     "SI2Matrix.dc.html": {
@@ -215,23 +215,23 @@
       "is_interactive": true,
       "title": "SI2 · Sociomapa z indikátorů: matice skóre",
       "w": 1440,
-      "x": 3040,
-      "y": 33260
-    },
-    "SI3OptionsMap.dc.html": {
-      "h": 3810,
-      "is_interactive": true,
-      "title": "SI3 · Sociomapa z indikátorů: mapa možností",
-      "w": 1440,
       "x": 4560,
       "y": 33260
     },
+    "SI3OptionsMap.dc.html": {
+      "h": 2070,
+      "is_interactive": true,
+      "title": "SI3 · Sociomapa z indikátorů: mapa možností",
+      "w": 1440,
+      "x": 6080,
+      "y": 33260
+    },
     "SI4Suppliers.dc.html": {
-      "h": 6980,
+      "h": 3820,
       "is_interactive": true,
       "title": "SI4 · Sociomapa z indikátorů: mapa dodavatelů",
       "w": 1440,
-      "x": 6080,
+      "x": 7600,
       "y": 33260
     },
     "MV8Validity.dc.html": {
@@ -241,6 +241,14 @@
       "w": 1440,
       "x": 1520,
       "y": 40840
+    },
+    "MV9WeightMap.dc.html": {
+      "h": 6240,
+      "is_interactive": true,
+      "title": "MV9 · Sociomapa: mapa scénářů vah",
+      "w": 1440,
+      "x": 1520,
+      "y": 33260
     }
   },
   "createdOnFiles": {
@@ -322,6 +330,7 @@
     "KM11Logistics.dc.html",
     "KM10Market.dc.html",
     "MV3SystemMap.dc.html",
+    "MV9WeightMap.dc.html",
     "SI1Method.dc.html",
     "SI2Matrix.dc.html",
     "SI3OptionsMap.dc.html",
