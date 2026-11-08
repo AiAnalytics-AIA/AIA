@@ -33,7 +33,7 @@ label = {"A": "A · Vlastní sklad", "A2": "A2 · Sklad po etapách", "B2": "B2 
 e1 = {o: x["raw"] for o, x in ro["cells"]["E1"].items()}
 r1 = {o: x["raw"] for o, x in ro["cells"]["R1"].items()}
 for o, lab in label.items():
-    m = re.search(re.escape(lab) + r".*?([+−]\d+,\d) [−+]?\d+,\d až [+−]?\d+,\d (\d,\d\d) (\d,\d\d)", t)
+    m = re.search(re.escape(lab) + r".*?([+−]\d+,\d) [−+]?\d+,\d až [+−]?\d+,\d (\d,\d\d) [✔✘] (\d,\d\d)", t)
     assert m, o
     med = float(m.group(1).replace("−", "-").replace(",", "."))
     loss = float(m.group(3).replace(",", "."))
