@@ -19,7 +19,7 @@
       "y": 29600
     },
     "KM1Data.dc.html": {
-      "h": 3410,
+      "h": 5825,
       "is_interactive": true,
       "title": "M1 · Model: Data",
       "w": 1440,
@@ -27,7 +27,7 @@
       "y": 25590
     },
     "KM2Assumptions.dc.html": {
-      "h": 3100,
+      "h": 5792,
       "is_interactive": true,
       "title": "M2 · Model: Předpoklady",
       "w": 1440,
@@ -91,7 +91,7 @@
       "y": 45130
     },
     "MV1Contract.dc.html": {
-      "h": 1940,
+      "h": 3719,
       "is_interactive": true,
       "title": "MV1 · Data: datová smlouva",
       "w": 1440,
@@ -99,7 +99,7 @@
       "y": 25590
     },
     "MV2PublicData.dc.html": {
-      "h": 2260,
+      "h": 3064,
       "is_interactive": true,
       "title": "MV2 · Rešerše: typované vstupy",
       "w": 1440,
@@ -171,7 +171,7 @@
       "y": 20600
     },
     "Z3Decision.dc.html": {
-      "h": 2290,
+      "h": 3352,
       "is_interactive": true,
       "title": "Z3 · Zadání: rozhodnutí a pravidlo",
       "w": 1440,
@@ -187,7 +187,7 @@
       "y": 20600
     },
     "Z5Model.dc.html": {
-      "h": 3580,
+      "h": 5509,
       "is_interactive": true,
       "title": "Z5 · Zadání: obchodní model",
       "w": 1440,
