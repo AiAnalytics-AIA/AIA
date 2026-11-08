@@ -80,6 +80,28 @@ label.cfib{cursor:pointer}
 .zsub a.done{color:var(--ink)}
 .zsub a.done .n{color:var(--signal)}
 .zsub a.on{background:var(--swash);color:var(--ink);box-shadow:inset 0 -2px 0 var(--signal)}
+
+.zcase{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;border:1px solid var(--signal);color:var(--signal);font:500 11px/1 var(--sans);white-space:nowrap}
+.zcase.v{border-color:var(--border);color:var(--muted)}
+.ztl{display:flex;align-items:stretch}
+.ztl .zts{flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.ztl .zts.zgt{border-color:var(--you);background:var(--youwash)}
+.ztl .zts .cap{margin:0}
+.ztl .zar{flex:none;width:22px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.zt.dense{font-size:12px}.zt.dense th,.zt.dense td{padding:6px 8px}.zt.dense td.num{font-size:11.5px}
+.zt tr.key td:first-child{box-shadow:inset 3px 0 0 var(--signal)}
+.zst{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;font:500 10.5px/1 var(--mono);letter-spacing:.03em;white-space:nowrap}
+.zst.ok{background:var(--sunken);color:var(--ink)}.zst.prov{background:var(--youwash);color:var(--youink)}.zst.jud{background:var(--swash);color:var(--signal)}
+.leadx:checked ~ .split .art .abody{max-width:none}
+.leadx:checked ~ .split .zfig{max-width:900px}
+.zcols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zcols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+
+.zg{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;font:500 10.5px/1 var(--mono);letter-spacing:.03em;white-space:nowrap;vertical-align:1px}
+.zg.calc{background:var(--sunken);color:var(--ink)}
+.zg.est{background:var(--swash);color:var(--signal)}
+.zg.mod{background:var(--youwash);color:var(--youink)}
+.zg.data{background:var(--sunken);color:var(--muted)}
 </style>
 </helmet>
 <div class="aia wb" data-theme="{{theme}}" data-phase="navrh">
@@ -112,31 +134,85 @@ label.cfib{cursor:pointer}
       <main class="art" aria-label="Zadání">
 <div class="ahd"><label for="leadx" class="btn quiet sm leadopen" title="Ukázat Vedoucího"><i class="ph ph-sidebar-simple s"></i>Ada</label><h1>Zadání</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span><span class="grow"></span><details class="mnu"><summary class="btn quiet sm ic" aria-label="Další akce" title="Další akce"><i class="ph ph-dots-three"></i></summary><div class="mnu-p" role="menu"><button type="button"><i class="ph ph-clock-counter-clockwise s"></i>Historie verzí Zadání</button><button type="button"><i class="ph ph-download-simple s"></i>Stáhnout Zadání (DOCX)</button><button type="button"><i class="ph ph-copy s"></i>Duplikovat studii</button><span class="sep" role="separator"></span><button type="button" class="dz"><i class="ph ph-trash s"></i>Smazat studii</button></div></details><a class="btn primary sm" href="Z7Ready.dc.html">Připravenost<i class="ph ph-caret-right s"></i></a></div>
 <div class="zstate"><span>Ukázka stavu</span><span class="seg sm" role="radiogroup" aria-label="Stav ukázky"><sc-for list="{{states}}" as="s" hint-placeholder-count="2"><button class="{{s.cls}}" type="button" role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}">{{s.l}}</button></sc-for></span></div>
+<div class="zstate" role="note"><i class="ph ph-info"></i><span>Dva případy vedle sebe: <b>Velis</b> (sklad a logistika e-shopu) tam, kde ho obrazovka už měla, a <b>ChemVitro</b> (vlastní závod na VTX-40, studie typu 2) u toho, co studie typu 2 potřebuje navíc. Každý oddíl nese svůj případ; čísla se nemíchají. Čísla ChemVitro jsou ze zprávy z 5. 11. 2026 (tabulky T1–T9, P1).</span></div>
 <div class="abody">
   
   <div class="zgrid2">
-    <section class="sec zm" id="z5-obj"><div class="sh"><span class="num">01</span><h2>Cílová veličina</h2><span class="grow"></span><span class="cap">povinné · R5</span></div>
+    <section class="sec zm" id="z5-obj"><div class="sh"><span class="num">01</span><h2>Cílová veličina</h2><span class="zcase v">Velis</span><span class="grow"></span><span class="cap">povinné · R5</span></div>
       <div class="sb"><div class="zrow"><span class="zk">Co porovnáme</span><span class="zv"><b>Příspěvek po logistice za 7 let</b>: objednávky, které firma udrží, × příspěvek, minus logistika, investice a přechod, plus zůstatková hodnota. NPV při 8 %, mil. Kč · vyšší je lepší</span></div>
         <div class="zrow"><span class="zk">Vedle toho</span><span class="zv">Rozdíl proti dnešku (B) v 20 000 budoucnostech: jak často je lepší a jak často ztratí víc než 10 mil. Kč</span></div>
         <div class="zrow"><span class="zk">Čte pravidlo</span><span class="zv">lepší než B s P ≥ 0,80 a ztráta > 10 mil. Kč v ≤ 10 %</span></div></div></section>
-    <section class="sec zm" id="z5-hor"><div class="sh"><span class="num">02</span><h2>Horizont</h2><span class="grow"></span><span class="cap">povinné · R5</span></div>
+    <section class="sec zm" id="z5-hor"><div class="sh"><span class="num">02</span><h2>Horizont</h2><span class="zcase v">Velis</span><span class="grow"></span><span class="cap">povinné · R5</span></div>
       <div class="sb"><div class="zrow"><span class="zk">Jak dlouho</span><span class="zv">7 let, 2026–2032</span></div><div class="zrow"><span class="zk">Po jakých krocích</span><span class="zv"><span class="seg sm" role="radiogroup" aria-label="Krok"><button type="button" role="radio" aria-checked="false">měsíce</button><button class="on" type="button" role="radio" aria-checked="true">roky</button></span></span></div>
         <div class="zrow"><span class="zk">Proč 7 let</span><span class="zv">Nabídka polského 3PL je na 7 let; hala se v roce 7 započte zůstatkovou hodnotou, ne nulou.</span></div>
         <div class="zrow"><span class="zk">Časování</span><span class="zv">přechod nejdřív 1. 7. 2027, hala od 2027 (z omezení v jádru)</span></div></div></section>
   </div>
 
-  <section class="sec zm" id="z5-what"><div class="sh"><span class="num">03</span><h2>Co model spočítá</h2><span class="grow"></span><span class="pill ai"><i class="ph ph-sparkle s"></i>navrhla Ada podle rozhodnutí</span><span class="cap">povinné · R5 · z toho budou pohledy Výsledků</span></div>
+  <section class="sec zm" id="z5-what"><div class="sh"><span class="num">03</span><h2>Co model spočítá</h2><span class="zcase v">Velis</span><span class="grow"></span><span class="pill ai"><i class="ph ph-sparkle s"></i>navrhla Ada podle rozhodnutí</span><span class="cap">povinné · R5 · z toho budou pohledy Výsledků</span></div>
     <div class="sb"><table class="zt"><thead><tr><th style="width: 200px">Pohled</th><th>Na co odpoví</th><th>Co potřebuje</th><th style="width: 140px">Data</th></tr></thead><tbody>
       <sc-for list="{{fams}}" as="f" hint-placeholder-count="5"><tr><td><label class="row" style="gap: 8px"><input type="checkbox" checked="{{f.on}}" onChange="{{f.toggle}}"><b>{{f.t}}</b></label></td><td>{{f.q}}</td><td class="muted">{{f.need}}</td><td><span class="row" style="gap: 6px"><span class="{{f.gl}}" aria-hidden="true"><i class="{{f.ic}}"></i></span>{{f.st}}</span></td></tr></sc-for>
     </tbody></table><p class="cap" style="margin: 0">Každý pohled vychází ze stejného modelu a stejných předpokladů, takže si čísla neodporují. Co vypnete, ve zprávě chybět nebude potichu: zpráva řekne, že se to nepočítalo.</p></div></section>
 
-  <section class="sec zm" id="z5-bound"><div class="sh"><span class="num">04</span><h2>Hranice modelu</h2><span class="grow"></span><span class="cap">povinné · R5 · co v modelu chybí, nesmí chybět potichu</span></div>
+  <section class="sec zm" id="z5-bound"><div class="sh"><span class="num">04</span><h2>Hranice modelu</h2><span class="zcase v">Velis</span><span class="grow"></span><span class="cap">povinné · R5 · co v modelu chybí, nesmí chybět potichu</span></div>
     <div class="sb"><div class="zgrid2">
       <div><span class="lbl">V modelu</span><sc-for list="{{inside}}" as="i" hint-placeholder-count="6"><div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">{{i.t}}<span class="cap" style="display: block">{{i.d}}</span></div></div></sc-for></div>
       <div><span class="lbl">Mimo model, a proč</span><sc-for list="{{outside}}" as="o" hint-placeholder-count="3"><div class="li" style="margin-bottom: 6px"><i class="ph ph-minus" style="margin-top: 2px"></i><div class="tx">{{o.t}}<span class="cap" style="display: block">{{o.d}}</span></div></div></sc-for></div>
     </div></div></section>
 
-  <section class="{{dataSec}}" id="z5-data"><div class="sh"><span class="num">05</span><h2>Data</h2><span class="grow"></span><sc-if value="{{missing}}" hint-placeholder-val="{{ true }}"><span class="pill you"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>3 čísla chybí</span></sc-if><span class="cap">povinné · R5 · soubor → číslo</span></div>
+
+  <section class="sec zm" id="z5-cost"><div class="sh"><span class="num">04b</span><h2>Části modelu nákladů lokality</h2><span class="zcase">ChemVitro · studie typu 2</span><span class="grow"></span><span class="cap">povinné · R5 · jeden model pro nákup i osm lokalit</span></div>
+    <div class="sb">
+      <div class="zrow"><span class="zk">Cílová veličina</span><span class="zv"><b>Náklady na zásobování VTX-40 v letech 2027–2044</b>, NPV při 8 % před zdaněním, mil. EUR. Úspora lokality = náklady dalšího nákupu minus náklady vlastní výroby; kladná znamená, že vlastní výroba je levnější. Vedle toho NPV po zdanění a sazby 6 a 10 %.</span></div>
+      <div class="zrow"><span class="zk">Základ pro srovnání</span><span class="zv"><b>Možnost 0 · dál nakupovat.</b> Do 30. 6. 2030 cena podle vzorce (sleduje surovinový index, nejvýš ±10 % ročně) plus doprava 96 EUR/t; poté cena vzorce s přirážkou 12–22 %. Poptávka nad 40 000 t vždy ze spotového trhu. Každá lokalita se počítá v týchž budoucnostech jako základ. <span class="cap" style="display: inline">dopis_dodavatele.pdf s. 1 · nakup_vtx40_2023-2026.xlsx</span></span></div>
+      <div class="zrow"><span class="zk">Budoucnosti</span><span class="zv">Základní případ (každý vstup na nejpravděpodobnější hodnotě) a 20 000 budoucností: všechny vstupy vylosované najednou, se souvislostmi (Předpoklady); semínko 20270201, stejné vstupy dávají stejný výsledek.</span></div>
+
+      <span class="lbl" style="margin-top: 6px">Společná časová osa každé lokality</span>
+      <div class="ztl">
+        <div class="zts"><b>1. 2. 2027</b><span>rozhodnutí o lokalitě a podání žádostí o povolení</span><span class="cap">zápis zadání §5 · epc_odhad.pdf s. 2</span></div><span class="zar"><i class="ph ph-caret-right"></i></span>
+        <div class="zts"><b>Povolování 8–11 měsíců</b><span>déle o 9–15 (Česko) nebo 12–18 měsíců (Polsko), uloží-li úřad kompenzační opatření; v Eschfeldu o změnu územního plánu, v Lindenau o povolení přímého vypouštění</span><span class="cap">epc_odhad.pdf s. 2 · memo_povolovani_ovzdusi.pdf s. 2–3</span></div><span class="zar"><i class="ph ph-caret-right"></i></span>
+        <div class="zts"><b>Výstavba 22 měsíců</b><span>podle plánu dodavatele, plus zpoždění vylosovaného srovnatelného závodu (medián 3, nejvíc 15 měsíců); v Eschfeldu až po zesílení mostu</span><span class="cap">epc_odhad.pdf s. 2 · srovnatelne_zavody.xlsx</span></div><span class="zar"><i class="ph ph-caret-right"></i></span>
+        <div class="zts"><b>Najíždění 6 měsíců</b><span>závod jede na 60–90 % výkonu</span><span class="cap">úsudek · výrobní ředitel</span></div><span class="zar"><i class="ph ph-caret-right"></i></span>
+        <div class="zts"><b>Plný provoz do 2044</b><span>zůstatková hodnota 30 % investice v roce 2044</span><span class="cap">zápis zadání §8</span></div>
+      </div>
+      <div class="zcols2">
+        <div class="li"><i class="ph ph-shopping-cart" style="margin-top: 2px"></i><div class="tx">Dokud závod neběží, firma nakupuje: do 30. 6. 2030 za cenu vzorce, po něm za spotovou cenu (přirážka 20–60 %). Každý měsíc zpoždění jde přímo do nákladů lokality.</div></div>
+        <div class="li"><i class="ph ph-flag" style="margin-top: 2px"></i><div class="tx"><b>1. 7. 2030</b> je termín podmínky (3): podíl budoucností, v nichž výroba k tomu dni běží, musí být aspoň 0,80.</div></div>
+      </div>
+
+      <div class="zgrid2" style="margin-top: 6px">
+        <div><span class="lbl">V modelu</span>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">Investice<span class="cap" style="display: block">odhad EPC × (1 + překročení) + pozemek 18 ha + položky mimo odhad podle dokumentů lokality: most, vlečka, předčištění vod, kompenzační opatření, poplatek parku (Předpoklady)</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">Provoz od zahájení výroby<span class="cap" style="display: block">suroviny 1,25 t/t za 540 EUR/t franko závod · elektřina 0,35 a plyn 3,1 MWh/t za ceny lokality · CO₂ 0,62 t/t za povolenku po odečtení bezplatné alokace · voda, stočné, nebezpečný odpad, doprava produktu podle nabídek · 95 lidí × skladba mezd × odvody · údržba a pojištění 2–4 % odhadu ročně</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">Nákup VTX-40 do zahájení výroby a nákup poptávky nad 40 000 t<span class="cap" style="display: block">spotová cena, když závod po 30. 6. 2030 ještě nejede</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">Zůstatková hodnota 30 % investice v roce 2044<span class="cap" style="display: block">odečítá se od nákladů</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">Daň z příjmů a odpisy podle země, pobídky jako nejisté (P 0,5) a podle druhu: daňová úleva, nebo hotovost<span class="cap" style="display: block">dávají NPV po zdanění vedle; pravidlo čte NPV před zdaněním · sazby z Rešerše, prozatímní</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-plus" style="margin-top: 2px"></i><div class="tx">Peněžní toky diskontované k polovině roku, nominálně, inflace 2 %<span class="cap" style="display: block">prozatímní údaj (Rešerše)</span></div></div>
+        </div>
+        <div><span class="lbl">Mimo model, a proč</span>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-minus" style="margin-top: 2px"></i><div class="tx">Poptávka a prodej<span class="cap" style="display: block">závod zásobuje jen Brno (62 %) a Pardubice (38 %); ChemVitro VTX-40 neprodává</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-minus" style="margin-top: 2px"></i><div class="tx">Režie firmy<span class="cap" style="display: block">stejná pro všechny lokality i pro nákup</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-minus" style="margin-top: 2px"></i><div class="tx">Výsledek správního řízení<span class="cap" style="display: block">model počítá délku povolování a šanci na kompenzaci; není předpovědí ani právním stanoviskem</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-minus" style="margin-top: 2px"></i><div class="tx">Podmínky nákupu po roce 2035<span class="cap" style="display: block">dopis dodavatele je nepokrývá; v modelu jako předpoklad (podmínky prvního prodloužení) a tři varianty v propočtech, ne jako data</span></div></div>
+          <div class="li" style="margin-bottom: 6px"><i class="ph ph-minus" style="margin-top: 2px"></i><div class="tx">Průzkum pracovníků 2026<span class="cap" style="display: block">patří do studie typu 3</span></div></div>
+        </div>
+      </div>
+
+      <div class="ztl" style="margin-top: 6px">
+        <div class="zts zgt"><b>Investiční strop 175 mil. EUR je brána, ne položka k vyvážení</b><span>Lokalita nad stropem vypadne, ať šetří kolik chce; úspora ji nevyváží. Počítá se vše, co lokalita vyžaduje (zápis zadání §3, §5). Posuzuje se na základním případě (výklad, Z3) a vedle toho se uvádí P(investice ≤ 175) z budoucností.</span><span class="cap">základní případ: sedm lokalit pod stropem, Eschfeld 175,5 mil. EUR nad ním (T5) · výpočet</span></div>
+      </div>
+
+      <span class="lbl" style="margin-top: 6px">Pohledy Výsledků, které z modelu vzejdou</span>
+      <table class="zt"><thead><tr><th style="width: 190px">Pohled</th><th>Na co odpoví</th><th style="width: 300px">Co potřebuje</th></tr></thead><tbody>
+        <tr><td><b>Rozhodnutí</b></td><td>pravidlo jak zapsáno při 8, 6 a 10 %; hranice rozhodnutí; odklady 2/4/6 měsíců; zpoždění náboru; tornádo; body zvratu; podmínky po 2035; tři nastavení korelací</td><td class="muted">pravidlo ze Zadání, předpoklady s rozpětím, budoucnosti</td></tr>
+        <tr><td><b>Hodnota informace</b></td><td>co by dala odpověď úřadů pravidlu; EVPPI vedle; ani jedna není rozpočet</td><td class="muted">budoucnosti rozdělené podle odpovědi</td></tr>
+        <tr><td><b>Finance</b></td><td>NPV před a po zdanění, IRR, návratnost, pobídky jako úleva nebo hotovost</td><td class="muted">daňové sazby a odpisy (Rešerše, prozatímní)</td></tr>
+        <tr><td><b>Provoz</b></td><td>náklad na tunu v roce 2032 po kategoriích</td><td class="muted">nabídky lokalit, návrh procesu, mzdy</td></tr>
+        <tr><td><b>Harmonogram</b></td><td>rozdělení dne startu proti 1. 7. 2030 za každou lokalitu</td><td class="muted">časová osa, srovnatelné závody</td></tr>
+        <tr><td><b>Mapa budoucností</b></td><td>které lokality se daří v týchž budoucnostech; žádná není zálohou jiné</td><td class="muted">úspora každé lokality v každé budoucnosti (Sociomapa)</td></tr>
+      </tbody></table>
+      <p class="cap" style="margin: 0">Perspektivy (MVP-SCOPE §3): finanční, strategická, provozní, logistická, prostředí a povolování, lidé mají složky v modelu nebo vedle něj; marketingová je pro ChemVitro prázdná a zpráva to řekne. V AIA dnes: specifikace běhu a její fingerprint (Design Revision). Nové: typ studie „model nákladů“, jeho časová osa a brány jako části specifikace.</p>
+    </div></section>
+  <section class="{{dataSec}}" id="z5-data"><div class="sh"><span class="num">05</span><h2>Data</h2><span class="zcase v">Velis</span><span class="grow"></span><sc-if value="{{missing}}" hint-placeholder-val="{{ true }}"><span class="pill you"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>3 čísla chybí</span></sc-if><span class="cap">povinné · R5 · soubor → číslo</span></div>
     <div class="sb"><table class="zt"><thead><tr><th>Soubor</th><th>Co z něj model bere</th><th style="width: 170px">Číslo</th><th style="width: 140px">Stav</th></tr></thead><tbody>
       <sc-for list="{{inv}}" as="d" hint-placeholder-count="7"><tr class="{{d.cls}}"><td>{{d.file}}<span class="cap" style="display: block">{{d.where}}</span></td><td>{{d.what}}</td><td class="num">{{d.val}}</td><td><span class="row" style="gap: 6px"><span class="{{d.gl}}" aria-hidden="true"><i class="{{d.ic}}"></i></span>{{d.st}}</span></td></tr></sc-for>
     </tbody></table>
@@ -146,12 +222,12 @@ label.cfib{cursor:pointer}
       <div class="row" style="gap: 6px"><button class="btn sm" type="button"><i class="ph ph-upload-simple s"></i>Vyžádat data o zpožděních</button><button class="btn primary sm" type="button" onClick="{{fill}}">Vzít jako předpoklad s rozsahem</button></div></div></sc-if>
     <p class="cap" style="margin: 0">Na kroku Data se každé číslo přiváže ke sloupci nebo stránce souboru; tady je jen soupis, co odkud přijde.</p></div></section>
 
-  <section class="sec zm" id="z5-ass"><div class="sh"><span class="num">06</span><h2>Klíčové předpoklady</h2><span class="grow"></span><span class="cap">povinné · R5</span></div>
+  <section class="sec zm" id="z5-ass"><div class="sh"><span class="num">06</span><h2>Klíčové předpoklady</h2><span class="zcase v">Velis</span><span class="grow"></span><span class="cap">povinné · R5</span></div>
     <div class="sb"><table class="zt"><thead><tr><th style="width: 34px"></th><th>Předpoklad</th><th style="width: 170px">Hodnota nebo rozsah</th><th>Zdroj</th><th style="width: 150px">Kdo ručí</th><th style="width: 160px">Stav</th></tr></thead><tbody>
       <sc-for list="{{ass}}" as="a" hint-placeholder-count="5"><tr><td class="num">{{a.id}}</td><td>{{a.t}}</td><td class="num">{{a.val}}</td><td class="muted">{{a.src}}</td><td>{{a.who}}</td><td><span class="row" style="gap: 6px"><span class="{{a.gl}}" aria-hidden="true"><i class="{{a.ic}}"></i></span>{{a.st}}</span></td></tr></sc-for>
     </tbody></table><p class="cap" style="margin: 0">Na kroku Předpoklady se každý předpoklad schvaluje znovu, s hodnotou, kterou Model opravdu použije.</p></div></section>
 
-  <section class="sec zm" id="z5-sens"><div class="sh"><span class="num">07</span><h2>Co by mohlo výsledek otočit</h2><span class="grow"></span><span class="cap">volitelné · z toho bude citlivost a hodnota informace na Výsledcích</span></div>
+  <section class="sec zm" id="z5-sens"><div class="sh"><span class="num">07</span><h2>Co by mohlo výsledek otočit</h2><span class="zcase v">Velis</span><span class="grow"></span><span class="cap">volitelné · z toho bude citlivost a hodnota informace na Výsledcích</span></div>
     <div class="sb"><sc-for list="{{sens}}" as="x" hint-placeholder-count="3"><div class="li"><i class="ph ph-arrows-left-right" style="margin-top: 2px"></i><div class="tx">{{x.t}}<span class="cap" style="display: block">{{x.d}}</span></div></div></sc-for></div></section>
 </div>
       </main>
@@ -160,7 +236,7 @@ label.cfib{cursor:pointer}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":3550}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":5509}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { mode: 'missing', off: {} }; }
 renderVals() {
@@ -199,8 +275,8 @@ renderVals() {
       ['Operační výzkum', 'Kapacita ve špičkách po měsících, optimální plán expedice, zásoby', 'sezónnost objednávek, kapacity dodavatelů, zásoby', filled ? ok : you, filled ? 'má' : 'čeká na kapacity'],
       ['Velikost trhu', 'Jak velký trh lze obsloužit, kolik z něj Velis má, je plán růstu realistický', 'veřejné zdroje (Deep Research) a souhrn zákazníků z CRM', prop, 'dohledá AIA']
     ].map(([t, q, need, g, st], i) => ({ t, q, need, gl: g[0], ic: g[1], st, on: !s.off[i], toggle: () => this.setState({ off: { ...s.off, [i]: !s.off[i] } }) })),
-    inside: [['Příspěvek z objednávek, které firma udrží', 'všechny možnosti'], ['Ztracené objednávky při doručení o den delší', 'C, C2, H'], ['Poplatky 3PL, zdražování, skladné, doprava do ČR', 'B, B2, C, C2, H'], ['Investice, provoz a kapacita haly; zůstatková hodnota v roce 7', 'A, A2'], ['Expres ve velkých městech', 'C2'], ['Jednorázový přechod k jinému 3PL', 'C, C2, H']].map(([t, d]) => ({ t, d: 'možnosti ' + d })),
-    outside: [['Daně a odpisy', 'počítá se před daní; finanční ředitel posuzuje daňový dopad zvlášť (potvrzeno 14. 10.)'], ['Režie firmy', 'stejná pro všechny možnosti'], ['Marketing na udržení zákazníků', 'mimo rozhodnutí; zpráva ho zmíní jako možnost']].map(([t, d]) => ({ t, d })),
+    inside: [['Příspěvek z objednávek, které firma udrží', 'všechny možnosti'], ['Ztracené objednávky při doručení o den delší', 'C, C2, H'], ['Poplatky 3PL, zdražování, skladné, doprava do ČR', 'B, B2, C, C2, H'], ['Investice, provoz a kapacita haly; zůstatková hodnota v roce 7', 'A, A2'], ['Expres ve velkých městech', 'C2'], ['Jednorázový přechod k jinému 3PL', 'C, C2, H'], ['Daň z příjmů 21 % a daňové odpisy rovnoměrně podle odpisových skupin (pevný parametr): NPV před daní i po dani; pravidlo čte NPV před daní', 'všechny']].map(([t, d]) => ({ t, d: 'možnosti ' + d })),
+    outside: [['DPH a daňová optimalizace', 'DPH je pro Velis jako plátce neutrální; zrychlené odpisy, ztráty minulých let a daňové pobídky posoudí finanční ředitel zvlášť (potvrzeno 14. 10.)'], ['Režie firmy', 'stejná pro všechny možnosti'], ['Marketing na udržení zákazníků', 'mimo rozhodnutí; zpráva ho zmíní jako možnost']].map(([t, d]) => ({ t, d })),
     inv: INV.map(([file, where, what, val, g, st]) => ({ file, where, what, val, gl: g[0], ic: g[1], st, cls: st === 'chybí' ? 'miss' : '' })),
     ass: ASS.map(([id, t, val, src, who, g, st]) => ({ id, t, val, src, who, gl: g[0], ic: g[1], st })),
     sens: [['Ztráta objednávek', 'nejširší rozsah: rozhoduje mezi polskými a českými variantami'], ['Poplatek polského 3PL', 'největší položka variant C, C2, H'], ['Zdražování českého 3PL', 'smlouva připouští 3–7 % ročně; proto varianta B2'], ['Souvisí některé předpoklady spolu?', 'Ceníky obou 3PL jsou pevné a nezávisí na objemu; obchodní ředitel nevidí souvislost s růstem. Losují se nezávisle.']].map(([t, d]) => ({ t, d }))

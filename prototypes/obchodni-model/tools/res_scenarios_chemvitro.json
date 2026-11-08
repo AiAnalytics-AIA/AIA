@@ -1,0 +1,1410 @@
+{
+ "case": "ChemVitro",
+ "objs": [
+  "VR",
+  "LI",
+  "KA",
+  "WE",
+  "LN",
+  "ES",
+  "OD",
+  "BO"
+ ],
+ "cells": {
+  "F1": {
+   "VR": {
+    "lo": 6.35,
+    "hi": 6.35,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 8.25,
+    "hi": 8.25,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 9.05,
+    "hi": 9.05,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 2.79,
+    "hi": 2.79,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 3.31,
+    "hi": 3.31,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 0.15,
+    "hi": 0.15,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 9.34,
+    "hi": 9.34,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 7.9,
+    "hi": 7.9,
+    "ranged": false
+   }
+  },
+  "F2": {
+   "VR": {
+    "lo": 4.85,
+    "hi": 4.85,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 5.35,
+    "hi": 5.35,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 6.92,
+    "hi": 6.92,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 2.05,
+    "hi": 2.05,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 2.3,
+    "hi": 2.3,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.12,
+    "hi": 1.12,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 7.77,
+    "hi": 7.77,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 9.02,
+    "hi": 9.02,
+    "ranged": false
+   }
+  },
+  "F3": {
+   "VR": {
+    "lo": 6.5,
+    "hi": 6.5,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 7.0,
+    "hi": 7.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 8.33,
+    "hi": 8.33,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 2.67,
+    "hi": 2.67,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 2.83,
+    "hi": 2.83,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.67,
+    "hi": 1.67,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 8.67,
+    "hi": 8.67,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 8.67,
+    "hi": 8.67,
+    "ranged": false
+   }
+  },
+  "F4": {
+   "VR": {
+    "lo": 6.2,
+    "hi": 6.2,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 7.2,
+    "hi": 7.2,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 7.9,
+    "hi": 7.9,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 2.8,
+    "hi": 2.8,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 3.5,
+    "hi": 3.5,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 2.4,
+    "hi": 2.4,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 8.5,
+    "hi": 8.5,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 8.1,
+    "hi": 8.1,
+    "ranged": false
+   }
+  },
+  "F5": {
+   "VR": {
+    "lo": 5.0,
+    "hi": 5.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 7.5,
+    "hi": 7.5,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 7.5,
+    "hi": 7.5,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 5.0,
+    "hi": 5.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 5.0,
+    "hi": 5.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 2.5,
+    "hi": 2.5,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 7.5,
+    "hi": 7.5,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 5.0,
+    "hi": 5.0,
+    "ranged": false
+   }
+  },
+  "F6": {
+   "VR": {
+    "lo": 5.23,
+    "hi": 5.23,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 8.04,
+    "hi": 8.04,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 8.76,
+    "hi": 8.76,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 3.47,
+    "hi": 3.47,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 4.63,
+    "hi": 4.63,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.33,
+    "hi": 1.33,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 8.37,
+    "hi": 8.37,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 5.67,
+    "hi": 5.67,
+    "ranged": false
+   }
+  },
+  "S1": {
+   "VR": {
+    "lo": 3.33,
+    "hi": 3.33,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 5.33,
+    "hi": 5.33,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 7.0,
+    "hi": 7.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 0.67,
+    "hi": 0.67,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 1.0,
+    "hi": 1.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 0.33,
+    "hi": 0.33,
+    "ranged": false
+   },
+   "OD": null,
+   "BO": {
+    "lo": 3.0,
+    "hi": 3.0,
+    "ranged": false
+   }
+  },
+  "P1": {
+   "VR": {
+    "lo": 7.0,
+    "hi": 7.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 7.0,
+    "hi": 7.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 7.0,
+    "hi": 7.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 6.0,
+    "hi": 6.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 3.33,
+    "hi": 3.33,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 3.33,
+    "hi": 3.33,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 2.67,
+    "hi": 2.67,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 2.67,
+    "hi": 2.67,
+    "ranged": false
+   }
+  },
+  "P2": {
+   "VR": {
+    "lo": 7.83,
+    "hi": 7.83,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 6.0,
+    "hi": 6.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 8.17,
+    "hi": 8.17,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 0.5,
+    "hi": 0.5,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 4.67,
+    "hi": 4.67,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 6.33,
+    "hi": 6.33,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 9.17,
+    "hi": 9.17,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 9.5,
+    "hi": 9.5,
+    "ranged": false
+   }
+  },
+  "P3": {
+   "VR": {
+    "lo": 4.67,
+    "hi": 4.67,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 3.33,
+    "hi": 3.33,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 5.33,
+    "hi": 5.33,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 8.0,
+    "hi": 8.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 2.0,
+    "hi": 2.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.33,
+    "hi": 1.33,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 7.33,
+    "hi": 7.33,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 8.67,
+    "hi": 8.67,
+    "ranged": false
+   }
+  },
+  "L1": {
+   "VR": {
+    "lo": 4.89,
+    "hi": 4.89,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 8.89,
+    "hi": 8.89,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 8.0,
+    "hi": 8.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 0.44,
+    "hi": 0.44,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 1.56,
+    "hi": 1.56,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.11,
+    "hi": 1.11,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 5.11,
+    "hi": 5.11,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 6.0,
+    "hi": 6.0,
+    "ranged": false
+   }
+  },
+  "L2": {
+   "VR": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 0.0,
+    "hi": 1.88,
+    "ranged": true
+   },
+   "BO": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   }
+  },
+  "L3": {
+   "VR": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.67,
+    "hi": 4.67,
+    "ranged": true
+   },
+   "OD": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   }
+  },
+  "L4": {
+   "VR": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "OD": {
+    "lo": -0.0,
+    "hi": 7.5,
+    "ranged": true
+   },
+   "BO": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   }
+  },
+  "E1": {
+   "VR": {
+    "lo": 2.0,
+    "hi": 2.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 8.0,
+    "hi": 8.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 8.0,
+    "hi": 8.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 8.0,
+    "hi": 8.0,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 2.0,
+    "hi": 2.0,
+    "ranged": false
+   }
+  },
+  "E2": {
+   "VR": {
+    "lo": 1.67,
+    "hi": 5.0,
+    "ranged": true
+   },
+   "LI": {
+    "lo": 1.67,
+    "hi": 5.0,
+    "ranged": true
+   },
+   "KA": {
+    "lo": 1.67,
+    "hi": 5.0,
+    "ranged": true
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "OD": {
+    "lo": -0.0,
+    "hi": 3.33,
+    "ranged": true
+   },
+   "BO": {
+    "lo": -0.0,
+    "hi": 3.33,
+    "ranged": true
+   }
+  },
+  "E3": {
+   "VR": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 0.6,
+    "hi": 5.53,
+    "ranged": true
+   },
+   "KA": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 0.6,
+    "hi": 5.53,
+    "ranged": true
+   },
+   "ES": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   }
+  },
+  "H1": {
+   "VR": {
+    "lo": 8.06,
+    "hi": 8.06,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 8.38,
+    "hi": 8.38,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 7.88,
+    "hi": 7.88,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 2.94,
+    "hi": 2.94,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 3.44,
+    "hi": 3.44,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 1.12,
+    "hi": 1.12,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 9.25,
+    "hi": 9.25,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 8.81,
+    "hi": 8.81,
+    "ranged": false
+   }
+  },
+  "H2": {
+   "VR": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   },
+   "LI": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   },
+   "KA": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   },
+   "WE": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   },
+   "LN": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   },
+   "ES": {
+    "lo": 0.25,
+    "hi": 0.25,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   },
+   "BO": {
+    "lo": 6.12,
+    "hi": 8.88,
+    "ranged": true
+   }
+  },
+  "H3": {
+   "VR": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LI": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "KA": {
+    "lo": 0.5,
+    "hi": 0.5,
+    "ranged": false
+   },
+   "WE": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "LN": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "ES": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "OD": {
+    "lo": 10.0,
+    "hi": 10.0,
+    "ranged": false
+   },
+   "BO": {
+    "lo": 0.5,
+    "hi": 10.0,
+    "ranged": true
+   }
+  }
+ },
+ "scored": 20,
+ "settings": {
+  "dnes": {
+   "name": "Pravidlo dnes (šance na kompenzaci 20 %)",
+   "state": {
+    "VR": "fail",
+    "LI": "fail",
+    "KA": "fail",
+    "WE": "fail",
+    "LN": "fail",
+    "ES": "fail",
+    "OD": "fail",
+    "BO": "fail"
+   },
+   "alive": []
+  },
+  "urady": {
+   "name": "Po písemném stanovisku úřadů: bez kompenzace (0 %)",
+   "state": {
+    "VR": "fail",
+    "LI": "pass",
+    "KA": "pass",
+    "WE": "fail",
+    "LN": "fail",
+    "ES": "fail",
+    "OD": "pass",
+    "BO": "fail"
+   },
+   "alive": [
+    "LI",
+    "KA",
+    "OD"
+   ]
+  }
+ },
+ "scenarios": [
+  {
+   "code": "FR_A",
+   "name": "FŘ · a",
+   "who": "finanční ředitelka (vlastník pravidla)",
+   "family": "a",
+   "w": {
+    "F": 0.6,
+    "S": 0.2,
+    "P": 0.0,
+    "M": 0.0,
+    "L": 0.0,
+    "E": 0.0,
+    "H": 0.2
+   },
+   "roles": [
+    "outside",
+    "saving"
+   ],
+   "centre": {
+    "VR": 5.7,
+    "LI": 7.33,
+    "KA": 7.04,
+    "WE": 3.85,
+    "LN": 4.28,
+    "ES": 2.05,
+    "OD": 8.34,
+    "BO": 5.26
+   },
+   "top": {
+    "VR": 5.97,
+    "LI": 7.6,
+    "KA": 7.32,
+    "WE": 4.13,
+    "LN": 4.55,
+    "ES": 2.05,
+    "OD": 8.68,
+    "BO": 6.49
+   },
+   "first": "OD",
+   "share": {
+    "VR": 0.0,
+    "LI": 0.0,
+    "KA": 0.0,
+    "WE": 0.0,
+    "LN": 0.0,
+    "ES": 0.0,
+    "OD": 1.0,
+    "BO": 0.0
+   },
+   "by_setting": {
+    "dnes": {
+     "first": null,
+     "share": null
+    },
+    "urady": {
+     "first": "OD",
+     "share": {
+      "VR": 0.0,
+      "LI": 0.0,
+      "KA": 0.0,
+      "WE": 0.0,
+      "LN": 0.0,
+      "ES": 0.0,
+      "OD": 1.0,
+      "BO": 0.0
+     }
+    }
+   },
+   "critical": [],
+   "fan_w_sd": [
+    0.061,
+    0.05,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.05
+   ]
+  },
+  {
+   "code": "EQ_A",
+   "name": "Rovné váhy · a",
+   "who": "každá perspektiva rodiny stejně",
+   "family": "a",
+   "w": {
+    "F": 0.333,
+    "S": 0.333,
+    "P": 0.0,
+    "M": 0.0,
+    "L": 0.0,
+    "E": 0.0,
+    "H": 0.333
+   },
+   "roles": [
+    "outside",
+    "saving"
+   ],
+   "centre": {
+    "VR": 5.7,
+    "LI": 7.05,
+    "KA": 6.2,
+    "WE": 4.08,
+    "LN": 4.39,
+    "ES": 2.35,
+    "OD": 8.24,
+    "BO": 4.33
+   },
+   "top": {
+    "VR": 6.16,
+    "LI": 7.51,
+    "KA": 6.66,
+    "WE": 4.54,
+    "LN": 4.85,
+    "ES": 2.35,
+    "OD": 8.93,
+    "BO": 6.37
+   },
+   "first": "OD",
+   "share": {
+    "VR": 0.0,
+    "LI": 0.0,
+    "KA": 0.0,
+    "WE": 0.0,
+    "LN": 0.0,
+    "ES": 0.0,
+    "OD": 1.0,
+    "BO": 0.0
+   },
+   "by_setting": {
+    "dnes": {
+     "first": null,
+     "share": null
+    },
+    "urady": {
+     "first": "OD",
+     "share": {
+      "VR": 0.0,
+      "LI": 0.0,
+      "KA": 0.0,
+      "WE": 0.0,
+      "LN": 0.0,
+      "ES": 0.0,
+      "OD": 1.0,
+      "BO": 0.0
+     }
+    }
+   },
+   "critical": [],
+   "fan_w_sd": [
+    0.061,
+    0.06,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.058
+   ]
+  },
+  {
+   "code": "VR_B",
+   "name": "VŘ · b",
+   "who": "výrobní ředitel",
+   "family": "b",
+   "w": {
+    "F": 0.2,
+    "S": 0.0,
+    "P": 0.4,
+    "M": 0.0,
+    "L": 0.2,
+    "E": 0.0,
+    "H": 0.2
+   },
+   "roles": [
+    "outside",
+    "part"
+   ],
+   "centre": {
+    "VR": 7.09,
+    "LI": 6.99,
+    "KA": 7.13,
+    "WE": 5.2,
+    "LN": 4.73,
+    "ES": 3.64,
+    "OD": 6.65,
+    "BO": 7.38
+   },
+   "top": {
+    "VR": 7.28,
+    "LI": 7.17,
+    "KA": 7.31,
+    "WE": 5.38,
+    "LN": 4.91,
+    "ES": 3.79,
+    "OD": 7.3,
+    "BO": 8.19
+   },
+   "first": "BO",
+   "share": {
+    "VR": 0.14,
+    "LI": 0.013,
+    "KA": 0.0,
+    "WE": 0.0,
+    "LN": 0.0,
+    "ES": 0.0,
+    "OD": 0.003,
+    "BO": 0.843
+   },
+   "by_setting": {
+    "dnes": {
+     "first": null,
+     "share": null
+    },
+    "urady": {
+     "first": "KA",
+     "share": {
+      "VR": 0.0,
+      "LI": 0.23,
+      "KA": 0.683,
+      "WE": 0.0,
+      "LN": 0.0,
+      "ES": 0.0,
+      "OD": 0.087,
+      "BO": 0.0
+     }
+    }
+   },
+   "critical": [],
+   "fan_w_sd": [
+    0.051,
+    0.0,
+    0.056,
+    0.0,
+    0.053,
+    0.0,
+    0.051
+   ]
+  },
+  {
+   "code": "LOG_B",
+   "name": "LOG · b",
+   "who": "vedoucí logistiky (zadání: logistika 0,3 · provoz 0,5 · finance 0,2)",
+   "family": "b",
+   "w": {
+    "F": 0.2,
+    "S": 0.0,
+    "P": 0.5,
+    "M": 0.0,
+    "L": 0.3,
+    "E": 0.0,
+    "H": 0.0
+   },
+   "roles": [
+    "part"
+   ],
+   "centre": {
+    "VR": 7.0,
+    "LI": 6.87,
+    "KA": 7.79,
+    "WE": 5.17,
+    "LN": 4.55,
+    "ES": 3.82,
+    "OD": 5.97,
+    "BO": 7.94
+   },
+   "top": {
+    "VR": 7.0,
+    "LI": 6.87,
+    "KA": 7.79,
+    "WE": 5.17,
+    "LN": 4.55,
+    "ES": 4.05,
+    "OD": 6.68,
+    "BO": 7.94
+   },
+   "first": "BO",
+   "share": {
+    "VR": 0.0,
+    "LI": 0.0,
+    "KA": 0.01,
+    "WE": 0.0,
+    "LN": 0.0,
+    "ES": 0.0,
+    "OD": 0.0,
+    "BO": 0.99
+   },
+   "by_setting": {
+    "dnes": {
+     "first": null,
+     "share": null
+    },
+    "urady": {
+     "first": "KA",
+     "share": {
+      "VR": 0.0,
+      "LI": 0.0,
+      "KA": 1.0,
+      "WE": 0.0,
+      "LN": 0.0,
+      "ES": 0.0,
+      "OD": 0.0,
+      "BO": 0.0
+     }
+    }
+   },
+   "critical": [],
+   "fan_w_sd": [
+    0.049,
+    0.0,
+    0.064,
+    0.0,
+    0.06,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "code": "EHS_B",
+   "name": "EHS · b",
+   "who": "vedoucí EHS",
+   "family": "b",
+   "w": {
+    "F": 0.2,
+    "S": 0.0,
+    "P": 0.0,
+    "M": 0.0,
+    "L": 0.3,
+    "E": 0.5,
+    "H": 0.0
+   },
+   "roles": [
+    "part"
+   ],
+   "centre": {
+    "VR": 6.03,
+    "LI": 5.86,
+    "KA": 7.65,
+    "WE": 7.76,
+    "LN": 6.31,
+    "ES": 6.99,
+    "OD": 5.78,
+    "BO": 6.47
+   },
+   "top": {
+    "VR": 6.58,
+    "LI": 7.24,
+    "KA": 8.21,
+    "WE": 7.76,
+    "LN": 7.14,
+    "ES": 7.21,
+    "OD": 7.04,
+    "BO": 7.02
+   },
+   "first": "WE",
+   "share": {
+    "VR": 0.0,
+    "LI": 0.0,
+    "KA": 0.38,
+    "WE": 0.62,
+    "LN": 0.0,
+    "ES": 0.0,
+    "OD": 0.0,
+    "BO": 0.0
+   },
+   "by_setting": {
+    "dnes": {
+     "first": null,
+     "share": null
+    },
+    "urady": {
+     "first": "KA",
+     "share": {
+      "VR": 0.0,
+      "LI": 0.0,
+      "KA": 1.0,
+      "WE": 0.0,
+      "LN": 0.0,
+      "ES": 0.0,
+      "OD": 0.0,
+      "BO": 0.0
+     }
+    }
+   },
+   "critical": [
+    [
+     "E2",
+     "KA",
+     8.21
+    ]
+   ],
+   "fan_w_sd": [
+    0.052,
+    0.0,
+    0.0,
+    0.0,
+    0.059,
+    0.065,
+    0.0
+   ]
+  },
+  {
+   "code": "EQ_B",
+   "name": "Rovné váhy · b",
+   "who": "každá perspektiva rodiny stejně",
+   "family": "b",
+   "w": {
+    "F": 0.2,
+    "S": 0.0,
+    "P": 0.2,
+    "M": 0.0,
+    "L": 0.2,
+    "E": 0.2,
+    "H": 0.2
+   },
+   "roles": [
+    "outside",
+    "part"
+   ],
+   "centre": {
+    "VR": 6.7,
+    "LI": 6.59,
+    "KA": 7.07,
+    "WE": 6.23,
+    "LN": 5.44,
+    "ES": 4.91,
+    "OD": 6.57,
+    "BO": 6.79
+   },
+   "top": {
+    "VR": 7.11,
+    "LI": 7.32,
+    "KA": 7.48,
+    "WE": 6.41,
+    "LN": 5.95,
+    "ES": 5.06,
+    "OD": 7.44,
+    "BO": 7.83
+   },
+   "first": "KA",
+   "share": {
+    "VR": 0.07,
+    "LI": 0.02,
+    "KA": 0.787,
+    "WE": 0.013,
+    "LN": 0.0,
+    "ES": 0.0,
+    "OD": 0.073,
+    "BO": 0.037
+   },
+   "by_setting": {
+    "dnes": {
+     "first": null,
+     "share": null
+    },
+    "urady": {
+     "first": "KA",
+     "share": {
+      "VR": 0.0,
+      "LI": 0.053,
+      "KA": 0.857,
+      "WE": 0.0,
+      "LN": 0.0,
+      "ES": 0.0,
+      "OD": 0.09,
+      "BO": 0.0
+     }
+    }
+   },
+   "critical": [
+    [
+     "H3",
+     "BO",
+     7.42
+    ]
+   ],
+   "fan_w_sd": [
+    0.051,
+    0.0,
+    0.052,
+    0.0,
+    0.051,
+    0.053,
+    0.053
+   ]
+  }
+ ],
+ "refused": [
+  {
+   "code": "FR_ALL",
+   "name": "FŘ, jak zadáno",
+   "who": "finanční ředitelka",
+   "weights": {
+    "F": 0.5,
+    "P": 0.3,
+    "L": 0.2
+   },
+   "reason": "váží úsporu i její části",
+   "roles": [
+    "part",
+    "saving"
+   ],
+   "offered": [
+    "a",
+    "b"
+   ]
+  }
+ ],
+ "pooled": {
+  "VR": 0.035,
+  "LI": 0.006,
+  "KA": 0.196,
+  "WE": 0.106,
+  "LN": 0.0,
+  "ES": 0.0,
+  "OD": 0.346,
+  "BO": 0.312
+ },
+ "rows": 1806,
+ "fan": {
+  "concentration": 60,
+  "draws": 300,
+  "seed": 20261108
+ },
+ "owner_scenario": "FR_A"
+}

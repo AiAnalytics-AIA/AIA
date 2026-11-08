@@ -1,0 +1,61 @@
+<section class="chapter" id="model">
+  <p class="chapter-label">Chapter 6 · Step 5</p>
+  <h1 data-label="6"><i lang="cs">Model</i>: one computation for every option</h1>
+  <p class="lede">The model computes the measure the rule reads for every option in the same futures. It is code, pinned by version and seed, and a rerun gives the same bytes. Nothing in it is a forecast or a legal opinion.</p>
+
+  <h2 class="part" data-n="6.1">What goes in</h2>
+  <ul>
+    <li>The input table of step 4, frozen as a revision; the options and the baseline of step 1; the rule's measure.</li>
+    <li>The timeline every option shares: for ChemVitro, decision and permit applications on 1. 2. 2027, permitting 8–11 months plus the site's extensions, construction 22 months plus the drawn comparable plant's delay, ramp-up at 60–90 % for six months (Appendix B).</li>
+    <li>The seed and the number of futures, or a stopping rule that sets the number.</li>
+  </ul>
+
+  <h2 class="part" data-n="6.2">What comes out</h2>
+  <ul>
+    <li><b>The base case:</b> one computation with every input at its likely value. It compares the options and feeds the sensitivity analyses; it is not an estimate of what the client will save (R2-P10).</li>
+    <li><b>The futures:</b> N seeded draws of all inputs at once, with their correlations, each future computing the baseline and every option. From them: the median, the 90 % interval, and every probability as a share of futures (R2-P04 § 3.3).</li>
+    <li><b>The extra computations</b> on the same model and the same futures, each changing one assumption: the decision boundary over an assumption's range, delay of the decision, hiring delay, alternative terms, correlation settings (Appendix B).</li>
+    <li><b>The run record:</b> model type and version, input revision, seed, N, the methods pinned, the artefacts with their SHA-256 (MV0 M-2, M-3).</li>
+  </ul>
+
+  <h2 class="part" data-n="6.3">Checks</h2>
+  <ul>
+    <li>Every option is computed in the same futures by the same model; the baseline is one of them (R2-P04 § 3.3).</li>
+    <li>The same inputs and seed give the same bytes (M-3). This verifies the implementation, not the model's fitness for the decision (review R1; chapter 13).</li>
+    <li>The number of futures follows a stopping rule tied to the decision: the verdict of each condition is known to within a stated margin (board M2: ±0,5 pp on the pass probabilities) or N is declared and justified. The exemplar declares N = 20 000 (R2-P04 § 3.3).</li>
+    <li>Cash flows are discounted at the rule's rate, nominal or real as declared, with the convention named (mid-year, inflation 2 % provisional; Appendix B).</li>
+    <li>Tax is inside the model as a fixed parameter per country, so the after-tax view agrees with every other view (review I4). The rule reads the pre-tax figure.</li>
+    <li>What is outside the model is listed where the model is described, not discovered in the limits (R2-P15: transfer prices, hiring time in the schedule, raw-material freight, the annual step).</li>
+    <li>An extra computation changes one assumption; combinations that are not computed are said not to be (R2-P15).</li>
+  </ul>
+
+  <h2 class="part" data-n="6.4">How the exemplar did it</h2>
+  <p>The cost of supply is the investment, operations from start-up, VTX-40 bought until start-up, purchases above 40 000 t, less a residual value of 30 % of the investment in 2044; the saving of a site is the baseline's cost less the site's, in NPV, positive when the plant is cheaper (R2-P04 § 3.3). Purchases follow the supplier's formula to 30. 6. 2030, then the renewal premium, or the spot price while the plant is late (Appendix B). Operations are six items per tonne: raw materials at 540 EUR/t delivered, electricity and gas at the sites' offers moving with the country's price path, CO₂ at the allowance price less free allocation, water, sewer, hazardous waste and product freight at the quotes, 95 staff at the operator wage times a wage mix and contributions, maintenance and insurance at 2–4 % of the EPC estimate (Appendix B). The futures number 20 000 with seed 20270201. The base case carries the median overrun of 17 %; the futures draw one comparable plant for overrun and delay together. Eight extra computations reuse the same futures, each changing one assumption (Appendix B).</p>
+
+  <h2 class="part" data-n="6.5">In AIA today</h2>
+  <ul>
+    <li>Runs as workflows on the worker, with lease-fenced steps, artefacts, provenance and dependency edges, each artefact pinned by SHA-256 (<code>apps/worker</code>, <code>infrastructure/artifact_repository.py</code>, <code>domain/workflow.py</code>, <code>domain/pipeline.py</code> fingerprints).</li>
+    <li>A run pins the organization's methodology in force and records it in its identity (<code>domain/methodology/pins.py</code>, <code>application/research.py</code>).</li>
+    <li>The deterministic simulation core: a frozen WorldModel, reject-not-clip validation, seeded scenarios and frozen results (<code>domain/simulation/</code>). Its discipline is the model's; its content is not.</li>
+    <li>Seeded synthetic data from <code>random.Random(seed)</code> and the Sociomap golden fixtures pinned by SHA-256: the rerun-equals-bytes practice (<code>packages/aia_core/tests/fixtures/sociomap/</code>).</li>
+    <li>Budgets and cost ceilings per run, which a model computed by code does not need (a CALCULATED run has a known 0,00 USD ceiling, <code>cost-model-study</code> CP5).</li>
+  </ul>
+
+  <h2 class="part" data-n="6.6">New</h2>
+  <ul>
+    <li>The platform: the model-type contract and the determinism harness (<code>cost-model-study#CP2</code>), the kind and the working copy (<code>#CP3</code>), the run with inputs frozen by artefact id (<code>#CP5</code>), the API (<code>#CP6</code>), the ESTIMATED grade with seed and method pinned and the Metodika module of defaults (<code>#CP10</code>). Board M3 (session C) shows the type for ChemVitro beside Velis: the shared timeline as one drawing (§ 02) and the eleven items of the cost of supply with their kind and base formula (§ 05), every number held to the exemplar by <code>tools/results_build.py</code>.</li>
+    <li><b>A model type of its own, <code>site_cost_of_supply</code></b> (<code>cost-model-study#CM8</code>, <b>new</b>): a timeline per option whose dates are inputs, purchases, operations, residual value, tax as a fixed parameter, yearly cash flows, NPV before and after tax at a stated rate, T4–T6 as its results, and the convergence rule tied to the decision (the futures run until the rule's verdict is stable, ±0,5 pp). The planned type <i lang="cs">scénáře nákladů</i> (<code>#CM1</code>–<code>#CM7</code>) has no timeline and no bought baseline, so the scope makes type 2 a second type rather than an extension.</li>
+    <li>Monte Carlo with the input table's distributions and correlations (<code>#CR3</code>), the joint draw from comparables (<code>#CR3b</code>), PCG64 under the run's seed; board M3.</li>
+    <li>The cash-flow schedule, NPV and discounted payback, and IRR by a stated root rule (<code>#CM7</code>; <code>quantitative-families#FIN1</code>, <code>#FIN2</code>).</li>
+    <li>The extra computations as declared operations on a stored run, each one change at a time and said so: the boundary, delay and hiring tables, post-2035 and correlation recomputations (<code>cost-model-study#CR7b</code>, <b>new</b>, chapter 7; board M4).</li>
+  </ul>
+
+  <h2 class="part" data-n="6.7">ChemVitro acceptance</h2>
+  <ul>
+    <li>Seed 20270201, 20 000 futures, the same seed gives the same result (<code>STUDIES.md</code> § 2, MV0 M-3).</li>
+    <li>The spot price for a late start: any VTX-40 needed after 30. 6. 2030 and before the plant runs is bought at spot, as in February 2026 (<code>CASE.md</code> § 8).</li>
+    <li>Tax reliefs out of the pre-tax figure the rule reads; after-tax at each country's rate (answer key § 3).</li>
+    <li>Every option on the same timeline from 1. 2. 2027; a site's extra months (compensation, the bridge, the spur, the permit) enter its own schedule (R1 question 1).</li>
+    <li>Criteria: K1's first and second questions (comparable options; material costs and dependencies); K4, a revised input invalidates the run's results and approvals.</li>
+  </ul>
+</section>

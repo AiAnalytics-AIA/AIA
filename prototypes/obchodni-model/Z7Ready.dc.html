@@ -115,7 +115,7 @@ label.cfib{cursor:pointer}
   <sc-if value="{{ready}}" hint-placeholder-val="{{ false }}"><button class="btn primary sm" type="button" onClick="{{hand}}">{{handTo}}<i class="ph ph-caret-right s"></i></button></sc-if>
   <sc-if value="{{handed}}" hint-placeholder-val="{{ false }}"><a class="btn primary sm" href="{{openHref}}">{{openTo}}<i class="ph ph-caret-right s"></i></a></sc-if></div>
 <nav class="row" aria-label="Připravenost zadání" style="padding: 10px 24px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; gap: 6px">
-  <span class="cap" style="margin: 0 6px 0 0">Připravenost</span><sc-for list="{{chips}}" as="c" hint-placeholder-count="7"><button class="{{c.cls}}" type="button" onClick="{{c.open}}"><span class="{{c.gl}}" aria-hidden="true"><i class="{{c.ic}}"></i></span>{{c.l}}</button></sc-for></nav>
+  <span class="cap" style="margin: 0 6px 0 0">Připravenost</span><sc-for list="{{chips}}" as="c" hint-placeholder-count="9"><button class="{{c.cls}}" type="button" onClick="{{c.open}}"><span class="{{c.gl}}" aria-hidden="true"><i class="{{c.ic}}"></i></span>{{c.l}}</button></sc-for></nav>
 <div class="zstate"><span>Ukázka stavu</span><span class="seg sm" role="radiogroup" aria-label="Stav ukázky"><sc-for list="{{states}}" as="s" hint-placeholder-count="3"><button class="{{s.cls}}" type="button" role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}">{{s.l}}</button></sc-for></span></div>
 <div style="display: flex; align-items: stretch">
 <div class="abody" style="flex: 1; min-width: 0">
@@ -129,14 +129,14 @@ label.cfib{cursor:pointer}
     <div class="sb"><table class="zt"><thead><tr><th>Ze Zadání</th><th>Kam</th><th style="width: 160px">Stav</th></tr></thead><tbody>
       <sc-for list="{{hands}}" as="h" hint-placeholder-count="6"><tr><td>{{h.from}}</td><td>{{h.to}}</td><td><span class="row" style="gap: 6px"><span class="{{h.gl}}" aria-hidden="true"><i class="{{h.ic}}"></i></span>{{h.st}}</span></td></tr></sc-for>
     </tbody></table></div></section>
-  <section class="sec"><div class="sh"><span class="num">02</span><h2>Co předání nedrží</h2><span class="grow"></span><span class="cap">rady Vedoucího · R6, R7</span></div>
+  <section class="sec"><div class="sh"><span class="num">02</span><h2>Co předání nedrží</h2><span class="grow"></span><span class="cap">rady Vedoucího · R6–R9</span></div>
     <div class="sb"><div class="zflag"><div class="row" style="gap: 8px"><b>R6 · „výrazně“ v předpokladu P5</b><span class="grow"></span><span class="cap" style="margin: 0">rada</span></div><div><span class="was">ztráta je ve velkých městech výrazně vyšší</span> → <b>aspoň 45 % ztracených objednávek je ve velkých městech</b></div><div class="row" style="gap: 6px"><button class="btn sm" type="button">Přijmout přepis</button><button class="btn quiet sm" type="button">Nechat</button></div></div>
-      <div class="li"><i class="ph ph-wallet" style="margin-top: 2px"></i><div class="tx"><b>R7 · Rozsah a rozpočet</b><span class="cap" style="display: block">Model počítá kód, strop výpočtu 0,00 USD; Deep Research o trhu nejvýš 2,50 USD z rozpočtu studie 50,00 USD. Výsledek do 8. 12.</span></div></div></div></section>
+      <div class="li"><i class="ph ph-wallet" style="margin-top: 2px"></i><div class="tx"><b>R7 · Rozsah a rozpočet</b><span class="cap" style="display: block">Model počítá kód, strop výpočtu 0,00 USD; Deep Research o trhu nejvýš 2,50 USD z rozpočtu studie 50,00 USD. Výsledek do 8. 12.</span></div></div><div class="li"><i class="ph ph-shield-check" style="margin-top: 2px"></i><div class="tx"><b>R8 · Kontrola platnosti modelu</b><span class="cap" style="display: block">Před schválením doporučení posoudí model někdo jiný než výzkumník studie: srovnatelnost možností, vynechané položky, extrémní vstupy, rozhodující předpoklady. <a href="MV8Validity.dc.html">MV8</a></span></div></div><div class="li"><i class="ph ph-calendar-blank" style="margin-top: 2px"></i><div class="tx"><b>R9 · Termín</b><span class="cap" style="display: block">Každé další zjišťování (pilot, dotaz na kapacitu, smlouva) uvede, o kolik posune 8. 12. a co stojí čekání.</span></div></div></div></section>
 </div>
 <sc-if value="{{drawer}}" hint-placeholder-val="{{ true }}">
 <aside class="zdrawer" aria-label="Připravenost k předání"><div class="dh"><i class="ph ph-list-checks"></i><span class="grow">Připravenost k předání</span><button class="btn quiet sm ic" type="button" aria-label="Zavřít" onClick="{{close}}"><i class="ph ph-x"></i></button></div>
   <div class="db">
-    <div class="zrub"><sc-for list="{{rub}}" as="r" hint-placeholder-count="7"><div class="{{r.cls}}"><span class="{{r.gl}}" aria-hidden="true"><i class="{{r.ic}}"></i></span><span class="i">{{r.id}}</span><span>{{r.t}}<span class="how">{{r.how}}</span></span></div></sc-for></div>
+    <div class="zrub"><sc-for list="{{rub}}" as="r" hint-placeholder-count="9"><div class="{{r.cls}}"><span class="{{r.gl}}" aria-hidden="true"><i class="{{r.ic}}"></i></span><span class="i">{{r.id}}</span><span>{{r.t}}<span class="how">{{r.how}}</span></span></div></sc-for></div>
   </div></aside>
 </sc-if>
 </div>
@@ -146,7 +146,7 @@ label.cfib{cursor:pointer}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1360}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1520}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { mode: 'blocked', drawer: true }; }
 renderVals() {
@@ -160,9 +160,11 @@ renderVals() {
     ['R4', 'Každý cíl slouží rozhodnutí nebo provedení', 'kód · drží předání', ok],
     ['R5', 'Části modelu: veličina, horizont, hranice, data, předpoklady s ručitelem', 'kód · drží předání', ok],
     ['R6', 'Žádná neměřitelná slova', 'rada Vedoucího · „výrazně“ v P5', adv],
-    ['R7', 'Provedení, rozsah, rozpočet a termín sedí', 'rada Vedoucího · v pořádku', ok]
+    ['R7', 'Provedení, rozsah, rozpočet a termín sedí', 'rada Vedoucího · v pořádku', ok],
+    ['R8', 'Kontrola platnosti modelu (MV8) — před schválením doporučení', 'nezávislý posudek · nedrží předání, drží schválení doporučení', adv],
+    ['R9', 'Termín: co dalšího zjišťovat a jak to posune 8. 12.', 'každé zjišťování uvede dopad na termín · zatím nic navíc', ok]
   ];
-  const HM = [['Data (9 souborů, 11 čísel)', 'Data · každé číslo se přiváže ke sloupci nebo stránce'], ['Předpoklady P1–P7', 'Předpoklady · schválí se s rozsahem, který Model použije'], ['Sedm možností a omezení', 'Model · varianty, časování, kapacita'], ['Co by mohlo výsledek otočit', 'Výsledky · citlivost a hodnota informace v Kč'], ['Pravidlo a riziko', 'Výsledky a Zpráva · P(lepší než B) a P(ztráta > 10 mil.)'], ['Provedení a výstup', 'Zpráva · plán, pilot a hranice k hlídání']];
+  const HM = [['Data (9 souborů, 11 čísel)', 'Data · každé číslo se přiváže ke sloupci nebo stránce'], ['Předpoklady P1–P7', 'Předpoklady · schválí se s rozsahem, který Model použije'], ['Sedm možností a omezení', 'Model · varianty, časování, kapacita'], ['Co by mohlo výsledek otočit', 'Výsledky · citlivost a hodnota informace pro pravidlo klienta'], ['Pravidlo a riziko', 'Výsledky a Zpráva · P(lepší než B) a P(ztráta > 10 mil.)'], ['Provedení a výstup', 'Zpráva · plán, pilot a hranice k hlídání']];
   const st = handed ? ['stg sm youq', 'ph ph-pause', 'čeká na vás tam'] : ['stg sm dash', '', 'po předání'];
   return {
     theme: this.props.theme ?? 'light', busy: false, idle: true, showM, blocked, ready, handed, hand: () => this.setState({ mode: 'handed' }), fix: () => this.setState({ mode: 'ready' }),
@@ -170,7 +172,7 @@ renderVals() {
     states: [['blocked', 'Blokováno'], ['ready', 'Připraveno'], ['handed', 'Předáno']].map(([k, l]) => ({ l, on: s.mode === k, cls: s.mode === k ? 'on' : '', pick: () => this.setState({ mode: k }) })),
     target: 'Data a Předpoklady', handTo: 'Předat do Dat', openTo: 'Otevřít Data', openHref: 'KM1Data.dc.html',
     blockWhy: 'V pravidle chybí mez rizika: jakou nejhorší ztrátu proti dnešku vedení unese. Bez ní by AIA mohla doporučit variantu, která v horších budoucnostech ztratí víc, než firma snese.', handNote: 'Na kroku Data čeká 11 čísel k přivázání a na Předpokladech 7 předpokladů.',
-    chips: R.map(([id, t, how, g], i) => ({ l: id + ' ' + ['Rozhodnutí a cíl', 'Možnosti a omezení', 'Pravidlo a riziko', 'Cíle', 'Části modelu', 'Slova', 'Provedení a rozsah'][i], cls: g === you ? 'chip you' : g === ok ? 'chip good' : 'chip', gl: g[0], ic: g[1], open: () => this.setState({ drawer: true }) })),
+    chips: R.map(([id, t, how, g], i) => ({ l: id + ' ' + ['Rozhodnutí a cíl', 'Možnosti a omezení', 'Pravidlo a riziko', 'Cíle', 'Části modelu', 'Slova', 'Provedení a rozsah', 'Platnost modelu', 'Termín'][i], cls: g === you ? 'chip you' : g === ok ? 'chip good' : 'chip', gl: g[0], ic: g[1], open: () => this.setState({ drawer: true }) })),
     rub: R.map(([id, t, how, g]) => ({ id, t, how, gl: g[0], ic: g[1], cls: g === you ? 'miss' : '' })),
     hands: HM.map(([from, to]) => ({ from, to, gl: st[0], ic: st[1], st: st[2] }))
   };
