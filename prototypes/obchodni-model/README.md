@@ -212,10 +212,13 @@ logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six se
   report as AIA renders it with grades after numbers, numbered sources per chapter, the Stav podkladů box and the dated
   plan; the validity review run on the exemplar's own ten admitted limits (3 caught today, 7 open); the register entries
   the exemplar waits on. One claim-integrity case found on the way: the exemplar's text says 54 inputs, its table T9 has 67.
-- **Methodology** version 4 (`methodology/`, 43 pages, 9 Nov): the analytical contract (seven defaults, two release states,
-  R9 adopted), the perspectives as a disjoint cost partition with one weight vector for all sites, convergence by doubling
-  under repeated-look bounds, grades with lineage and validation apart, oracle-first acceptance (O-CF, O-INFO, O-CHEM); v3
-  (37 pages, 8 Nov) kept beside it.
+- **Methodology** version 5 (`methodology/`, 45 pages, 9 Nov): the business-decision method described without its case
+  and with no case appendix; the analytical contract (seven defaults, two release states, R9 adopted), the perspectives
+  as a disjoint cost partition with one weight vector for all sites, convergence by doubling under repeated-look bounds,
+  grades with lineage and validation apart, oracle-first acceptance; two map types in five configurations (a scenario
+  map over futures, weight settings or both crossed; an observed-data map over experts, units or months), the
+  respondent map out, and a map that supports the recommendation and never makes it. Versions 3 and 4 are in git
+  history.
 - **MVP scope for executives** (`scope/`, `AIA_MVP-scope_cs.pdf`, 10 pages, version 4 of 9 Nov): the scope in Czech
   on the common MVP structure (problem and user, the four assumptions it tests, the core workflow, in scope with an
   acceptance criterion each, out of scope with reasons, success and exit criteria, non-functional requirements, stack,
