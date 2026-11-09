@@ -223,3 +223,12 @@ In flight:
 - Status page v105 (1794214099-6600): questions R2-Q01…R2-Q14 (rec a except R2-Q09 b), action R2-N01 (ask Aram: fixture's investment reading, overrun footnote, weekly day). Explainers: disjoint-weights (D), boundary-convergence (C), oracle-first (A), authored by the coordinator (no live workers).
 - Waiting on the owner: the fourteen answers; "merge #1150"; the docs PR word; the requests to Aram. Then: scope v2 + methodology v4, canvas v67 (MV9 recompute on Bory 120 and the decided rule; 22→20 on MV0/MV4/MV5; MV0's rule wording), docs PR, wave 1.
 - Review package for ChatGPT: scratchpad only (review-pack/AIA-MVP-review-2026-11-09.zip), not in the repo.
+
+## 2026-11-09 15:30 UTC (session_013NjzbvdQ2LevhrQqa6bUW2, "AIA PM pivot coordination")
+- Owner, afternoon: scope must be executive and objective, no ChemVitro anywhere -> scope v3 rebuilt on MVP best practice ("this is so much better"); methodology v5 with no case and no appendix ("we dont even need to include it in the apendix").
+- #1167 (scope v2 record + executive scope v3, head 6f4cd3b02): CI green, Codex clean. #1166 (methodology v5, head 2a28dbfb3): Codex clean (P2 on the convergence example fixed: 0,796 on 20 000 draws), backend CI still running at 15:20. BOTH HELD (trigger trig_01AnavL3wnJb5bEhrc1qSTP9 at 15:32 reports, does not merge).
+- Owner 15:10: "as part of the pivot we are omitting the respondent maps, we need the rest of the maps in the MVP". Both PRs still park expert/unit/period -> amend after R2-Q15 (two types: scenario + observed-data, rec a), R2-Q16 (unit/period built in MVP, released after the validation suite, rec a), R2-Q17 (methodology ch9 "map supports the recommendation, never makes it", rec a), R2-Q18 (adopt the scope's three proposed targets, rec a). R2-Q02, R2-Q04 still open.
+- Owner: "how can we say that we never claim a reccomendation, thats litterally what we are paid to do" -> the map supports the recommendation; the decision rule makes it (ADR 0046 A6). Lifecycle page reworded.
+- Sociomap lifecycle page https://claude.ai/artifact/3UkTi8G66E85nx9Ccn36oK v3: every map from the real aia-sociomap-5 engine (72 compute_object_map runs, develop 26f197e3f); generator only in scratchpad (smgen/gen.py), offer to commit beside engine_maps.py.
+- #1150: M-8 fix in scratchpad wt-adr, uncommitted (classifier blocked the commit); needs owner's words R2-N02 "push the M-8 fix to #1150 and merge it".
+- Status page v107 (1794237803-4eb0). Decided kept on the page: R2-Q09, R2-Q13 (not yet applied). No live workers: r2 A-F finished.
