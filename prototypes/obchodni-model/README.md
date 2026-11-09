@@ -216,12 +216,11 @@ logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six se
   R9 adopted), the perspectives as a disjoint cost partition with one weight vector for all sites, convergence by doubling
   under repeated-look bounds, grades with lineage and validation apart, oracle-first acceptance (O-CF, O-INFO, O-CHEM); v3
   (37 pages, 8 Nov) kept beside it.
-- **MVP scope, executive edition** (`scope/`, `AIA_MVP-scope_cs.pdf`, 10 pages, 9 Nov, "pro vedení"): the scope as the
-  executive reads it, in Czech, one idea and one figure per page, no plan or board codes: what the client gets, the
-  eight steps and who does what, today / new, the weighting-scenario map answered in the owner's own question, the
-  three gates before a client sees a report, the ten-week plan with the honest expectation, the technology stack, the
-  two open decisions and the methodologist's three asks, a glossary. `MVP-SCOPE.md` version 2 stays the team's record
-  (chunk ids, code anchors, the review-id mapping in § 2.9, acceptance, waves); built by `scope/build.js`.
+- **MVP scope for executives** (`scope/`, `AIA_MVP-scope_cs.pdf`, 10 pages, version 3 of 9 Nov): the scope in Czech
+  on the common MVP structure (problem and user, the four assumptions it tests, the core workflow, in scope with an
+  acceptance criterion each, out of scope with reasons, success and exit criteria, non-functional requirements, stack,
+  team and timeline, risks and open decisions), objective, with no case names and no plan or board codes;
+  `MVP-SCOPE.md` version 2 stays the team's record.
 
 | # | File | Board |
 |---|---|---|

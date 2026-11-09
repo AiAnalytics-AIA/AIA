@@ -1,19 +1,21 @@
-# Rozsah MVP: vydání pro vedení
+# Rozsah MVP: studie pro obchodní rozhodnutí
 
-The MVP scope as a ten-page Czech PDF for the executive who reads it, not for the team that builds it. One idea per
-page, one figure per page, no plan or board codes, no file paths. The engineering record stays `../MVP-SCOPE.md`
-(version 2: eight steps with code anchors, the chunk ids and their mapping, acceptance, waves); this document says
-the same things in the executive's words and leaves out what only the team needs. Nothing here says anything the
-markdown does not.
+The MVP scope as a ten-page Czech PDF for executives (version 3, 9 Nov 2026). It follows the common structure of an
+MVP definition: the problem and the user, the riskiest assumptions the MVP tests, the core workflow, what is in scope
+with an acceptance criterion per item, what is out of scope and why, success and exit criteria (built versus
+validated), the non-functional requirements, the stack, team and timeline, and the risks and open decisions. It
+states scope, criteria and decisions; it names no case, site or person, and an illustrative number is labelled. The
+engineering record stays `../MVP-SCOPE.md` (version 2: the steps with code anchors, the plan chunks, acceptance,
+waves); this document carries none of its codes.
 
 | | |
 |---|---|
-| Audience | the executive who approved report 2 of the ChemVitro case; the product owner; the methodologist |
-| Source | `../MVP-SCOPE.md` version 2 (branch `chore/obchodni-model-scope-v2`) and the owner's decisions of 9 Nov; the stack from the repository's `CLAUDE.md` § Stack |
+| Audience | executives deciding on the MVP; the product owner; the methodologist |
+| Source | `../MVP-SCOPE.md` version 2 and the owner's decisions of 9 Nov; the stack from the repository's `CLAUDE.md` § Stack |
 | PDF | `AIA_MVP-scope_cs.pdf`, A4, 10 pages, 0 browser errors at build |
-| Pages | `00-cover` · `01-co-klient-dostane` (the report's anatomy) · `02-jak-studie-probiha` (eight steps, who does what) · `03-dnes-a-nove` (today / new) · `04-mapa-scenaru-vah` (the owner's question) · `05-jak-pozname` (three gates) · `06-plan` (ten weeks, five steps, the honest expectation) · `07-technologie` (the stack as layers, EU residency) · `08-co-se-rozhoduje` (two open items, three asks of the methodologist) · `09-slovnicek` (twelve terms) |
-| Figures | hand-written inline SVG in the methodology's colours; schematic, with illustrative numbers where the real ones are not computed yet (the weighting ranking on page 5 says so) |
-| Styles | `../methodology/style.css` and `../methodology/fonts/` by relative link; `scope.css` adds the figures' and the executive edition's rules (`body.exec`) |
+| Pages | `00-cover` · `01-problem` (problem, user, reader, the job) · `02-hypotezy` (four assumptions, their evidence, what changes if refuted) · `03-prubeh` (eight steps, who does what) · `04-v-rozsahu` (in scope, acceptance criterion, existing or new) · `05-mimo-rozsah` (not in this release, why) · `06-kriteria` (three gates; built versus validated) · `07-nasazeni` (EU data, no training on client data, access, audit, reproducibility, cost limits) · `08-technologie-plan` (stack, team, five two-week steps, effort range) · `09-rizika` (risks with mitigation, two open decisions, what the methodologist is asked for) |
+| Proposed targets | the tolerance of the control examples (0,001), the decision-maker test (two executives decide from a trial report), the study time (10 working days): marked on page 02 as proposed, for the owner to set |
+| Styles | `../methodology/style.css` and `../methodology/fonts/` by relative link; `scope.css` adds the figures' and tables' rules (`body.exec`) |
 | Build | `build.js`: one Playwright render, no contents page |
 
 ## Build
@@ -30,6 +32,5 @@ network. The build fails on any browser error or failed request.
 ## Conventions
 
 Czech throughout: decimal comma, a non-breaking space before units and `%`, „uvozovky“. No chunk, board, plan or
-criterion codes; a technical term appears once, defined in the glossary. Every ChemVitro number is the exemplar's or
-the case pack's; a figure with illustrative numbers says so. The earlier, detailed Czech editions (versions 1 and 2,
-24 and 29 pages) are in git history; the team's detail lives in `../MVP-SCOPE.md`.
+criterion codes; no case or site names; terms are defined where they first appear. Earlier Czech editions (24, 29 and
+10 pages) are in git history.

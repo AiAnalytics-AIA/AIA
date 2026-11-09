@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds AIA_MVP-scope_cs.pdf, the executive edition of the MVP scope, from the chapter files in this folder.
+// Builds AIA_MVP-scope_cs.pdf, the MVP scope for executives (version 3), from the chapter files in this folder.
 //
 //   node build.js            the PDF
 //   node build.js --png      the PDF, then every page as PNG under ../../../tmp/scope-pages/ (pdftoppm)
@@ -22,7 +22,7 @@ function read(f) { return fs.readFileSync(path.join(HERE, f), 'utf8'); }
 
 function assemble() {
   const body = CHAPTERS.map(read).join('\n');
-  return `<!doctype html><html lang="cs"><head><meta charset="utf-8"><title>AIA · Rozsah MVP · pro vedení</title>
+  return `<!doctype html><html lang="cs"><head><meta charset="utf-8"><title>AIA · Rozsah MVP</title>
 <link rel="stylesheet" href="../methodology/style.css"><link rel="stylesheet" href="scope.css"></head><body class="exec">${body}</body></html>`;
 }
 
@@ -39,8 +39,8 @@ async function render(html, out) {
   const bar = (l, r) => `<div style="width:100%;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:7.5pt;color:#44484e;padding:0 20mm;display:flex;justify-content:space-between;"><span>${l}</span><span>${r}</span></div>`;
   await page.pdf({
     path: out, format: 'A4', printBackground: true, displayHeaderFooter: true,
-    headerTemplate: bar('AIA · Rozsah MVP · pro vedení', '9. 11. 2026 · návrh'),
-    footerTemplate: bar('Případ ChemVitro je smyšlený. Žádná skutečná firma, obec ani osoba.', 'strana <span class="pageNumber"></span> z <span class="totalPages"></span>'),
+    headerTemplate: bar('AIA · Rozsah MVP · verze 3', '9. 11. 2026 · návrh'),
+    footerTemplate: bar('Návrh ke schválení. Ilustrativní čísla jsou označena.', 'strana <span class="pageNumber"></span> z <span class="totalPages"></span>'),
     margin: { top: '22mm', bottom: '24mm', left: '20mm', right: '20mm' }, preferCSSPageSize: false,
   });
   await browser.close();
