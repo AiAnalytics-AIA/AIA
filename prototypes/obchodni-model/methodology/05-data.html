@@ -5,41 +5,37 @@
 
   <h2 class="part" data-n="4.1">What goes in</h2>
   <ul>
-    <li>The client's data files: for ChemVitro ten files in <code>data/</code>, from monthly purchases to air-quality measurements (<code>CASE.md</code> § 9). The worker survey belongs to type 3 and is not read.</li>
-    <li>The client's documents: seven PDFs, from the board's brief to the consultant's memo on air permitting. Each number taken from one is cited with its page.</li>
+    <li>The client's data files: purchases, prices, volumes, quotes, wages, measurements. A file that holds respondents' answers belongs to a survey study and is not read here.</li>
+    <li>The client's documents: briefs, offers, memos, letters. Each number taken from one is cited with its page.</li>
     <li>The decision record from step 1, which says what each file is for.</li>
   </ul>
 
   <h2 class="part" data-n="4.2">What comes out</h2>
   <ul>
-    <li><b>A data contract per file:</b> which columns are used and how; units, currency and price year per column; which columns are personal and never leave the analysis copy; the period covered (board MV1; <code>client-data-in-analysis</code> chunk 2).</li>
+    <li><b>A data contract per file:</b> which columns are used and how; units, currency and price year per column; which columns are personal and never leave the analysis copy; the period covered (<code>client-data-in-analysis</code> chunk 2).</li>
     <li><b>A quality report per file</b>, accepted by a person before use: missing, duplicate and out-of-range counts per used column over every row (<code>client-data-in-analysis</code> 2a).</li>
-    <li><b>The findings table with dispositions.</b> Every finding of the checks, with one of four dispositions: used; corrected, with the reason; left out; taken over as an assumption with a range. The findings that change the result or its reading go into the report (the exemplar's P1, R2-P18 Appendix B).</li>
-    <li><b>A document register:</b> each document by the name the report cites it under and its file name (the exemplar's Appendix A).</li>
+    <li><b>The findings table with dispositions.</b> Every finding of the checks, with one of four dispositions: used; corrected, with the reason; left out; taken over as an assumption with a range. The findings that change the result or its reading go into the report; the rest stay in a separate data-check document the report names.</li>
+    <li><b>A document register:</b> each document by the name the report cites it under and its file name.</li>
   </ul>
 
   <h2 class="part" data-n="4.3">Checks</h2>
-  <p>The checks are the exemplar's list (R2-P04 § 3.4), made explicit:</p>
   <table class="compact">
-    <thead><tr><th style="width:22%">Check</th><th>What it looks for</th><th style="width:34%">ChemVitro instance</th></tr></thead>
+    <thead><tr><th style="width:22%">Check</th><th>What it looks for</th><th style="width:34%">Typical instance</th></tr></thead>
     <tbody>
-      <tr><td>Units</td><td>a row whose unit differs from its column's</td><td>July 2025 volume 2 844 000: kilograms, read as 2 844 t (P1)</td></tr>
-      <tr><td>Currencies</td><td>mixed currencies in one column; a currency column that contradicts the header</td><td>comparable plants in EUR, CZK and PLN; one purchase row in USD (answer key § 3)</td></tr>
-      <tr><td>Price years</td><td>amounts in different years' prices without a year</td><td>one comparable plant without a price year (P1)</td></tr>
-      <tr><td>Duplicates</td><td>the same entity twice</td><td>one comparable plant entered twice; counted once, 36 plants (P1)</td></tr>
-      <tr><td>Missing values</td><td>cells the contract expects and does not find</td><td>no start date of the energy price fixation; waste prices only to 2028 (R2-P01 <i lang="cs">Stav podkladů</i>)</td></tr>
-      <tr><td>Outliers</td><td>a value outside the range the file itself declares</td><td>one plant with capacity 91 kt against 18–60 kt; used only for overrun and delay (R2-P15)</td></tr>
-      <tr><td>Scope of a quote</td><td>quotes that do not cover the same thing</td><td>a cheaper PL2 waste quote covers only non-hazardous waste; PL1's rail rate assumes a spur that does not exist (answer key § 3)</td></tr>
-      <tr><td>File against brief</td><td>a number the brief states and the file contradicts</td><td>"about 1 470 EUR/t" against a 2026 average of 1 694 and 1 868 in September 2026 (P1)</td></tr>
-      <tr><td>Personal data</td><td>a column holding a person's identifier</td><td>none in type 2's files; the survey's respondents are pseudonymous and belong to type 3</td></tr>
+      <tr><td>Units</td><td>a row whose unit differs from its column's</td><td>one month's volume in kilograms in a column of tonnes</td></tr>
+      <tr><td>Currencies</td><td>mixed currencies in one column; a currency column that contradicts the header</td><td>one purchase row priced in another currency</td></tr>
+      <tr><td>Price years</td><td>amounts in different years' prices without a year</td><td>a comparable project with no price year</td></tr>
+      <tr><td>Duplicates</td><td>the same entity twice</td><td>one comparable entered twice, once with a rounded figure</td></tr>
+      <tr><td>Missing values</td><td>cells the contract expects and does not find</td><td>a price series that stops before the horizon</td></tr>
+      <tr><td>Outliers</td><td>a value outside the range the file itself declares</td><td>a capacity recorded in another unit, far outside the file's range</td></tr>
+      <tr><td>Scope of a quote</td><td>quotes that do not cover the same thing</td><td>a cheaper quote that covers only part of the service; a rate that assumes infrastructure the site does not have</td></tr>
+      <tr><td>File against brief</td><td>a number the brief states and the file contradicts</td><td>a price the brief rounds that the purchase file shows rising</td></tr>
+      <tr><td>Personal data</td><td>a column holding a person's identifier</td><td>a named contact or an employee number</td></tr>
     </tbody>
   </table>
-  <p>A contract that names a column the file does not hold, or a quality report the person has not accepted, blocks the file from the model (MV0 M-1).</p>
+  <p>A contract that names a column the file does not hold, or a quality report the person has not accepted, blocks the file from the model.</p>
 
-  <h2 class="part" data-n="4.4">How the exemplar did it</h2>
-  <p>The model uses every client file except the worker survey and all seven documents (R2-P04 § 3.4). The checks produced 42 findings, each with a recorded decision; the ones that change the result are in table P1 (Appendix B): the Hanshin price modelled as a range 1 470–1 694–1 868 EUR/t; the kilogram row; the single spot purchase of February 2026 turned into a spot premium of 20–60 %, most likely 39 %; the duplicate, the missing price year and the 91 kt outlier among the comparable plants; consumption growth of 4 % in the data against the client's 1–3 %, the client's range used; raw-material freight not added because the raw-material price is delivered to site; Odrzyca's rail quote and Eschfeld's bridge. Twenty-two inputs the files do not hold became judgements with a range. A separate document, <i lang="cs">Kontrola dat</i>, holds the contracts and all 42 findings (Appendix C); the report prints the ones that matter.</p>
-
-  <h2 class="part" data-n="4.5">In AIA today</h2>
+  <h2 class="part" data-n="4.4">In AIA today</h2>
   <ul>
     <li>A client's sources kept once per client and SHA-256, read by a format reader into segments with locators (<code>domain/client_sources.py</code>, <code>infrastructure/source_reading.py</code>, <code>infrastructure/client_source_repository.py</code>): PDF by page and table row, XLSX and CSV by sheet and row, DOCX by paragraph.</li>
     <li>The dataset preview: per column the header, kind, fill, distinct values and samples, with personal columns detected and masked (<code>domain/client_datasets.py</code>; patterns pinned in <code>fixtures/client_datasets/personal.json</code>).</li>
@@ -48,23 +44,20 @@
     <li>The evidence policy for client data: client-reported evidence under an accepted contract (ADR 0027, ADR 0037; <code>client-data-in-analysis</code> 8a built).</li>
   </ul>
 
-  <h2 class="part" data-n="4.6">New</h2>
+  <h2 class="part" data-n="4.5">New</h2>
   <ul>
-    <li>The data contract as a type and the route a person accepts it through (<code>client-data-in-analysis#2</code>), the quality report (<code>#2a</code>), the analysis copy of named columns and its accessor (<code>#3</code>, <code>#3a</code>, <code>#3b</code>), admission as <i lang="cs">z dat klienta</i> (<code>#5</code>), the contract accepted on the Data step (<code>#10</code>). Boards MV1 § 01b–03b and M1 § 01b–03b (session B) show it for the purchases file: the contract per column with the check note, the quality report with a disposition per row, what the model gets from it (summaries, never rows), and the 42 findings with the seven that change the result.</li>
+    <li>The data contract as a type and the route a person accepts it through (<code>client-data-in-analysis#2</code>), the quality report (<code>#2a</code>), the analysis copy of named columns and its accessor (<code>#3</code>, <code>#3a</code>, <code>#3b</code>), admission as <i lang="cs">z dat klienta</i> (<code>#5</code>), the contract accepted on the Data step (<code>#10</code>). The screen shows the contract per column with its check note, the quality report with a disposition per row, what the model gets from the file (summaries, never rows), and the findings with those that change the result marked.</li>
     <li>A number from a document proposed with its page and checked literally on that page (<code>client-data-in-analysis#11</code>); an estimate from client rows as a Metodika method (<code>#12</code>).</li>
-    <li>Declared conversions (unit, currency at a dated rate, price year), each a finding with its disposition, and the P1 table of findings with the four dispositions <i lang="cs">použito / opraveno / vynecháno / převzato jako předpoklad</i> (<code>client-data-in-analysis#13</code>, <b>new</b>; board M1 § 03b). <code>cost-model-study#CR1</code> covers reconciliation, period coverage, currency and robust outliers, accepted on record.</li>
-    <li>The document register with cited names (the exemplar's Appendix A; part of <code>decision-brief#DB5</code>'s hand-off).</li>
+    <li>Declared conversions (unit, currency at a dated rate, price year), each a finding with its disposition, and the findings table with the four dispositions <i lang="cs">použito / opraveno / vynecháno / převzato jako předpoklad</i> (<code>client-data-in-analysis#13</code>, <b>new</b>). <code>cost-model-study#CR1</code> covers reconciliation, period coverage, currency and robust outliers, accepted on record.</li>
+    <li>The document register with cited names (part of <code>decision-brief#DB5</code>'s hand-off).</li>
   </ul>
 
-  <h2 class="part" data-n="4.7">ChemVitro acceptance</h2>
-  <p>The answer key planted these in the files (§ 3). A study that misses one has a gap in its checks, whatever its verdict.</p>
+  <h2 class="part" data-n="4.6">Acceptance</h2>
+  <p>The frozen test case plants faults of every kind in the table above. A study that misses one has a gap in its checks, whatever its verdict.</p>
   <ul>
-    <li><code>srovnatelne_zavody.xlsx</code>: P-17 twice, the second with a rounded investment; P-23's capacity 91 in t/day, not kt a year; P-31 without a price year; investments in EUR, CZK and PLN in each plant's own price year.</li>
-    <li><code>nakup_vtx40_2023-2026.xlsx</code>: the 2025-07 volume in kg; the 2024-03 price in USD; an extra 2026-02 row from another supplier, the spot price for a late start. The key names 2 180 EUR/t and the exemplar 2 320 against 1 672 (P1); both are the same row read two ways, price alone or price plus freight (2 180 + 140 against 1 576 + 96), as board MV1 § 02b shows. The acceptance reads the file and says which it prints.</li>
-    <li><code>trh_prace_regiony.xlsx</code>: wages gross, in local currency, without employer contributions.</li>
-    <li><code>odpady_nabidky.csv</code>: PL2's second quote covers only non-hazardous waste.</li>
-    <li><code>doprava_nabidky.csv</code>: PL1's rail rate assumes a spur to the site.</li>
-    <li><code>hodnoceni_lokalit.csv</code>: one rater scored with the scale reversed and says so in a note; the consultant adds about 2,5 points to the two sites its agency brokered; two cells are missing. Type 2 does not use this file in its model; if it draws an expert map, the map must show these.</li>
+    <li>Each planted fault is found and has a disposition; a corrected one propagates to every result that read it.</li>
+    <li>Where one row can be read two ways (a price alone or a price plus freight, say), the study says which reading it prints and why.</li>
+    <li>A quote that covers less than its competitors is compared on the same scope, or not at all.</li>
+    <li>Where a table and the text disagree about a reading, the disagreement is found and resolved before the report prints either.</li>
   </ul>
-  <p>Criteria: K6, claim integrity, where a table and the text disagree about a reading; K4, since a corrected finding propagates to every result that read it.</p>
 </section>

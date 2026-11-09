@@ -5,7 +5,7 @@
     <thead><tr><th style="width:26%">Term</th><th>Meaning in this methodology</th></tr></thead>
     <tbody>
       <tr><td>Base case (<i lang="cs">základní případ</i>)</td><td>one computation with every input at its likely value; compares options and feeds sensitivity; not an estimate of the saving</td></tr>
-      <tr><td>Baseline</td><td>the option every other is compared with; for ChemVitro, keep buying</td></tr>
+      <tr><td>Baseline</td><td>the option every other is compared with, often the status quo (keep buying, keep the current supplier)</td></tr>
       <tr><td>Leaf</td><td>one cash-flow line (or lines that always travel together), discounted, allocated to exactly one perspective; a perspective's total is the sum of its leaves</td></tr>
       <tr><td>Data contract (<i lang="cs">datová smlouva</i>)</td><td>which columns of a client file are used and how; units, currency, price year, personal columns, period; accepted by a person</td></tr>
       <tr><td>Decision boundary (<i lang="cs">hranice rozhodnutí</i>)</td><td>what the rule chooses as one assumption moves over its range, the futures recomputed for each value</td></tr>
@@ -19,7 +19,7 @@
       <tr><td>Guarantor (<i lang="cs">stojí za ním</i>)</td><td>the person who stands behind an input's range</td></tr>
       <tr><td>Interpretation record</td><td>a reading of a rule's condition that the rule does not fix, with the alternative, its effect and who confirms</td></tr>
       <tr><td>Mode contract</td><td>per Sociomap mode: what a row is, what the claim is about, what is measured, what the null means, the resampling, what the stability measures</td></tr>
-      <tr><td>Oracle fixture</td><td>a case with independently known answers (O-CF, O-INFO, O-CHEM) frozen by an analyst who does not write the model code and signed by the methodologist; the pipeline must reproduce it before the ChemVitro answer key counts</td></tr>
+      <tr><td>Oracle fixture</td><td>a case with independently known answers (O-CF, O-INFO and the frozen test configuration) frozen by an analyst who does not write the model code and signed by the methodologist; the pipeline must reproduce it before any test case counts</td></tr>
       <tr><td>Outline (<i lang="cs">Osnova zprávy</i>)</td><td>the report's claims in the order of the argument, each with its source and why it matters, before any text</td></tr>
       <tr><td>Perspective</td><td>a set of leaves: financial, strategic, operational, marketing/commercial, logistics, environment and permitting, people; one weight per perspective, the same for every option</td></tr>
       <tr><td>Recommendation eligibility</td><td>the computed state that lets a recommendation be stated as approved: registered methods, the independent review closed, every decisive comparison resolved; apart from document approval</td></tr>
@@ -27,7 +27,7 @@
       <tr><td>Provisional (<i lang="cs">prozatímní</i>)</td><td>a public input not yet verified at the source</td></tr>
       <tr><td>Register (<i lang="cs">registr metod</i>)</td><td>the methods the methodologist has approved, each at its version and fingerprint</td></tr>
       <tr><td>Rule (<i lang="cs">pravidlo</i>)</td><td>the client's decision rule, written before any result: the measure, the choice, the conditions with thresholds</td></tr>
-      <tr><td>Shared failure</td><td>when one option is worse than the baseline, the share of those futures in which another is worse too (T8)</td></tr>
+      <tr><td>Shared failure</td><td>when one option is worse than the baseline, the share of those futures in which another is worse too, printed with its denominators</td></tr>
       <tr><td>Share of tested settings</td><td>the share of a fan's weight vectors under which an option is uniquely first, with the shares of ties and of unresolved settings beside it; per scenario, never pooled; not a probability</td></tr>
       <tr><td>Stability test</td><td>the map recomputed under settings declared in advance; stable only if the distance orders agree above the threshold</td></tr>
       <tr><td>Stopping rule (convergence)</td><td>how many futures to run: 20 000, doubled at declared checkpoints up to 1,28 million, until every gate and decisive comparison clears its repeated-look bound; a comparison that does not prints as unresolved</td></tr>
@@ -36,139 +36,4 @@
       <tr><td>Weighting-scenario map (<i lang="cs">mapa scénářů vah</i>)</td><td>a Sociomap per scenario whose rows are tested weight settings and whose objects are the options; height is the score under the selected setting; preference information, with the gates beside it and the rule's verdict in its own panel</td></tr>
     </tbody>
   </table>
-</section>
-
-<section class="chapter" id="numbers">
-  <p class="chapter-label">Appendix B</p>
-  <h1 data-label="B">The exemplar in numbers</h1>
-  <p>Condensed from the exemplar's tables (R2-P18). Every value is the exemplar's; the grades are its grades. NPV 2027–2044, mil. EUR, pre-tax, 8 % unless stated. <span class="g">odhad</span> marks a number from the 20 000 futures (method awaiting approval); <span class="g">výpočet</span> a base-case computation.</p>
-
-  <h2 data-label="B.1" id="t1">T1 · The rule at 8 %</h2>
-  <table class="compact names">
-    <thead><tr><th>Site</th><th class="n">Median saving</th><th class="n">90 % interval</th><th class="n">P(beats) ≥ 0,75</th><th class="n">P(loss &gt; 20) ≤ 0,10</th><th class="n">P(start by 1. 7. 2030) ≥ 0,80</th><th class="n">Investment ≤ 175</th><th class="c">Passes</th></tr></thead>
-    <tbody>
-      <tr><td>Vrbice (CZ1)</td><td class="n">110,8</td><td class="n">−40,7 … 331,5</td><td class="n">0,88 ✔</td><td class="n">0,08 ✔</td><td class="n">0,21 ✘</td><td class="n">160,6 ✔</td><td class="c">no</td></tr>
-      <tr><td>Lipová (CZ2)</td><td class="n">126,0</td><td class="n">−30,2 … 349,4</td><td class="n">0,91 ✔</td><td class="n">0,06 ✔</td><td class="n">0,76 ✘</td><td class="n">158,6 ✔</td><td class="c">no</td></tr>
-      <tr><td>Kamenec (CZ3)</td><td class="n">132,4</td><td class="n">−23,5 … 356,9</td><td class="n">0,92 ✔</td><td class="n">0,05 ✔</td><td class="n">0,76 ✘</td><td class="n">152,3 ✔</td><td class="c">no</td></tr>
-      <tr><td>Wendelstedt (DE1)</td><td class="n">82,3</td><td class="n">−74,7 … 308,1</td><td class="n">0,80 ✔</td><td class="n">0,15 ✘</td><td class="n">0,94 ✔</td><td class="n">171,8 ✔</td><td class="c">no</td></tr>
-      <tr><td>Lindenau (DE2)</td><td class="n">86,5</td><td class="n">−68,8 … 311,7</td><td class="n">0,81 ✔</td><td class="n">0,14 ✘</td><td class="n">0,77 ✘</td><td class="n">170,8 ✔</td><td class="c">no</td></tr>
-      <tr><td>Eschfeld (DE3)</td><td class="n">61,2</td><td class="n">−94,4 … 285,7</td><td class="n">0,73 ✘</td><td class="n">0,21 ✘</td><td class="n">0,67 ✘</td><td class="n">175,5 ✘</td><td class="c">no</td></tr>
-      <tr><td>Odrzyca (PL1)</td><td class="n">134,7</td><td class="n">−23,8 … 359,1</td><td class="n">0,92 ✔</td><td class="n">0,05 ✔</td><td class="n">0,75 ✘</td><td class="n">148,9 ✔</td><td class="c">no</td></tr>
-      <tr><td>Bory (PL2)</td><td class="n">123,2</td><td class="n">−30,9 … 344,4</td><td class="n">0,91 ✔</td><td class="n">0,06 ✔</td><td class="n">0,19 ✘</td><td class="n">143,9 ✔</td><td class="c">no</td></tr>
-    </tbody>
-  </table>
-  <p class="caption">Median, interval and probabilities <span class="g">odhad</span>; investment in the base case <span class="g">výpočet</span>. At 6 % and 10 % the verdict is the same (T2, T3): the deadline probability does not depend on the rate. Keep buying costs 897 mil. EUR in the median of the futures and 911,6 in the base case.</p>
-
-  <h2 data-label="B.2" id="t4">T4 · Finance, base case</h2>
-  <table class="compact">
-    <thead><tr><th>Site</th><th class="n">Pre-tax 6 %</th><th class="n">8 %</th><th class="n">10 %</th><th class="n">Post-tax 8 %</th><th class="n">Median post-tax 8 %</th><th class="n">IRR</th><th class="n">Payback</th><th class="n">Start (base)</th></tr></thead>
-    <tbody>
-      <tr><td>Vrbice</td><td class="n">189,2</td><td class="n">134,5</td><td class="n">92,7</td><td class="n">96,6</td><td class="n">87,5</td><td class="n">18,2 %</td><td class="n">2035</td><td class="n">2030,92</td></tr>
-      <tr><td>Lipová</td><td class="n">219,3</td><td class="n">159,9</td><td class="n">113,8</td><td class="n">116,3</td><td class="n">99,9</td><td class="n">19,2 %</td><td class="n">2034</td><td class="n">2029,92</td></tr>
-      <tr><td>Kamenec</td><td class="n">225,6</td><td class="n">165,9</td><td class="n">119,6</td><td class="n">121,3</td><td class="n">107,3</td><td class="n">19,9 %</td><td class="n">2034</td><td class="n">2029,92</td></tr>
-      <tr><td>Wendelstedt</td><td class="n">149,8</td><td class="n">99,8</td><td class="n">61,2</td><td class="n">84,3</td><td class="n">72,1</td><td class="n">14,8 %</td><td class="n">2035</td><td class="n">2029,92</td></tr>
-      <tr><td>Lindenau</td><td class="n">156,0</td><td class="n">105,7</td><td class="n">67,0</td><td class="n">92,4</td><td class="n">80,0</td><td class="n">15,5 %</td><td class="n">2035</td><td class="n">2030,17</td></tr>
-      <tr><td>Eschfeld</td><td class="n">139,4</td><td class="n">91,2</td><td class="n">54,2</td><td class="n">69,3</td><td class="n">45,9</td><td class="n">14,4 %</td><td class="n">2036</td><td class="n">2030,25</td></tr>
-      <tr><td>Odrzyca</td><td class="n">230,6</td><td class="n">170,7</td><td class="n">124,2</td><td class="n">118,6</td><td class="n">107,2</td><td class="n">20,5 %</td><td class="n">2034</td><td class="n">2029,92</td></tr>
-      <tr><td>Bory</td><td class="n">200,5</td><td class="n">145,8</td><td class="n">103,9</td><td class="n">99,7</td><td class="n">96,0</td><td class="n">20,1 %</td><td class="n">2035</td><td class="n">2031,17</td></tr>
-    </tbody>
-  </table>
-  <p class="caption">Base case <span class="g">výpočet</span>; the post-tax median <span class="g">odhad</span>. Tax rates provisional. Incentives are not in the base case; the futures grant them with probability 0,5.</p>
-
-  <h2 data-label="B.3" id="t6">T6 · Operating cost per tonne in 2032, base case, EUR/t</h2>
-  <table class="compact">
-    <thead><tr><th>Site</th><th class="n">CO₂</th><th class="n">Freight</th><th class="n">Energy</th><th class="n">People</th><th class="n">Waste</th><th class="n">Raw materials</th><th class="n">Water</th><th class="n">Maintenance, park</th><th class="n">Total</th></tr></thead>
-    <tbody>
-      <tr><td>Vrbice</td><td class="n">56</td><td class="n">38</td><td class="n">179</td><td class="n">121</td><td class="n">17</td><td class="n">760</td><td class="n">26</td><td class="n">113</td><td class="n">1 311</td></tr>
-      <tr><td>Lipová</td><td class="n">56</td><td class="n">20</td><td class="n">179</td><td class="n">116</td><td class="n">20</td><td class="n">760</td><td class="n">25</td><td class="n">124</td><td class="n">1 300</td></tr>
-      <tr><td>Kamenec</td><td class="n">56</td><td class="n">24</td><td class="n">179</td><td class="n">124</td><td class="n">16</td><td class="n">760</td><td class="n">26</td><td class="n">111</td><td class="n">1 295</td></tr>
-      <tr><td>Wendelstedt</td><td class="n">56</td><td class="n">58</td><td class="n">182</td><td class="n">203</td><td class="n">13</td><td class="n">760</td><td class="n">25</td><td class="n">157</td><td class="n">1 455</td></tr>
-      <tr><td>Lindenau</td><td class="n">56</td><td class="n">53</td><td class="n">190</td><td class="n">195</td><td class="n">15</td><td class="n">760</td><td class="n">32</td><td class="n">132</td><td class="n">1 434</td></tr>
-      <tr><td>Eschfeld</td><td class="n">56</td><td class="n">55</td><td class="n">190</td><td class="n">232</td><td class="n">14</td><td class="n">760</td><td class="n">34</td><td class="n">122</td><td class="n">1 463</td></tr>
-      <tr><td>Odrzyca</td><td class="n">56</td><td class="n">37</td><td class="n">192</td><td class="n">102</td><td class="n">18</td><td class="n">760</td><td class="n">21</td><td class="n">105</td><td class="n">1 292</td></tr>
-      <tr><td>Bory</td><td class="n">56</td><td class="n">33</td><td class="n">192</td><td class="n">109</td><td class="n">17</td><td class="n">760</td><td class="n">20</td><td class="n">103</td><td class="n">1 290</td></tr>
-    </tbody>
-  </table>
-  <p class="caption"><span class="g">výpočet</span>. A bought tonne would cost about 2 340 EUR in 2032 in the base case, premium and freight included.</p>
-
-  <h2 data-label="B.4" id="t7">T7 · Relations between sites across the futures</h2>
-  <table class="compact">
-    <thead><tr><th></th><th class="n">Vrb</th><th class="n">Lip</th><th class="n">Kam</th><th class="n">Wen</th><th class="n">Lin</th><th class="n">Esch</th><th class="n">Odr</th><th class="n">Bory</th></tr></thead>
-    <tbody>
-      <tr><td>Vrbice</td><td class="n">–</td><td class="n">0,50</td><td class="n">0,52</td><td class="n">−0,27</td><td class="n">−0,27</td><td class="n">−0,26</td><td class="n">−0,15</td><td class="n">−0,07</td></tr>
-      <tr><td>Lipová</td><td class="n">0,50</td><td class="n">–</td><td class="n">0,55</td><td class="n">−0,22</td><td class="n">−0,23</td><td class="n">−0,27</td><td class="n">−0,14</td><td class="n">−0,15</td></tr>
-      <tr><td>Kamenec</td><td class="n">0,52</td><td class="n">0,55</td><td class="n">–</td><td class="n">−0,23</td><td class="n">−0,23</td><td class="n">−0,26</td><td class="n">−0,14</td><td class="n">−0,15</td></tr>
-      <tr><td>Wendelstedt</td><td class="n">−0,27</td><td class="n">−0,22</td><td class="n">−0,23</td><td class="n">–</td><td class="n">0,56</td><td class="n">0,70</td><td class="n">−0,12</td><td class="n">−0,17</td></tr>
-      <tr><td>Lindenau</td><td class="n">−0,27</td><td class="n">−0,23</td><td class="n">−0,23</td><td class="n">0,56</td><td class="n">–</td><td class="n">0,71</td><td class="n">−0,12</td><td class="n">−0,15</td></tr>
-      <tr><td>Eschfeld</td><td class="n">−0,26</td><td class="n">−0,27</td><td class="n">−0,26</td><td class="n">0,70</td><td class="n">0,71</td><td class="n">–</td><td class="n">−0,15</td><td class="n">−0,15</td></tr>
-      <tr><td>Odrzyca</td><td class="n">−0,15</td><td class="n">−0,14</td><td class="n">−0,14</td><td class="n">−0,12</td><td class="n">−0,12</td><td class="n">−0,15</td><td class="n">–</td><td class="n">0,48</td></tr>
-      <tr><td>Bory</td><td class="n">−0,07</td><td class="n">−0,15</td><td class="n">−0,15</td><td class="n">−0,17</td><td class="n">−0,15</td><td class="n">−0,15</td><td class="n">0,48</td><td class="n">–</td></tr>
-    </tbody>
-  </table>
-  <p class="caption"><span class="g">odhad</span>; <code>aia-sociomap-5</code>, the judgement's correlations, centred per future. Two of 28 pairs reliable. Split-half 0,91 against 0,59. Stability: 0,95 / 0,84 / 0,75 between the three settings, the last under 0,8: failed.</p>
-
-  <h2 data-label="B.5" id="t8">T8 · Shared failure of the two leading sites</h2>
-  <table class="compact">
-    <thead><tr><th>When this site is worse than buying …</th><th class="n">Vrb</th><th class="n">Lip</th><th class="n">Kam</th><th class="n">Wen</th><th class="n">Lin</th><th class="n">Esch</th><th class="n">Odr</th><th class="n">Bory</th></tr></thead>
-    <tbody>
-      <tr><td>Odrzyca</td><td class="n">90 %</td><td class="n">84 %</td><td class="n">79 %</td><td class="n">98 %</td><td class="n">97 %</td><td class="n">99 %</td><td class="n">–</td><td class="n">91 %</td></tr>
-      <tr><td>Kamenec</td><td class="n">99 %</td><td class="n">93 %</td><td class="n">–</td><td class="n">98 %</td><td class="n">98 %</td><td class="n">100 %</td><td class="n">75 %</td><td class="n">83 %</td></tr>
-    </tbody>
-  </table>
-  <p class="caption"><span class="g">odhad</span>; shares of the futures, uncentred. No site is a backup of another.</p>
-
-  <h2 data-label="B.6" id="t9">The decision boundary and the input table in brief</h2>
-  <table class="compact">
-    <thead><tr><th class="n">Compensation chance</th><th>Rule chooses</th><th class="n">P(on time) Lipová / Kamenec / Odrzyca</th></tr></thead>
-    <tbody>
-      <tr><td class="n">0 %</td><td>Odrzyca</td><td class="n">0,942 / 0,942 / 0,942</td></tr>
-      <tr><td class="n">10 %</td><td>Odrzyca</td><td class="n">0,852 / 0,851 / 0,844</td></tr>
-      <tr><td class="n">14 %</td><td>Odrzyca</td><td class="n">0,817 / 0,813 / 0,808</td></tr>
-      <tr><td class="n">15 %</td><td>Kamenec</td><td class="n">0,807 / 0,804 / 0,797</td></tr>
-      <tr><td class="n">16 %</td><td>nothing</td><td class="n">0,797 / 0,795 / 0,787</td></tr>
-      <tr><td class="n">20 % (the model)</td><td>nothing</td><td class="n">0,760 / 0,759 / 0,748</td></tr>
-    </tbody>
-  </table>
-  <p class="caption"><span class="g">odhad</span> (R2-P06 § 5.3). At 15 % the two probabilities nearest the threshold, 0,804 and 0,797, are unresolved on 20 000 draws under the convergence rule (chapter 2); the column reads "Kamenec, unresolved" until the draws clear it. T9 holds 67 rows (the exemplar's text says 54): 29 read from client data (<i lang="cs">ověřeno</i>), 16 public inputs awaiting verification (<i lang="cs">prozatímní</i>), 22 judgements (<i lang="cs">úsudek</i>). Overrun and delay: median 17 %, 90th percentile 30,2 %, delay median 3 months, from 36 comparable plants, drawn together.</p>
-</section>
-
-<section class="chapter" id="boards">
-  <p class="chapter-label">Appendix C</p>
-  <h1 data-label="C">Board index</h1>
-  <p>The boards of the Design canvas <i lang="cs">AIA Obchodní model</i> at version 66 (8 November), in the order of its rows, with the session that changed each. Where version 4 of this document moved past a board, the row says what the next canvas version changes. "Landed" means the session's branch is pushed and this document is aligned to it; "in progress" means the session is still working and the chapters that cite the board will be aligned when it lands. Boards marked parked stay on the canvas as planned, not deleted. Since 8 November a board that carries ChemVitro does so beside its Velis sections, each section marked with its case.</p>
-  <table class="compact">
-    <thead><tr><th style="width:9%">Code</th><th style="width:34%">Board</th><th style="width:22%">File</th><th style="width:9%">Session</th><th>State after 8 November</th></tr></thead>
-    <tbody>
-      <tr><td>Z0</td><td><i lang="cs">Zadání: průchod</i></td><td><code>Z0Flow.dc.html</code></td><td>A</td><td>landed: the flow and the board list around the spine</td></tr>
-      <tr><td>Z1</td><td><i lang="cs">Zadání: začátek</i></td><td><code>Z1Start.dc.html</code></td><td>—</td><td>unchanged</td></tr>
-      <tr><td>Z2</td><td><i lang="cs">Zadání: triáž</i></td><td><code>Z2Triage.dc.html</code></td><td>—</td><td>unchanged</td></tr>
-      <tr><td>Z3</td><td><i lang="cs">Zadání: rozhodnutí a pravidlo</i></td><td><code>Z3Decision.dc.html</code></td><td>B</td><td>landed: § 03b the type-2 rule with four conditions as gates and the interpretation record</td></tr>
-      <tr><td>Z4</td><td><i lang="cs">Zadání: analýzy do zprávy</i></td><td><code>Z4Analyses.dc.html</code></td><td>—</td><td>unchanged</td></tr>
-      <tr><td>Z5</td><td><i lang="cs">Zadání: obchodní model</i></td><td><code>Z5Model.dc.html</code></td><td>B</td><td>landed: § 04b the parts of the cost-of-supply model, the timeline, the gate, the views, the perspectives</td></tr>
-      <tr><td>Z7</td><td><i lang="cs">Zadání: připravenost a předání</i></td><td><code>Z7Ready.dc.html</code></td><td>—</td><td>unchanged</td></tr>
-      <tr><td>M1</td><td><i lang="cs">Model: Data</i></td><td><code>KM1Data.dc.html</code></td><td>B</td><td>landed: § 01b–03b the document register, what the model takes with file and row, the 42 findings with dispositions</td></tr>
-      <tr><td>MV1</td><td><i lang="cs">Data: datová smlouva</i></td><td><code>MV1Contract.dc.html</code></td><td>B</td><td>landed: § 01b–03b the contract and quality report of the purchases file, units and currencies as corrections</td></tr>
-      <tr><td>MV2</td><td><i lang="cs">Rešerše: typované vstupy</i></td><td><code>MV2PublicData.dc.html</code></td><td>B</td><td>landed: § 01b the sixteen provisional inputs, § 02b verification at the source as a step</td></tr>
-      <tr><td>MV2b</td><td><i lang="cs">Rešerše: zjištění podle analýz</i></td><td><code>MV2bFindings.dc.html</code></td><td>—</td><td>unchanged</td></tr>
-      <tr><td>M2</td><td><i lang="cs">Model: Předpoklady</i></td><td><code>KM2Assumptions.dc.html</code></td><td>B</td><td>landed: § 01b T9 (67 rows, the K6 finding), § 02b uncertainty types, § 03b the estimate from comparables, § 03c the scope check, § 03d correlations and the stability test declared</td></tr>
-      <tr><td>M3</td><td><i lang="cs">Model: Model</i></td><td><code>KM3Model.dc.html</code></td><td>C</td><td>landed: the shared timeline and the eleven items of the cost of supply</td></tr>
-      <tr><td>M4</td><td><i lang="cs">Model: Výsledky</i></td><td><code>KM4Results.dc.html</code></td><td>C</td><td>landed: T1 at 8 %, T2 and T3, the decision boundary, delays, tornado, break-even, value of information</td></tr>
-      <tr><td>M4b</td><td><i lang="cs">Výsledky: Business case a finance</i></td><td><code>KM7Finance.dc.html</code></td><td>C</td><td>landed: T4 and T5 with P(investment ≤ 175)</td></tr>
-      <tr><td>M4c</td><td><i lang="cs">Výsledky: Účetnictví</i></td><td><code>KM8Accounting.dc.html</code></td><td>C</td><td>parked for type 2</td></tr>
-      <tr><td>M4d</td><td><i lang="cs">Výsledky: Operační výzkum</i></td><td><code>KM9Operations.dc.html</code></td><td>C</td><td>landed: T6 with each column named as its component</td></tr>
-      <tr><td>M4g</td><td><i lang="cs">Výsledky: Harmonogram</i></td><td><code>KM12Schedule.dc.html</code></td><td>C</td><td>new, landed: the start against the deadline, what lengthens each tail, delay × hiring as one grid</td></tr>
-      <tr><td>M4f</td><td><i lang="cs">Výsledky: Logistika</i></td><td><code>KM11Logistics.dc.html</code></td><td>C</td><td>landed: product freight per site, the Odrzyca spur, the Eschfeld bridge, the trucking surcharge, the logistics rows of T9</td></tr>
-      <tr><td>M4e</td><td><i lang="cs">Výsledky: Velikost trhu</i></td><td><code>KM10Market.dc.html</code></td><td>C</td><td>parked for type 2</td></tr>
-      <tr><td>MV3</td><td><i lang="cs">Výsledky: Sociomapa systémů</i></td><td><code>MV3SystemMap.dc.html</code></td><td>D</td><td>landed: the five readings of one engine, the futures contract, the exemplar's map in three settings, T7, T8, relative against absolute, the stability test and its verdict</td></tr>
-      <tr><td>MV9</td><td><i lang="cs">Sociomapa: mapa scénářů vah</i></td><td><code>MV9ScenarioWeights.dc.html</code></td><td>D</td><td>landed 8 November under version 3's two families (20 components with roles, six scenarios, 1 806 tested weightings on the real engine); superseded by chapter 12's partition and recomputed at the next canvas version, with Bory at 120</td></tr>
-      <tr><td>SI1–SI4</td><td><i lang="cs">Sociomapa z indikátorů</i>: method, matrix, options map, suppliers map</td><td><code>SI1Method</code> … <code>SI4Suppliers.dc.html</code></td><td>D</td><td>landed: cut to the method (evidence states and gates, swing weights, when the map may influence a recommendation); the overlap check they describe is replaced by the partition at the next canvas version</td></tr>
-      <tr><td>MV4</td><td><i lang="cs">Osnova zprávy</i></td><td><code>MV4XRay.dc.html</code></td><td>E</td><td>landed: the 18 parts R2-P01…P18 with typed records, the grades with their attributes, the argument's five parts mapped, the weighting map in part 3</td></tr>
-      <tr><td>MV8</td><td><i lang="cs">Zpráva: kontrola platnosti modelu</i></td><td><code>MV8Validity.dc.html</code></td><td>E</td><td>landed: the ten limits of chapter 14 (3 caught, 7 open), the five questions, seven extreme-input computations, K1–K6</td></tr>
-      <tr><td>M6</td><td><i lang="cs">Model: Zpráva</i></td><td><code>KM6Report.dc.html</code></td><td>E</td><td>landed: report 2 as rendered, <i lang="cs">Jiné vážení</i> in the summary, the release state with four qualifications, today against new in the renderer</td></tr>
-      <tr><td>MV0</td><td><i lang="cs">Definované MVP: přehled</i></td><td><code>MV0Scope.dc.html</code></td><td>A</td><td>landed: rewritten around the spine; says "22 skórovaných složek" and words the rule as four conditions including the median; both corrected at the next canvas version (20; the objective and four conditions)</td></tr>
-      <tr><td>MV5</td><td><i lang="cs">Metodika: validační sada a otázky</i></td><td><code>MV5Validation.dc.html</code></td><td>E</td><td>landed: the register entries report 2 waits on, six questions, generators G7–G10, the release rule</td></tr>
-      <tr><td>MV6</td><td><i lang="cs">Katalog analýz</i></td><td><code>MV6Catalogue.dc.html</code></td><td>—</td><td>unchanged; the catalogue beyond the perspectives is parked</td></tr>
-    </tbody>
-  </table>
-  <p class="small">Sizes and positions: <code>canvas.json</code> on each session's branch; the coordinator merges them. Reference renders of version 66: <code>reference/</code>. The canvas is published by the coordinator from the exported files; no session publishes it.</p>
 </section>

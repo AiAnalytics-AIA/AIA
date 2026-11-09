@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds AIA_business-decision-study_methodology_v4.pdf from the chapter files in this folder.
+// Builds AIA_business-decision-study_methodology_v5.pdf from the chapter files in this folder.
 //
 //   node build.js            the PDF (two passes: the second fills the contents' page numbers from pdftotext)
 //   node build.js --png      the PDF, then every page as PNG under ../../../tmp/methodology-pages/ (pdftoppm)
@@ -15,7 +15,7 @@ const { execFileSync, spawnSync } = require('child_process');
 const { chromium } = require('playwright');
 
 const HERE = __dirname;
-const OUT = path.join(HERE, 'AIA_business-decision-study_methodology_v4.pdf');
+const OUT = path.join(HERE, 'AIA_business-decision-study_methodology_v5.pdf');
 const CHAPTERS = fs.readdirSync(HERE).filter((f) => /^\d\d-.*\.html$/.test(f)).sort();
 
 function read(f) { return fs.readFileSync(path.join(HERE, f), 'utf8'); }
@@ -48,7 +48,7 @@ function tocHtml(items, pages) {
 function assemble(pages) {
   const parts = CHAPTERS.map(read);
   const body = parts.map((p, i) => (i === 1 ? tocHtml(allHeadings, pages) + p : p)).join('\n');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AIA business-decision study, methodology v4</title>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AIA business-decision study, methodology v5</title>
 <link rel="stylesheet" href="style.css"></head><body>${body}</body></html>`;
 }
 
@@ -65,9 +65,9 @@ async function render(html, out) {
   await page.goto('file://' + tmp, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
   const header = `<div style="width:100%;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:7.5pt;color:#44484e;padding:0 20mm;display:flex;justify-content:space-between;">
-      <span>AIA · Business-decision study · Methodology, version 4</span><span>9 Nov 2026 · design, not product code</span></div>`;
+      <span>AIA · Business-decision study · Methodology, version 5</span><span>9 Nov 2026 · design, not product code</span></div>`;
   const footer = `<div style="width:100%;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:7.5pt;color:#44484e;padding:0 20mm;display:flex;justify-content:space-between;">
-      <span>Fictional case. No real company, municipality or person.</span><span>page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>`;
+      <span>Numbers are rules, illustrations or toy fixtures.</span><span>page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>`;
   await page.pdf({ path: out, format: 'A4', printBackground: true, displayHeaderFooter: true, headerTemplate: header, footerTemplate: footer,
     margin: { top: '22mm', bottom: '24mm', left: '20mm', right: '20mm' }, preferCSSPageSize: false });
   await browser.close();

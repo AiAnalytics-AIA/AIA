@@ -6,73 +6,63 @@
   <h2 class="part" data-n="6.1">What goes in</h2>
   <ul>
     <li>The data contracts and the findings table from step 2; the typed public inputs from step 3; the client's answers from step 1.</li>
-    <li>The comparable cases the client holds, from which ranges can be estimated rather than judged: for ChemVitro, 36 comparable plants with their overrun, delay and what each built beyond the plant.</li>
-    <li>The scope statement of every estimate the client supplies: what the EPC contractor's figure includes and excludes (<code>epc_odhad.pdf</code> p. 3).</li>
+    <li>The comparable cases the client holds, from which ranges can be estimated rather than judged: comparable projects with their cost overrun, their delay and what each built beyond its core scope.</li>
+    <li>The scope statement of every estimate the client supplies: what a contractor's figure includes and excludes, with the page that says so.</li>
   </ul>
 
   <h2 class="part" data-n="6.2">What comes out</h2>
-  <p><b>The input table</b>, the exemplar's T9 (R2-P18). Its columns are the method:</p>
+  <p><b>The input table.</b> Its columns are the method:</p>
   <table class="compact">
     <thead><tr><th style="width:18%">Column</th><th>Rule</th></tr></thead>
     <tbody>
       <tr><td><i lang="cs">Vstup, jednotka</i></td><td>one input, one unit; a fixed parameter is a row like any other</td></tr>
-      <tr><td><i lang="cs">Dolní · nejspíš · horní</i></td><td>three values; equal for a fixed value. What the ends mean is written down for every decisive input (review R6), and the meaning decides how they become a distribution (chapter 2): a hard bound (contractual, physical) defines the support; an elicited quantile (a 90 % interval, a credible worst case) is fitted as a quantile and never read as a bound; a missing fact keeps a justified range, never an automatic midpoint</td></tr>
+      <tr><td><i lang="cs">Dolní · nejspíš · horní</i></td><td>three values; equal for a fixed value. What the ends mean is written down for every decisive input, and the meaning decides how they become a distribution (chapter 2): a hard bound (contractual, physical) defines the support; an elicited quantile (a 90 % interval, a credible worst case) is fitted as a quantile and never read as a bound; a missing fact keeps a justified range, never an automatic midpoint</td></tr>
       <tr><td><i lang="cs">Rozdělení</i></td><td>PERT by default for a range a person stands behind, its endpoints read as the row says; the estimate's own distribution where it comes from data; an empirical draw from comparable cases that keeps their joint structure; yes/no with a probability for an event; disagreement kept as separate scenarios or an approved mixture; a fixed value (<i lang="cs">pevná hodnota</i>)</td></tr>
       <tr><td><i lang="cs">Zdroj</i></td><td>the file and row, the document and page, the public source and date, or "not in the files"</td></tr>
       <tr><td><i lang="cs">Stupeň</i></td><td>one of the grades of chapter 13: <i lang="cs">z dat klienta</i>, <i lang="cs">odhad</i>, <i lang="cs">úsudek</i>, <i lang="cs">veřejný zdroj</i>, <i lang="cs">právní předpis</i></td></tr>
-      <tr><td><i lang="cs">Stojí za ním</i></td><td>the guarantor: a named role in the client (the CFO, head of purchasing, head of EHS) or the author. Every assumption has an owner (the review's "to keep")</td></tr>
+      <tr><td><i lang="cs">Stojí za ním</i></td><td>the guarantor: a named role in the client (finance, purchasing, environment and safety) or the author. Every assumption has an owner</td></tr>
       <tr><td><i lang="cs">Stav</i></td><td><i lang="cs">ověřeno</i> (from client data), <i lang="cs">prozatímní</i> (public, unverified) or <i lang="cs">úsudek</i> (the client has no answer)</td></tr>
     </tbody>
   </table>
-  <p>Beside the table: <b>the correlation record</b> (which inputs move together, with what coefficient, why, and the stability test their judgement will be put to), <b>the scope check</b> of every supplied estimate against each option's documents with the exclusions priced, and <b>the stress cases</b> outside the ranges, kept apart from the futures (board M2 § 04).</p>
+  <p>Beside the table: <b>the correlation record</b> (which inputs move together, with what coefficient, why, and the stability test their judgement will be put to), <b>the scope check</b> of every supplied estimate against each option's documents with the exclusions priced, and <b>the stress cases</b> outside the ranges, kept apart from the futures.</p>
 
   <h2 class="part" data-n="6.3">Checks</h2>
   <ul>
-    <li>Where the client's data allows an estimate, the range comes from the data, not from a judgement; the row says which. The exemplar: overrun and delay from the comparable plants, not from the estimator's ±25 % (R2-P05).</li>
-    <li>Two things that happened together in the data are drawn together in the model. Overrun and delay have a Spearman correlation of 0,89 across the comparable plants, so each future draws one real plant and takes both (R2-P05).</li>
-    <li>Every supplied estimate is checked for scope against each option's documents, and each exclusion is priced or stated as missing (R2-P05, fourth assumption; answer key § 3: a study that adds nothing to the EPC figure has missed all three traps).</li>
-    <li><b>The comparables' cost basis is reconciled before their overrun is used</b> (chapter 2). The file says totals are actual costs "including off-site infrastructure" and overruns are "against the EPC estimate at decision"; applying that overrun to ChemVitro's EPC figure and then adding the spur, the bridge and pre-treatment can count them twice. The overrun is defined as actual like-for-like EPC scope over the original estimate, the exclusions are added once, and the fictional footnote is clarified first (open, R2-Q02; the recommendation is a versioned clarification of <code>srovnatelne_zavody.xlsx</code> A40). The cohort is checked for comparability (capacity 18–60 kt, the duplicate plant P-17 removed, the 91 kt outlier treated by a declared rule).</li>
-    <li><b>Every value the model reads is a row of the manifest</b> (chapter 2): taxes and depreciation, the incentive's form, the directive's limits and the method settings included. The counts the report prints come from it.</li>
-    <li>A decisive input has an uncertainty type: natural variation, parameter, expert disagreement, model structure, or a severe event outside the range; the last goes to a stress test, not into the distribution (review R6; board M2 § 02).</li>
-    <li>Experts who disagree from the same documents are a mixture that does not narrow the range; the report says they differ in reading, not in facts (board M2).</li>
-    <li>A correlation that is a judgement is declared as one, with the alternative settings it will be tested under, before anything is computed (R2-P05 fifth assumption, Appendix B).</li>
-    <li>No input the files do not hold is given a point value. It gets a range and the grade <i lang="cs">úsudek</i>; the exemplar has 22 such inputs (R2-P18 Appendix B).</li>
+    <li>Where the client's data allows an estimate, the range comes from the data, not from a judgement; the row says which. Overrun and delay come from the comparables, not from an estimator's ± band.</li>
+    <li>Two things that happened together in the data are drawn together in the model. Where overrun and delay move together across the comparables, each future draws one real comparable and takes both.</li>
+    <li>Every supplied estimate is checked for scope against each option's documents, and each exclusion is priced or stated as missing. A study that adds nothing to a contractor's figure has not done the check.</li>
+    <li><b>The comparables' cost basis is reconciled before their overrun is used</b> (chapter 2). A file can report totals that include off-site infrastructure and overruns against the estimate at decision; applying that overrun to an option's construction estimate and then adding its site items can count them twice. The overrun is defined as actual like-for-like cost over the original estimate, the exclusions are added once, and an unclear source is clarified first (an open owner decision). The cohort is checked for comparability: a declared size range, duplicates removed, outliers treated by a declared rule.</li>
+    <li><b>Every value the model reads is a row of the manifest</b> (chapter 2): taxes and depreciation, the form of each incentive, regulatory limits and the method settings included. The counts the report prints come from it.</li>
+    <li>A decisive input has an uncertainty type: natural variation, parameter, expert disagreement, model structure, or a severe event outside the range; the last goes to a stress test, not into the distribution.</li>
+    <li>Experts who disagree from the same documents are a mixture that does not narrow the range; the report says they differ in reading, not in facts.</li>
+    <li>A correlation that is a judgement is declared as one, with the alternative settings it will be tested under, before anything is computed.</li>
+    <li>No input the files do not hold is given a point value. It gets a range and the grade <i lang="cs">úsudek</i>.</li>
   </ul>
 
-  <h2 class="part" data-n="6.4">How the exemplar did it</h2>
-  <p>Chapter 4 (R2-P05) names the two assumptions the verdict rests on that no document supports: the 20 % chance that an authority imposes compensation measures where the station is under the limits, and the terms of purchase after 2035. Then three more: overrun and delay from 36 comparable plants (median overrun 17 %, 90th percentile 30,2 %, maximum 61 %; delay median 3 months, maximum 15), drawn jointly; the exclusions of the EPC estimate priced per site from the site's documents (18 ha of land everywhere; the bridge at Eschfeld 3,2–5,0 mil. EUR; the spur at Odrzyca 3,4 km at 1,9–2,8 mil. EUR per km; pre-treatment at Lipová and Lindenau 6,7–14,1 mil. EUR; compensation 3–15 mil. EUR where imposed; the park fee at Wendelstedt 1,1 mil. EUR a year); and the energy price correlations as judgement (0,8 electricity between countries, 0,6 electricity–gas, 0,4 gas–allowance), with the stability test declared in Appendix B. The base case already carries the median overrun. The report's text says the model has 54 inputs and that 16 of 54 are public; the table T9 has 67 rows (29 <i lang="cs">ověřeno</i>, 16 <i lang="cs">prozatímní</i>, 22 <i lang="cs">úsudek</i>). Session B counted from T9 and recorded the difference on board M2 § 01b as a finding for the report; it is the kind of contradiction between text and table that K6 exists to catch, and this document counts from T9.</p>
-
-  <h2 class="part" data-n="6.5">In AIA today</h2>
+  <h2 class="part" data-n="6.4">In AIA today</h2>
   <ul>
     <li>Nothing holds an input table yet. The nearest ancestors are the simulation core's frozen WorldModel with reject-not-clip validation (<code>domain/simulation/</code>) and the research template's readiness rules (<code>domain/research_design.py</code>), which show the pattern: a typed object, validated, pinned to a run.</li>
     <li>Guarantors and audit: the approval ledger (<code>domain/approval_ledger.py</code>) and the audit trail every admin route writes.</li>
     <li>Methodology as data the methodologist owns: versions, activation and bounds per editable field (<code>domain/methodology/</code>, ADR 0023). The distribution defaults and the stability thresholds belong there.</li>
   </ul>
 
-  <h2 class="part" data-n="6.6">New</h2>
+  <h2 class="part" data-n="6.5">New</h2>
   <ul>
-    <li>The input as a platform type with provenance (<code>cost-model-study#CP1</code>: <code>client_dataset</code>, <code>stated</code>, <code>public_source</code>) and low / base / high with a guarantor on every input (<code>#CR2</code>); the input table as the stage <i lang="cs">Předpoklady</i>. Board M2 § 01b–03d (session B) shows it for ChemVitro: T9 with a filter by state, the decisive rows marked; the uncertainty type, the meaning of the ends and the reason for each decisive input; the estimate from the 36 plants; the scope check as a table of excluded items with where, by what document, price and months, grade; and the correlations as judgement with the stability test and the rule's re-application in three settings written down on 5. 11. 2026, before the computation.</li>
-    <li>Distributions and the correlation record: PERT, declared rank correlations through a Gaussian copula with a validated rank-to-latent conversion and a valid latent matrix (the methodologist's item; the contract recommends it over sample-wide Iman–Conover reordering so the numerical error contract matches the sampler), a non-PSD matrix refused (<code>#CR3</code>); empirical joint draws, one row of a client table per future carrying several inputs together, the table pinned by SHA-256 (<code>#CR3b</code>, <b>new</b>); yes/no events with a probability and fixed and uniform values as T9 names them; people who disagree a mixture (<code>#CR3</code> in the pivot branch's copy of the plan, <code>chore/pivot-business-decisions</code> @ <code>d8dc8ec5</code>, as the scope cites it: "each input's distribution by its source, a client-data estimate its own distribution, a person's range PERT, people who disagree a mixture (ADR 0046 W14)"; board M2 § 02 for Velis; board MV5 lists it among what the methodologist signs for the Monte Carlo entry).</li>
-    <li>The estimate from comparables as a Metodika method (<code>client-data-in-analysis#12</code>; the exemplar's third assumption).</li>
+    <li>The input as a platform type with provenance (<code>cost-model-study#CP1</code>: <code>client_dataset</code>, <code>stated</code>, <code>public_source</code>) and low / base / high with a guarantor on every input (<code>#CR2</code>); the input table as the stage <i lang="cs">Předpoklady</i>. The screen filters by state and marks the decisive rows; shows for each decisive input its uncertainty type, the meaning of its ends and the reason; the estimate from comparables; the scope check as a table of excluded items (where, by what document, price, months, grade); and the correlations as judgement with the stability test and its settings, dated before the computation.</li>
+    <li>Distributions and the correlation record: PERT, declared rank correlations through a Gaussian copula with a validated rank-to-latent conversion and a valid latent matrix (the methodologist's item; the contract recommends it over sample-wide Iman–Conover reordering so the numerical error contract matches the sampler), a non-PSD matrix refused (<code>#CR3</code>); empirical joint draws, one row of a client table per future carrying several inputs together, the table pinned by SHA-256 (<code>#CR3b</code>, <b>new</b>); yes/no events with a probability, fixed and uniform values; people who disagree a mixture (<code>#CR3</code>).</li>
+    <li>The estimate from comparables as a Metodika method (<code>client-data-in-analysis#12</code>).</li>
     <li>The scope check: what an estimate's document excludes against what each option's documents require, each exclusion an input with its range (<code>cost-model-study#CR1b</code>, <b>new</b>).</li>
     <li>The stability test declared before computing, as the futures map's chunk defines it (<code>sociomapa-systemu#SYS9b</code>, chapter 9).</li>
     <li>The state column and its three values, read from steps 2 and 3 (<code>deep-research-v2#DRV1</code>'s state for public inputs).</li>
   </ul>
 
-  <h2 class="part" data-n="6.7">ChemVitro acceptance</h2>
-  <p>The answer key's three traps live in this step. Each is a cost the brochure hides and a site document reveals; the study must find and price it.</p>
-  <table class="compact">
-    <thead><tr><th style="width:18%">Trap</th><th>Where it is</th><th style="width:30%">What the exemplar priced</th></tr></thead>
-    <tbody>
-      <tr><td>Wastewater, CZ2 Lipová and DE2 Lindenau</td><td><code>vyjadreni_cov.pdf</code> p. 2 and 5: the sewer bylaw's sulfate and COD limits against the process effluent (1 800 and 2 400 mg/l); Lindenau's plant has spare capacity for 250 m³ a day against 430 needed</td><td>pre-treatment 6,7–14,1 mil. EUR at both, from 8 comparable plants; Lindenau's direct-discharge permit 0–9 months (T9)</td></tr>
-      <tr><td>Air, CZ1 Vrbice and PL2 Bory</td><td><code>ovzdusi_stanice.csv</code> 2025 values over the limits, combined with <code>memo_povolovani_ovzdusi.pdf</code> p. 2–3: compensation measures and 9–15 / 12–18 months longer permitting</td><td>compensation with probability 0,8, 3–15 mil. EUR, 9–18 months (T9); both sites then miss the deadline in most futures (T1)</td></tr>
-      <tr><td>Logistics, PL1 Odrzyca and DE3 Eschfeld</td><td><code>vyjadreni_doprava.pdf</code> p. 7: the investor builds the 3,4 km spur and buys the land; p. 6: the bridge carries 16 t, tankers weigh 40 t</td><td>the spur at 1,9–2,8 mil. EUR per km plus road haulage until built; the bridge 3,2–5,0 mil. EUR and 12–30 months to heavy-traffic approval (T9)</td></tr>
-    </tbody>
-  </table>
+  <h2 class="part" data-n="6.6">Acceptance</h2>
+  <p>The frozen test case hides costs that a sales document leaves out and a site document reveals. The study must find and price each one.</p>
   <ul>
-    <li>Overrun from the comparables, median 17,0 %, not the estimator's band; the duplicate removed first (answer key § 3).</li>
-    <li>The decoys left alone: Kamenec's single 2021 exceedance (under the target since); Eschfeld's plant charges from COD 2 500 mg/l against 2 400 in the effluent; Lipová's turning lane at about 2 mil. Kč; Bory's municipal plant does accept the effluent.</li>
-    <li>Wendelstedt's park fee of about 1,1 mil. EUR a year, named only in the wastewater statement (p. 4).</li>
-    <li>Criteria: K2, uncertainty fitness, is this step's criterion: decisive distributions, dependence and stress cases justified. K1's second question (material costs and dependencies in the model) is answered by the scope check.</li>
+    <li>Every planted hidden cost (a treatment step a local limit requires, compensation a permitting authority may impose, infrastructure the investor must build) is found from the document that reveals it and priced with a range and a delay.</li>
+    <li>Overrun comes from the comparables, with duplicates removed first, not from the estimator's band.</li>
+    <li>The decoys are left alone: a past exceedance long since resolved, a limit the option stays under, a minor item well inside the ranges.</li>
+    <li>A recurring cost named only in a side document is in the model.</li>
+    <li>Decisive distributions, their dependence and the stress cases are each justified in the table.</li>
   </ul>
 </section>

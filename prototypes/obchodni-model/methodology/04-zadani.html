@@ -5,36 +5,33 @@
 
   <h2 class="part" data-n="3.1">What goes in</h2>
   <ul>
-    <li>The client's brief, as typed or pasted: one field of free text and the files that come with it (the case pack's brief is in <code>CASE.md</code> § 3).</li>
-    <li>The decision-maker and the date the decision is taken, and the date the study must be ready.</li>
-    <li>The options, each with the client's source for it, and a baseline every option is compared with. For ChemVitro: eight sites from the agencies' offers and "keep buying" from the supplier's letter.</li>
-    <li>The constraints every option must meet (investment ceiling, start date, one plant at one site).</li>
-    <li>The client's answers to the study's questions. The case pack fixes them in <code>CASE.md</code> § 8; where an answer is "we don't know", the input becomes a judgement with a range and says so.</li>
+    <li>The client's brief, as typed or pasted: one field of free text and the files that come with it.</li>
+    <li>The decision-maker, the date the decision is taken, and the date the study must be ready.</li>
+    <li>The options, each with the client's source for it, and a baseline every option is compared with (often the status quo: keep doing what the client does now).</li>
+    <li>The constraints every option must meet: an investment ceiling, a start date, a capacity.</li>
+    <li>The client's answers to the study's questions. Where an answer is "we don't know", the input becomes a judgement with a range and says so.</li>
   </ul>
 
   <h2 class="part" data-n="3.2">What comes out</h2>
   <ul>
-    <li><b>The decision record:</b> what is decided, why now, the goal, who decides, by when. The exemplar's § 1.1–1.2 (R2-P02).</li>
+    <li><b>The decision record:</b> what is decided, why now, the goal, who decides, by when.</li>
     <li><b>The options and the baseline</b>, named as the client names them, with the source of each.</li>
-    <li><b>The rule</b>, frozen and dated, in the client's words: the measure it reads, the choice it makes, and each condition with its threshold. ChemVitro's: the highest median saving against buying, NPV of the cost of supply 2027–2044 at 8 %, if P(beats buying) ≥ 0,75, P(loss &gt; 20 mil. EUR) ≤ 0,10, P(production by 1. 7. 2030) ≥ 0,80 and investment ≤ 175 mil. EUR; else recommend nothing and name the assumption most worth checking (R2-P02 § 1.3).</li>
-    <li><b>Interpretation records.</b> Where a condition does not say how it is measured, the study writes its reading down, the alternative reading, what each would change, and who confirms it. The exemplar's condition (4) names no probability; it is judged on the base case, the stricter reading "in every future" would fail all eight sites without changing the verdict, and the CFO is asked to confirm (R2-P02 § 1.3).</li>
-    <li><b>The views the client asked for beside the rule:</b> after-tax NPV, the verdict at 6 % and 10 %. They are shown; the rule does not read them.</li>
-    <li><b>The analyses the report will carry</b> (board Z4) and the perspectives that apply to the case (chapter 12).</li>
+    <li><b>The rule</b>, frozen and dated, in the client's words: the measure it reads, the choice it makes, and each condition with its threshold. A typical rule: choose the option with the highest median saving against the baseline, measured as the present value of the cost of supply over the horizon at a stated rate, if the probability that it beats the baseline, the probability of a loss above a stated sum and the probability of starting by a stated date each meet their thresholds, and its investment stays under the ceiling; else recommend nothing and name the assumption most worth checking.</li>
+    <li><b>Interpretation records.</b> Where a condition does not say how it is measured, the study writes its reading down, the alternative reading, what each would change, and who confirms it. A ceiling with no probability attached, for example, can be judged on the base case or "in every future"; the record says which, prices the other, and names the person who confirms.</li>
+    <li><b>The views the client asked for beside the rule:</b> after-tax values, the verdict at other rates. They are shown; the rule does not read them.</li>
+    <li><b>The analyses the report will carry</b> and the perspectives that apply (chapter 12).</li>
   </ul>
 
   <h2 class="part" data-n="3.3">Checks</h2>
   <ul>
-    <li>The rule exists before the first comparative result, and the freeze is dated and attributed. Reading the client's files at intake is feasibility work and is recorded as such (review I2).</li>
+    <li>The rule exists before the first comparative result, and the freeze is dated and attributed. Reading the client's files at intake is feasibility work and is recorded as such.</li>
     <li>Every condition has a measure the model can compute and a threshold. A condition without one gets an interpretation record, never a silent default.</li>
-    <li>An amendment of the rule after the freeze is approved by the decision-maker, dated, and printed in the report (board Z3, <i lang="cs">zámek</i>).</li>
-    <li>Every option is described comparably: the same plant, the same horizon, the same discount rate (review R1, question 1).</li>
-    <li>The brief is Class B material by rule (<code>domain/material_rules.py</code>); a language model may read it, a client's dataset is Class A and is not sent to a model.</li>
+    <li>An amendment of the rule after the freeze is approved by the decision-maker, dated, and printed in the report.</li>
+    <li>Every option is described comparably: the same scope, the same horizon, the same discount rate.</li>
+    <li>The brief is Class B material by rule (<code>domain/material_rules.py</code>); a language model may read it. A client's dataset is Class A and is not sent to a model.</li>
   </ul>
 
-  <h2 class="part" data-n="3.4">How the exemplar did it</h2>
-  <p>The report states the decision, the eight sites, the fixed plant (40 000 t a year, 95 FTE, one process design) and the dates: the board meets on 29. 1. 2027, the site is decided on 1. 2. 2027, production by 1. 7. 2030, investment at most 175 mil. EUR (R2-P02 § 1.2). It prints the rule in full and says why its date matters: "that the rule was written before the computation prevents the result from being justified afterwards by a rule that would suit it" (§ 1.3). It records the one interpretation, prices the alternative reading and asks the CFO. It also notes that the rule reads the pre-tax NPV and that after-tax figures and other rates are shown at the client's request.</p>
-
-  <h2 class="part" data-n="3.5">In AIA today</h2>
+  <h2 class="part" data-n="3.4">In AIA today</h2>
   <ul>
     <li>The study's working copy with revision-checked saves and the operation log (<code>application/working_copy.py</code>, <code>domain/edit_ops.py</code>, <code>infrastructure/study_workspace_repository.py</code>), and immutable Design Revisions (<code>domain/design.py</code>, <code>infrastructure/study_design_repository.py</code>). The frozen rule is a revision of this kind.</li>
     <li>The Brief stage of the research workbench (<code>apps/web/src/components/rehome/research/</code>, <code>BriefStep</code>) and its materials (<code>domain/brief_materials.py</code>), reused as the screen the brief is typed into.</li>
@@ -43,20 +40,20 @@
     <li>Material classes by rule (<code>domain/material_rules.py</code>, ADR 0008).</li>
   </ul>
 
-  <h2 class="part" data-n="3.6">New</h2>
+  <h2 class="part" data-n="3.5">New</h2>
   <ul>
-    <li>A study kind for a business decision, <code>StudyKind.BUSINESS_MODEL</code> (ADR 0044; <code>cost-model-study#CP3</code>), and the business <i lang="cs">Zadání</i> as data on boards Z1–Z7: the eight parts (<code>decision-brief#DB0</code>), triage as a Lead turn (<code>#DB2</code>), the decision core and the rule (<code>#DB3</code>), readiness R1–R7 (<code>#DB4</code>), the hand-off naming the files each step takes (<code>#DB5</code>).</li>
-    <li>The rule as a typed object of n conditions, each with its own threshold and, where stated, a probability, judged per option at the stated rate and two alternates, frozen as a Design Revision (<code>decision-brief#DB3b</code>, <b>new</b>, extending <code>cost-model-study#CR7</code>, which judges one quantity against one threshold). Board Z3 § 03b (session B) shows it for ChemVitro: each condition with its threshold and what it reads, the four conditions named as gates that no saving outweighs, and the lock line (frozen 2. 11. 2026, amendments 0, interpretations 1, awaiting confirmation).</li>
-    <li>The interpretation record a named person confirms: what the rule does not say, the chosen reading, the other reading and its effect, who wrote it and who confirms, where the report prints it (<code>decision-brief#DB3b</code>; board Z3 § 03b, <i lang="cs">Záznam výkladu</i>).</li>
-    <li>The model's parts as data on board Z5 § 04b (session B): the target quantity, the baseline, the futures, the shared timeline, what is in and outside the model, the investment ceiling as a gate, the result views the model will feed, and the perspectives that have components in the case.</li>
-    <li>The perspectives chosen for the case (chapter 12), each with its leaves, in <i lang="cs">Zadání</i> rather than in the model.</li>
+    <li>The business <i lang="cs">Zadání</i> inside the one merged study, with no new study kind (<code>cost-model-study#CP3</code>): the eight parts (<code>decision-brief#DB0</code>), triage as a Lead turn (<code>#DB2</code>), the decision core and the rule (<code>#DB3</code>), readiness (<code>#DB4</code>), the hand-off naming the files each step takes (<code>#DB5</code>).</li>
+    <li>The rule as a typed object of n conditions, each with its own threshold and, where stated, a probability, judged per option at the stated rate and two alternates, frozen as a Design Revision (<code>decision-brief#DB3b</code>, <b>new</b>, extending <code>cost-model-study#CR7</code>, which judges one quantity against one threshold). The screen shows each condition with its threshold and what it reads, the gates that no saving outweighs, and the lock line: frozen on, amendments, interpretations, awaiting confirmation.</li>
+    <li>The interpretation record a named person confirms: what the rule does not say, the chosen reading, the other reading and its effect, who wrote it and who confirms, where the report prints it (<code>decision-brief#DB3b</code>).</li>
+    <li>The model's parts as data: the target quantity, the baseline, the futures, the shared timeline, what is in and outside the model, the investment ceiling as a gate, the result views the model will feed, and the perspectives that have components in the study.</li>
+    <li>The perspectives chosen for the study (chapter 12), each with its leaves, in <i lang="cs">Zadání</i> rather than in the model.</li>
   </ul>
 
-  <h2 class="part" data-n="3.7">ChemVitro acceptance</h2>
+  <h2 class="part" data-n="3.6">Acceptance</h2>
   <ul>
-    <li>The rule is the CFO's of <code>CASE.md</code> § 6, with all four conditions and the "recommend nothing" clause, dated before any result (MV0 M-4; K3).</li>
-    <li>The investment condition has an interpretation record, and the record names the CFO as the person who confirms it.</li>
-    <li>The baseline is "keep buying" at the supplier's terms, not a site.</li>
-    <li>The study asks the client only what <code>CASE.md</code> § 8 answers; anything else is a judgement with a range, labelled <i lang="cs">úsudek</i>.</li>
+    <li>The test case's rule is captured with every condition and its "recommend nothing" clause, dated before any result.</li>
+    <li>Every condition that can be read two ways has an interpretation record naming who confirms it.</li>
+    <li>The baseline is the status quo at its stated terms, not one of the options.</li>
+    <li>The study asks the client only what the test case answers; anything else is a judgement with a range, labelled <i lang="cs">úsudek</i>.</li>
   </ul>
 </section>
