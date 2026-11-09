@@ -7,7 +7,7 @@ illustrative values, or the toy oracle fixtures of chapter 14.
 | | |
 |---|---|
 | Version | 5, 9 November 2026, working version. Replaces version 4 (case-based, same date): every case reference is removed, and the owner's map decisions of the same day are applied (two map types, five configurations, the respondent map out) |
-| PDF | `AIA_business-decision-study_methodology_v5.pdf`, A4, 43 pages |
+| PDF | `AIA_business-decision-study_methodology_v5.pdf`, A4, 45 pages |
 | Sources | one HTML fragment per chapter, `00-cover.html` … `16-appendices.html`, in reading order; `style.css`; `build.js` |
 | Fonts | `fonts/`: IBM Plex Sans, IBM Plex Mono and Source Serif 4, the report's own faces, copied unmodified from `packages/aia_core/src/aia_core/infrastructure/report_docx/fonts/` with their SIL OFL licences |
 
