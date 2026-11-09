@@ -60,7 +60,7 @@ caption, .caption { caption-side: top; text-align: left; font-size: 8.5pt; color
 .caption { margin-top: -6pt; margin-bottom: 10pt; }
 table.wide { table-layout: fixed; }
 
-/* Grade marks, as the exemplar prints them: small type beside the number */
+/* Grade marks: small type beside the number */
 .g { font-size: 7pt; color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; vertical-align: 0.1em; margin-left: 2pt; }
 .tag { display: inline-block; font-size: 7.5pt; line-height: 1.2; padding: 1pt 5pt; border: 0.5pt solid var(--rule); border-radius: 3pt; color: var(--muted); vertical-align: 0.1em; white-space: nowrap; }
 .tag.new { color: var(--accent); border-color: var(--accent); }
