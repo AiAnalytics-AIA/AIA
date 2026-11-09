@@ -216,11 +216,12 @@ logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six se
   R9 adopted), the perspectives as a disjoint cost partition with one weight vector for all sites, convergence by doubling
   under repeated-look bounds, grades with lineage and validation apart, oracle-first acceptance (O-CF, O-INFO, O-CHEM); v3
   (37 pages, 8 Nov) kept beside it.
-- **MVP scope, Czech visual edition** (`scope/`, `AIA_MVP-scope_cs.pdf`, 29 pages, version 2 of 9 Nov): `MVP-SCOPE.md`
-  as a figure-led Czech document for the owner and the methodologist, one figure per part, built by `scope/build.js` from the
-  methodology's style and fonts; the markdown stays the record, the PDF names the revision it was built from. Version 2
-  carries the owner's decisions of 9 Nov: the analytical contract, the disjoint cost partition, oracle-first acceptance,
-  seventeen new chunks mapped from the review's work ids (§ 2.9), five resourced waves.
+- **MVP scope, executive edition** (`scope/`, `AIA_MVP-scope_cs.pdf`, 10 pages, 9 Nov, "pro vedení"): the scope as the
+  executive reads it, in Czech, one idea and one figure per page, no plan or board codes: what the client gets, the
+  eight steps and who does what, today / new, the weighting-scenario map answered in the owner's own question, the
+  three gates before a client sees a report, the ten-week plan with the honest expectation, the technology stack, the
+  two open decisions and the methodologist's three asks, a glossary. `MVP-SCOPE.md` version 2 stays the team's record
+  (chunk ids, code anchors, the review-id mapping in § 2.9, acceptance, waves); built by `scope/build.js`.
 
 | # | File | Board |
 |---|---|---|
