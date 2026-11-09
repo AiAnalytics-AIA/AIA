@@ -60,3 +60,33 @@ table.comp td:first-child { white-space: nowrap; font-weight: 600; }
 table.comp .role { white-space: nowrap; }
 table.comp td.f1 { white-space: nowrap; }
 .dir { font-family: "IBM Plex Mono", monospace; }
+
+/* Executive edition */
+.exec .chapter-label { margin-bottom: 8pt; }
+.exec h1 { font-size: 26pt; margin-bottom: 10pt; }
+.exec p.lede { font-size: 12.5pt; max-width: 160mm; margin-bottom: 10pt; }
+.exec figure.full { margin: 8pt 0 12pt 0; }
+.exec p, .exec li { font-size: 10.5pt; line-height: 1.5; max-width: 160mm; }
+.exec ul { padding-left: 1.1em; margin: 4pt 0 8pt 0; }
+.exec li { margin-bottom: 3pt; }
+.exec .cards.two { grid-template-columns: 1fr 1fr; gap: 10pt; }
+.exec .card { font-size: 10pt; padding: 9pt 11pt; }
+.exec .card .k { font-size: 8pt; }
+.exec dl.gloss { display: grid; grid-template-columns: 11em 1fr; column-gap: 12pt; row-gap: 6pt; font-size: 10.5pt; line-height: 1.45; margin-top: 6pt; }
+.exec dl.gloss dt { font-weight: 600; }
+.exec dl.gloss dd { margin: 0; }
+
+/* MVP scope, version 3: tables and tags */
+.exec table { font-size: 9.5pt; line-height: 1.4; }
+.exec table th { font-size: 8.5pt; }
+.exec table.hyp td:first-child { width: 36%; }
+.exec table.hyp td:nth-child(2) { width: 36%; }
+.exec table.must td:first-child { width: 24%; font-weight: 600; }
+.exec table.must td:last-child { width: 26%; }
+.exec table.must .tile { margin: 0 2pt 2pt 0; white-space: normal; }
+.exec table.stack { margin-bottom: 8pt; }
+.exec table.stack td:first-child { width: 28%; font-weight: 600; }
+.exec table.risk td:first-child { width: 34%; }
+.exec table.risk td:nth-child(2) { width: 24%; }
+.exec .prop { display: inline-block; font-size: 8pt; color: var(--coral); background: var(--coral-wash); border-radius: 3pt; padding: 0 4pt; margin-top: 2pt; }
+.exec .card p { font-size: 10pt; }

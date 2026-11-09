@@ -212,11 +212,16 @@ logistics … one MVP prototype, one methodology PDF, and one MVP scope." Six se
   report as AIA renders it with grades after numbers, numbered sources per chapter, the Stav podkladů box and the dated
   plan; the validity review run on the exemplar's own ten admitted limits (3 caught today, 7 open); the register entries
   the exemplar waits on. One claim-integrity case found on the way: the exemplar's text says 54 inputs, its table T9 has 67.
-- **Methodology** version 3 (`methodology/`, 37 pages): one chapter per step, the perspectives and the two maps, grades and
-  the release gate, governance, built vs designed.
-- **MVP scope, Czech visual edition** (`scope/`, `AIA_MVP-scope_cs.pdf`, 24 pages): `MVP-SCOPE.md` as a figure-led Czech
-  document for the owner and the methodologist, one figure per part, built by `scope/build.js` from the methodology's style
-  and fonts; the markdown stays the record, the PDF names the revision it was built from.
+- **Methodology** version 4 (`methodology/`, 43 pages, 9 Nov): the analytical contract (seven defaults, two release states,
+  R9 adopted), the perspectives as a disjoint cost partition with one weight vector for all sites, convergence by doubling
+  under repeated-look bounds, grades with lineage and validation apart, oracle-first acceptance (O-CF, O-INFO, O-CHEM); v3
+  (37 pages, 8 Nov) kept beside it.
+- **MVP scope for executives** (`scope/`, `AIA_MVP-scope_cs.pdf`, 10 pages, version 4 of 9 Nov): the scope in Czech
+  on the common MVP structure (problem and user, the four assumptions it tests, the core workflow, in scope with an
+  acceptance criterion each, out of scope with reasons, success and exit criteria, non-functional requirements, stack,
+  team and timeline, risks and decisions), objective, with no case names and no plan or board codes; version 4 carries
+  the owner's afternoon decisions: two map types in five configurations, all in the MVP, respondent maps out.
+  `MVP-SCOPE.md` version 3 stays the team's record.
 
 | # | File | Board |
 |---|---|---|
