@@ -1,7 +1,11 @@
 # MVP scope: the report-2 pipeline on today's AIA
 
-Version 2, 9 Nov 2026. Version 1 was session A's of 8 Nov (`BRIEF-mvp-r2.md`); version 2 applies the owner's
-decisions of 9 Nov (status page R2-Q01 to R2-Q14) after the external review of the package. The spine is study type 2
+Version 3, 9 Nov 2026. Version 1 was session A's of 8 Nov (`BRIEF-mvp-r2.md`); version 2 applied the owner's
+decisions of 9 Nov morning (status page R2-Q01 to R2-Q14) after the external review of the package; version 3 applies
+his afternoon decisions: respondent maps are not in the business MVP and every other map is (15:10, "omitting the
+respondent maps, we need the rest of the maps in the MVP"), as two map types in five configurations (R2-Q15 a),
+released with the rest (R2-Q16 b); the map supports the recommendation and never makes it (R2-Q17 a); the scope's
+three targets adopted (R2-Q18 a); R2-Q02 a and R2-Q04 a. The spine is study type 2
 of the ChemVitro case (`prototypes/case-chemvitro/STUDIES.md`), end to end, producing a report with the content and
 quality of `exemplar/ChemVitro_2_model-lokality_nigel.pdf` (parts R2-P01 to R2-P18, tables T1 to T9). Code anchors are
 `file:line @ b28ce091` (`origin/develop` on 8 Nov; `apps/` and `packages/` are unchanged since). Paths under
@@ -17,8 +21,9 @@ Board codes are the canvas's (`README.md`).
 
 **Type 2 is the spine.** The MVP is one study, the nine-step navigator the canvas already has, walked end to end on
 the ChemVitro files until AIA renders a report with the exemplar's content: the rule as written at three rates, the
-decision boundary with its resolution state, the value of information for the rule, the futures map, the
-weighting-scenario map, and every number with a grade and a source. Everything else is parked (§5), planned and not
+decision boundary with its resolution state, the value of information for the rule, the maps in their two types
+(§2.7: the scenario map for the futures and the weighting settings, the observed-data map for experts, units and
+months), and every number with a grade and a source. Everything else is parked (§5), planned and not
 deleted.
 
 **What it replaces.** A1 of 2 Nov ("Keep all in MVP") is superseded by the owner's words of 8 Nov. The methodology
@@ -27,14 +32,14 @@ case with known behaviour. Version 2 adds what the external review of 9 Nov show
 behaviour means an independent numerical oracle before ChemVitro (§6), not ChemVitro alone.
 
 **What stays as decided.** One merged study (A2); models propose, code computes, a person approves; the client's rule
-decides and the maps inform; the report is Czech (W28); develop runs advisory class gates on fictional data (A4).
+makes the recommendation and the maps support it, never make it (R2-Q17); the report is Czech (W28); develop runs advisory class gates on fictional data (A4).
 
 **The analytical contract** (R2-Q10). Seven defaults every build session works to. The methodologist changes what he
 disagrees with on his first review day; until then they are the baseline.
 
 | Decided before code | Who decides | The default | What breaks if it stays open |
 |---|---|---|---|
-| Comparable-cost basis | methodologist the basis; owner the business assumptions; code enforces | Overrun = actual like-for-like EPC scope ÷ original EPC estimate − 1, in one currency and price year; exclusions (land, spur, bridge, pre-treatment, compensation, park fee) added once. The case pack's footnote is clarified first (§8, R2-Q02) | the investment figure and the 175 gate have no defensible basis |
+| Comparable-cost basis | methodologist the basis; owner the business assumptions; code enforces | Overrun = actual like-for-like EPC scope ÷ original EPC estimate − 1, in one currency and price year; exclusions (land, spur, bridge, pre-treatment, compensation, park fee) added once. The overrun applies only on the like-for-like basis its source states; an ambiguous footnote is clarified in a new version of the source before use, approved by the methodologist (R2-Q02 a) | the investment figure and the 175 gate have no defensible basis |
 | Parameter manifest | code the schema; methodologist the uncertainty semantics; owner the business values | Every input, fixed or ranged, structured tables included (tax, depreciation, tax capacity, timing dependencies, distributions, cross-option dependence, scales, method settings), each with unit, period, locator, grade attributes, owner and dependencies. An unjustified bound blocks every numerical claim that reads it | hidden defaults escape provenance and invalidation |
 | Rule freeze and amendments | the client confirms the meaning; code records and enforces | Objective, gates, rates, currency and price year, the investment reading and tie treatment frozen before any ChemVitro model result. The fixture reads the investment as total base-case installed investment in 2026 EUR (R2-Q01). Exposure to earlier results is recorded. An amendment is a new revision with reason, approver, rerun, and the old and new outcomes disclosed | there is no authorised rule to apply |
 | Distribution endpoints | methodologist; the client supplies business judgements | A hard bound defines support; an elicited quantile is fitted as a quantile; reconciled observations keep their joint structure; disagreement is separate scenarios or an approved mixture; missing evidence keeps a justified range, never an automatic midpoint or distribution | tail risk acquires precision nobody gave it |
@@ -208,11 +213,29 @@ Zpráva. The navigator keeps nine; the last two are one step here, built once (t
 
 ### 2.7 Sociomapa (boards MV3, SI1–SI4 reduced, new MV9)
 
-- **Needs.** The futures map (R2-P12, T7): eight sites, the futures as observers, each future centred, heights the
+**Two map types, five configurations** (R2-Q15 a). What decides a map's test is where its rows come from, so the
+types split there and nowhere else. Respondent maps are not in the business MVP (the owner, 9 Nov 15:10; the survey
+lane is frozen, ADR 0046 decision 2); the `-5` engine stays, and both types reuse its layout, terrain and determinism.
+
+| Type | Configuration | A row is | Prepared | The test, declared before computing | Height |
+|---|---|---|---|---|---|
+| **Scenario map** (rows the model generates) | futures | one draw of the cost model | each row centred | stability across the declared assumptions and seeds: Spearman of the distances between every two settings ≥ 0,8; no p-value; shared-loss table with counts | mean saving |
+| | weight settings | one weight setting from the fans around the client's centre (§4) | weighted score, each row centred | shares first / tied / unresolved per scenario and fan, never pooled; the same stability test | mean score, the centre score beside, NPV beside unweighted |
+| | both crossed | one future scored under one weight setting | as above | as above, per named scenario | as above |
+| **Observed-data map** (rows observed) | experts | one named expert × one criterion | objects share a scale: each row centred | experts resampled whole, each sample laid out by the engine; one radius per map | mean score |
+| | units | one branch, product or customer | objects do not share a scale: each measure standardised | units bootstrapped, by cluster where they cluster; a pair is drawn only where its interval excludes zero | open, for the methodologist |
+| | months | one month of a firm's series | each series detrended, then standardised | surrogates with the same autocorrelation, Benjamini–Yekutieli at 5 %, effective-n floor, block bootstrap; a pair is drawn only where it beats its surrogates | open, for the methodologist |
+
+The analyst declares, before any result, what the rows are; that selects the preparation and the test. Nobody chooses
+a test after seeing results. Merging the two types is refused: a scenario map would gain a significance it cannot
+have, or an observed map would lose its sampling uncertainty.
+
+- **Needs.** The futures configuration (R2-P12, T7): eight sites, the futures as rows, each future centred, heights the
   mean saving, relative and absolute readings, the stability test over three correlation settings declared in
   advance (the map failed it at 0,75 against 0,8, and the report says so); the shared-failure table T8 as the tested
-  downside dependence, never "no site is a backup" without a switching analysis; internal until the methodologist
-  approves. Then the weighting-scenario map of §4.
+  downside dependence, never "no site is a backup" without a switching analysis. The weight-settings configuration of
+  §4. The observed-data configurations on the synthetic suite's planted structures (§6), and on a case's data where a
+  study has them. Every configuration internal until its register entry is approved.
 - **Today.** The `-5` engine: per-row centring, pair statistics with floors and Benjamini-Hochberg, split-half
   agreement, the layout from 4 objects (`domain/sociomap/signed_off_inputs.py:55` `centre`, `:69` `pair_stats`,
   `:103` `bh`; `signed_off_credibility.py:41` `split_half_agreement`; `signed_off_layout.py:71` `choose_method`;
@@ -220,21 +243,31 @@ Zpráva. The navigator keeps nine; the last two are one step here, built once (t
   (`domain/sociomap_register.py:52` `SOCIOMAP_REGISTER`, `:70`; `domain/research_sociomap.py:214`
   `require_client_facing`), the report's figures from stored maps (`infrastructure/report_docx/object_map_figure.py:128`
   `object_map_snapshots`), and the prototype's proof that the engine takes a futures table as rows
-  (`tools/engine_maps.py`, SI3's images). The engine's statistics hold for respondents, not for chosen rows (ADR 0046
-  decision 5, MV3).
-- **New.** Two business modes on the one engine, each with its own contract, fit and stability checks, correct labels
-  and no respondent inference (G1): the futures mode (rows the model's draws, the baseline the imposed input
-  correlation, stability the sensitivity to seeds and settings, no p-value, layout convergence reported apart from
-  representation fit); the weighting mode (W1, W2: §4). A register entry per mode.
-- **Builds it.** `sociomapa-systemu#SYS9` (the futures mode), `#SYS12` (each mode its own Metodika entry, internal
-  until approved); `cost-model-study#CS1` (declared anchors and direction per perspective scale), `#CS5` (the map on
-  Výsledky and in the report); **new** `sociomapa-systemu#SYS9b`: the shared-failure table T8 with its denominators
-  and the stability test (Spearman on the 28 distances between every two settings ≥ 0,8, three settings declared
-  before computing, a failure printed as the exemplar prints it and the retained readings tested on their own); **new**
-  `sociomapa-systemu#SYS13`: Mapa scénářů vah as §4 defines it: the disjoint allocation, the common scales and
-  weights, score bounds, the sensitivity settings and the first / tie / unresolved shares, board MV9. SI1–SI4 keep
-  only what MV9 reads. Acceptance: the allocation conserves costs; splitting a line changes nothing; eight labels stay
-  readable; no respondent inference is attached to chosen rows.
+  (`tools/engine_maps.py`, SI3's images). The engine's statistics hold for respondents, not for chosen or
+  autocorrelated rows (ADR 0046 decision 5, MV3).
+- **New.** The scenario map's contract, fit and stability checks, correct labels and no respondent inference (G1),
+  layout convergence reported apart from representation fit; the observed-data map's declared preparation, relation
+  statistic, null and resampling per configuration (`sociomapa-systemu` SYS2–SYS8), with the engine's layout fed the
+  configuration's relation matrix. A register entry per configuration.
+- **Builds it.** The scenario map: `sociomapa-systemu#SYS9` (the futures configuration), **new** `#SYS9b` (the
+  shared-failure table T8 with its denominators and the stability test: Spearman on the 28 distances between every two
+  settings ≥ 0,8, three settings declared before computing, a failure printed as the exemplar prints it and the
+  retained readings tested on their own), **new** `#SYS13` (the weight-settings configuration as §4 defines it: the
+  disjoint allocation, the common scales and weights, score bounds, the sensitivity settings and the first / tie /
+  unresolved shares, board MV9), `cost-model-study#CS1` (declared anchors and direction per perspective scale), `#CS5`
+  (the map on Výsledky and in the report). The observed-data map, the plan's existing chunks brought into the MVP:
+  `sociomapa-systemu#SYS1` and `#SYS1b` (the synthetic suite with planted answers, and today's statistics run on it as
+  the baseline: the configurations' acceptance fixtures), `#SYS2`–`#SYS8` (declared preparation, relation statistic,
+  surrogate baseline, effective-n floor, Benjamini–Yekutieli, resampling, fit), `#SYS10` (experts), `#SYS11` (units and
+  months; its "only after the suite passes" gate is replaced by R2-Q16 b, below). Both types: `#SYS12` (each
+  configuration its own Metodika entry, internal until approved). SI1–SI4 keep only what MV9 reads. Acceptance: the
+  allocation conserves costs; splitting a line changes nothing; eight labels stay readable; no respondent inference is
+  attached to chosen rows; every configuration finds the structure the suite planted and no other.
+- **Release** (R2-Q16 b, the owner's choice against the recommendation). The unit and month configurations are built
+  and released in the MVP with the rest; no separate validation-suite gate follows the MVP. What still holds for every
+  configuration: its acceptance fixtures pass (§6), its register entry is approved by the methodology owner before a
+  client reads it, and R9 governs the recommendation. The risk, stated once: short autocorrelated series show false
+  patterns; the surrogate null and the register entry are the guard.
 
 ### 2.8 Osnova a Zpráva (boards MV4, MV8, M6)
 
@@ -300,8 +333,9 @@ The external review of 9 Nov named the work with plan-local ids. The plan chunks
 | X1 | stresses, tornado, break-even | `cost-model-study#CM2`, **new** `#CR7b` |
 | V1 | value of information for the rule, enquiry, EVPPI | **new** `cost-model-study#CR6b`, `#CR6` |
 | L1 | the Lead on business records and proposals | `cost-model-study#CP9` |
-| W1, W2 | the weighting map's allocation, scales, bounds, sensitivity, shares | **new** `sociomapa-systemu#SYS13`, `cost-model-study#CS1` |
-| G1 | the engine and renderer in both business modes | `sociomapa-systemu#SYS9`, **new** `#SYS9b`, `#SYS12`, `cost-model-study#CS5` |
+| W1, W2 | the weight-settings configuration's allocation, scales, bounds, sensitivity, shares | **new** `sociomapa-systemu#SYS13`, `cost-model-study#CS1` |
+| G1 | the engine and renderer for the scenario map | `sociomapa-systemu#SYS9`, **new** `#SYS9b`, `#SYS12`, `cost-model-study#CS5` |
+| (version 3) | the observed-data map: suite, statistics, experts, units, months | `sociomapa-systemu#SYS1`, `#SYS1b`, `#SYS2`–`#SYS8`, `#SYS10`, `#SYS11`, `#SYS12` |
 | T1 | admission and outline for findings, judgements, grades | `research-findings-stage#FND0`, `#FND2`, **new** `cost-model-study#CP8b` |
 | T2 | the report, charts, annexes, PDF | `research-findings-stage#FND9`, **new** `#FND13`, `cost-model-study#CP8`, `report-delivery#RD3`, `#RD1` |
 | T3 | staleness, review and release eligibility | **new** `report-delivery#RD13`, `research-findings-stage#FND8` |
@@ -311,7 +345,9 @@ The external review of 9 Nov named the work with plan-local ids. The plan chunks
 **Seventeen new chunks:** `decision-brief#DB3b`; `client-data-in-analysis#13`; `cost-model-study#CR0`, `#CP1b`,
 `#CR1b`, `#CR3b`, `#CM8`, `#CR7b`, `#CR6b`, `#CM9`, `#CR10b`, `#CP8b`; `sociomapa-systemu#SYS9b`, `#SYS13`;
 `research-findings-stage#FND13`, `#FND14`; `report-delivery#RD13`. Version 1 had thirteen; CR0, CP1b, CR10b and RD13
-are the review's additions. They enter the plan files in the docs PR written from this version (R2-Q09).
+are the review's additions. They enter the plan files in the docs PR written from this version (R2-Q09). Version 3
+adds no new chunk: the observed-data map is the plan's existing SYS1, SYS1b, SYS2–SYS8, SYS10 and SYS11; the docs PR
+amends SYS11's release condition to R2-Q16 b and moves the respondent mode out of the MVP.
 
 ## 3. Perspectives
 
@@ -332,7 +368,7 @@ Rules:
   the score and the rank unchanged; scoring a parent beside its children fails admission.
 - **Perspective totals reconcile** to the site's cost; buying cost minus site cost reconciles to the NPV saving.
 - **A perspective with no line in the case** (strategic and marketing for ChemVitro) stays visible at weight 0 for
-  every site, approved as such; nothing is redistributed silently (R2-Q04, open). A nonzero weight on an empty
+  every site, approved as such, and the map says so; nothing is redistributed silently (R2-Q04 a). A nonzero weight on an empty
   perspective is refused until clarified.
 - **Absence versus unknown.** An evidenced absence of an applicable expenditure is cost 0 through the common scale; an
   unknown expenditure keeps its range (§4).
@@ -356,7 +392,7 @@ Every disposition in the case pack's documents, the air-abatement technology and
 (ANSWER-KEY.md §2.2–2.3), is a leaf line or a justified exclusion. Board MV9 and `tools/specs_weights.py` are rebuilt
 to this table at the next canvas version (R2-Q13).
 
-## 4. The weighting-scenario map (Mapa scénářů vah, board MV9)
+## 4. The scenario map's weight-settings configuration (Mapa scénářů vah, board MV9)
 
 1. **Objects** are the options: the eight sites. The buy baseline is the rule's reference, not an object.
 2. **Scenarios** are named weight vectors over the seven perspectives, composed by the researcher from what the
@@ -387,9 +423,10 @@ to this table at the next canvas version (R2-Q13).
    sampling-error circles appear.
 9. **Gate status** stands beside each site; the rule's verdict has a panel of its own. A hypothetical change of a gate
    is a named scenario.
-10. **Apart from the futures map, and where it goes.** The futures map's rows are the model's draws; this map's rows
-    are preferences; they are never merged. The map is preference information. It enters the report under "Co by závěr
-    změnilo", never the recommendation; the client's rule decides (R3). Its method is a Metodika register entry of its
+10. **Apart from the futures, and where it goes.** The futures configuration's rows are the model's draws; this
+    configuration's rows are preferences; they are mapped apart unless a named scenario crosses them (§2.7). The map is
+    preference information. It enters the report under "Co by závěr změnilo": it supports the recommendation and never
+    makes it; the recommendation comes from the decision rule (R3, R2-Q17). Its method is a Metodika register entry of its
     own (`sociomapa-systemu#SYS12`), internal until the methodologist approves it.
 
 ## 5. Parked
@@ -403,7 +440,7 @@ Planned, not deleted; nothing in the ten weeks waits on it; it moves on the owne
 | Other model types; the generic cost-scenario infrastructure beyond `site_cost_of_supply` | one type, one case, ten weeks | `cost-model-study#CP2`'s template registry beyond one template; `quantitative-families#ACC1–5`, `#MKT1–5`, `#OR1–5` |
 | Automatic public-data and legal connectors (SDMX, ČNB, e-Sbírka, EUR-Lex) and automatic extraction | a value typed by hand from an accepted quote, *prozatímní*, is what the exemplar carries | `public-data-routes#PDR1–PDR10`; `legal-context#LGL1`, `#LGL2`, `#LGL4`; `deep-research-v2#DRV2`, `#DRV3` |
 | Fitted demand forecasting; Sobol / PRCC global sensitivity | the tornado and the one-change-at-a-time runs are the exemplar's | `quantitative-families#MKT4`; `cost-model-study#CR4` |
-| Respondent, expert, unit and period map modes | the futures map and the weighting map are the MVP's two | `sociomapa-systemu#SYS11`; `situation-reports#EX1`, `#EX2` |
+| The respondent map mode (survey rows) | the survey lane is frozen and the business MVP has no respondents; the engine stays, and both map types reuse its layout and terrain | `sociomapa-systemu`'s respondent mode; the frozen lane |
 | The six diagram stacks and the diagram editor | the exemplar needs tables and five chart kinds | `diagrams#DG4`, `#DG5`, `#DG8`; charts stay in `#DG3` |
 | The shared client-review interface; monitoring | the researcher records client approvals (R2-Q06); monitoring after the first release | `research-findings-stage#FND12`; `deep-research-v2#DRV8` |
 | Účetnictví (M4c) and Velikost trhu (M4e) | no part of the exemplar; kept on the canvas as parked | `quantitative-families#ACC1–5`, `#MKT1–5` |
@@ -459,7 +496,8 @@ for the other configuration (ANSWER-KEY.md §1; exemplar p. 13).
 | Threshold uncertainty | known probabilities below, at and above a threshold; samples around 0,797 and 0,804; nearly tied medians; repeated-seed runs of the whole stopping procedure, not one final interval |
 | Correlated information branches | a finite joint-state table with known masses, dependence and impossible answer combinations, plus O-INFO; an independent-marginal substitution must fail |
 | Distributions and dependence | analytic PERT moments; quantile-fitted marginals; paired observations; common national and site shocks; achieved dependence and each stress change checked |
-| Maps | known matrices; identical profiles; a dominated option with a similar profile; poor geometry; deliberate instability; similarity never becomes an unsupported co-winning claim |
+| Maps, scenario type | known matrices; identical profiles; a dominated option with a similar profile; poor geometry; deliberate instability across declared settings; 800 scenarios × 7 options from a cost model with a known correlation; similarity never becomes an unsupported co-winning claim |
+| Maps, observed-data type | `sociomapa-systemu#SYS1`'s suite, 1 000 seeded replicates at T or n 24, 36, 60, 120: experts with planted rater clusters (a whole-expert resample must widen the radius as experts fall); 40 units × 10 drivers from known factors, with 10 % outliers and one level shift; null worlds (independent random walks, AR(1) at 0,3, 0,7 and 0,95, seasonal series with no cross-relation) where no pair may be drawn beyond the declared false-discovery rate; 12 KPIs from 3 factors and a sparse VAR(1) where the planted pairs must be found; the baseline run of today's statistics on the same fixtures (`#SYS1b`) beside each |
 | Downstream invalidation | stored source, copy, contract, manifest, rule, scales, methods, run, maps, outline and approval; each root mutated makes its descendants stale; old artifacts stay immutable |
 | Claim meaning and release | wrong percentile wording; rounding that hides a gate failure; an unregistered method; an unresolved comparison; the check reads meaning, not only matching refs |
 
@@ -483,7 +521,7 @@ the deadline, R2-P09 §8.3); K6 claim integrity (automated and human checks for 
 figures; counts and warnings generated from the manifest, never typed).
 
 **Integration exit.** One real browser, API and worker journey on the case files produces the T1–T9 equivalents, both
-map modes, the enquiry table and the QA annex from frozen artifacts, and passes the independent review. Recorded
+map types in their configurations (the observed-data map on the suite where the case has no such rows), the enquiry table and the QA annex from frozen artifacts, and passes the independent review. Recorded
 acceptance and bounded live source verification stay separate (`docs/architecture/research-journey.md` §1).
 
 ## 7. Waves
@@ -491,47 +529,72 @@ acceptance and bounded live source verification stay separate (`docs/architectur
 Five waves of two weeks (R2-Q07): three build sessions (data and backend; numerical methods; product and report), one
 analyst session at half time that never writes model code, the methodologist one day a week, the owner's and the
 client's decisions in time. A session-day is implementation with its tests and routine review; waiting for a decision
-is not counted. **97–139 session-days in all; plan against the upper end.**
+is not counted. **116–168 session-days in all; plan against the upper end.** Version 2's 97–139 plus 19–29 for the
+observed-data map (the table below the waves). Three build sessions have 150 session-days in ten weeks, so the upper
+end is 18 over: a fourth build session for the map work in weeks 1–8, or about two more weeks (§8).
 
 | Wave | Builds (session-days) | Exit; the ChemVitro slice | Beside it; the assumption |
 |---|---|---|---|
-| **W1 · Smlouvy a Data** (weeks 1–2) | CR0 2–3; CR10b 3–4; CP3 + FND1 3–4; DB3b 3–4; client-data #2, #2a, #3, #3a, #3b, #10 6–8; CP1b schema 1–2; SYS9/SYS12 engine feasibility 1–2; FND0/FND2 evidence schema 2–3. **21–30** | contracts and oracles accepted; the investment reading confirmed in the fixture or marked unresolved; the purchase file's contract and full copy work; the eight-step shell and the evidence interfaces exist | the analyst freezes O-CF and O-INFO; the engine is tried on both business matrices at once. Assumes no reader or engine algorithm needs replacing |
-| **W2 · Vstupy a Model** (3–4) | client-data #13 4–6; CP4 + #11 + CR3b 4–6; CP1b completion 3–4; CP5, CP6 3–4; CM8 7–10. **21–30** | the used sources reconciled; the model reads pinned bindings; production, purchases and the investment ledger match the oracle's checkpoints | source verification beside cash modelling. Assumes one process, one ledger schema, bounded manual extraction |
-| **W3 · Budoucnosti a Rozhodnutí** (5–6) | CM7, FIN1, FIN2 4–6; CR3 (copula) 5–7; CR7, CR7b 4–6; CM2 3–4; CP9 first integration 2–3. **18–26** | T1–T6 equivalents and the timing distributions at three rates; every decisive comparison resolved or printed unresolved; commercial, delay, hiring and dependence stresses run | sampling beside finance and tax cases and the Lead's first integration. Assumes signed distributions and dependence, fixed tax-capacity cases, bracketed break-even solving |
-| **W4 · Informace a mapy** (7–8) | CR6, CR6b 6–9; SYS13 + CS1 4–6; CR9 shares and views 3–4; SYS9, SYS9b, CS5 completion 4–5; FND3, FND4, FND5, CP8b 3–4. **20–28** | the information fixtures pass; T7, T8 and the weighting scenarios run; score bounds and gate status visible; the outline holds only resolving admitted claims | information, weighting and outline work share frozen result schemas. Assumes finite approved answer branches, one cost hierarchy, two adapters and no new layout algorithm |
-| **W5 · Zpráva a přijetí** (9–10) | CP9 completion 2–3; FND9, FND13, CP8, RD1, RD3 5–7; RD13, FND8 3–4; MP17 4–6; FND14 3–5. **17–25** | the recorded end-to-end report, annexes and PDF; invalidation and approval checks pass; the independent review determines release eligibility | composition, export, failure injection and review together. Assumes the DOCX renderer and editor reused, bounded PDF conversion, one review-and-fix cycle |
+| **W1 · Smlouvy a Data** (weeks 1–2) | CR0 2–3; CR10b 3–4; CP3 + FND1 3–4; DB3b 3–4; client-data #2, #2a, #3, #3a, #3b, #10 6–8; CP1b schema 1–2; SYS9/SYS12 engine feasibility 1–2; FND0/FND2 evidence schema 2–3; SYS1 suite generators 3–4. **24–34** | contracts and oracles accepted; the investment reading confirmed in the fixture or marked unresolved; the purchase file's contract and full copy work; the eight-step shell and the evidence interfaces exist | the analyst freezes O-CF and O-INFO; the engine is tried on both business matrices at once. Assumes no reader or engine algorithm needs replacing |
+| **W2 · Vstupy a Model** (3–4) | client-data #13 4–6; CP4 + #11 + CR3b 4–6; CP1b completion 3–4; CP5, CP6 3–4; CM8 7–10; SYS1b baseline run 1–2; SYS2, SYS3 declared preparation and relation statistic 2–3. **24–35** | the used sources reconciled; the model reads pinned bindings; production, purchases and the investment ledger match the oracle's checkpoints | source verification beside cash modelling. Assumes one process, one ledger schema, bounded manual extraction |
+| **W3 · Budoucnosti a Rozhodnutí** (5–6) | CM7, FIN1, FIN2 4–6; CR3 (copula) 5–7; CR7, CR7b 4–6; CM2 3–4; CP9 first integration 2–3; SYS4–SYS7 surrogate null, effective-n floor, Benjamini–Yekutieli, resampling per configuration 5–7. **23–33** | T1–T6 equivalents and the timing distributions at three rates; every decisive comparison resolved or printed unresolved; commercial, delay, hiring and dependence stresses run | sampling beside finance and tax cases and the Lead's first integration. Assumes signed distributions and dependence, fixed tax-capacity cases, bracketed break-even solving |
+| **W4 · Informace a mapy** (7–8) | CR6, CR6b 6–9; SYS13 + CS1 4–6; CR9 shares and views 3–4; SYS9, SYS9b, CS5 completion 4–5; FND3, FND4, FND5, CP8b 3–4; SYS8 fit 1–2; SYS10 experts 2–3; SYS11 units and months 3–4. **26–37** | the information fixtures pass; T7, T8 and the weighting scenarios run; the observed-data configurations find the suite's planted structures; score bounds and gate status visible; the outline holds only resolving admitted claims | information, weighting and outline work share frozen result schemas. Assumes finite approved answer branches, one cost hierarchy, two adapters and no new layout algorithm |
+| **W5 · Zpráva a přijetí** (9–10) | CP9 completion 2–3; FND9, FND13, CP8, RD1, RD3 5–7; RD13, FND8 3–4; MP17 4–6; FND14 3–5; SYS12 register entries for the three observed configurations 1–2; the suite over the finished configurations in the acceptance run 1–2. **19–29** | the recorded end-to-end report, annexes and PDF; invalidation and approval checks pass; the independent review determines release eligibility | composition, export, failure injection and review together. Assumes the DOCX renderer and editor reused, bounded PDF conversion, one review-and-fix cycle |
+
+**The observed-data map's 19–29 session-days, and their basis.** No plan chunk carries an estimate, so each is set
+against a chunk of this scope that does comparable work:
+
+| Added | Session-days | Compared with |
+|---|---|---|
+| SYS1 suite generators (five configurations, seeded, pinned by SHA-256) | 3–4 | CR10b, the oracle fixtures, 3–4 |
+| SYS1b baseline run + SYS2, SYS3 (declared preparation, relation statistic) | 3–5 | SYS9/SYS12 feasibility 1–2 for the run; CP1b schema 1–2 for the declarations |
+| SYS4–SYS7 (surrogates, effective-n floor, Benjamini–Yekutieli, three resampling schemes) | 5–7 | SYS13 + CS1, one new configuration with its sensitivity, 4–6, plus one day for the third scheme |
+| SYS8 fit, SYS10 experts, SYS11 units and months | 6–9 | SYS9, SYS9b, CS5 completion 4–5, for three configurations on a shared path |
+| SYS12 three register entries; the suite in the acceptance run | 2–4 | RD13, FND8 3–4, halved: entries and runs, no new interface |
+
+Two types rather than five save design and code; no saving is taken from it in these figures.
 
 **The critical path:** approved contracts, oracles and rule → data and bindings → the cash-flow model → joint
 uncertainty and the rule → information and maps → admitted report claims → independent review and release. The study
 shell, the evidence schema and the engine feasibility test start in week 1. An unresolved rule interpretation blocks
 the decision results, not the engineering or the oracle.
 
-**Not estimable yet:** acquiring evidence to reconcile the comparables; research for the empty perspectives; missing
+**Not estimable yet:** acquiring evidence to reconcile the comparables; a method change the methodology owner's answers on the observed-data statistics require (`sociomapa-systemu#SYS0`); research for the empty perspectives; missing
 commercial or tax evidence; replacing an engine algorithm after a failed feasibility test; runtime at the convergence
 cap (benchmark by wave 2); live-provider remediation; a structural redesign the review demands. Each is a named
 dependency, not a zero-day task. Week 10 may produce a reviewed *předběžné* report if that is the justified state; the
 calendar cannot turn an unresolved comparison into an approved recommendation.
 
-## 8. Open decisions
+## 8. Decisions
 
-**For the product owner** (the rest of R2-Q01 to R2-Q14 is decided and applied above)
-1. **Comparable-cost basis (R2-Q02, open; written here as a).** (a) a versioned clarification of the case pack's
-   footnote on a like-for-like basis, approved by the methodologist; (b) two bounded interpretations and conditional
-   conclusions. The case pack is the case author's (PR #1155); the request goes to him directly (R2-Q14).
-2. **Empty perspectives (R2-Q04, open; written here as a).** (a) strategic and marketing visible at weight 0 for this
-   case; (b) commission evidenced objectives for them and re-estimate.
-3. The Velis boards M4c and M4e stay on the canvas as parked.
+**Taken by the product owner** (R2-Q01 to R2-Q18, all answered on 9 Nov and applied above): among them the
+comparable-cost basis (R2-Q02 a: the overrun only on the like-for-like basis its source states, an ambiguous footnote
+clarified in a new version of the source first, approved by the methodologist; the case pack is its author's, PR
+#1155, and the request goes to him directly, R2-Q14), the empty perspectives (R2-Q04 a: strategic and marketing
+visible at weight 0 for this case, the map says so), the map types (R2-Q15 a), their release (R2-Q16 b), the map's
+place beside the recommendation (R2-Q17 a) and the three targets (R2-Q18 a). The Velis boards M4c and M4e stay on the
+canvas as parked.
+
+**Open for the product owner**
+1. **Capacity for the maps** (new with version 3). The upper end, 168 session-days, is 18 over three build sessions'
+   150. (a) A fourth build session for the map work in weeks 1–8, on the engine behind frozen result schemas;
+   (b) about two more weeks for the three sessions; (c) plan against the lower end and cut on overrun. Recommendation:
+   (a), because the map work is separable and the critical path does not run through it.
 
 **For the methodology owner, A. Bahbouh** (one review day a week; the first day signs the oracle fixtures)
 1. The analytical contract's seven defaults (§1): confirm or amend each; the distribution families, the copula, the
    tail stresses and the 5 % numerical error allocation are his.
-2. The futures map's contract (R5, `SYS9`): what it prints instead of the respondent method's reliable pairs and
-   split-half agreement; layout convergence, representation fit and robustness reported apart.
+2. The futures configuration's contract (R5, `SYS9`): what it prints instead of the respondent method's reliable
+   pairs and split-half agreement; layout convergence, representation fit and robustness reported apart.
 3. The stability test (R2-P18 B): Spearman on the 28 distances between settings at 0,8; and whether the retained
    country-group readings need a test of their own after a failed global one.
 4. The empirical joint draw (**CR3b**) beside the copula (**CR3**): when each is used.
 5. Value of information for the rule (**CR6b**, R7) against EVPPI: the estimator's bias and precision checks.
-6. The weighting map (**SYS13**): the value functions' anchors, the fan concentrations, the robust-leader rule, the
-   map-fit thresholds.
+6. The weight-settings configuration (**SYS13**): the value functions' anchors, the fan concentrations, the
+   robust-leader rule, the map-fit thresholds.
 7. The seven print grades as projections of four attributes (**CP8b**, Q1): the table, its admission rules.
-8. A register entry per business mode (`SYS12`): one method id per mode, or one entry with modes.
+8. A register entry per configuration (`SYS12`): one method id per configuration, or one entry per type with its
+   configurations.
+9. The observed-data map's statistics (`sociomapa-systemu#SYS0`, the research's ten questions): the preparation, the
+   relation statistic, the surrogate null, the effective-n floor, the multiple-testing rule, the resampling schemes,
+   and the suite's thresholds. With R2-Q16 b they are on the MVP's path, not after it.
