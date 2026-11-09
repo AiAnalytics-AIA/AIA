@@ -1,7 +1,7 @@
 <section class="chapter" id="technologie">
   <p class="chapter-label">07 · Technologie</p>
   <h1>Na čem to běží</h1>
-  <p class="lede">Standardní, ověřené stavební kameny. Vše v&nbsp;Evropské unii: data klienta i&nbsp;volání AI modelů zůstávají ve Frankfurtu.</p>
+  <p class="lede">Standardní, ověřené stavební kameny. Vše v&nbsp;Evropské unii: data klienta i&nbsp;volání AI modelů zůstávají v&nbsp;EU; vstupní bod je ve Frankfurtu.</p>
   <figure class="full">
     <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vrstvy technologie od prohlížeče po provoz">
       <defs><style>
@@ -14,12 +14,12 @@
         <rect x="0" y="96" width="680" height="40" rx="4" class="la"/><text x="12" y="114" class="h">Výpočetní jádro</text><text x="12" y="129" class="s">Python (numpy, scipy, numba) · model nákladů, budoucnosti, mapy · stejný vstup dá vždy stejný výsledek</text>
         <rect x="0" y="142" width="334" height="40" rx="4" class="l"/><text x="12" y="160" class="h">Data</text><text x="12" y="175" class="s">PostgreSQL · soubory v objektovém úložišti S3</text>
         <rect x="346" y="142" width="334" height="40" rx="4" class="l"/><text x="358" y="160" class="h">Přihlašování</text><text x="358" y="175" class="s">Amazon Cognito · každý člen týmu pod svým jménem</text>
-        <rect x="0" y="188" width="334" height="40" rx="4" class="la"/><text x="12" y="206" class="h">AI modely</text><text x="12" y="221" class="s">Amazon Bedrock, Frankfurt · jedna hlídaná brána</text>
+        <rect x="0" y="188" width="334" height="40" rx="4" class="la"/><text x="12" y="206" class="h">AI modely</text><text x="12" y="221" class="s">Amazon Bedrock, EU (brána ve Frankfurtu) · jedna hlídaná brána</text>
         <rect x="346" y="188" width="334" height="40" rx="4" class="l"/><text x="358" y="206" class="h">Zprávy</text><text x="358" y="221" class="s">Word z generátoru · editor ONLYOFFICE · PDF z LibreOffice</text>
         <rect x="0" y="234" width="680" height="40" rx="4" class="l"/><text x="12" y="252" class="h">Provoz</text><text x="12" y="267" class="s">AWS Frankfurt · vývoj na jednom serveru (Docker Compose) · produkce zatím nerozhodnuta, očekává se ECS</text>
         <rect x="0" y="280" width="680" height="40" rx="4" class="l"/><text x="12" y="298" class="h">Kázeň</text><text x="12" y="313" class="s">infrastruktura jako kód (Terraform) · každá změna projde testy (GitHub Actions) · nic se nepřepíná bez záznamu</text>
       </g>
-      <text x="0" y="338" class="t" font-weight="600">EU residence: data klienta neopustí Evropskou unii, AI modely se volají ve Frankfurtu.</text>
+      <text x="0" y="338" class="t" font-weight="600">EU residence: data klienta neopustí Evropskou unii; AI modely se volají přes Frankfurt a&nbsp;počítají v&nbsp;regionech EU.</text>
     </svg>
   </figure>
   <p>Nic z&nbsp;toho není exotické. Webová aplikace, server v&nbsp;Pythonu, databáze PostgreSQL, soubory v&nbsp;S3, přihlašování přes Cognito, AI modely přes Amazon Bedrock v&nbsp;evropském regionu. Výpočty dělá vlastní jádro v&nbsp;Pythonu a&nbsp;dávají stejný výsledek při každém opakování. Zprávy vznikají jako Word a&nbsp;PDF a&nbsp;lze je upravovat v&nbsp;editoru. Infrastruktura je popsaná kódem a&nbsp;každá změna prochází automatickými testy.</p>
