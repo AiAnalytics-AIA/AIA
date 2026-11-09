@@ -1,14 +1,14 @@
-# The business-decision study: methodology, version 3
+# The business-decision study: methodology, version 5
 
-The methodology PDF of the report-2 MVP (`../BRIEF-mvp-r2.md`, session F): how AIA takes a client's decision from
-*Zadání* to a report in which every number carries its source and its grade, written bottom up from the ChemVitro
-exemplar (`../exemplar/ChemVitro_2_model-lokality_nigel.pdf`, 44 pages, 5 Nov 2026).
+How AIA takes a client's decision from *Zadání* to a report in which every number carries its source and its grade.
+The method is described generically: no case, no case appendix, no worked example. Its numbers are rules, clearly
+illustrative values, or the toy oracle fixtures of chapter 14.
 
 | | |
 |---|---|
-| Version | 3, 8 November 2026, working version. Version 2 (36 pages, 5 Nov 2026) recorded the methodology review R1–R10 and is not in the repository |
-| PDF | `AIA_business-decision-study_methodology_v3.pdf`, A4, 35 pages |
-| Sources | one HTML fragment per chapter, `00-cover.html` … `15-appendices.html`, in reading order; `style.css`; `build.js` |
+| Version | 5, 9 November 2026, working version. Replaces version 4 (case-based, same date): every case reference is removed, and the owner's map decisions of the same day are applied (two map types, five configurations, the respondent map out) |
+| PDF | `AIA_business-decision-study_methodology_v5.pdf`, A4, 43 pages |
+| Sources | one HTML fragment per chapter, `00-cover.html` … `16-appendices.html`, in reading order; `style.css`; `build.js` |
 | Fonts | `fonts/`: IBM Plex Sans, IBM Plex Mono and Source Serif 4, the report's own faces, copied unmodified from `packages/aia_core/src/aia_core/infrastructure/report_docx/fonts/` with their SIL OFL licences |
 
 ## Build
@@ -25,28 +25,21 @@ a heading never stands alone at a page foot (`break-after: avoid`).
 
 ## What is in it
 
-Cover and *What this is*; chapter 1 the spine; chapters 2–9 one step each (*Zadání · Data · Rešerše · Předpoklady ·
-Model · Výsledky · Sociomapa · Osnova a Zpráva*), all in the same seven parts: what goes in, what comes out, checks,
-how the exemplar did it, in AIA today, new, ChemVitro acceptance; chapter 10 built vs designed; chapter 11 the seven
-business perspectives, their components and the two maps (the futures map and the weighting-scenario map); chapter 12
-grades, sources, the provisional state and the release gate (R9, proposed); chapter 13 governance; appendices: glossary,
-the exemplar in numbers (T1, T4, T6, T7, T8 condensed), the board index.
+Cover and *What this is*; chapter 1 the spine; chapter 2 the analytical contract (seven defaults, two release states);
+chapters 3–10 one step each (*Zadání · Data · Rešerše · Předpoklady · Model · Výsledky · Sociomapa · Osnova a Zpráva*),
+all in the same six parts: what goes in, what comes out, checks, in AIA today, new, acceptance (chapter 9 holds the two
+map types); chapter 11 built vs designed and what is not in this release; chapter 12 the business perspectives as a disjoint cost partition, one
+scoring structure for every option, and the weight settings; chapter 13 grades with lineage, uncertainty and validation
+apart, sources, the provisional state and the release gate; chapter 14 governance, the owner's decisions of
+9 November, oracle-first acceptance and the review's evidence; appendix A, the glossary.
 
 ## Conventions
 
-English prose; Czech on-screen and report terms in italics; files, modules and plan chunks in `code`. Every ChemVitro
-number is the exemplar's or the case pack's. "The review" is ADR 0046 § The methodology review (R1–R10, K1–K6);
-"the answer key" is `prototypes/case-chemvitro/ANSWER-KEY.md` on branch `chore/case-chemvitro`.
+English prose; Czech on-screen and report terms in italics; files, modules and plan chunks in `code`. Plan chunk
+ids appear only in the *New* parts and the built-vs-designed table. Acceptance is described generically: the oracle
+fixtures first, then a frozen test case with planted errors, then the independent review.
 
 ## Agreement with the scope
 
-On 8 Nov the perspectives chapter, the chunk ids in every step's "New" part, the eight-step count and the open-question
-lists were aligned to session A's `MVP-SCOPE.md` (§ 3–4, § 2, § 8; branch `chore/mvp-r2-a`, final head 6b710d4d:
-20 scored components, the park fee inside P2). The scope's wording is the source; a disagreement is reported to the
-coordinator, not resolved here. None is open at this head.
-
-## Folding in the other sessions
-
-Sessions A, B, C and E landed on 8 Nov and are folded in (appendix C says which board each changed); D (the maps,
-MV3, MV9, SI1–SI4) landed last and is folded in; the board index names every board's file and state. When a branch lands, the chapters that cite
-its boards are aligned to it and the PDF is rebuilt and checked page by page before the push.
+Version 5 is written to the owner's decisions of 9 November, as `MVP-SCOPE.md` version 2 is. Where the scope on
+`develop` still reads as version 1, this document is ahead of it until that revision lands.
