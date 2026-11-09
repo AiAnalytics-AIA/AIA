@@ -531,7 +531,8 @@ analyst session at half time that never writes model code, the methodologist one
 client's decisions in time. A session-day is implementation with its tests and routine review; waiting for a decision
 is not counted. **116–168 session-days in all; plan against the upper end.** Version 2's 97–139 plus 19–29 for the
 observed-data map (the table below the waves). Three build sessions have 150 session-days in ten weeks, so the upper
-end is 18 over: a fourth build session for the map work in weeks 1–8, or about two more weeks (§8).
+end is 18 over; the owner chose to keep three build sessions and allow about two more weeks (R2-Q19 b, §8): ten weeks at
+the lower end, about twelve at the upper.
 
 | Wave | Builds (session-days) | Exit; the ChemVitro slice | Beside it; the assumption |
 |---|---|---|---|
@@ -567,19 +568,16 @@ calendar cannot turn an unresolved comparison into an approved recommendation.
 
 ## 8. Decisions
 
-**Taken by the product owner** (R2-Q01 to R2-Q18, all answered on 9 Nov and applied above): among them the
+**Taken by the product owner** (R2-Q01 to R2-Q19, all answered on 9 Nov and applied above): among them the
 comparable-cost basis (R2-Q02 a: the overrun only on the like-for-like basis its source states, an ambiguous footnote
 clarified in a new version of the source first, approved by the methodologist; the case pack is its author's, PR
 #1155, and the request goes to him directly, R2-Q14), the empty perspectives (R2-Q04 a: strategic and marketing
 visible at weight 0 for this case, the map says so), the map types (R2-Q15 a), their release (R2-Q16 b), the map's
-place beside the recommendation (R2-Q17 a) and the three targets (R2-Q18 a). The Velis boards M4c and M4e stay on the
+place beside the recommendation (R2-Q17 a) the three targets (R2-Q18 a) and the capacity (R2-Q19 b: three build sessions, about two more weeks at
+the upper estimate). The Velis boards M4c and M4e stay on the
 canvas as parked.
 
-**Open for the product owner**
-1. **Capacity for the maps** (new with version 3). The upper end, 168 session-days, is 18 over three build sessions'
-   150. (a) A fourth build session for the map work in weeks 1–8, on the engine behind frozen result schemas;
-   (b) about two more weeks for the three sessions; (c) plan against the lower end and cut on overrun. Recommendation:
-   (a), because the map work is separable and the critical path does not run through it.
+**Open for the product owner:** none.
 
 **For the methodology owner, A. Bahbouh** (one review day a week; the first day signs the oracle fixtures)
 1. The analytical contract's seven defaults (§1): confirm or amend each; the distribution families, the copula, the
