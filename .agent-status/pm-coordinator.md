@@ -214,3 +214,12 @@ In flight:
 - In-flight respondent work paused (held: #1149 LO18b+QST12, #1147 CPR23 + CPR10; paused lanes: FLD, E08, IR/ANL14-15, LO18). Platform work continues.
 - Re-plan owner: cost-model design session (session_013Njzbwj2dsK9muCZthKegM): new ADR, switch-off chunk, rewritten MVP, deletion chunk, decision page. Outline first.
 - Merged today (1 Nov): #1038, #1088? no (open), #1091, #1125, #1127, #1128, #1129, #1130, #1135, #1136, #1137, #1138, #1139, #1140, #1141, #1142, #1143, #1144, #1145, #1146, #1148. Closed: #928.
+
+## 2026-11-09 09:10 UTC (session_013NjzbvdQ2LevhrQqa6bUW2, "AIA PM pivot coordination")
+
+- The report-2 MVP (the owner's words of 8 Nov: report 2 of ChemVitro as the exemplar; weights on the business perspectives as scenarios on the Sociomap; "one MVP prototype, one methodology PDF, one MVP scope") is on develop: #1157 (canvas v66, MVP-SCOPE.md, scope/ Czech PDF, methodology v3, tools) merged 20:39Z 8 Nov; #1164 (ruff 0.17.4 SIM102 fix, the owner's "merge the conditions") 18:45Z; #1165 (CFO confirmation pending; Bory 120) 02:55Z 9 Nov. #1158 closed as superseded; #1159–#1163 marked merged through #1157. Develop 26f197e3.
+- Six build sessions A–F (tags aia-mvp-r2) finished; their reports are final. Two merges happened before Codex finished (both came back clean); rule since: mark ready, wait for Codex, then merge.
+- External review (ChatGPT, package + prompt of 9 Nov 00:47Z) triaged: holds on most points; two factual fixes landed (#1165); design points are decisions. Its second round proposed an analytical contract, a disjoint cost-perspective weighting, revised eight steps (plan-local ids C1…Q2, to be mapped to plan chunks), oracle-first acceptance (O-CF, O-INFO verified by recomputation), five resourced waves (97–139 session-days).
+- Status page v105 (1794214099-6600): questions R2-Q01…R2-Q14 (rec a except R2-Q09 b), action R2-N01 (ask Aram: fixture's investment reading, overrun footnote, weekly day). Explainers: disjoint-weights (D), boundary-convergence (C), oracle-first (A), authored by the coordinator (no live workers).
+- Waiting on the owner: the fourteen answers; "merge #1150"; the docs PR word; the requests to Aram. Then: scope v2 + methodology v4, canvas v67 (MV9 recompute on Bory 120 and the decided rule; 22→20 on MV0/MV4/MV5; MV0's rule wording), docs PR, wave 1.
+- Review package for ChatGPT: scratchpad only (review-pack/AIA-MVP-review-2026-11-09.zip), not in the repo.
