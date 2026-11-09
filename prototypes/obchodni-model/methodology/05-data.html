@@ -1,16 +1,16 @@
 <section class="chapter" id="data">
-  <p class="chapter-label">Chapter 3 · Step 2</p>
-  <h1 data-label="3"><i lang="cs">Data</i>: the client's files under contract</h1>
+  <p class="chapter-label">Chapter 4 · Step 2</p>
+  <h1 data-label="4"><i lang="cs">Data</i>: the client's files under contract</h1>
   <p class="lede">Every client file is read, checked and bound by a contract before a number from it reaches the model. The checks produce findings, and every finding gets a disposition the report can print.</p>
 
-  <h2 class="part" data-n="3.1">What goes in</h2>
+  <h2 class="part" data-n="4.1">What goes in</h2>
   <ul>
     <li>The client's data files: for ChemVitro ten files in <code>data/</code>, from monthly purchases to air-quality measurements (<code>CASE.md</code> § 9). The worker survey belongs to type 3 and is not read.</li>
     <li>The client's documents: seven PDFs, from the board's brief to the consultant's memo on air permitting. Each number taken from one is cited with its page.</li>
     <li>The decision record from step 1, which says what each file is for.</li>
   </ul>
 
-  <h2 class="part" data-n="3.2">What comes out</h2>
+  <h2 class="part" data-n="4.2">What comes out</h2>
   <ul>
     <li><b>A data contract per file:</b> which columns are used and how; units, currency and price year per column; which columns are personal and never leave the analysis copy; the period covered (board MV1; <code>client-data-in-analysis</code> chunk 2).</li>
     <li><b>A quality report per file</b>, accepted by a person before use: missing, duplicate and out-of-range counts per used column over every row (<code>client-data-in-analysis</code> 2a).</li>
@@ -18,7 +18,7 @@
     <li><b>A document register:</b> each document by the name the report cites it under and its file name (the exemplar's Appendix A).</li>
   </ul>
 
-  <h2 class="part" data-n="3.3">Checks</h2>
+  <h2 class="part" data-n="4.3">Checks</h2>
   <p>The checks are the exemplar's list (R2-P04 § 3.4), made explicit:</p>
   <table class="compact">
     <thead><tr><th style="width:22%">Check</th><th>What it looks for</th><th style="width:34%">ChemVitro instance</th></tr></thead>
@@ -36,10 +36,10 @@
   </table>
   <p>A contract that names a column the file does not hold, or a quality report the person has not accepted, blocks the file from the model (MV0 M-1).</p>
 
-  <h2 class="part" data-n="3.4">How the exemplar did it</h2>
+  <h2 class="part" data-n="4.4">How the exemplar did it</h2>
   <p>The model uses every client file except the worker survey and all seven documents (R2-P04 § 3.4). The checks produced 42 findings, each with a recorded decision; the ones that change the result are in table P1 (Appendix B): the Hanshin price modelled as a range 1 470–1 694–1 868 EUR/t; the kilogram row; the single spot purchase of February 2026 turned into a spot premium of 20–60 %, most likely 39 %; the duplicate, the missing price year and the 91 kt outlier among the comparable plants; consumption growth of 4 % in the data against the client's 1–3 %, the client's range used; raw-material freight not added because the raw-material price is delivered to site; Odrzyca's rail quote and Eschfeld's bridge. Twenty-two inputs the files do not hold became judgements with a range. A separate document, <i lang="cs">Kontrola dat</i>, holds the contracts and all 42 findings (Appendix C); the report prints the ones that matter.</p>
 
-  <h2 class="part" data-n="3.5">In AIA today</h2>
+  <h2 class="part" data-n="4.5">In AIA today</h2>
   <ul>
     <li>A client's sources kept once per client and SHA-256, read by a format reader into segments with locators (<code>domain/client_sources.py</code>, <code>infrastructure/source_reading.py</code>, <code>infrastructure/client_source_repository.py</code>): PDF by page and table row, XLSX and CSV by sheet and row, DOCX by paragraph.</li>
     <li>The dataset preview: per column the header, kind, fill, distinct values and samples, with personal columns detected and masked (<code>domain/client_datasets.py</code>; patterns pinned in <code>fixtures/client_datasets/personal.json</code>).</li>
@@ -48,7 +48,7 @@
     <li>The evidence policy for client data: client-reported evidence under an accepted contract (ADR 0027, ADR 0037; <code>client-data-in-analysis</code> 8a built).</li>
   </ul>
 
-  <h2 class="part" data-n="3.6">New</h2>
+  <h2 class="part" data-n="4.6">New</h2>
   <ul>
     <li>The data contract as a type and the route a person accepts it through (<code>client-data-in-analysis#2</code>), the quality report (<code>#2a</code>), the analysis copy of named columns and its accessor (<code>#3</code>, <code>#3a</code>, <code>#3b</code>), admission as <i lang="cs">z dat klienta</i> (<code>#5</code>), the contract accepted on the Data step (<code>#10</code>). Boards MV1 § 01b–03b and M1 § 01b–03b (session B) show it for the purchases file: the contract per column with the check note, the quality report with a disposition per row, what the model gets from it (summaries, never rows), and the 42 findings with the seven that change the result.</li>
     <li>A number from a document proposed with its page and checked literally on that page (<code>client-data-in-analysis#11</code>); an estimate from client rows as a Metodika method (<code>#12</code>).</li>
@@ -56,7 +56,7 @@
     <li>The document register with cited names (the exemplar's Appendix A; part of <code>decision-brief#DB5</code>'s hand-off).</li>
   </ul>
 
-  <h2 class="part" data-n="3.7">ChemVitro acceptance</h2>
+  <h2 class="part" data-n="4.7">ChemVitro acceptance</h2>
   <p>The answer key planted these in the files (§ 3). A study that misses one has a gap in its checks, whatever its verdict.</p>
   <ul>
     <li><code>srovnatelne_zavody.xlsx</code>: P-17 twice, the second with a rounded investment; P-23's capacity 91 in t/day, not kt a year; P-31 without a price year; investments in EUR, CZK and PLN in each plant's own price year.</li>

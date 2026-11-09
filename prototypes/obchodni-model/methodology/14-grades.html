@@ -1,0 +1,58 @@
+<section class="chapter" id="grades">
+  <p class="chapter-label">Chapter 13</p>
+  <h1 data-label="13">Grades, sources and the release gate</h1>
+  <p class="lede">Every number in a type-2 report carries a grade in small type and a numbered source at the end of its chapter. The grade says how the number came to be; the source says where. Behind the one printed grade stand four attributes.</p>
+
+  <h2 data-label="13.1" id="grades-seven">The exemplar's seven grades</h2>
+  <table class="compact">
+    <thead><tr><th style="width:17%">Grade</th><th>Meaning (R2-P04 § 3.5)</th><th style="width:28%">Exemplar instance</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">z dat klienta</i></td><td>a number read from a client's file or document</td><td>contract end 30. 6. 2030; 36 comparable plants</td></tr>
+      <tr><td><i lang="cs">výpočet</i></td><td>a number the program computed from stated inputs in one computation: the base case, break-even, finance, operations</td><td>base-case saving 170,7 mil. EUR; T4–T6</td></tr>
+      <tr><td><i lang="cs">odhad</i></td><td>a range derived from client data, for instance from comparables; and every number from the futures, which carries the full label <i lang="cs">odhad (metoda čeká na schválení metodikem)</i> while the method is unregistered</td><td>overrun median 17 %; every median, interval, probability, value of information, boundary, delay table and the futures map</td></tr>
+      <tr><td><i lang="cs">úsudek</i></td><td>the author's assumption where the client has no answer; also proposed dates</td><td>the 20 % compensation chance; the correlations; the plan's dates</td></tr>
+      <tr><td><i lang="cs">veřejný zdroj</i></td><td>a figure from public research, provisional until verified at the source</td><td>allowance price 89,10 EUR/t; exchange rates</td></tr>
+      <tr><td><i lang="cs">právní předpis</i></td><td>a provision, likewise provisional until verified</td><td>tax rates, employer contributions, the directive's limits</td></tr>
+      <tr><td><i lang="cs">průzkum</i></td><td>answers from a survey; type 2 does not use it</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2 data-label="13.2" id="grades-four">The printed grade and the three attributes behind it</h2>
+  <p>The printed grade says how the number came to be: its origin (<i lang="cs">z dat klienta</i>, <i lang="cs">veřejný zdroj</i>, <i lang="cs">právní předpis</i>, <i lang="cs">úsudek</i>, <i lang="cs">průzkum</i>) or, for a model result, its method (<i lang="cs">výpočet</i>, <i lang="cs">odhad</i>). Three more attributes travel with every number and are never folded into the grade: its <b>lineage</b> (which inputs it was computed from and their grades), its <b>uncertainty</b> (the range, interval or probability basis, printed beside it) and its <b>validation</b> (the method in the register or awaiting the methodologist; a public input verified or <i lang="cs">prozatímní</i>). Version 3 said a claim prints the weakest grade of the fields behind it and, in the same paragraph, that a number computed from a judgement prints <i lang="cs">výpočet</i>; the two cannot both hold. Version 4 keeps the method grade on the number and carries the lineage separately: a base-case figure computed from the 20 % compensation judgement prints <i lang="cs">výpočet</i>, and its lineage shows <i lang="cs">úsudek</i>, which the sentence must state where the judgement is decisive.</p>
+  <table class="compact">
+    <thead><tr><th style="width:17%">Printed grade</th><th>Who may print it</th><th style="width:28%">Admission rule (code)</th><th style="width:22%">Carried beside it</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">z dat klienta</i></td><td>a number read from a client file or document under its contract</td><td>CLIENT_REPORTED: the source locator resolves to the accepted contract and copy</td><td>validation <i lang="cs">ověřeno</i>; lineage the file and row</td></tr>
+      <tr><td><i lang="cs">výpočet</i></td><td>one deterministic computation from stated inputs: base case, break-even, finance, operations</td><td>CALCULATED: the run's artefact and the inputs' revision pinned</td><td>lineage: the inputs and the weakest grade among them; uncertainty: none of its own</td></tr>
+      <tr><td><i lang="cs">odhad</i></td><td>a statistic of the futures, or a range derived from client data</td><td>ESTIMATED: the method's register status and the comparison's resolution state</td><td>validation: <i lang="cs">(metoda čeká na schválení metodikem)</i> while unregistered; uncertainty: the interval, and <i lang="cs">nerozhodnuto</i> where the bound crosses a threshold</td></tr>
+      <tr><td><i lang="cs">úsudek</i></td><td>a person's assumption where the client has no answer</td><td>a labelled judgement with its author's name</td><td>lineage: none; uncertainty: the range the author stands behind</td></tr>
+      <tr><td><i lang="cs">veřejný zdroj</i></td><td>a figure from public research</td><td>a typed input with quote, source and date</td><td>validation: <i lang="cs">ověřeno</i> or <i lang="cs">prozatímní</i></td></tr>
+      <tr><td><i lang="cs">právní předpis</i></td><td>a provision</td><td>a typed legal input (<code>legal-context#LGL5</code>)</td><td>validation as above; the effective date</td></tr>
+      <tr><td><i lang="cs">průzkum</i></td><td>survey answers; not used in type 2</td><td>the survey origins</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <p>In the code the print grades are five today, <code>PrintGrade</code> in <code>domain/report/evidence.py</code>: measured, calibrated, modelled, holdout-pending, unknown, a missing grade printing "?". The plan adds CALCULATED and ESTIMATED with the register's status (<code>cost-model-study#CP8</code>, <code>#CP10</code>), ADR 0027 the client-reported origin, and <code>#CP8b</code> (<b>new</b>) the table above as code: one row per grade, Czech label, admission rule, the attributes carried. Board MV4 prints the seven grades with their attributes and where each occurs in report 2; the result boards' chips show the printed grade.</p>
+
+  <h2 data-label="13.3" id="grades-sources">Sources, numbered per chapter</h2>
+  <ul>
+    <li>Each chapter ends with <i lang="cs">Zdroje a stupně</i>: a numbered list; each printed number cites a list entry by its number (R2-P02: "z dat klienta 1").</li>
+    <li>An entry names the document by its cited name and page or paragraph ("Zápis zadání s klientem §6", "Dopis dodavatele, s. 1"), the file for data, the table for a computed value ("výpočet: tabulka T5 v příloze"), or the method's status for an estimate ("odhad (metoda čeká na schválení metodikem)").</li>
+    <li>An entry may carry two grades when a number rests on both ("výpočet; z dat klienta: Srovnatelné závody"); the weaker is printed at the number.</li>
+    <li>The document register (Appendix A) maps every cited name to its file, so a source is checkable with one open.</li>
+    <li>In AIA, the section-source manifest (<code>domain/report/sources.py</code>) already records each section's sources by artefact id and SHA-256; the numbered list is its printed form.</li>
+  </ul>
+
+  <h2 data-label="13.4" id="grades-provisional">The provisional state</h2>
+  <p><i lang="cs">Prozatímní</i> is a validation status, not a grade. It marks a public input not yet verified at the source, and it is printed in three places: the input table's state column (T9), the sentence that uses the input ("dlouhodobý vývoj cen energie (prozatímní údaj)"), and the first-page state box with the count. The count comes from the manifest (chapter 2): 16 provisional of T9's 67 rows. It is removed only by a dated verification by a named person (board MV2 § 02b). The report's running head carries it while any decisive input is provisional: the exemplar prints <i lang="cs">Pracovní verze · prozatímní</i> on every page. The exemplar's text says 16 of 54 while its T9 has 67 rows; boards MV4, M6 and MV8 record that as the report's one K6 finding, and the manifest rule exists so that it cannot recur.</p>
+
+  <h2 data-label="13.5" id="grades-release">The release gate (R9, adopted 9 November 2026)</h2>
+  <p>The owner adopted R9 on 9 November (R2-Q05): labelled unregistered estimates may appear internally and in an independently reviewed <i lang="cs">předběžné</i> client draft; an approved recommendation needs registered methods, the independent review and every decisive comparison resolved. Document approval and recommendation eligibility are two states (chapter 2). This amends W27 (an unregistered estimate reaches the client report labelled, with a warning) and report-delivery RD0 of 22 October ("warnings for all of it") for the business-decision report: the warnings stay, and the recommendation's eligibility is a computed state beside them. The amendment is recorded in ADR 0046 by the docs PR that follows the scope's version 2.</p>
+  <ul>
+    <li>Every decision-critical claim is checked twice: support in its source (code) and correct interpretation (a person who is not the claim's author).</li>
+    <li>A recommendation that rests on a method outside the register, or on a comparison still unresolved under the convergence rule, is <i lang="cs">předběžné doporučení</i>. The exemplar's recommendation rests on the futures, so it is provisional in this sense, and its summary says so.</li>
+    <li>Exploratory material enters the report only with explicit limits ("exploratory; does not support the recommendation"). The weighting-scenario map is such material.</li>
+    <li>Approval records the exact version and the open qualifications; "approved document" means reviewed and releasable, "recommendation eligible" means the recommendation may be stated as approved. The second is never typed; code derives it from the register, the review record and the resolution states.</li>
+    <li>The Deep Research thresholds of M-7 (citation precision ≥ 90 %, unsupported claims &lt; 10 %) are one check, not the release criterion.</li>
+  </ul>
+  <p>What exists today: approval once per stored version with the approver and self-approval rules recorded (<code>application/report_approval.py</code>); the client gate's checks as warnings recorded on the approval's ledger row (<code>domain/report/client_gate.py</code>, RD0); the sentence check (RD7). What R9 adds: the recommendation's eligibility as a computed field of the approval, the qualifications list, and the second, human reading of each decision-critical claim.</p>
+</section>
