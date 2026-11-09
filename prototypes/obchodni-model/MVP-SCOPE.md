@@ -33,8 +33,8 @@ Zpráva. The navigator keeps nine; the last two are one step here, built once (t
 
 - **Needs.** The decision, eight options plus the buy baseline, four constraints, the CFO's rule written on 2. 11. 2026
   before any result: the objective (the highest median saving against buying) and four conditions (P(beats buying)
-  ≥ 0,75; P(loss > 20) ≤ 0,10; P(start by 1. 7. 2030) ≥ 0,80; investment ≤ 175) and one interpretation record (investment judged on the base case, confirmed
-  by the CFO) (R2-P02 §1.3). The hand-off names the files each step takes (R2-P18 A).
+  ≥ 0,75; P(loss > 20) ≤ 0,10; P(start by 1. 7. 2030) ≥ 0,80; investment ≤ 175) and one interpretation record (investment judged on the base case; the exemplar
+  leaves the CFO's confirmation pending, so the rule is not frozen until she confirms) (R2-P02 §1.3). The hand-off names the files each step takes (R2-P18 A).
 - **Today.** A research study's Brief on the working copy with revision-checked saves
   (`infrastructure/study_workspace_repository.py:241`, a stale save refused; `:194` one revision read back), the edit
   vocabulary (`domain/edit_ops.py:496` `apply_edit`; `application/working_copy.py:57` `apply_edit_ops`), immutable
@@ -278,7 +278,7 @@ not separate the sites, *informační* one the model holds in another form; both
 | | Emise CO₂ a EU ETS, 56 EUR/t | T6 | výpočet | stejné pro všechny lokality | |
 | **Lidé** | H1 Náklady na zaměstnance na tunu 2032 (mzda × skladba mezd × odvody) | T6, T9 | výpočet; právní předpis (prozatímní) | ↓ | v modelu |
 | | H2 Doba obsazení místa operátora: Eschfeld 118 dní, ostatní regiony 49–71 (a range) | R2-P07 §6.2, Trh práce v regionech | z dat klienta | ↓ | mimo model (stress test only) |
-| | H3 Velký nábor v okolí do roku 2028: Kamenec 380; Bory named without a number, 0–380 (R2-P14) | Trh práce v regionech | z dat klienta | ↓ | mimo model |
+| | H3 Velký nábor v okolí do roku 2028: Kamenec 380; Bory 120 (`trh_prace_regiony.xlsx`, PL2; the exemplar names Bory without the number, R2-P14, a K6 case) | Trh práce v regionech | z dat klienta | ↓ | mimo model |
 | | Růst mezd po roce 2031 | T9 | úsudek | stejné pro všechny lokality | |
 
 What the table shows for the map: 20 scored components; 4 are the saving (F1, F4, F5, F6), 13 are *v modelu* and 3
