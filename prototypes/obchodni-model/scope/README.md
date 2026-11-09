@@ -6,10 +6,10 @@ chunks); this folder is its print. Nothing here says anything the markdown does 
 
 | | |
 |---|---|
-| Source | `../MVP-SCOPE.md` at revision `d5e0d4eb2` (branch `chore/obchodni-model-method-v2`); the cover names it |
-| PDF | `AIA_MVP-scope_cs.pdf`, A4, 24 pages, 0 browser errors at build |
-| Chapters | `00-cover.html` … `16-otevrena.html`, one HTML fragment each, in reading order: cover; část 1 Rozhodnutí; část 2 the eight-step matrix and one page per step (Zadání, Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova a Zpráva); část 3 Perspektivy (the seven perspectives and the 20 components); část 4 Mapa scénářů vah (the two families, the fan, the ten lines, the engine renders); část 5 Odloženo; část 6 Přijetí (A1–A6, K1–K6); část 7 Vlny; část 8 Otevřená rozhodnutí |
-| Figures | hand-written inline SVG in the methodology's colours (`--accent`, `--coral`, `--slate`, `--force` and their washes); the three engine renders of část 4 are `../assets/2e28790a9081a1eb434367f29a82c543.jpg`, `../assets/914872843eaa61eae988d234ac0e095f.jpg`, `../assets/bce0402524962925fab15e08b0684a25.jpg`, the canvas's own images of board MV9. The contour maps of část 2.7 and the fan of část 4 are schematic and say so |
+| Source | `../MVP-SCOPE.md` version 2 at revision `e7afebbd8` (branch `chore/obchodni-model-scope-v2`); the cover names it |
+| PDF | `AIA_MVP-scope_cs.pdf`, A4, 29 pages, 0 browser errors at build |
+| Chapters | `00-cover.html` … `16-otevrena.html`, one HTML fragment each, in reading order: cover; část 1 Rozhodnutí and the analytical contract (1.1) with the two release states; část 2 the eight-step matrix, the review-id mapping (2.9) and one page per step (Zadání, Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova a Zpráva); část 3 Perspektivy (the seven perspectives as a disjoint leaf partition); část 4 Mapa scénářů vah (one scoring structure, score bounds, sensitivity per scenario, the ten lines, the engine renders of version 1); část 5 Odloženo; část 6 Přijetí (the oracle fixtures O-CF and O-INFO, the test table, A1–A6 as the integration check, K1–K6); část 7 Vlny; část 8 Otevřená rozhodnutí |
+| Figures | hand-written inline SVG in the methodology's colours (`--accent`, `--coral`, `--slate`, `--force` and their washes); the three engine renders of část 4 are `../assets/2e28790a9081a1eb434367f29a82c543.jpg`, `../assets/914872843eaa61eae988d234ac0e095f.jpg`, `../assets/bce0402524962925fab15e08b0684a25.jpg`, the canvas's own images of board MV9 as computed for version 1 (two families, Bory 0–380), shown as proof of the engine and labelled so; the recompute follows the next canvas version. The contour maps of část 2.7 are schematic and say so |
 | Styles | `../methodology/style.css` and `../methodology/fonts/` by relative link (nothing copied); `scope.css` adds only the figures' and cards' rules |
 | Build | `build.js`, modelled on `../methodology/build.js` |
 

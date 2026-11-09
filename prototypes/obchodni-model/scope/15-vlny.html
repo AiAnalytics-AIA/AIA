@@ -1,73 +1,75 @@
 <section class="chapter" id="vlny">
   <p class="chapter-label">Část 7</p>
   <h1 data-label="7">Vlny</h1>
-  <p class="lede">Pět vln po dvou týdnech. Každá končí řezem, který běží na souborech ChemVitro: nic placeného, nahrané odpovědi modelů.</p>
+  <p class="lede">Pět vln po dvou týdnech (R2-Q07): tři stavební relace (data a&nbsp;backend; numerické metody; produkt a&nbsp;zpráva), analytická relace na půl úvazku, která nikdy nepíše kód modelu, metodolog jeden den v&nbsp;týdnu. Den relace je implementace s&nbsp;testy a&nbsp;běžným posouzením; čekání na rozhodnutí se nepočítá. <b>97–139 dnů relací celkem; plánuje se na horní mez.</b></p>
   <figure class="full">
-    <svg viewBox="0 0 680 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pět vln po dvou týdnech, jejich kusy plánu a řez na konci každé">
-      <!-- weeks axis: week w at x = 150 + (w-1)*53 ; 10 weeks -> 150..627 -->
+    <svg viewBox="0 0 680 384" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pět vln po dvou týdnech, jejich kusy plánu s dny relací a řez na konci každé">
       <g font-size="9.5" fill="#44484e" class="mono">
         <text x="176" y="12" text-anchor="middle">týden 1–2</text><text x="282" y="12" text-anchor="middle">3–4</text><text x="388" y="12" text-anchor="middle">5–6</text><text x="494" y="12" text-anchor="middle">7–8</text><text x="600" y="12" text-anchor="middle">9–10</text>
       </g>
-      <g stroke="#c6c4be" stroke-width="0.5"><line x1="150" y1="18" x2="150" y2="346"/><line x1="256" y1="18" x2="256" y2="346"/><line x1="362" y1="18" x2="362" y2="346"/><line x1="468" y1="18" x2="468" y2="346"/><line x1="574" y1="18" x2="574" y2="346"/><line x1="680" y1="18" x2="680" y2="346"/></g>
+      <g stroke="#c6c4be" stroke-width="0.5"><line x1="150" y1="18" x2="150" y2="366"/><line x1="256" y1="18" x2="256" y2="366"/><line x1="362" y1="18" x2="362" y2="366"/><line x1="468" y1="18" x2="468" y2="366"/><line x1="574" y1="18" x2="574" y2="366"/><line x1="680" y1="18" x2="680" y2="366"/></g>
       <!-- W1 -->
       <g font-size="10">
-        <text x="0" y="36" font-weight="600" fill="#0f1216">W1 · Zadání a Data</text>
-        <rect x="150" y="24" width="106" height="16" rx="3" fill="#0d5279"/>
-        <text x="0" y="52" fill="#44484e">decision-brief DB0 DB3 <tspan fill="#0d5279" font-weight="600">DB3b</tspan></text>
-        <text x="0" y="63" fill="#44484e">client-data 2 2a 3 3a 3b 10</text><text x="0" y="74" fill="#0d5279" font-weight="600">13</text>
-        <text x="14" y="74" fill="#44484e">· cost-model CR1 <tspan fill="#0d5279" font-weight="600">CR1b</tspan></text>
-        <text x="160" y="52" fill="#0f1216">řez: brief ChemVitro se čtyřmi podmínkami a záznamem výkladu;</text>
-        <text x="160" y="63" fill="#0f1216">18 souborů pod přijatými smlouvami; nálezy, které umí kód (kg × t,</text>
-        <text x="160" y="74" fill="#0f1216">duplicita, řádek v USD, kapacita 91 kt, cenové roky);</text>
-        <text x="160" y="85" fill="#0f1216">rozsah EPC po lokalitách</text>
+        <text x="0" y="36" font-weight="600" fill="#0f1216">W1 · Smlouvy a Data</text>
+        <rect x="150" y="24" width="106" height="16" rx="3" fill="#0d5279"/><text x="203" y="36" font-size="9" fill="#fff" text-anchor="middle">21–30 dnů</text>
+        <text x="0" y="52" fill="#44484e"><tspan fill="#0d5279" font-weight="600">CR0 CR10b DB3b</tspan> CP3 FND1</text>
+        <text x="0" y="63" fill="#44484e">client-data 2–3b, 10</text>
+        <text x="0" y="74" fill="#44484e"><tspan fill="#0d5279" font-weight="600">CP1b</tspan> · SYS9 · FND0 FND2</text>
+        <text x="160" y="52" fill="#0f1216">řez: smlouvy a orákl přijaty; výklad investice potvrzen ve fixture, nebo</text>
+        <text x="160" y="63" fill="#0f1216">označen jako nerozlišený; smlouva a úplná kopie nákupního souboru fungují;</text>
+        <text x="160" y="74" fill="#0f1216">kostra osmi kroků a rozhraní důkazů existují; engine vyzkoušen na obou</text>
+        <text x="160" y="85" fill="#0f1216">obchodních maticích hned</text>
       </g>
       <!-- W2 -->
       <g font-size="10">
-        <text x="0" y="98" font-weight="600" fill="#0f1216">W2 · Předpoklady a Model</text>
-        <rect x="256" y="86" width="106" height="16" rx="3" fill="#0d5279"/>
-        <text x="0" y="114" fill="#44484e">cost-model CP1 CP2 CP3 CP5 CP6</text>
-        <text x="0" y="125" fill="#44484e">CM7 <tspan fill="#0d5279" font-weight="600">CM8</tspan> CR2 · FIN1 FIN2</text>
-        <text x="0" y="136" fill="#44484e">client-data 11 5</text>
-        <text x="266" y="118" fill="#0f1216">řez: T9 jako data s rozsahy, zdroji a ručiteli; základní případ:</text>
-        <text x="266" y="129" fill="#0f1216">T4 (finance), T5 (investice po položkách), T6 (náklad na tunu 2032)</text>
-        <text x="266" y="140" fill="#0f1216">v rámci zaokrouhlení vzoru</text>
+        <text x="0" y="104" font-weight="600" fill="#0f1216">W2 · Vstupy a Model</text>
+        <rect x="256" y="92" width="106" height="16" rx="3" fill="#0d5279"/><text x="309" y="104" font-size="9" fill="#fff" text-anchor="middle">21–30 dnů</text>
+        <text x="0" y="120" fill="#44484e"><tspan fill="#0d5279" font-weight="600">13</tspan> · CP4 11 <tspan fill="#0d5279" font-weight="600">CR3b</tspan></text>
+        <text x="0" y="131" fill="#44484e"><tspan fill="#0d5279" font-weight="600">CP1b</tspan> dokončení · CP5 CP6</text>
+        <text x="0" y="142" fill="#44484e"><tspan fill="#0d5279" font-weight="600">CM8</tspan> 7–10 dnů</text>
+        <text x="266" y="120" fill="#0f1216">řez: použité zdroje sladěny; model čte připnuté vazby;</text>
+        <text x="266" y="131" fill="#0f1216">výroba, nákupy a kniha investic sedí na kontrolní</text>
+        <text x="266" y="142" fill="#0f1216">body orákla</text>
       </g>
       <!-- W3 -->
       <g font-size="10">
-        <text x="0" y="160" font-weight="600" fill="#0f1216">W3 · Budoucnosti a Rozhodnutí</text>
-        <rect x="362" y="148" width="106" height="16" rx="3" fill="#0d5279"/>
-        <text x="0" y="176" fill="#44484e">cost-model CR3 <tspan fill="#0d5279" font-weight="600">CR3b</tspan> CP10 CR7 <tspan fill="#0d5279" font-weight="600">CR7b</tspan></text>
-        <text x="0" y="187" fill="#44484e">CM2 CR4 <tspan fill="#0d5279" font-weight="600">CM9</tspan> · DRV1 DRV2 DRV3</text>
-        <text x="0" y="198" fill="#44484e">legal-context LGL1–3 (vedle, nebrzdí)</text>
-        <text x="372" y="180" fill="#0f1216">řez: 20 000 budoucností pod semínkem 20270201;</text>
-        <text x="372" y="191" fill="#0f1216">T1–T3 a verdikt při třech sazbách; hranice; odklady</text>
-        <text x="372" y="202" fill="#0f1216">a nábor; tornádo a body zvratu; Harmonogram;</text>
-        <text x="372" y="213" fill="#0f1216">veřejné vstupy typované, prozatímní</text>
+        <text x="0" y="170" font-weight="600" fill="#0f1216">W3 · Budoucnosti a Rozhodnutí</text>
+        <rect x="362" y="158" width="106" height="16" rx="3" fill="#0d5279"/><text x="415" y="170" font-size="9" fill="#fff" text-anchor="middle">18–26 dnů</text>
+        <text x="0" y="186" fill="#44484e">CM7 FIN1 FIN2 · CR3 (kopule)</text>
+        <text x="0" y="197" fill="#44484e">CR7 <tspan fill="#0d5279" font-weight="600">CR7b</tspan> · CM2 · CP9 první</text>
+        <text x="372" y="186" fill="#0f1216">řez: ekvivalenty T1–T6 a rozdělení časů při</text>
+        <text x="372" y="197" fill="#0f1216">třech sazbách; každé rozhodující srovnání</text>
+        <text x="372" y="208" fill="#0f1216">rozlišeno, nebo vytištěno jako nerozlišené;</text>
+        <text x="372" y="219" fill="#0f1216">zátěže: cena, odklad, nábor, závislost</text>
       </g>
       <!-- W4 -->
       <g font-size="10">
-        <text x="0" y="232" font-weight="600" fill="#0f1216">W4 · Informace a mapy</text>
-        <rect x="468" y="220" width="106" height="16" rx="3" fill="#0d5279"/>
-        <text x="0" y="248" fill="#44484e">cost-model CR6 <tspan fill="#0d5279" font-weight="600">CR6b</tspan> CS1 CS5</text>
-        <text x="0" y="259" fill="#44484e">sociomapa SYS9 <tspan fill="#0d5279" font-weight="600">SYS9b SYS13</tspan> SYS12</text>
-        <text x="0" y="270" fill="#44484e">findings FND0 FND2 FND3 FND4 FND5</text>
-        <text x="478" y="252" fill="#0f1216">řez: hodnota informace pro pravidlo</text>
-        <text x="478" y="263" fill="#0f1216">a EVPPI s tabulkou dotazů; mapa</text>
-        <text x="478" y="274" fill="#0f1216">budoucností s T7, T8 a zkouškou tří</text>
-        <text x="478" y="285" fill="#0f1216">nastavení; mapa vah; osnova s odkazy</text>
+        <text x="0" y="238" font-weight="600" fill="#0f1216">W4 · Informace a mapy</text>
+        <rect x="468" y="226" width="106" height="16" rx="3" fill="#0d5279"/><text x="521" y="238" font-size="9" fill="#fff" text-anchor="middle">20–28 dnů</text>
+        <text x="0" y="254" fill="#44484e">CR6 <tspan fill="#0d5279" font-weight="600">CR6b</tspan> · <tspan fill="#0d5279" font-weight="600">SYS13</tspan> CS1 · CR9</text>
+        <text x="0" y="265" fill="#44484e">SYS9 <tspan fill="#0d5279" font-weight="600">SYS9b</tspan> CS5 dokončení</text>
+        <text x="0" y="276" fill="#44484e">FND3 FND4 FND5 <tspan fill="#0d5279" font-weight="600">CP8b</tspan></text>
+        <text x="478" y="254" fill="#0f1216">řez: informační fixtures procházejí;</text>
+        <text x="478" y="265" fill="#0f1216">T7, T8 a scénáře vah běží; meze skóre</text>
+        <text x="478" y="276" fill="#0f1216">a stav bran vidět; osnova drží jen</text>
+        <text x="478" y="287" fill="#0f1216">rozlišitelné připuštěné nároky</text>
       </g>
       <!-- W5 -->
       <g font-size="10">
-        <text x="0" y="304" font-weight="600" fill="#0f1216">W5 · Zpráva a přijetí</text>
-        <rect x="574" y="292" width="106" height="16" rx="3" fill="#0d5279"/>
-        <text x="0" y="320" fill="#44484e">findings FND8 FND9 <tspan fill="#0d5279" font-weight="600">FND13 FND14</tspan></text>
-        <text x="0" y="331" fill="#44484e">RC1 RC4 · CP8 <tspan fill="#0d5279" font-weight="600">CP8b</tspan> CR9 CP9</text>
-        <text x="0" y="342" fill="#44484e">RD3 · DB2 DB4 DB5</text>
-        <text x="220" y="320" fill="#0f1216">řez: zpráva 2 jako DOCX a PDF ze souborů ChemVitro, každé číslo se stupněm</text>
-        <text x="220" y="331" fill="#0f1216">a zdrojem; posouzení MV8 zapsané; A1–A6 a K1–K6 zkontrolovány;</text>
-        <text x="220" y="342" fill="#0f1216">triáž a návrhy Vedoucího na každém kroku</text>
+        <text x="0" y="310" font-weight="600" fill="#0f1216">W5 · Zpráva a přijetí</text>
+        <rect x="574" y="298" width="106" height="16" rx="3" fill="#0d5279"/><text x="627" y="310" font-size="9" fill="#fff" text-anchor="middle">17–25 dnů</text>
+        <text x="0" y="326" fill="#44484e">CP9 · FND9 <tspan fill="#0d5279" font-weight="600">FND13</tspan> CP8 RD1 RD3</text>
+        <text x="0" y="337" fill="#44484e"><tspan fill="#0d5279" font-weight="600">RD13</tspan> FND8 · MP17 · <tspan fill="#0d5279" font-weight="600">FND14</tspan></text>
+        <text x="230" y="326" fill="#0f1216">řez: nahraná zpráva od začátku do konce, přílohy a PDF; kontroly</text>
+        <text x="230" y="337" fill="#0f1216">zneplatnění a schválení procházejí; nezávislé posouzení určí</text>
+        <text x="230" y="348" fill="#0f1216">způsobilost k vydání: posouzená předběžná zpráva, je-li to odůvodněný stav</text>
       </g>
+      <text x="0" y="364" font-size="9" fill="#44484e" class="mono">KRITICKÁ CESTA: smlouvy, orákl a pravidlo → data a vazby → model toků → společná nejistota a pravidlo →</text><text x="0" y="375" font-size="9" fill="#44484e" class="mono">informace a mapy → připuštěné nároky zprávy → posouzení a vydání</text>
     </svg>
-    <figcaption><b>Pořadí sleduje posudek</b> (smlouvy před katalogem) a&nbsp;závislosti plánu <code>cost-model-study</code>. Tučně modře nové kusy. Typované vstupy a&nbsp;právní cesty běží vedle W3 a&nbsp;nebrzdí ji: veřejný vstup zapsaný ručně jako <i>prozatímní</i> je to, co nese vzor.</figcaption>
+    <figcaption><b>Pořadí sleduje posudek</b> (smlouvy před katalogem) a&nbsp;závislosti plánu <code>cost-model-study</code>. Tučně modře nové kusy. Kostra studie, schéma důkazů a&nbsp;zkouška enginu začínají v&nbsp;prvním týdnu; nerozlišený výklad pravidla blokuje výsledky rozhodnutí, ne inženýrství ani orákl.</figcaption>
   </figure>
+  <div class="cards">
+    <div class="card"><div class="k">Předpoklady vln</div><p>W1: žádný čtecí modul ani algoritmus enginu se nenahrazuje. W2: jeden proces, jedno schéma knihy, omezená ruční extrakce. W3: podepsaná rozdělení a&nbsp;závislost, pevné případy daňové kapacity, body zvratu hledané bisekcí. W4: konečné schválené větve odpovědí, jedna hierarchie nákladů, dva adaptéry, žádný nový algoritmus rozvržení. W5: dnešní renderer DOCX a&nbsp;editor znovu použité, omezená konverze do PDF, jeden cyklus posouzení a&nbsp;oprav.</p></div>
+    <div class="card"><div class="k coral">Zatím neodhadnutelné</div><p>Získání důkazů pro sladění srovnatelných závodů; výzkum pro prázdné perspektivy; chybějící obchodní nebo daňové důkazy; náhrada algoritmu enginu po neúspěšné zkoušce; běh na stropu konvergence (změřit do W2); náprava živého poskytovatele; strukturální přepracování, které si vyžádá posouzení. Každé je pojmenovaná závislost, ne úkol za nula dní.</p></div>
+  </div>
 </section>

@@ -68,7 +68,7 @@ async function render(html, out) {
   const bar = (l, r) => `<div style="width:100%;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:7.5pt;color:#44484e;padding:0 20mm;display:flex;justify-content:space-between;"><span>${l}</span><span>${r}</span></div>`;
   await page.pdf({
     path: out, format: 'A4', printBackground: true, displayHeaderFooter: true,
-    headerTemplate: bar('AIA · Obchodní rozhodnutí · Rozsah MVP', '8. 11. 2026 · návrh, ne kód produktu'),
+    headerTemplate: bar('AIA · Obchodní rozhodnutí · Rozsah MVP', '9. 11. 2026 · návrh, ne kód produktu'),
     footerTemplate: bar('Smyšlený případ. Žádná skutečná firma, obec ani osoba.', 'strana <span class="pageNumber"></span> z <span class="totalPages"></span>'),
     margin: { top: '22mm', bottom: '24mm', left: '20mm', right: '20mm' }, preferCSSPageSize: false,
   });

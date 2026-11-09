@@ -1,660 +1,84 @@
 <section class="chapter" id="mapa-vah">
   <p class="chapter-label">Část 4 · deska MV9</p>
   <h1 data-label="4">Mapa scénářů vah</h1>
-  <p class="lede">Osm lokalit jako objekty, pojmenované vektory vah jako řádky, kolem každého vějíř zkoušených nastavení. Mapa říká, které možnosti vítězí pod stejnými vahami. Je to informace o&nbsp;preferencích, nikdy doporučení.</p>
+  <p class="lede">Osm lokalit jako objekty, pojmenované vektory vah jako scénáře, kolem každého zkoušená nastavení. Jedna struktura skóre pro všechny lokality; rozsah dává dolní a&nbsp;horní mez skóre; podíly se hlásí za scénář, nikdy sloučené. Informace o&nbsp;preferencích, nikdy doporučení.</p>
   <figure class="full">
-    <svg viewBox="0 0 680 306" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dvě rodiny vektorů vah, odmítnutý smíšený vektor, vějíř kolem řádku">
+    <svg viewBox="0 0 680 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Jedna struktura skóre, připuštěný vektor vlastníka, meze skóre pro rozsah, test dělení">
       <defs><marker id="a12" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#44484e"/></marker></defs>
-      <text x="0" y="12" font-size="10" fill="#44484e" class="mono">TŘI ROLE · DVĚ RODINY · KONTROLA PŘEKRYVU</text>
-      <!-- role boxes -->
-      <rect x="0" y="22" width="110" height="46" rx="3" fill="#0d5279"/><text x="55" y="41" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle">úspora · 4</text><text x="55" y="56" font-size="10" fill="#e6eef3" text-anchor="middle">F1 F4 F5 F6</text>
-      <rect x="0" y="78" width="110" height="46" rx="3" fill="#d6efe5" stroke="#1d9a6c" stroke-width="0.5"/><text x="55" y="97" font-size="11.5" font-weight="600" fill="#0f1216" text-anchor="middle">v modelu · 13</text><text x="55" y="112" font-size="9.5" fill="#0f1216" text-anchor="middle">F2 F3 P1–3 L1–4 E1–3 H1</text>
-      <rect x="0" y="134" width="110" height="46" rx="3" fill="#576574"/><text x="55" y="153" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle">mimo model · 3</text><text x="55" y="168" font-size="10" fill="#e6eef3" text-anchor="middle">S1 H2 H3</text>
-      <!-- family a: úspora + mimo -->
-      <path d="M116,45 C150,45 150,100 184,100" stroke="#0d5279" stroke-width="1.5" fill="none"/>
-      <path d="M116,157 C150,157 150,100 184,100" stroke="#576574" stroke-width="1.5" fill="none"/>
-      <rect x="188" y="84" width="118" height="32" rx="3" fill="#f3f1ec"/><text x="247" y="98" font-size="11" font-weight="600" fill="#0f1216" text-anchor="middle">rodina a</text><text x="247" y="110" font-size="10" fill="#44484e" text-anchor="middle">úspora + mimo model</text>
-      <!-- family b: v modelu + mimo -->
-      <path d="M116,101 C150,101 150,150 184,150" stroke="#1d9a6c" stroke-width="1.5" fill="none"/>
-      <path d="M116,160 C150,160 150,150 184,150" stroke="#576574" stroke-width="1.5" fill="none"/>
-      <rect x="188" y="134" width="118" height="32" rx="3" fill="#f3f1ec"/><text x="247" y="148" font-size="11" font-weight="600" fill="#0f1216" text-anchor="middle">rodina b</text><text x="247" y="160" font-size="10" fill="#44484e" text-anchor="middle">v modelu + mimo model</text>
-      <text x="188" y="178" font-size="10" fill="#44484e">v rodině se každý mechanismus</text><text x="188" y="189" font-size="10" fill="#44484e">počítá jednou</text>
-      <!-- refused mix -->
-      <rect x="0" y="200" width="306" height="56" rx="3" fill="#fbe7e6"/>
-      <text x="8" y="215" font-size="10" fill="#971c11" class="mono">ODMÍTNUTO KONTROLOU PŘEKRYVU</text>
-      <text x="8" y="231" font-size="11" font-weight="600" fill="#971c11">„finance 0,5 · provoz 0,3 · logistika 0,2“ přes všechno</text>
-      <text x="8" y="246" font-size="10" fill="#0f1216">váží úsporu (finance) i její části (provoz, doprava): dvakrát totéž</text>
-      <text x="0" y="276" font-size="10" fill="#44484e">odmítnutému vektoru se nabídnou obě rodiny; scénář jmenuje</text>
-      <text x="0" y="288" font-size="10" fill="#44484e">rodinu, skladatele a čas; zapsáno v ledgeru před výsledky (R3)</text>
-      <!-- fan -->
-      <text x="340" y="12" font-size="10" fill="#44484e" class="mono">VĚJÍŘ KOLEM ŘÁDKU · 300 LOSŮ · KONCENTRACE 60</text>
-      <rect x="340" y="22" width="340" height="196" rx="3" fill="#f3f1ec"/>
-      <g><circle cx="469.4" cy="124.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.1" cy="108.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="479.8" cy="114.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.7" cy="118.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.2" cy="128.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="457.7" cy="127.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.6" cy="120.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.2" cy="103.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.9" cy="117.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.3" cy="113.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="454.9" cy="113.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.9" cy="119.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="479.1" cy="120.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.2" cy="117.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.6" cy="122.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="479.3" cy="117.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="487.1" cy="111.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.2" cy="134.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.3" cy="117.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.8" cy="123.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.1" cy="123.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.8" cy="110.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.9" cy="119.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.4" cy="121.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.5" cy="124.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="458.4" cy="117.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="446.8" cy="115.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.4" cy="118.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="480.7" cy="118.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="488.1" cy="115.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.1" cy="128.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.9" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.6" cy="115.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.1" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="485.9" cy="123.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.0" cy="120.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="500.8" cy="111.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.0" cy="118.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.7" cy="121.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="490.5" cy="126.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="459.7" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.2" cy="113.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.3" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.8" cy="130.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="490.3" cy="121.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.5" cy="105.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="478.5" cy="113.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.5" cy="121.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.8" cy="118.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="478.7" cy="130.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.4" cy="112.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.3" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.6" cy="126.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.5" cy="128.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.1" cy="121.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="480.2" cy="129.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.3" cy="109.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.0" cy="123.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.9" cy="114.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.8" cy="130.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.5" cy="117.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="454.4" cy="124.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="484.5" cy="121.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.5" cy="126.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="455.1" cy="123.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.9" cy="109.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.0" cy="115.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="480.2" cy="122.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.2" cy="112.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="461.7" cy="122.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.6" cy="118.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.6" cy="117.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.5" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.0" cy="124.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="483.4" cy="126.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.9" cy="113.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.9" cy="132.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="486.6" cy="114.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="485.9" cy="129.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.9" cy="116.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.9" cy="113.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.7" cy="121.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.9" cy="113.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.7" cy="107.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.6" cy="119.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="490.2" cy="129.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.5" cy="123.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.9" cy="119.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="448.3" cy="118.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.2" cy="119.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.0" cy="120.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.1" cy="119.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.5" cy="119.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="461.8" cy="123.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.3" cy="117.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.4" cy="119.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="461.6" cy="117.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="451.8" cy="122.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.4" cy="124.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.7" cy="124.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.6" cy="119.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="479.1" cy="110.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="481.8" cy="92.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.9" cy="111.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.7" cy="119.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="458.2" cy="118.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.5" cy="117.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="483.5" cy="119.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.8" cy="114.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.6" cy="119.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="483.6" cy="109.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.0" cy="114.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="457.4" cy="127.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.9" cy="119.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.2" cy="122.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.7" cy="114.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.1" cy="122.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.4" cy="112.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="461.8" cy="116.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="453.4" cy="114.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.9" cy="100.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.3" cy="119.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.9" cy="125.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="481.7" cy="107.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="450.0" cy="121.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="477.3" cy="128.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.5" cy="119.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="477.9" cy="125.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.3" cy="118.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.5" cy="116.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.5" cy="116.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.2" cy="119.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="483.1" cy="120.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="480.5" cy="118.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="440.1" cy="127.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.9" cy="118.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.2" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.2" cy="120.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.6" cy="127.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.1" cy="119.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="452.4" cy="114.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.7" cy="121.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.0" cy="119.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.3" cy="119.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.6" cy="115.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.8" cy="110.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.8" cy="116.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.9" cy="113.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.7" cy="122.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="478.0" cy="129.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.2" cy="116.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.0" cy="119.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.3" cy="124.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="462.4" cy="120.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.2" cy="120.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.0" cy="114.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.5" cy="118.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="455.7" cy="133.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.6" cy="117.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.4" cy="112.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="479.3" cy="116.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.7" cy="116.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.6" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="459.7" cy="115.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.1" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.9" cy="121.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="488.0" cy="111.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="448.7" cy="114.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.6" cy="117.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="486.1" cy="117.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="494.6" cy="129.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.7" cy="120.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.9" cy="119.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.9" cy="129.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.5" cy="126.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.7" cy="121.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.8" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="501.0" cy="116.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.6" cy="121.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="457.6" cy="131.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.3" cy="120.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.7" cy="114.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="462.5" cy="127.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.2" cy="119.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.8" cy="115.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.0" cy="115.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="485.4" cy="106.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.3" cy="116.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.7" cy="120.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="445.9" cy="134.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.4" cy="119.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.7" cy="126.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.7" cy="134.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.2" cy="133.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.9" cy="101.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.3" cy="122.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.7" cy="125.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.5" cy="133.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.0" cy="116.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="461.4" cy="121.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="462.2" cy="128.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="487.2" cy="110.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.7" cy="120.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.4" cy="118.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="477.6" cy="115.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.6" cy="119.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="457.7" cy="125.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.3" cy="129.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.8" cy="117.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.9" cy="122.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="485.0" cy="126.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.5" cy="121.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.7" cy="122.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="456.1" cy="124.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.5" cy="113.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="454.7" cy="107.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.3" cy="124.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.2" cy="127.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.3" cy="129.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.0" cy="117.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="488.5" cy="110.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.2" cy="111.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.0" cy="133.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="454.9" cy="125.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.7" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.8" cy="115.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="481.3" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="483.0" cy="124.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="455.1" cy="100.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.2" cy="117.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.7" cy="118.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="474.9" cy="118.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.0" cy="118.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.3" cy="124.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.5" cy="121.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="471.6" cy="109.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="462.0" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.1" cy="118.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="492.2" cy="121.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.7" cy="115.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.0" cy="121.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.7" cy="127.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.7" cy="116.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="453.4" cy="133.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="459.4" cy="127.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="489.2" cy="120.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.0" cy="139.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.6" cy="121.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="458.1" cy="136.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.9" cy="119.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.0" cy="119.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.3" cy="126.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="484.2" cy="111.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.0" cy="116.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.8" cy="119.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="453.6" cy="121.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.5" cy="119.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.5" cy="117.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.8" cy="115.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.1" cy="111.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.9" cy="120.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="457.3" cy="133.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.4" cy="121.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.9" cy="132.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="478.2" cy="123.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="468.2" cy="129.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.2" cy="113.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.0" cy="129.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="489.7" cy="130.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.8" cy="118.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="463.8" cy="117.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.6" cy="120.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="464.1" cy="118.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.4" cy="118.6" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.5" cy="124.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="450.3" cy="121.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.0" cy="120.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="460.2" cy="113.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="486.4" cy="107.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="462.8" cy="101.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.2" cy="130.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="467.3" cy="114.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.4" cy="113.4" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.1" cy="130.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="454.1" cy="130.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="475.8" cy="126.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.6" cy="120.7" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="477.7" cy="128.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="466.6" cy="124.9" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="465.6" cy="122.0" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="450.4" cy="140.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.5" cy="118.5" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="480.3" cy="116.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="483.8" cy="122.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="469.7" cy="120.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="476.9" cy="123.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="470.1" cy="120.1" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="472.2" cy="118.8" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="473.5" cy="117.3" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="462.2" cy="124.2" r="1.1" fill="#0d5279" opacity="0.45"/>
-<circle cx="552.2" cy="178.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.6" cy="162.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="547.3" cy="167.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.8" cy="172.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.6" cy="172.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="546.7" cy="173.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="536.0" cy="178.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.4" cy="190.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.2" cy="164.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="576.4" cy="173.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.6" cy="175.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.6" cy="170.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.0" cy="174.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.8" cy="151.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="579.5" cy="169.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="575.7" cy="176.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="573.8" cy="169.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.3" cy="171.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="578.3" cy="166.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.5" cy="163.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="550.3" cy="164.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.1" cy="170.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.4" cy="168.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.0" cy="177.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="576.3" cy="177.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="550.6" cy="171.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.4" cy="168.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="536.1" cy="169.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.6" cy="169.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.6" cy="176.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="556.6" cy="159.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.3" cy="172.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.8" cy="170.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.3" cy="167.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="578.7" cy="173.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="541.5" cy="167.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.9" cy="171.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.2" cy="189.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.8" cy="164.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.3" cy="168.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.0" cy="166.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.2" cy="172.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="580.9" cy="165.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.5" cy="170.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.4" cy="173.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="567.7" cy="171.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="580.8" cy="161.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.2" cy="172.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.6" cy="182.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.8" cy="169.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.3" cy="173.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.3" cy="167.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="572.0" cy="174.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.4" cy="166.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="566.1" cy="176.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="574.5" cy="159.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="575.1" cy="166.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.0" cy="169.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.6" cy="169.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.1" cy="173.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="548.1" cy="182.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.0" cy="177.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.9" cy="169.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.6" cy="167.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="547.2" cy="171.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.4" cy="164.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.5" cy="166.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.2" cy="158.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.2" cy="180.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.3" cy="169.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.2" cy="171.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.0" cy="179.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="569.7" cy="171.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.0" cy="183.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.1" cy="166.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.4" cy="173.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.0" cy="168.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="572.7" cy="154.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="580.2" cy="157.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.5" cy="179.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.8" cy="166.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.3" cy="171.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.0" cy="170.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.3" cy="163.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.2" cy="167.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.5" cy="172.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.9" cy="170.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.0" cy="168.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.6" cy="165.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.5" cy="169.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="556.2" cy="173.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.3" cy="178.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.9" cy="169.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.1" cy="174.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.7" cy="175.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="574.3" cy="169.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.5" cy="176.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="556.3" cy="172.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.4" cy="166.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="574.6" cy="167.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="567.9" cy="167.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="569.4" cy="180.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.2" cy="160.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.2" cy="164.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="569.8" cy="174.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="536.1" cy="165.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.8" cy="161.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.8" cy="169.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.3" cy="169.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.3" cy="164.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="556.7" cy="171.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="572.9" cy="182.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.5" cy="163.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.9" cy="149.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.7" cy="181.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.6" cy="163.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="548.8" cy="177.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="581.1" cy="175.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.1" cy="174.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.2" cy="171.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.1" cy="181.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.1" cy="163.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.9" cy="174.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="571.8" cy="174.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.8" cy="174.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="575.6" cy="157.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.2" cy="167.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.2" cy="176.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.8" cy="180.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.4" cy="174.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.4" cy="166.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.7" cy="172.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.3" cy="169.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="547.5" cy="173.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.0" cy="163.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.3" cy="170.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.3" cy="174.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="577.7" cy="153.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.4" cy="170.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.1" cy="173.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="576.9" cy="165.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.3" cy="170.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.2" cy="171.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.1" cy="173.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="566.1" cy="169.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.8" cy="167.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="547.9" cy="170.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.5" cy="168.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.4" cy="168.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.8" cy="174.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.6" cy="167.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.6" cy="171.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.5" cy="184.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.4" cy="168.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="550.7" cy="164.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.3" cy="168.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="576.2" cy="176.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="579.2" cy="179.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.9" cy="169.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.1" cy="171.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.6" cy="170.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.7" cy="179.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.7" cy="162.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.1" cy="167.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="546.9" cy="156.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="536.9" cy="161.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.8" cy="168.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.8" cy="169.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.9" cy="175.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.0" cy="162.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.5" cy="161.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.1" cy="168.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.2" cy="186.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.1" cy="170.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.6" cy="166.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.7" cy="168.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.0" cy="169.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.1" cy="152.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.1" cy="174.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.5" cy="175.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.6" cy="177.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="550.6" cy="166.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.7" cy="145.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.8" cy="182.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.8" cy="179.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="572.4" cy="178.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="571.7" cy="161.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="547.2" cy="171.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.2" cy="173.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.9" cy="170.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="574.1" cy="177.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.9" cy="172.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="574.4" cy="168.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.1" cy="168.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.2" cy="169.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.0" cy="170.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="548.2" cy="167.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.3" cy="169.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.1" cy="170.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="546.4" cy="179.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.1" cy="170.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="574.7" cy="154.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.4" cy="157.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.1" cy="171.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.3" cy="170.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.5" cy="170.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.5" cy="169.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.0" cy="158.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="542.0" cy="166.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="579.8" cy="168.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.5" cy="174.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="565.3" cy="177.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.3" cy="165.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="566.9" cy="162.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="535.7" cy="163.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="566.7" cy="176.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.1" cy="164.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="556.9" cy="150.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="569.3" cy="168.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="539.8" cy="162.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="571.0" cy="170.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.6" cy="168.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.4" cy="165.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="550.0" cy="165.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="575.1" cy="176.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="577.4" cy="178.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.0" cy="165.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.6" cy="168.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="572.9" cy="166.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="566.7" cy="164.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="576.5" cy="175.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.4" cy="159.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="573.6" cy="165.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="570.8" cy="163.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.0" cy="170.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.6" cy="175.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="544.3" cy="160.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="567.1" cy="169.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.6" cy="158.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.2" cy="170.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.6" cy="170.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="568.4" cy="180.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="570.7" cy="162.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.5" cy="168.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.5" cy="166.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.2" cy="175.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.8" cy="178.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.8" cy="168.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.2" cy="157.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="570.9" cy="177.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.4" cy="171.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="553.9" cy="168.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.7" cy="169.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.8" cy="167.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.3" cy="155.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.1" cy="168.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.9" cy="168.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.3" cy="157.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.8" cy="163.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="564.4" cy="172.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="541.3" cy="156.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.7" cy="168.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.6" cy="177.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.1" cy="173.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="557.4" cy="171.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="543.8" cy="172.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.1" cy="170.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.4" cy="167.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.4" cy="169.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.7" cy="170.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.3" cy="176.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.6" cy="171.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="549.4" cy="161.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="551.2" cy="180.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.6" cy="169.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="554.7" cy="170.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="558.6" cy="165.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.0" cy="167.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.1" cy="159.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.4" cy="167.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.2" cy="172.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.0" cy="171.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="563.5" cy="167.5" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="555.4" cy="174.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.9" cy="166.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="560.3" cy="171.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="546.9" cy="168.1" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="571.7" cy="165.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="561.7" cy="171.3" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="567.0" cy="169.2" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="552.0" cy="175.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="567.8" cy="176.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="556.5" cy="167.6" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="562.4" cy="163.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.3" cy="171.8" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="548.4" cy="158.7" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.8" cy="156.9" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="571.4" cy="176.0" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="559.7" cy="169.4" r="1.1" fill="#576574" opacity="0.45"/>
-<circle cx="566.3" cy="166.6" r="1.1" fill="#576574" opacity="0.45"/></g>
-      <circle cx="470" cy="120" r="4" fill="#0d5279"/><text x="478" y="116" font-size="10.5" font-weight="600" fill="#0d5279">řádek rodiny a</text><text x="478" y="128" font-size="9.5" fill="#44484e">např. pod vahami finanční ředitelky</text>
-      <circle cx="560" cy="170" r="4" fill="#576574"/><text x="560" y="200" font-size="10.5" font-weight="600" fill="#576574" text-anchor="middle">„LOG · b“</text><text x="560" y="211" font-size="9.5" fill="#44484e" text-anchor="middle">logistika 0,3 · provoz 0,5 · finance 0,2</text>
-      <text x="348" y="38" font-size="10" fill="#44484e">každý bod je jedno zkoušené nastavení vah;</text>
-      <text x="348" y="50" font-size="10" fill="#44484e">schéma, ne data</text>
-      <text x="340" y="228" font-size="10.5" fill="#0f1216">mapa tiskne <tspan font-weight="600">„podíl testovaných nastavení,</tspan></text>
-      <text x="340" y="241" font-size="10.5" fill="#0f1216"><tspan font-weight="600">v nichž je možnost první“</tspan>, nikdy pravděpodobnost</text>
-      <text x="340" y="254" font-size="10" fill="#44484e">vějíř je nastavení citlivosti, ne pravděpodobnost (R4)</text>
-      <text x="340" y="272" font-size="10.5" fill="#0f1216">buňka = vážené skóre: součást na škále 0–10, váha</text>
-      <text x="340" y="285" font-size="10.5" fill="#0f1216">perspektivy sdílená jejími součástmi; rozsah zůstává rozsahem</text>
-      <text x="340" y="298" font-size="10" fill="#44484e">brány stojí vedle mapy: prošla / neprošla / neznámo, nikdy uvnitř (R2)</text>
+      <!-- left: scoring -->
+      <text x="0" y="12" font-size="10" fill="#44484e" class="mono">JEDNA STRUKTURA SKÓRE · PRO VŠECH OSM LOKALIT</text>
+      <text x="0" y="36" font-size="12.5" fill="#0f1216">skóre(lokalita) = Σ<tspan baseline-shift="sub" font-size="8">p</tspan> w<tspan baseline-shift="sub" font-size="8">p</tspan> · v<tspan baseline-shift="sub" font-size="8">p</tspan>(náklad<tspan baseline-shift="sub" font-size="8">p</tspan>)</text>
+      <text x="0" y="52" font-size="9" fill="#44484e">náklad = diskontovaný součet listů perspektivy</text><text x="0" y="62" font-size="9" fill="#44484e">v = hodnotová funkce 0–10 na pevných kotvách · w = váhy (swing)</text>
+      <!-- value function sketch -->
+      <g>
+        <line x1="0" y1="140" x2="150" y2="140" stroke="#44484e" stroke-width="0.8"/><line x1="0" y1="140" x2="0" y2="76" stroke="#44484e" stroke-width="0.8"/>
+        <path d="M6,80 L144,136" stroke="#0d5279" stroke-width="1.5" fill="none"/>
+        <text x="8" y="84" font-size="8.5" fill="#44484e">10</text><text x="8" y="137" font-size="8.5" fill="#44484e">0</text>
+        <text x="0" y="150" font-size="8.5" fill="#44484e">kotva nejlepší</text><text x="150" y="150" font-size="8.5" fill="#44484e" text-anchor="end">nejhorší</text>
+        <text x="75" y="161" font-size="8.5" fill="#44484e" text-anchor="middle">náklad perspektivy →</text>
+        <text x="48" y="112" font-size="8.5" fill="#971c11">mimo kotvy: posouzení,</text><text x="48" y="122" font-size="8.5" fill="#971c11">ne tiché oříznutí</text>
+      </g>
+      <!-- owner's vector -->
+      <text x="180" y="78" font-size="10" fill="#44484e" class="mono">PŘÍKLAD VLASTNÍKA · PŘIPUŠTĚN</text>
+      <rect x="180" y="86" width="56" height="24" rx="3" fill="#0d5279"/><text x="208" y="102" font-size="11" fill="#fff" text-anchor="middle">0,20</text>
+      <rect x="240" y="86" width="56" height="24" rx="3" fill="#1d9a6c"/><text x="268" y="102" font-size="11" fill="#fff" text-anchor="middle">0,50</text>
+      <rect x="300" y="86" width="56" height="24" rx="3" fill="#576574"/><text x="328" y="102" font-size="11" fill="#fff" text-anchor="middle">0,30</text>
+      <text x="180" y="124" font-size="9" fill="#44484e">finance · provoz · logistika</text><text x="180" y="135" font-size="9" fill="#44484e">ostatní čtyři perspektivy 0</text>
+      <text x="180" y="146" font-size="9" fill="#44484e">„finance“ = disjunktní díl, ne NPV</text>
+      <rect x="180" y="152" width="160" height="18" rx="3" fill="none" stroke="#0d5279" stroke-width="0.8"/><text x="260" y="165" font-size="9" fill="#0d5279" text-anchor="middle">úspora NPV vedle, nevážená</text>
+      <!-- right: range -> bounds -->
+      <text x="390" y="12" font-size="10" fill="#44484e" class="mono">ROZSAH DÁVÁ DVĚ MEZE SKÓRE</text>
+      <g font-size="9.5" fill="#0f1216">
+        <text x="390" y="36">Odrzyca · vlečka 1,9–2,8 mil. EUR/km</text>
+        <rect x="390" y="42" width="290" height="10" rx="2" fill="#f3f1ec"/>
+        <rect x="470" y="42" width="120" height="10" rx="2" fill="#cfe0ea"/>
+        <text x="470" y="64" font-size="8.5" fill="#44484e">dolní mez (drahý konec)</text><text x="590" y="64" font-size="8.5" fill="#44484e" text-anchor="start">   horní mez (levný konec)</text>
+        <text x="390" y="86">Kamenec · bez rozsahu</text>
+        <rect x="390" y="92" width="290" height="10" rx="2" fill="#f3f1ec"/>
+        <rect x="552" y="92" width="3" height="10" fill="#0d5279"/>
+        <text x="390" y="118" font-size="9" fill="#44484e">robustní vedení: kladná dolní mez rozdílu proti každému</text>
+        <text x="390" y="130" font-size="9" fill="#44484e">soupeři přes všechny neznámé zároveň; překryv = nestanoveno</text>
+        <text x="390" y="150" font-size="9" fill="#971c11">ani minimum nákladu, ani střed nenahrazují chybějící fakt</text>
+      </g>
+      <!-- bottom: splitting test & sensitivity & shares -->
+      <line x1="0" y1="170" x2="680" y2="170" stroke="#e3e8ee" stroke-width="0.5"/>
+      <text x="0" y="188" font-size="10" fill="#44484e" class="mono">TEST DĚLENÍ</text>
+      <rect x="0" y="196" width="104" height="20" rx="3" fill="#576574"/><text x="52" y="210" font-size="9.5" fill="#fff" text-anchor="middle">doprava 7,0</text>
+      <line x1="108" y1="206" x2="124" y2="206" stroke="#44484e" stroke-width="0.8" marker-end="url(#a12)"/>
+      <rect x="128" y="196" width="52" height="20" rx="3" fill="#576574"/><text x="154" y="210" font-size="9.5" fill="#fff" text-anchor="middle">žel. 4,5</text>
+      <rect x="184" y="196" width="52" height="20" rx="3" fill="#576574"/><text x="210" y="210" font-size="9.5" fill="#fff" text-anchor="middle">sil. 2,5</text>
+      <text x="0" y="232" font-size="9" fill="#44484e">součet perspektivy, skóre i pořadí beze změny;</text>
+      <text x="0" y="243" font-size="9" fill="#44484e">rodič vedle dětí neprojde připuštěním</text>
+      <text x="260" y="188" font-size="10" fill="#44484e" class="mono">CITLIVOST ZA SCÉNÁŘ</text>
+      <text x="260" y="204" font-size="9.5" fill="#0f1216">střed · vějíře Dirichlet 20 / 60 / 180 × 300 nastavení</text>
+      <text x="260" y="216" font-size="9.5" fill="#0f1216">řízené přesuny vah · mřížka simplexu · jiné škály</text>
+      <text x="260" y="228" font-size="9.5" fill="#0f1216">meze důkazů · společné zátěžové případy</text>
+      <text x="260" y="243" font-size="9" fill="#44484e">nastavení citlivosti, nikdy pravděpodobnost (R4)</text>
+      <text x="500" y="188" font-size="10" fill="#44484e" class="mono">PODÍLY · ZA SCÉNÁŘ</text>
+      <rect x="500" y="196" width="108" height="12" rx="2" fill="#0d5279"/><rect x="608" y="196" width="40" height="12" rx="2" fill="#c6c4be"/><rect x="648" y="196" width="32" height="12" rx="2" fill="#fbe7e6" stroke="#971c11" stroke-width="0.5"/>
+      <text x="500" y="222" font-size="8.5" fill="#44484e">první · remíza · nerozlišeno = 100 %</text>
+      <text x="500" y="234" font-size="8.5" fill="#44484e">nikdy sloučené přes scénáře do jedné</text>
+      <text x="500" y="245" font-size="8.5" fill="#44484e">„popularity“</text>
+      <line x1="0" y1="258" x2="680" y2="258" stroke="#e3e8ee" stroke-width="0.5"/>
+      <text x="0" y="276" font-size="10" fill="#44484e" class="mono">POHLED MAPY</text>
+      <text x="0" y="292" font-size="9.5" fill="#0f1216">řádky = zkoušená nastavení · objekty = osm lokalit · výška = zvolené nastavení · blízkost = podobná odezva skóre, nic víc</text>
+      <text x="0" y="306" font-size="9.5" fill="#0f1216">stav bran vedle každé lokality · verdikt pravidla ve vlastním panelu · žádné štítky respondentů, spolehlivé dvojice ani segmenty</text>
     </svg>
-    <figcaption><b>Rodiny a&nbsp;vějíř.</b> Kontrola překryvu čte role z&nbsp;části&nbsp;3: vektor, který váží úsporu spolu s&nbsp;některou její částí, je odmítnut jménem a&nbsp;nabídnuty mu jsou obě rodiny. Vějíř je schéma; řádek „LOG · b“ je vektor z&nbsp;briefu vlastníka, čtený jako rodina (b).</figcaption>
+    <figcaption><b>Jedna struktura, dvě meze, test dělení.</b> Dvě rodiny vektorů z&nbsp;verze&nbsp;1 nahradilo disjunktní rozdělení z&nbsp;části&nbsp;3: překryv není možný konstrukcí, dělení řádku nic nemění, lokalita nikdy neztrácí váhu. Rozsah nákladu dává dvě meze skóre se správným směrem; mapa ukazuje oba pohledy a&nbsp;interval.</figcaption>
   </figure>
   <h2 data-label="4.1" id="deset">Smlouva mapy v&nbsp;deseti řádcích</h2>
   <div class="two" style="font-size:9pt">
     <ol>
       <li><b>Objekty</b> jsou možnosti: osm lokalit. Nákup je reference pravidla, ne objekt.</li>
-      <li><b>Řádky</b> jsou pojmenované vektory vah nad perspektivami, každý se svou rodinou, složené výzkumníkem nebo lidmi klienta; kdo a&nbsp;kdy, zapsané v&nbsp;ledgeru před výsledky, které skladatel neviděl (swing weighting, R3).</li>
-      <li><b>Vějíř</b> kolem řádku je k&nbsp;perturbovaných vektorů z&nbsp;deklarované koncentrace (MV9: 300 losů, koncentrace 60, semínko); nastavení citlivosti, nikdy pravděpodobnost (R4).</li>
-      <li><b>Buňka</b> je vážené skóre možnosti: každá součást na deklarovaných kotvách a&nbsp;směru (0–10, lineárně, oříznuto; <code>cost-model-study#CS1</code>), váha perspektivy sdílená rovným dílem jejími připuštěnými součástmi, brány mimo mapu jako prošla / neprošla / neznámo pod pojmenovaným nastavením bran (R2).</li>
-      <li><b>Rozsah zůstává rozsahem:</b> buňka je interval, mapa se kreslí na doloženém minimu a&nbsp;řádek říká, co by změnil horní konec; prázdná součást nebere váhu (R2).</li>
-      <li><b>Kontrola překryvu</b> čte role: vektor, který váží úsporu spolu s&nbsp;její částí, je odmítnut jménem a&nbsp;nabídnuty jsou obě rodiny. V&nbsp;rodině se každý mechanismus počítá jednou.</li>
-      <li><b>Výška</b> je vážené skóre pod scénářem, který čtenář zvolí; relativní (centrované po řádku) a&nbsp;absolutní čtení vedle sebe, jako smlouva MV3 pro režim scénářů (R5).</li>
-      <li><b>Rozvržení</b> je enginu <code>aia-sociomap-5</code> nad tabulkou řádky × objekty, jak ho prototyp už běží (<code>tools/engine_maps.py</code>); párové statistiky se nečtou, protože řádky jsou nastavení, která jsme zvolili (MV3). Možnosti blízko sebe vítězí pod stejnými vahami.</li>
-      <li><b>Odděleně od mapy budoucností.</b> Její řádky jsou losy modelu; řádky této mapy jsou preference. Stojí vedle sebe a&nbsp;nikdy se neslučují.</li>
-      <li><b>Kam patří.</b> Mapa je informace o&nbsp;preferencích. Do zprávy vstupuje pod „Co by závěr změnilo“, nikdy do doporučení; rozhoduje pravidlo klienta (R3). Metoda má vlastní zápis v&nbsp;registru Metodiky (<code>sociomapa-systemu#SYS12</code>), interní, dokud ji metodik neschválí, všude označená <i>metoda čeká na schválení metodikem</i>.</li>
+      <li><b>Scénáře</b> jsou pojmenované vektory vah nad sedmi perspektivami, složené výzkumníkem z&nbsp;toho, co lidé klienta schválili (R2-Q06); kdo a&nbsp;kdy, zapsané v&nbsp;ledgeru před výsledky, které skladatel neviděl (swing weighting, R3). Příklad vlastníka: 0,20 finance · 0,50 provoz · 0,30 logistika, připuštěn.</li>
+      <li><b>Jedna struktura skóre pro každou lokalitu:</b> skóre = Σ w(p) · v(p, náklad(lokalita, p)); náklad je diskontovaný součet listů perspektivy, v&nbsp;její hodnotová funkce na pevných kotvách 0–10, schválená spolu s&nbsp;vahami dřív, než se ukáže skóre lokality (<code>cost-model-study#CS1</code>). Hodnota mimo kotvy znamená posouzení, ne tiché oříznutí. Jeden vektor vah pro všechny; globálně neaktivní perspektiva má váhu 0 všude.</li>
+      <li><b>Rozsah drží směr:</b> rozsah nákladu dává dolní a&nbsp;horní mez skóre; ani minimum nákladu, ani střed nenahrazují chybějící fakt. Tabulka ukazuje oba pohledy a&nbsp;interval, označené jako meze, ne jako společně možné budoucnosti.</li>
+      <li><b>Robustní vedení</b> potřebuje kladnou dolní mez rozdílu skóre proti každému soupeři přes všechny připuštěné neznámé zároveň; překrývající se intervaly znamenají, že vedení stanoveno není, a&nbsp;mapa to říká.</li>
+      <li><b>Citlivost</b> za pojmenovaný scénář: schválený střed; vějíře Dirichlet s&nbsp;koncentrací 20, 60 a&nbsp;180 po 300 nastaveních, jen na kladných souřadnicích, výslovné nuly zachovány; řízené přesuny vah a&nbsp;mřížka simplexu, kde je to zvládnutelné; schválené jiné škály a&nbsp;nejisté přiřazení nákladů; meze důkazů a&nbsp;soudržné společné zátěže. Výsledky za scénář, vějíř a&nbsp;nastavení; podíly první / remíza / nerozlišeno dávají 100&nbsp;%; scénáře se nikdy neslučují do jednoho čísla (R4).</li>
+      <li><b>Výška</b> je vážené skóre pod nastavením, které čtenář zvolí; relativní (centrované po řádku) a&nbsp;absolutní čtení vedle sebe (R5).</li>
+      <li><b>Rozvržení</b> je enginu <code>aia-sociomap-5</code> nad tabulkou nastavení × lokality (<code>tools/engine_maps.py</code>): blízkost znamená podobnou odezvu skóre na zkoušená nastavení, nic víc. Mapa zaznamenává fit, numerickou konvergenci a&nbsp;citlivost pod vlastní smlouvou režimu; nepodložená geometrie nedává žádný prostorový nárok. Žádné štítky respondentů, spolehlivé dvojice, segmenty ani kružnice výběrové chyby.</li>
+      <li><b>Stav bran</b> stojí vedle každé lokality; verdikt pravidla má vlastní panel. Hypotetická změna brány je pojmenovaný scénář.</li>
+      <li><b>Odděleně od mapy budoucností, a&nbsp;kam patří.</b> Řádky mapy budoucností jsou losy modelu; řádky této mapy jsou preference; nikdy se neslučují. Mapa je informace o&nbsp;preferencích: do zprávy vstupuje pod „Co by závěr změnilo“, nikdy do doporučení; rozhoduje pravidlo klienta (R3). Metoda má vlastní zápis v&nbsp;registru Metodiky (<code>sociomapa-systemu#SYS12</code>), interní, dokud ji metodik neschválí.</li>
     </ol>
   </div>
 </section>
@@ -662,11 +86,11 @@
 <section class="chapter" id="mapa-vah-engine">
   <p class="chapter-label">Část 4 · engine</p>
   <h2 data-label="4.2">Jak ji dnešní engine kreslí</h2>
-  <p class="small">Tři výstupy enginu <code>aia-sociomap-5</code> nad tabulkou scénářů, jak je prototyp spočítal (<code>tools/build_maps.py</code>, <code>res_scenarios_*.json</code>) a&nbsp;jak je kreslí renderer zprávy. Jména a&nbsp;čísla jsou smyšlená.</p>
+  <p class="small">Tři výstupy enginu <code>aia-sociomap-5</code> nad tabulkou scénářů, jak je prototyp spočítal pro verzi&nbsp;1 (<code>tools/build_maps.py</code>, dvě rodiny vektorů, Bory 0–380). Ukazují, že engine tabulku nastavení vezme a&nbsp;renderer zprávy ji vykreslí; čísla v&nbsp;nich neplatí a&nbsp;přepočet podle části&nbsp;3 a&nbsp;4 přijde s&nbsp;příští verzí plátna (R2-Q13). Jména a&nbsp;čísla jsou smyšlená.</p>
   <div class="renders">
-    <figure><img src="../assets/2e28790a9081a1eb434367f29a82c543.jpg" alt="Mapa scénářů vah ChemVitro, pohled shora"><figcaption><b>ChemVitro, pohled shora.</b> Osm lokalit; blízko sebe ty, které vítězí pod stejnými vahami. Výška je vážené skóre pod zvoleným scénářem.</figcaption></figure>
-    <figure><img src="../assets/914872843eaa61eae988d234ac0e095f.jpg" alt="Řádky scénářů umístěné v mapě ChemVitro"><figcaption><b>ChemVitro, řádky v&nbsp;mapě.</b> Každý zkoušený vektor vah umístěný tam, kam ukazuje; vějíř kolem každého pojmenovaného řádku. Podíly jsou podíly testovaných nastavení.</figcaption></figure>
-    <figure><img src="../assets/bce0402524962925fab15e08b0684a25.jpg" alt="Mapa scénářů vah Velis, pohled shora"><figcaption><b>Velis, pohled shora.</b> Táž metoda na druhém případu plátna; zde je marketingová perspektiva plná a&nbsp;u&nbsp;ChemVitro prázdná.</figcaption></figure>
-    <div class="card"><div class="k">Co mapa neříká</div><p>Nic o&nbsp;tom, která lokalita je doporučená: to říká pravidlo klienta ve Výsledcích. Nic o&nbsp;pravděpodobnosti: podíly jsou podíly zkoušených nastavení. Nic o&nbsp;spolehlivosti párů: párové statistiky enginu platí pro respondenty, ne pro zvolené řádky.</p><p class="who">Metoda čeká na schválení metodikem · do zprávy pod „Co by závěr změnilo“</p></div>
+    <figure><img src="../assets/2e28790a9081a1eb434367f29a82c543.jpg" alt="Mapa scénářů vah ChemVitro, pohled shora, výpočet verze 1"><figcaption><b>ChemVitro, pohled shora (verze 1).</b> Osm lokalit; blízko sebe ty s&nbsp;podobnou odezvou na zkoušená nastavení. Výška je vážené skóre pod zvoleným nastavením.</figcaption></figure>
+    <figure><img src="../assets/914872843eaa61eae988d234ac0e095f.jpg" alt="Řádky nastavení umístěné v mapě ChemVitro, výpočet verze 1"><figcaption><b>ChemVitro, nastavení v&nbsp;mapě (verze 1).</b> Každé zkoušené nastavení vah umístěné tam, kam ukazuje. Ve verzi 2 se podíly hlásí za scénář, nikdy sloučené.</figcaption></figure>
+    <figure><img src="../assets/bce0402524962925fab15e08b0684a25.jpg" alt="Mapa scénářů vah Velis, pohled shora, výpočet verze 1"><figcaption><b>Velis, pohled shora (verze 1).</b> Táž metoda na druhém případu plátna; zde by marketingová perspektiva měla listy a&nbsp;u&nbsp;ChemVitro je prázdná.</figcaption></figure>
+    <div class="card"><div class="k">Co mapa neříká</div><p>Nic o&nbsp;tom, která lokalita je doporučená: to říká pravidlo klienta ve Výsledcích. Nic o&nbsp;pravděpodobnosti: podíly jsou podíly zkoušených nastavení za scénář. Nic o&nbsp;spolehlivosti párů ani o&nbsp;respondentech: řádky jsou nastavení, která jsme zvolili.</p><p class="who">Metoda čeká na schválení metodikem · do zprávy pod „Co by závěr změnilo“</p></div>
   </div>
 </section>
