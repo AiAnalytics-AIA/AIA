@@ -1,6 +1,6 @@
 <section class="chapter" id="perspectives">
   <p class="chapter-label">Chapter 12</p>
-  <h1 data-label="12">Perspectives, the cost partition and the two maps</h1>
+  <h1 data-label="12">Perspectives, the cost partition and the weight settings</h1>
   <p class="lede">The owner asked for every business perspective: financial, strategic, operational, marketing, logistics, "just everything", with weights on them run as scenarios and shown on the Sociomap. The method gives that request one construction: every pre-tax cash-flow line of an option is allocated to exactly one leaf under exactly one perspective, a perspective's total is the discounted cost of its leaves, and one value function and one weight vector score every option alike. Overlap is impossible by construction, and "logistics 0,3, operations 0,5" means exactly what it says.</p>
 
   <h2 data-label="12.1" id="persp-def">The partition</h2>
@@ -9,9 +9,9 @@
     <thead><tr><th style="width:22%">Perspective</th><th>Leaves (each a cash-flow line, discounted)</th></tr></thead>
     <tbody>
       <tr><td><i lang="cs">Finanční</i></td><td>core capital; main-plot land; working capital where applicable; the purchases that continue until start-up, ordinary and spot; residual credits and other financial adjustments not allocated below</td></tr>
-      <tr><td><i lang="cs">Strategická</i></td><td>no scored leaf until an independently defined consequence is approved (an open owner decision). The shared-failure analysis of chapter 9 stays a table of its own, never a weighted leaf.</td></tr>
+      <tr><td><i lang="cs">Strategická</i></td><td>no scored leaf until an independently defined consequence is approved; until then the perspective stays visible at weight 0 and the map says so (the owner, 9 November). The shared-failure analysis of chapter 9 stays a table of its own, never a weighted leaf.</td></tr>
       <tr><td><i lang="cs">Provozní</i></td><td>raw materials; electricity and gas; maintenance and insurance, excluding the services allocated below</td></tr>
-      <tr><td><i lang="cs">Marketingová / obchodní</i></td><td>no scored leaf where the output is used in-house; the perspective is drawn and says why it is empty</td></tr>
+      <tr><td><i lang="cs">Marketingová / obchodní</i></td><td>no scored leaf where the output is used in-house; the perspective stays visible at weight 0 and the map says why it is empty</td></tr>
       <tr><td><i lang="cs">Logistická</i></td><td>product freight; connecting infrastructure and its land; access works; temporary haulage until that infrastructure is built</td></tr>
       <tr><td><i lang="cs">Prostředí a povolování</i></td><td>treatment capital and operation; air abatement; compensation measures; water and sewer; hazardous waste; carbon (allowances less free allocation); separately identified environmental and site services</td></tr>
       <tr><td><i lang="cs">Lidé</i></td><td>wages, employer contributions and evidenced recruitment expenditure. Hiring time enters the timetable and therefore the gates, not a second weighted penalty.</td></tr>
@@ -49,16 +49,16 @@
   </ol>
   <p>Results are shares of tested settings, per scenario, per fan and per evidence setting: the share in which an option is uniquely first, the share of ties and the share left unresolved by the bounds, which together reconcile to 100 %. Scenarios are never pooled into one popularity figure.</p>
 
-  <h2 data-label="12.4" id="map-view">The Sociomap view of a scenario</h2>
-  <p>Each scenario has its own view on the <code>aia-sociomap-5</code> engine, under the mode contract the methodologist registers for it (<code>sociomapa-systemu#SYS12</code>, <code>SYS13</code>):</p>
+  <h2 data-label="12.4" id="map-view">The weight settings as a scenario map</h2>
+  <p>The weight settings are one of the scenario map's two row sources (chapter 9). Each scenario has its own map on the <code>aia-sociomap-5</code> engine, under the contract the methodologist registers for it (<code>sociomapa-systemu#SYS12</code>, <code>SYS13</code>):</p>
   <ul>
     <li>rows are the tested weight settings; objects are the options; proximity is similarity of score response across the settings; height is the score under the selected setting;</li>
     <li>a ranged leaf keeps its paired bound views and score intervals in the table beside the map;</li>
     <li>the gate status of every option (pass / fail / unknown) is printed beside it; a hypothetical change of a gate's state is a named scenario, never an edit;</li>
-    <li>the rule's verdict stands in a panel of its own; the map is preference information under <i lang="cs">Co by závěr změnilo</i> and never the recommendation;</li>
-    <li>no respondent labels, no "reliable pairs", no respondent segments and no sampling-error circles appear: those belong to the respondent mode, whose statistics this mode does not read;</li>
-    <li>the view records its layout fit, its numerical convergence and its sensitivity under the mode contract; geometry the contract does not support produces no spatial claim.</li>
+    <li>the rule's verdict stands in a panel of its own; the map supports the recommendation under <i lang="cs">Co by závěr změnilo</i>, showing how robust the leader is to the weights, and never makes it;</li>
+    <li>no "reliable pairs", no segments and no sampling-error circles appear: the rows are tested settings, not observations, and a scenario map's test is its stability (chapter 9);</li>
+    <li>the map records its layout fit, its numerical convergence and its stability under its contract; geometry the contract does not support produces no spatial claim.</li>
   </ul>
-  <p>The canvas's weighting-map board predates this construction; it is recomputed under the partition at the next canvas version (the owner, 9 November) and carries a note saying so until then. The other map, the futures map, and its contract are in chapter 9.</p>
+  <p>The canvas's weighting-map board predates this construction; it is recomputed under the partition at the next canvas version (the owner, 9 November) and carries a note saying so until then. The scenario map's other row source, the futures, and both map types' contracts are in chapter 9.</p>
 
 </section>

@@ -6,7 +6,7 @@ illustrative values, or the toy oracle fixtures of chapter 14.
 
 | | |
 |---|---|
-| Version | 5, 9 November 2026, working version. Replaces version 4 (case-based, 43 pages, same date); the method is unchanged, every case reference is removed |
+| Version | 5, 9 November 2026, working version. Replaces version 4 (case-based, same date): every case reference is removed, and the owner's map decisions of the same day are applied (two map types, five configurations, the respondent map out) |
 | PDF | `AIA_business-decision-study_methodology_v5.pdf`, A4, 43 pages |
 | Sources | one HTML fragment per chapter, `00-cover.html` … `16-appendices.html`, in reading order; `style.css`; `build.js` |
 | Fonts | `fonts/`: IBM Plex Sans, IBM Plex Mono and Source Serif 4, the report's own faces, copied unmodified from `packages/aia_core/src/aia_core/infrastructure/report_docx/fonts/` with their SIL OFL licences |
@@ -27,9 +27,9 @@ a heading never stands alone at a page foot (`break-after: avoid`).
 
 Cover and *What this is*; chapter 1 the spine; chapter 2 the analytical contract (seven defaults, two release states);
 chapters 3–10 one step each (*Zadání · Data · Rešerše · Předpoklady · Model · Výsledky · Sociomapa · Osnova a Zpráva*),
-all in the same six parts: what goes in, what comes out, checks, in AIA today, new, acceptance; chapter 11 built vs
-designed and what is not in this release; chapter 12 the business perspectives as a disjoint cost partition, one
-scoring structure for every option, and the two maps; chapter 13 grades with lineage, uncertainty and validation
+all in the same six parts: what goes in, what comes out, checks, in AIA today, new, acceptance (chapter 9 holds the two
+map types); chapter 11 built vs designed and what is not in this release; chapter 12 the business perspectives as a disjoint cost partition, one
+scoring structure for every option, and the weight settings; chapter 13 grades with lineage, uncertainty and validation
 apart, sources, the provisional state and the release gate; chapter 14 governance, the owner's decisions of
 9 November, oracle-first acceptance and the review's evidence; appendix A, the glossary.
 
