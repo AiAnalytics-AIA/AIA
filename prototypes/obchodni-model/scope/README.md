@@ -6,7 +6,7 @@ chunks); this folder is its print. Nothing here says anything the markdown does 
 
 | | |
 |---|---|
-| Source | `../MVP-SCOPE.md` at revision `d0c361b1d` (branch `chore/obchodni-model-method-v2`); the cover names it |
+| Source | `../MVP-SCOPE.md` at revision `d5e0d4eb2` (branch `chore/obchodni-model-method-v2`); the cover names it |
 | PDF | `AIA_MVP-scope_cs.pdf`, A4, 24 pages, 0 browser errors at build |
 | Chapters | `00-cover.html` … `16-otevrena.html`, one HTML fragment each, in reading order: cover; část 1 Rozhodnutí; část 2 the eight-step matrix and one page per step (Zadání, Data, Rešerše, Předpoklady, Model, Výsledky, Sociomapa, Osnova a Zpráva); část 3 Perspektivy (the seven perspectives and the 20 components); část 4 Mapa scénářů vah (the two families, the fan, the ten lines, the engine renders); část 5 Odloženo; část 6 Přijetí (A1–A6, K1–K6); část 7 Vlny; část 8 Otevřená rozhodnutí |
 | Figures | hand-written inline SVG in the methodology's colours (`--accent`, `--coral`, `--slate`, `--force` and their washes); the three engine renders of část 4 are `../assets/2e28790a9081a1eb434367f29a82c543.jpg`, `../assets/914872843eaa61eae988d234ac0e095f.jpg`, `../assets/bce0402524962925fab15e08b0684a25.jpg`, the canvas's own images of board MV9. The contour maps of část 2.7 and the fan of část 4 are schematic and say so |
