@@ -208,7 +208,7 @@ exposure_check: ## Fail if detailed reference material reached this repository
 
 check: lint typecheck layer_check exposure_check web_design web_unused test test-web ## Everything CI runs
 
-verify: ## The pre-commit sequence from CLAUDE.md §10, in order
+verify: ## The pre-commit sequence from CLAUDE.md §7, in order
 	@$(MAKE) typecheck
 	@$(MAKE) layer_check
 	@$(MAKE) exposure_check
