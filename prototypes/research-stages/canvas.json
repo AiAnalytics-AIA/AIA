@@ -155,7 +155,7 @@
       "y": 8700
     },
     "Z0Flow.dc.html": {
-      "h": 2160,
+      "h": 2290,
       "is_interactive": true,
       "title": "Z0 · Zadání se dvěma cestami: průchod",
       "w": 1440,
@@ -163,7 +163,7 @@
       "y": 20600
     },
     "Z1Start.dc.html": {
-      "h": 1800,
+      "h": 1890,
       "is_interactive": true,
       "title": "Z1 · Zadání: začátek",
       "w": 1440,
@@ -192,15 +192,15 @@
       "title": "Z4 · Zadání: cesta Výzkum zákazníků",
       "w": 1440,
       "x": 0,
-      "y": 22940
+      "y": 23010
     },
     "Z5Model.dc.html": {
-      "h": 2930,
+      "h": 3550,
       "is_interactive": true,
       "title": "Z5 · Zadání: cesta Obchodní model",
       "w": 1440,
       "x": 1520,
-      "y": 22940
+      "y": 23010
     },
     "Z6Both.dc.html": {
       "h": 1740,
@@ -208,7 +208,7 @@
       "title": "Z6 · Zadání: obojí",
       "w": 1440,
       "x": 3040,
-      "y": 22940
+      "y": 23010
     },
     "Z7Ready.dc.html": {
       "h": 1360,
@@ -216,7 +216,7 @@
       "title": "Z7 · Zadání: připravenost a předání",
       "w": 1440,
       "x": 4560,
-      "y": 22940
+      "y": 23010
     },
     "Z8aPhone.dc.html": {
       "h": 1040,
@@ -235,12 +235,12 @@
       "y": 20600
     },
     "KM1Data.dc.html": {
-      "h": 2260,
+      "h": 2760,
       "is_interactive": true,
       "title": "M1 · Model: Data",
       "w": 1440,
       "x": 0,
-      "y": 28610
+      "y": 29300
     },
     "KM2Assumptions.dc.html": {
       "h": 1940,
@@ -248,7 +248,7 @@
       "title": "M2 · Model: Předpoklady",
       "w": 1440,
       "x": 1520,
-      "y": 28610
+      "y": 29300
     },
     "KM3Model.dc.html": {
       "h": 1820,
@@ -256,39 +256,39 @@
       "title": "M3 · Model: Model",
       "w": 1440,
       "x": 3040,
-      "y": 28610
+      "y": 29300
     },
     "KM4Results.dc.html": {
-      "h": 2360,
+      "h": 2420,
       "is_interactive": true,
       "title": "M4 · Model: Výsledky",
       "w": 1440,
       "x": 4560,
-      "y": 28610
+      "y": 29300
     },
     "KM5Map.dc.html": {
-      "h": 2280,
+      "h": 2340,
       "is_interactive": true,
       "title": "M5 · Model: Mapa rozhodnutí",
       "w": 1440,
-      "x": 6080,
-      "y": 28610
+      "x": 12160,
+      "y": 29300
     },
     "KO1Link.dc.html": {
       "h": 1830,
       "is_interactive": true,
       "title": "O1 · Obojí: výzkum do modelu",
       "w": 1440,
-      "x": 7600,
-      "y": 28610
+      "x": 13680,
+      "y": 29300
     },
     "KM6Report.dc.html": {
-      "h": 1420,
+      "h": 1840,
       "is_interactive": true,
       "title": "M6 · Model: Zpráva",
       "w": 1440,
-      "x": 9120,
-      "y": 28610
+      "x": 15200,
+      "y": 29300
     },
     "KV1Design.dc.html": {
       "h": 1480,
@@ -296,7 +296,7 @@
       "title": "V1 · Výzkum: Návrh a Dotazník",
       "w": 1440,
       "x": 0,
-      "y": 26270
+      "y": 26960
     },
     "KV2Sample.dc.html": {
       "h": 1150,
@@ -304,7 +304,7 @@
       "title": "V2 · Výzkum: Vzorek",
       "w": 1440,
       "x": 1520,
-      "y": 26270
+      "y": 26960
     },
     "KV3Results.dc.html": {
       "h": 1680,
@@ -312,7 +312,7 @@
       "title": "V3 · Výzkum: Výsledky",
       "w": 1440,
       "x": 3040,
-      "y": 26270
+      "y": 26960
     },
     "KV4Sociomap.dc.html": {
       "h": 1940,
@@ -320,7 +320,7 @@
       "title": "V4 · Výzkum: Sociomapa",
       "w": 1440,
       "x": 4560,
-      "y": 26270
+      "y": 26960
     },
     "KV5Report.dc.html": {
       "h": 1400,
@@ -328,7 +328,39 @@
       "title": "V5 · Výzkum: Zpráva",
       "w": 1440,
       "x": 6080,
-      "y": 26270
+      "y": 26960
+    },
+    "KM7Finance.dc.html": {
+      "h": 1880,
+      "is_interactive": true,
+      "title": "M4b · Výsledky: Business case a finance",
+      "w": 1440,
+      "x": 6080,
+      "y": 29300
+    },
+    "KM8Accounting.dc.html": {
+      "h": 1400,
+      "is_interactive": true,
+      "title": "M4c · Výsledky: Účetnictví",
+      "w": 1440,
+      "x": 7600,
+      "y": 29300
+    },
+    "KM9Operations.dc.html": {
+      "h": 1600,
+      "is_interactive": true,
+      "title": "M4d · Výsledky: Operační výzkum",
+      "w": 1440,
+      "x": 9120,
+      "y": 29300
+    },
+    "KM10Market.dc.html": {
+      "h": 1100,
+      "is_interactive": true,
+      "title": "M4e · Výsledky: Velikost trhu",
+      "w": 1440,
+      "x": 10640,
+      "y": 29300
     }
   },
   "createdOnFiles": {
@@ -394,7 +426,7 @@
       "text": "Velis · cesta Obchodní model: Strategie skladu a logistiky 2026–2032 · a jejich spojení",
       "w": 240,
       "x": 0,
-      "y": 28310
+      "y": 29000
     },
     "t7": {
       "kind": "title1",
@@ -402,7 +434,7 @@
       "text": "Velis · cesta Výzkum zákazníků: Zákazníci a rychlost doručení",
       "w": 240,
       "x": 0,
-      "y": 25970
+      "y": 26660
     }
   },
   "order": [
@@ -444,6 +476,10 @@
     "KM2Assumptions.dc.html",
     "KM3Model.dc.html",
     "KM4Results.dc.html",
+    "KM7Finance.dc.html",
+    "KM8Accounting.dc.html",
+    "KM9Operations.dc.html",
+    "KM10Market.dc.html",
     "KM5Map.dc.html",
     "KO1Link.dc.html",
     "KM6Report.dc.html"

@@ -1,0 +1,12 @@
+{
+ "mv3-velis-scenarios": "dc98a9b6b44ac2138ab0097cf37430bf",
+ "si-weights-chemvitro-top": "2e28790a9081a1eb434367f29a82c543",
+ "si-weights-chemvitro-3d": "1f934a9b25b6a31f8026f59dcd4da888",
+ "si-weights-chemvitro-respondents": "914872843eaa61eae988d234ac0e095f",
+ "si-weights-velis-top": "bce0402524962925fab15e08b0684a25",
+ "si-weights-velis-respondents": "8844e3281ac907b9b0064933985e326c",
+ "mv3-futures-chemvitro-3d": "499bb93c09d2b60fe4297b1134b9ea5f",
+ "mv3-futures-chemvitro-top": "0dc9783db84f1219f5f71b9d0613db77",
+ "mv3-futures-chemvitro-nocorr": "3a860bda6d22cbfb621719cc829c20c5",
+ "mv3-futures-chemvitro-strong": "491fecb0f547b3c9581d896bc9e990ca"
+}

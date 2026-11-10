@@ -1,0 +1,64 @@
+<section class="chapter" id="perspectives">
+  <p class="chapter-label">Chapter 12</p>
+  <h1 data-label="12">Perspectives, the cost partition and the weight settings</h1>
+  <p class="lede">The owner asked for every business perspective: financial, strategic, operational, marketing, logistics, "just everything", with weights on them run as scenarios and shown on the Sociomap. The method gives that request one construction: every pre-tax cash-flow line of an option is allocated to exactly one leaf under exactly one perspective, a perspective's total is the discounted cost of its leaves, and one value function and one weight vector score every option alike. Overlap is impossible by construction, and "logistics 0,3, operations 0,5" means exactly what it says.</p>
+
+  <h2 data-label="12.1" id="persp-def">The partition</h2>
+  <p>A <b>leaf</b> is one cash-flow line (or a group of lines that always travel together), discounted at the rule's rate. A <b>perspective</b> is a set of leaves. The same expenditure never appears in two leaves; distinct expenditures caused by the same event may. Delay costs enter through the purchases they actually cause, not as a separate penalty. The allocation for a cost-of-supply study:</p>
+  <table class="compact">
+    <thead><tr><th style="width:22%">Perspective</th><th>Leaves (each a cash-flow line, discounted)</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">Finanční</i></td><td>core capital; main-plot land; working capital where applicable; the purchases that continue until start-up, ordinary and spot; residual credits and other financial adjustments not allocated below</td></tr>
+      <tr><td><i lang="cs">Strategická</i></td><td>no scored leaf until an independently defined consequence is approved; until then the perspective stays visible at weight 0 and the map says so (the owner, 9 November). The shared-failure analysis of chapter 9 stays a table of its own, never a weighted leaf.</td></tr>
+      <tr><td><i lang="cs">Provozní</i></td><td>raw materials; electricity and gas; maintenance and insurance, excluding the services allocated below</td></tr>
+      <tr><td><i lang="cs">Marketingová / obchodní</i></td><td>no scored leaf where the output is used in-house; the perspective stays visible at weight 0 and the map says why it is empty</td></tr>
+      <tr><td><i lang="cs">Logistická</i></td><td>product freight; connecting infrastructure and its land; access works; temporary haulage until that infrastructure is built</td></tr>
+      <tr><td><i lang="cs">Prostředí a povolování</i></td><td>treatment capital and operation; air abatement; compensation measures; water and sewer; hazardous waste; carbon (allowances less free allocation); separately identified environmental and site services</td></tr>
+      <tr><td><i lang="cs">Lidé</i></td><td>wages, employer contributions and evidenced recruitment expenditure. Hiring time enters the timetable and therefore the gates, not a second weighted penalty.</td></tr>
+    </tbody>
+  </table>
+  <p>Three checks hold the allocation: every expenditure the documents name is allocated once; the perspective totals sum to the option's cost of supply; the baseline's cost less the option's cost equals the NPV saving. A one-off the documents give for one option only goes into the leaf its nature places it in (a bridge in logistics, a compensation measure in environment and permitting); the other options carry an evidenced zero there, or a justified range where the documents are silent. An expense that fits no leaf blocks the reconciliation check: the partition is then not complete, the map is not drawn from it, and the report says which expense is unplaced.</p>
+  <p>Five rules hold the scores:</p>
+  <ul>
+    <li><b>Gates are not leaves.</b> The rule's conditions are pass / fail / unknown per option, shown beside the map, never weighted.</li>
+    <li><b>A range stays a range.</b> A leaf the files give as a range has a lower and an upper score bound, the direction applied correctly: for a cost the minimum raw value is the <i>favourable</i> end, so the map never draws it as the base. Both bound views are shown and labelled as bounds, not as jointly feasible futures. Nothing fills a missing fact, and a fact the client's file states is not widened into a range.</li>
+    <li><b>One expenditure, one leaf.</b> NPV saving, after-tax NPV, IRR and payback are printed beside the weighted score, unweighted, because they already contain every leaf.</li>
+    <li><b>Judgement is labelled.</b> A leaf whose value is a person's judgement carries that person's name and the grade <i lang="cs">úsudek</i>.</li>
+    <li><b>An empty perspective stays and says why</b>; a globally inactive perspective has weight zero for every option, approved as such. A nonzero weight on an empty perspective is refused with the reason; nothing is redistributed silently.</li>
+  </ul>
+
+  <h2 data-label="12.2" id="map-score">One scoring structure for every option</h2>
+  <p>For an option <i>i</i> and a perspective <i>p</i>, <i>C<sub>ip</sub></i> is the discounted sum of <i>p</i>'s leaves. The approved value function <i>v<sub>p</sub></i> maps it onto 0–10 on fixed anchors shared by all options; a value outside the anchors triggers a review, never silent clipping. The weighted score is</p>
+  <p style="text-align:center;font-family:'Source Serif 4',serif;font-size:12pt">S<sub>i</sub>(w) = Σ<sub>p</sub> w<sub>p</sub> · v<sub>p</sub>(C<sub>ip</sub>)</p>
+  <ul>
+    <li><b>One weight vector for every option.</b> No option loses a weight because a leaf does not apply to it: evidenced absence of an applicable expenditure is a cost of zero through the common scale; unknown expenditure is a range with two bounds. A rule under which a missing component "takes no weight there" would compare options under different trade-offs, and is not used.</li>
+    <li><b>Leaves are an accounting breakdown, not equally weighted subcriteria.</b> Splitting a cost line (freight into rail and road) leaves the perspective total, the score and the rank unchanged. This is the admission test of every allocation; sharing a perspective's weight equally among its components fails it.</li>
+    <li><b>Anchors and swing weights are approved together</b>, before any option's score is shown: a weight is a trade-off over a stated swing of a perspective's total, not a feeling about a category name. The additive form itself is reviewed with them.</li>
+    <li><b>A scenario is a named weight vector</b> the client's people approve; the researcher records it with its scales through the existing approval flow (the owner, 9 November), with who composed it and when, before results.</li>
+  </ul>
+  <p>An example, with the remaining weight assigned to finance: <i lang="cs">finance 0,20 · strategie 0 · provoz 0,50 · marketing 0 · logistika 0,30 · prostředí 0 · lidé 0</i>. "Finance" is its partition, the capital, land and purchases, not the total NPV. The NPV still includes every cost, including the perspectives given zero diagnostic weight.</p>
+
+  <h2 data-label="12.3" id="map-sensitivity">Ranges and sensitivity</h2>
+  <p>A ranged leaf gives the option an interval of scores. A <b>robust leader</b> needs a validated positive lower bound on its score difference against every rival over all admitted unknowns jointly; overlapping intervals mean leadership is not established, and the map says so. For each named scenario the study tests, in this order and reported separately:</p>
+  <ol>
+    <li>the approved centre;</li>
+    <li>Dirichlet fans at concentrations 20, 60 and 180, 300 settings each, drawn on the positive-weight coordinates only so an explicit zero stays zero;</li>
+    <li>directed weight transfers between pairs of perspectives, and a simplex grid where the number of active perspectives keeps it small;</li>
+    <li>the approved alternative anchors and the uncertain cost allocations;</li>
+    <li>the evidence bounds, coherent joint stress cases and simultaneous unknowns.</li>
+  </ol>
+  <p>Results are shares of tested settings, per scenario, per fan and per evidence setting: the share in which an option is uniquely first, the share of ties and the share left unresolved by the bounds, which together reconcile to 100 %. Scenarios are never pooled into one popularity figure.</p>
+
+  <h2 data-label="12.4" id="map-view">The weight settings as a scenario map</h2>
+  <p>The weight settings are one of the scenario map's two row sources (chapter 9). Each scenario has its own map on the <code>aia-sociomap-5</code> engine, under the contract the methodologist registers for it (<code>sociomapa-systemu#SYS12</code>, <code>SYS13</code>):</p>
+  <ul>
+    <li>rows are the tested weight settings; objects are the options; proximity is similarity of score response across the settings; height is the score under the selected setting;</li>
+    <li>a ranged leaf keeps its paired bound views and score intervals in the table beside the map;</li>
+    <li>the gate status of every option (pass / fail / unknown) is printed beside it; a hypothetical change of a gate's state is a named scenario, never an edit;</li>
+    <li>the rule's verdict stands in a panel of its own; the map supports the recommendation under <i lang="cs">Co by závěr změnilo</i>, showing how robust the leader is to the weights, and never makes it;</li>
+    <li>no "reliable pairs", no segments and no sampling-error circles appear: the rows are tested settings, not observations, and a scenario map's test is its stability (chapter 9);</li>
+    <li>the map records its layout fit, its numerical convergence and its stability under its contract; geometry the contract does not support produces no spatial claim.</li>
+  </ul>
+  <p>The canvas's weighting-map board predates this construction; it is recomputed under the partition at the next canvas version (the owner, 9 November) and carries a note saying so until then. The scenario map's other row source, the futures, and both map types' contracts are in chapter 9.</p>
+
+</section>

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FILE_MAX_BYTES } from "./client-sources";
-import { carried, holdsMessage, kept, refused, refusedBeforeUpload, room, uploading } from "./lead-files";
+import { carried, holdsMessage, kept, questionnaireLine, refused, refusedBeforeUpload, room, uploading } from "./lead-files";
 
 const file = (over: Partial<Parameters<typeof kept>[1]> = {}) => ({
   source_id: "SRC-0000000000000001", filename: "Zadání.pdf", family: "DOCUMENT" as const, outcome: "READ" as const,
@@ -31,5 +31,15 @@ describe("lead files", () => {
     expect(refusedBeforeUpload({ size: 0 })).toBe("empty");
     expect(refusedBeforeUpload({ size: FILE_MAX_BYTES + 1 })).toBe("too_large");
     expect(refusedBeforeUpload({ size: FILE_MAX_BYTES })).toBeNull();
+  });
+
+  it("says what a questionnaire table became, and asks only while no proposal is filed (LO18b)", () => {
+    expect(questionnaireLine({ status: "choose", questions: 5, tracked_sets: 0 })).toMatch(/^Tabulka je dotazník \(5 otázek, 0 sad\)/);
+    expect(questionnaireLine({ status: "choose", questions: 1, tracked_sets: 1, run_id: "RUN-1" })).toMatch(/čeká na kontrolu/);
+    expect(questionnaireLine({ status: "filed", questions: 1, tracked_sets: 2 })).toBe("Dotazník ze souboru (1 otázka, 2 sady) čeká na kontrolu jako návrh.");
+    expect(questionnaireLine({ status: "refused", reason: "invalid_row", questions: 0, tracked_sets: 0 })).toMatch(/invalid_row$/);
+    // The server's own refusals in words; one with none of its own keeps its code.
+    expect(questionnaireLine({ status: "refused", reason: "questionnaire_empty", questions: 0, tracked_sets: 0 })).toMatch(/nemá žádnou otázku/);
+    expect(questionnaireLine({ status: "refused", reason: "one_questionnaire_per_message", questions: 0, tracked_sets: 0 })).toMatch(/jen první\.$/);
   });
 });

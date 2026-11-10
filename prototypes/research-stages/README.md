@@ -8,11 +8,45 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 28, artifact version `1793540721-10d0` |
+| Version | version 29, artifact version `1793550125-728c` |
 | Exported | 1 Nov 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: version 27 (1 Nov, the engine strategy map; this PR's first commit); version 25 (1 Nov, the Kupsi dual path); version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 28 (1 Nov, the logic and scientific pass); version 27 (1 Nov, the engine strategy map; this PR's first commit); version 25 (1 Nov, the Kupsi dual path); version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in version 29 (1 Nov)
+
+The product owner, after talking to the executive: the business model path must gather as much relevant data as it can, so that it can
+make well-founded, fully modelled suggestions on the original problem. It must cover business case and finance, accounting, operations
+research and market size "from the beginning". Before this version, the tour's model-family slide marked these "po MVP".
+
+- **Four new result views** sit beside the decision. Every Výsledky board carries a tab bar: Rozhodnutí, Finance, Účetnictví, Provoz,
+  Trh, Sociomapa strategií. All numbers are fictional and seeded, computed from the same model and assumptions as the decision.
+  - `KM7Finance` covers the business case:
+    - investment, NPV, IRR and discounted payback for each option against today (C2: 5.4 M Kč, +8.8 M Kč, 52 %, mid-2030; hall A: IRR 9 %);
+    - break-even prices;
+    - a price elasticity of orders to the delivery fee from Velis's 2024 price change (−0.38), checked against the research. The
+      delivery discount it implies (8.5 Kč outside the big cities) pays for itself.
+  - `KM8Accounting` covers:
+    - the 2025 P&L and balance sheet;
+    - plan against actual;
+    - 2028 health ratios per option (EBITDA, margin, net debt / EBITDA, ROCE, liquidity).
+  - `KM9Operations` covers:
+    - the monthly forecast against the Polish 3PL's capacity (50k orders a month; short from November 2027);
+    - a monthly linear program (HiGHS) giving a capacity and peak plan;
+    - safety stock.
+  - `KM10Market` covers:
+    - TAM, SAM and Velis's share (market data from public sources via Deep Research, checked by the researcher);
+    - whether the growth assumption is realistic;
+    - the research as an input.
+- **Zadání asks for the data from the start:**
+  - `Z1Start` lists four optional sources: the P&L and balance sheet, the CRM summary, order history with delays and delivery prices,
+    and the transition plan with capacities.
+  - `Z5Model` has a new section, "Co model spočítá": the five views, each with what it needs and whether the data is there.
+- **Data and report:**
+  - `KM1Data` adds the new files, the capacity, and Deep Research's market sources.
+  - `KM6Report` adds the finance, accounting, operations and market findings. Its plan adds the capacity clause and a delivery-discount
+    test in the pilot.
 
 ## What changed in version 28 (1 Nov)
 
@@ -174,7 +208,7 @@ board, stylesheet and asset is byte-identical to v95. Nothing is known to be wro
 
 ## What is in this folder
 
-- **41 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
+- **45 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
   holds each board's size and position on the canvas.
 - **`assets/aia-core.css`**: core v4.3, the "Petrol" shared stylesheet (SHA-256 `bd0c156e…4a2b0e`). It is
   owned by the design-system session and is newer than `../shared/aia-core.css` (core v3), which this
@@ -224,6 +258,7 @@ them.)
 | `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum zákazníků: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Velis) |
 | `KM1Data.dc.html` … `KM6Report.dc.html` | M1–M6 · Obchodní model: Data, Předpoklady, Model, Výsledky, Sociomapa strategií, Zpráva (Velis) |
 | `KO1Link.dc.html` | O1 · Obojí: výzkum do modelu |
+| `KM7Finance.dc.html` … `KM10Market.dc.html` | M4b–M4e · Výsledky: Business case a finance, Účetnictví, Operační výzkum, Velikost trhu (since version 29) |
 
 ## What is decided (the product owner, 26–28 Oct 2026)
 

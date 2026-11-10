@@ -1,0 +1,49 @@
+<section class="chapter" id="spine">
+  <p class="chapter-label">Chapter 1</p>
+  <h1 data-label="1">The spine</h1>
+  <p class="lede">A study is eight steps. The client's rule is written at the first and applied, as written, at the sixth. Everything between them exists to make that application sound. The navigator shows nine screens: the outline and the report are one step, because the report's structure is built once and printed once.</p>
+
+  <table class="tight">
+    <thead><tr><th style="width:13%">Step</th><th style="width:27%">Goes in</th><th style="width:30%">Comes out</th><th>The check</th></tr></thead>
+    <tbody>
+      <tr><td><b>1 <i lang="cs">Zadání</i></b></td><td>the decision, its options and constraints, who decides and when, the client's files</td><td>the rule with its conditions, frozen and dated; interpretations recorded</td><td>frozen before any comparative result; every condition has a threshold and a measure</td></tr>
+      <tr><td><b>2 <i lang="cs">Data</i></b></td><td>every client file and document</td><td>a contract per file; a findings table with a disposition per finding</td><td>units, currencies, price years, duplicates, missing values, outliers, quotes that do not cover the same thing</td></tr>
+      <tr><td><b>3 <i lang="cs">Rešerše</i></b></td><td>what the files cannot give: public prices, rates, taxes, limits, law</td><td>typed public inputs, each with a quote, a source, a date and a state</td><td>verified at the source, or marked <i lang="cs">prozatímní</i></td></tr>
+      <tr><td><b>4 <i lang="cs">Předpoklady</i></b></td><td>the contracts, the public inputs, the client's answers</td><td>one table of inputs: low, likely, high, distribution, source, grade, guarantor, state</td><td>estimated from client data where possible; the scope of every estimate checked; correlations declared with a stability test fixed in advance</td></tr>
+      <tr><td><b>5 <i lang="cs">Model</i></b></td><td>the input table, the options, the timeline</td><td>the base case and the seeded futures; the same bytes on a rerun</td><td>one model for every option; the convergence rule of chapter 2; one change at a time in the extra computations</td></tr>
+      <tr><td><b>6 <i lang="cs">Výsledky</i></b></td><td>the futures and the base case</td><td>the rule applied as written; what could change the verdict; value of information; finance, operations, schedule</td><td>the verdict shown as a boundary with its resolution state; no probability outside the model; information valued for the rule first</td></tr>
+      <tr><td><b>7 <i lang="cs">Sociomapa</i></b></td><td>the options' results across the futures or their weighted scores across scenarios (a scenario map); experts' scores, comparable units or months of the client's figures (an observed-data map)</td><td>a map with its contract and test, its relation matrix and what it may claim</td><td>links only where the contract allows; a stability test declared in advance; relative apart from absolute</td></tr>
+      <tr><td><b>8a <i lang="cs">Osnova zprávy</i></b></td><td>every claim the report will make</td><td>an outline ordered by the argument; each point with its source or method and why it matters</td><td>no point without a source; a judgement is marked as one</td></tr>
+      <tr><td><b>8b <i lang="cs">Zpráva</i></b></td><td>the closed outline</td><td>the report: summary, chapters, limits, literature, appendices, tables</td><td>every number with a grade and a numbered source; a validity review before approval</td></tr>
+    </tbody>
+  </table>
+
+  <h2 data-label="1.1" id="shape">The shape of each step chapter</h2>
+  <p>Chapters 3 to 10 use six parts, always in this order, so that two steps can be compared line by line.</p>
+  <table class="compact">
+    <thead><tr><th style="width:24%">Part</th><th>What it answers</th></tr></thead>
+    <tbody>
+      <tr><td>What goes in</td><td>The inputs the step takes, and from which earlier step or from the client.</td></tr>
+      <tr><td>What comes out</td><td>The artefact the step produces, as the next step and the report read it.</td></tr>
+      <tr><td>Checks</td><td>What must hold before the step is closed. A check is a refusal or a record, never advice.</td></tr>
+      <tr><td>In AIA today</td><td>The code on <code>develop</code> the step reuses, by module.</td></tr>
+      <tr><td>New</td><td>What has to be built, with the plan chunk that builds it (<code>plan#CHUNK</code>; <b>new</b> marks a chunk that the scope defines and no plan file holds yet).</td></tr>
+      <tr><td>Acceptance</td><td>What the acceptance test (chapter 14) checks at this step.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 data-label="1.2" id="waves">Acceptance and waves</h2>
+  <p>Acceptance has two layers. First an independent numerical oracle: toy fixtures with known answers (O-CF for the cash flows, O-INFO for the value of information) and a frozen test configuration, written by an analyst who never writes the model code and signed by the methodologist. Second a frozen test case with planted errors: data faults, costs a brochure hides and a site document reveals, decoys that look like problems and are not. The pipeline must find every planted fact, apply the rule as written, and reproduce its bytes; the case's numbers are not a target (chapter 14).</p>
+  <p>The build runs in five two-week waves (scope § 7): W1 contracts, oracles, the study shell, the rule freeze and the first data contract; W2 reconciliation, bindings and the cash-flow model; W3 finance, joint uncertainty and the rule with its convergence; W4 information value, the cost partition and the maps of both types; W5 the report, invalidation, acceptance and the independent review. Three build sessions, one analyst session and the methodologist one day a week; 97–139 session-days in all. Week 10 may produce a reviewed <i lang="cs">předběžné</i> report; the calendar does not turn an unresolved comparison into an approved recommendation.</p>
+
+  <h2 data-label="1.3" id="rules">The rules the whole spine keeps</h2>
+  <ul>
+    <li><b>The client's rule decides.</b> It is written before any result and judged as written. Everything else the study computes supports the recommendation by showing what could change it; none of it makes the recommendation.</li>
+    <li><b>A number is a reference to its origin.</b> It carries a source, a method, an uncertainty and a validation status. A number the origin does not support is not printed.</li>
+    <li><b>Unknown is never good.</b> A missing input keeps a range; a gate that is unknown blocks the recommendation until it is evidenced. A probability is a share of the model's futures, never a claim about the world.</li>
+    <li><b>Models propose, code computes, a person approves.</b> A language model drafts text and suggests ranges; every number in the report comes from a program that gives the same bytes on a rerun.</li>
+    <li><b>A method the register does not hold stays provisional.</b> Its results print <i lang="cs">odhad (metoda čeká na schválení metodikem)</i>, and a recommendation that rests on it is <i lang="cs">předběžné doporučení</i>: document approval and recommendation eligibility are two states (chapter 2).</li>
+    <li><b>A comparison is resolved or it is an interval.</b> The futures double from 20 000 at declared checkpoints until each gate and decisive comparison clears its bound; one that does not prints as unresolved.</li>
+    <li><b>Changes propagate.</b> A revised input marks every downstream result and approval stale until someone reviews it. Every extra computation changes one assumption at a time and says so.</li>
+  </ul>
+</section>

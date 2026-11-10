@@ -1212,7 +1212,11 @@ apps/
                             (together or not at all) and AIA_BEDROCK_EFFORT; a capability's own effort,
                             AIA_AI_FIELDWORK_EFFORT (SIMULATION) and AIA_AI_RESEARCH_EFFORT (RESEARCH_REASONING,
                             CRITIC, RESEARCH_LEAD), through ModelPolicy.efforts; unset, the bytes sent are unchanged
-                            (sonnet-5-5-switch)
+                            (sonnet-5-5-switch). No key covers STUDY_LEAD: on the route binding (no Lead model of its
+                            own) the Lead takes AIA_BEDROCK_EFFORT. A Lead model id equal to the route's stops the
+                            worker (leave the Lead keys unset instead). AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS also bounds
+                            each Deep Research kind's output (request_limits.kind_budgets), so raising it raises
+                            Deep Research's ceilings
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check); with AIA_AI_ANALYSIS_ENABLED
                             its analysis modules are answered by RecordedModels behind the real gateway at zero
@@ -2405,7 +2409,12 @@ deploy/reference/           The 18.6.6 unit beside the product, never part of it
                             migration's copy and backup-state.sh
 infra/develop/              Terraform for the develop AWS resources (one root, no modules); CI formats and
                             validates it, and plans it through the read-only aia-develop-github-plan role behind
-                            the terraform-plan environment's approval (README § Terraform in CI)
+                            the terraform-plan environment's approval (README § Terraform in CI);
+                            aws_bedrock_inference_profile.route / .lead: tagged application inference profiles
+                            copying each model's EU system profile, so Bedrock spend carries Environment=develop;
+                            the instance role is granted both; model_source is never read back (ignore_changes),
+                            and a postcondition fails the plan when bedrock_model_id or bedrock_lead_model_id moves
+                            until `terraform apply -replace=…` (develop-spend-attribution 1-2)
 docs/architecture/          System design + the ADRs; ai-step-executor-contract.md;
                             research-journey.md (the research journey: stage owners, interfaces, acceptance)
 docs/design/                Brand and UI direction; the design-system brief

@@ -35,6 +35,8 @@ describe("a design job's card", () => {
       propose_audience: "audience", suggest_dimensions: "dimensions", critique_design: null, design_copilot: null, answer_memory: null,
     });
     for (const a of actions) expect(workerCard(job({ action: a })).title).toBe(ACTION_LABELS[a]);
+    // A table given to the Lead (LO18b) is the file's questionnaire, named by the file.
+    expect(workerCard(job({ action: "build_questionnaire", origin: "file", filename: "dotaznik.xlsx" })).title).toBe("Dotazník ze souboru · dotaznik.xlsx");
   });
 
   it("shows the action's orb while its step runs, and the live feed's step", () => {

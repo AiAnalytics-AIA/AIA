@@ -1,0 +1,61 @@
+<section class="chapter" id="vysledky">
+  <p class="chapter-label">Chapter 8 · Step 6</p>
+  <h1 data-label="8"><i lang="cs">Výsledky</i>: the rule applied, and what could change it</h1>
+  <p class="lede">The results answer four questions in order: what the rule chooses, how far the verdict is from flipping, what information would change it, and what the finance, operations and schedule of each option look like. The first question is the recommendation; the rest is evidence about it.</p>
+
+  <h2 class="part" data-n="8.1">What goes in</h2>
+  <p>The futures and the base case of step 5; the rule of step 1; the extra computations declared in step 5.</p>
+
+  <h2 class="part" data-n="8.2">What comes out</h2>
+  <p>Five views, each a set of tables the report reuses:</p>
+  <table class="compact">
+    <thead><tr><th style="width:20%">View</th><th>Content</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">Rozhodnutí</i></td><td>the rule table per option (the measure's median and 90 % interval, each condition's value against its threshold, pass or fail), at the rule's rate and the client's other rates; the <b>decision boundary</b>: the rule's choice as one decisive assumption moves over its range; delay tables; stress tests; the tornado; break-even values; alternative terms; the correlation check</td></tr>
+      <tr><td><i lang="cs">Hodnota informace</i></td><td>two measures, in this order: <b>the value for the rule</b> (what knowing an answer in advance and applying the rule again would bring, averaged over the possible answers), then <b>EVPPI</b> (the gain in mean saving from knowing one input); then <b>the enquiry table</b>: what would be learned, the output, the duration, the cost, and the consequence of waiting</td></tr>
+      <tr><td><i lang="cs">Finance</i></td><td>pre- and post-tax NPV at the rates, IRR, payback, investment by item with the probability of staying under the ceiling; incentives by their nature</td></tr>
+      <tr><td><i lang="cs">Provoz</i></td><td>cost per unit by category in a full year of operation, base case, each column named as its perspective leaf (chapter 12)</td></tr>
+      <tr><td><i lang="cs">Harmonogram</i></td><td>the start-date distribution per option against the deadline (median, 10th–90th percentile), P(on time), the effect of each month of delay, what lengthens each tail, and decision delay × hiring delay as one grid whose uncomputed cells say so</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="part" data-n="8.3">Checks</h2>
+  <ul>
+    <li>The rule is applied exactly as written, condition by condition; the pass column is computed, never typed. The report prints the value of every condition against its threshold, pass and fail alike.</li>
+    <li>The verdict is given as a boundary, not a point: for the one or two assumptions the verdict rests on, the table of what the rule chooses at each value, each cell carrying its resolution state under the convergence rule. A probability of 0,796 against a threshold of 0,80 on 20 000 independent draws has an exact 95 % binomial interval of 0,790 to 0,802, which covers 0,80 before any allowance for repeated looks or several comparisons widens it further; that cell is unresolved until the draws double enough to clear it, and the report says so instead of naming a winner. A verdict with no boundary table has not been tested.</li>
+    <li>A probability is a share of the model's futures under the inputs that produced it; every probability says which assumption it stands on. The report claims no probability for anything the model does not compute.</li>
+    <li>The value of information is computed for the rule first and for the mean second, through declared answer branches: each enquiry states its possible answers, their reliability, cost, duration and the inputs it shares with others; the joint model is conditioned on the answer, the timetable shifts, the cost of asking enters, and the rule is reapplied (chapter 2). Neither measure is a budget for the enquiry. The rule's value and the expected-benefit EVPPI are different numbers and the report names which it prints. Both are differences of expected gains, so a comparison between enquiries, or against "nic", is resolved by the mean bound of chapter 2's convergence row (a repeated-look-valid confidence sequence for the mean, carrying the branches' conditional-estimation error), never by a probability or quantile bound; an enquiry whose mean bound covers zero stays unresolved and is not recommended.</li>
+    <li>A median is not a mean: the rule's choice of statistic is kept, and the report says what the right tail does to the other.</li>
+    <li>The base case and the futures may disagree (break-even in the base case, a loss in the median); the report explains why when they do.</li>
+    <li>Every extra computation names the one assumption it changes.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.4">In AIA today</h2>
+  <ul>
+    <li>A number reaches a result only as an admitted claim (<code>domain/evidence/admission.py</code>, <code>application/admitted_results.py</code>); suppression is decided on the server and a suppressed row prints its reasons, never a number. The pattern holds for model results: a cell the method does not support is not printed.</li>
+    <li>The results screens of a research run and their reading in words (<code>ExecutionSteps.tsx</code>, <code>lib/result-reading.ts</code>): unknown is never ordered, an interval missing means no order.</li>
+    <li>The report's print grades and the evidence ledger (<code>domain/report/evidence.py</code>), the per-question tables as exports (<code>domain/report/table_export.py</code>, RD12).</li>
+    <li>The budget line and spend reading as the pattern for "unknown never zero" (<code>lib/budget-line.ts</code>, <code>lib/run-spend.ts</code>).</li>
+  </ul>
+
+  <h2 class="part" data-n="8.5">New</h2>
+  <ul>
+    <li>The rule judged as written (<code>cost-model-study#CR7</code>) and, new, the rule at three rates, the decision boundary over one input's range, delay and hiring tables, alternative-terms and correlation recomputations, each one change at a time and said so (<code>#CR7b</code>, <b>new</b>); the method on screen (<code>#CR8</code>); grades ESTIMATED for everything from the futures and CALCULATED for the base case (<code>#CP8</code>, <code>#CP10</code>). Each result section names the perspective leaf it feeds (chapter 12).</li>
+    <li>Value of information for the rule: the rule re-applied per declared answer branch, the average of what it then picks against today's "nic", the enquiry's cost and duration inside the comparison, and the enquiry table with its effect on the deadline (<code>#CR6b</code>, <b>new</b>); EVPPI beside it (<code>#CR6</code>), its estimator's bias and precision checked on the oracle fixture O-INFO (chapter 14).</li>
+    <li>Break-even and one-way sensitivity (<code>#CM2</code>), global sensitivity beside the tornado (<code>#CR4</code>), three chart kinds the results need and the model lacks: the absolute stacked bar, the tornado, the line with marked points (<code>#CP8</code>).</li>
+    <li>Finance: scenarios on NPV and IRR (<code>quantitative-families#FIN3</code>), tax relief against grant as legal parameters (<code>legal-context#LGL3</code>).</li>
+    <li>Operations: cost per unit by category in a stated year; <i lang="cs">Harmonogram</i>, the start-date distribution per option against the deadline, P(<i lang="cs">včas</i>) and the months-of-delay table (<code>cost-model-study#CM9</code>, <b>new</b>).</li>
+    <li>Accounting and market views are parked: they read no leaf of the cost partition.</li>
+  </ul>
+
+  <h2 class="part" data-n="8.6">Acceptance</h2>
+  <p>The test is not a target number. A report is judged by whether it found the planted facts and applied the rule honestly. Where the test case can be read two defensible ways, each reading is frozen as its own configuration of the test (chapter 14), and each configuration's numbers are a target for itself, never for the other.</p>
+  <ul>
+    <li>The rule is applied as written, with every condition's value printed.</li>
+    <li>The verdict is given with its boundary on the assumption it rests on, and each boundary cell with its resolution state.</li>
+    <li>The assumption most worth checking is named with its value for the rule.</li>
+    <li>The hidden costs and the overrun from the comparables are visible in the investment and the schedule.</li>
+    <li>An option that a sales document favours and the files rule out is not recommended.</li>
+    <li>The rule's choice is kept apart from supplementary scoring; every enquiry states its effect on the deadline; the rule table, the summary and the boundary table print the same numbers.</li>
+  </ul>
+</section>

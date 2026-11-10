@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
@@ -26,6 +26,7 @@ from aia_core.domain.material_rules import MaterialRule, rule_class
 from aia_core.domain.prompt_slots import get_slot
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
+from aia_core.domain.questionnaire_from_file import ImportMode, import_proposal
 from aia_core.domain.research_agents import (
     DESIGN_ACTIONS,
     HARNESS_VERSION,
@@ -98,6 +99,14 @@ def _touched(
     return sorted(str(k) for k in touched_items(action, baseline, dict(proposal)))
 
 
+#: Who made a questionnaire proposal from a file: code, never a model (LO18b).
+FROM_FILE_AGENT_ID: Final = "aia.research.questionnaire_from_file"
+
+
+def _from_file_failure(message: str) -> Failed:
+    return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": message})
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchAgentConfig:
     policy_version: str
@@ -124,6 +133,9 @@ class ResearchAgentExecutor:
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
+        if "imported" in step.payload:
+            # A table given to the Lead (LO18b): built by code, so no model and no gateway.
+            return self._from_file(step, context)
         cfg = self._config
         if cfg is None or self._gateway is None:
             return Failed(
@@ -344,6 +356,81 @@ class ResearchAgentExecutor:
                     "action": action.value,
                     "context_sha256": snapshot_hash(snapshot),
                 },
+            )
+            touched = _touched(session, context.scope, step.payload, action, proposal)
+        return Succeeded(
+            output={
+                "artifact_id": artifact.artifact_id,
+                "reused": not created,
+                "touched_items": touched,
+            }
+        )
+
+    def _from_file(self, step: StepInput, context: StepContext) -> StepOutcome:
+        """The questionnaire a table given to the Lead makes (lead-orchestration LO18b): the
+        design built from the imported sections in the chosen mode, by code alone, stored as an
+        AI job's proposal is, so the review, the accept and the card read it the same way. No
+        model is asked and nothing is reserved."""
+        if step.payload.get("harness_version") != HARNESS_VERSION:
+            return _from_file_failure("harness version changed; give the Lead the file again")
+        imported = dict(step.payload["imported"])
+        if (
+            hashlib.sha256(canonical_json(imported).encode()).hexdigest()
+            != step.payload["job_fingerprint"]
+        ):
+            return _from_file_failure("the imported questionnaire changed; give it again")
+        action = ResearchAction(step.payload["action"])
+        revision_id = str(step.payload["design_revision_id"])
+        with context.transaction() as (session, _):
+            designs = StudyDesignRepository(session, context.scope)
+            revision = designs.get(revision_id)
+            if (
+                revision.revision != step.project_revision
+                or designs.project_id() != step.project_id
+            ):
+                return _from_file_failure("job design does not match held scope")
+            try:
+                proposal = import_proposal(
+                    designs.content(revision_id),
+                    imported["sections"],
+                    ImportMode(imported["mode"]),
+                )
+            # ImportTooLarge is a ValueError; a payload without its sections or mode, a KeyError.
+            except (KeyError, TypeError, ValueError) as exc:
+                return _from_file_failure(str(exc))
+            proposal["project"]["agent_provenance"] = {
+                "run_id": step.run_id,
+                "action": action.value,
+                "design_revision_id": revision_id,
+                "origin": "file",
+                "harness_version": HARNESS_VERSION,
+            }
+            provenance = {
+                "agent_id": FROM_FILE_AGENT_ID,
+                "harness_version": HARNESS_VERSION,
+                "design_revision_id": revision_id,
+                "origin": "file",
+                "mode": imported["mode"],
+                "source_id": imported.get("source_id"),
+                "sha256": imported.get("sha256"),
+                "filename": imported.get("filename"),
+                "cost_usd": 0.0,
+                "status": "PROPOSED",
+            }
+            artifact, created = research_artifacts(session, context.scope, self._store).put_json(
+                payload={"result": proposal, "provenance": provenance},
+                project_id=step.project_id,
+                revision=step.project_revision,
+                stage_type=step.stage_type,
+                artifact_type=ARTIFACT_TYPE,
+                input_fingerprint=hashlib.sha256(
+                    canonical_json(
+                        {"job": step.payload["job_fingerprint"], "design_revision_id": revision_id}
+                    ).encode()
+                ).hexdigest(),
+                runtime_version=self._build.sha or "",
+                produced_by_job_id=step.attempt_id,
+                metadata={"run_id": step.run_id, "action": action.value, "origin": "file"},
             )
             touched = _touched(session, context.scope, step.payload, action, proposal)
         return Succeeded(

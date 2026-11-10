@@ -1,0 +1,68 @@
+<section class="chapter" id="predpoklady">
+  <p class="chapter-label">Chapter 6 · Step 4</p>
+  <h1 data-label="6"><i lang="cs">Předpoklady</i>: one table of inputs</h1>
+  <p class="lede">Every input of the model is one row of one table: its low, likely and high value, its distribution, its source, its grade, the person who stands behind it and its state. The table is the contract between the data and the model, and the report prints it whole.</p>
+
+  <h2 class="part" data-n="6.1">What goes in</h2>
+  <ul>
+    <li>The data contracts and the findings table from step 2; the typed public inputs from step 3; the client's answers from step 1.</li>
+    <li>The comparable cases the client holds, from which ranges can be estimated rather than judged: comparable projects with their cost overrun, their delay and what each built beyond its core scope.</li>
+    <li>The scope statement of every estimate the client supplies: what a contractor's figure includes and excludes, with the page that says so.</li>
+  </ul>
+
+  <h2 class="part" data-n="6.2">What comes out</h2>
+  <p><b>The input table.</b> Its columns are the method:</p>
+  <table class="compact">
+    <thead><tr><th style="width:18%">Column</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><i lang="cs">Vstup, jednotka</i></td><td>one input, one unit; a fixed parameter is a row like any other</td></tr>
+      <tr><td><i lang="cs">Dolní · nejspíš · horní</i></td><td>three values; equal for a fixed value. What the ends mean is written down for every decisive input, and the meaning decides how they become a distribution (chapter 2): a hard bound (contractual, physical) defines the support; an elicited quantile (a 90 % interval, a credible worst case) is fitted as a quantile and never read as a bound; a missing fact keeps a justified range, never an automatic midpoint</td></tr>
+      <tr><td><i lang="cs">Rozdělení</i></td><td>PERT by default for a range a person stands behind, its endpoints read as the row says; the estimate's own distribution where it comes from data; an empirical draw from comparable cases that keeps their joint structure; yes/no with a probability for an event; disagreement kept as separate scenarios or an approved mixture; a fixed value (<i lang="cs">pevná hodnota</i>)</td></tr>
+      <tr><td><i lang="cs">Zdroj</i></td><td>the file and row, the document and page, the public source and date, or "not in the files"</td></tr>
+      <tr><td><i lang="cs">Stupeň</i></td><td>one of the grades of chapter 13: <i lang="cs">z dat klienta</i>, <i lang="cs">odhad</i>, <i lang="cs">úsudek</i>, <i lang="cs">veřejný zdroj</i>, <i lang="cs">právní předpis</i></td></tr>
+      <tr><td><i lang="cs">Stojí za ním</i></td><td>the guarantor: a named role in the client (finance, purchasing, environment and safety) or the author. Every assumption has an owner</td></tr>
+      <tr><td><i lang="cs">Stav</i></td><td><i lang="cs">ověřeno</i> (from client data), <i lang="cs">prozatímní</i> (public, unverified) or <i lang="cs">úsudek</i> (the client has no answer)</td></tr>
+    </tbody>
+  </table>
+  <p>Beside the table: <b>the correlation record</b> (which inputs move together, with what coefficient, why, and the stability test their judgement will be put to), <b>the scope check</b> of every supplied estimate against each option's documents with the exclusions priced, and <b>the stress cases</b> outside the ranges, kept apart from the futures.</p>
+
+  <h2 class="part" data-n="6.3">Checks</h2>
+  <ul>
+    <li>Where the client's data allows an estimate, the range comes from the data, not from a judgement; the row says which. Overrun and delay come from the comparables, not from an estimator's ± band.</li>
+    <li>Two things that happened together in the data are drawn together in the model. Where overrun and delay move together across the comparables, each future draws one real comparable and takes both.</li>
+    <li>Every supplied estimate is checked for scope against each option's documents, and each exclusion is priced or stated as missing. A study that adds nothing to a contractor's figure has not done the check.</li>
+    <li><b>The comparables' cost basis is reconciled before their overrun is used</b> (chapter 2). A file can report totals that include off-site infrastructure and overruns against the estimate at decision; applying that overrun to an option's construction estimate and then adding its site items can count them twice. The overrun is defined as actual like-for-like cost over the original estimate, the exclusions are added once, and an unclear source is clarified first, in a new version of the source, before its overrun is used; the methodologist approves (the owner, 9 November). The cohort is checked for comparability: a declared size range, duplicates removed, outliers treated by a declared rule.</li>
+    <li><b>Every value the model reads is a row of the manifest</b> (chapter 2): taxes and depreciation, the form of each incentive, regulatory limits and the method settings included. The counts the report prints come from it.</li>
+    <li>A decisive input has an uncertainty type: natural variation, parameter, expert disagreement, model structure, or a severe event outside the range; the last goes to a stress test, not into the distribution.</li>
+    <li>Experts who disagree from the same documents are a mixture that does not narrow the range; the report says they differ in reading, not in facts.</li>
+    <li>A correlation that is a judgement is declared as one, with the alternative settings it will be tested under, before anything is computed.</li>
+    <li>No input the files do not hold is given a point value. It gets a range and the grade <i lang="cs">úsudek</i>.</li>
+  </ul>
+
+  <h2 class="part" data-n="6.4">In AIA today</h2>
+  <ul>
+    <li>Nothing holds an input table yet. The nearest ancestors are the simulation core's frozen WorldModel with reject-not-clip validation (<code>domain/simulation/</code>) and the research template's readiness rules (<code>domain/research_design.py</code>), which show the pattern: a typed object, validated, pinned to a run.</li>
+    <li>Guarantors and audit: the approval ledger (<code>domain/approval_ledger.py</code>) and the audit trail every admin route writes.</li>
+    <li>Methodology as data the methodologist owns: versions, activation and bounds per editable field (<code>domain/methodology/</code>, ADR 0023). The distribution defaults and the stability thresholds belong there.</li>
+  </ul>
+
+  <h2 class="part" data-n="6.5">New</h2>
+  <ul>
+    <li>The input as a platform type with provenance (<code>cost-model-study#CP1</code>: <code>client_dataset</code>, <code>stated</code>, <code>public_source</code>) and low / base / high with a guarantor on every input (<code>#CR2</code>); the input table as the stage <i lang="cs">Předpoklady</i>. The screen filters by state and marks the decisive rows; shows for each decisive input its uncertainty type, the meaning of its ends and the reason; the estimate from comparables; the scope check as a table of excluded items (where, by what document, price, months, grade); and the correlations as judgement with the stability test and its settings, dated before the computation.</li>
+    <li>Distributions and the correlation record: PERT, declared rank correlations through a Gaussian copula with a validated rank-to-latent conversion and a valid latent matrix (the methodologist's item; the contract recommends it over sample-wide Iman–Conover reordering so the numerical error contract matches the sampler), a non-PSD matrix refused (<code>#CR3</code>); empirical joint draws, one row of a client table per future carrying several inputs together, the table pinned by SHA-256 (<code>#CR3b</code>, <b>new</b>); yes/no events with a probability, fixed and uniform values; people who disagree a mixture (<code>#CR3</code>).</li>
+    <li>The estimate from comparables as a Metodika method (<code>client-data-in-analysis#12</code>).</li>
+    <li>The scope check: what an estimate's document excludes against what each option's documents require, each exclusion an input with its range (<code>cost-model-study#CR1b</code>, <b>new</b>).</li>
+    <li>The stability test declared before computing, as the scenario map's chunk defines it (<code>sociomapa-systemu#SYS9b</code>, chapter 9).</li>
+    <li>The state column and its three values, read from steps 2 and 3 (<code>deep-research-v2#DRV1</code>'s state for public inputs).</li>
+  </ul>
+
+  <h2 class="part" data-n="6.6">Acceptance</h2>
+  <p>The frozen test case hides costs that a sales document leaves out and a site document reveals. The study must find and price each one.</p>
+  <ul>
+    <li>Every planted hidden cost (a treatment step a local limit requires, compensation a permitting authority may impose, infrastructure the investor must build) is found from the document that reveals it and priced with a range and a delay.</li>
+    <li>Overrun comes from the comparables, with duplicates removed first, not from the estimator's band.</li>
+    <li>The decoys are left alone: a past exceedance long since resolved, a limit the option stays under, a minor item well inside the ranges.</li>
+    <li>A recurring cost named only in a side document is in the model.</li>
+    <li>Decisive distributions, their dependence and the stress cases are each justified in the table.</li>
+  </ul>
+</section>

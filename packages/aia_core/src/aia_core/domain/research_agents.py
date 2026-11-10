@@ -830,13 +830,7 @@ def proposal_result(
         p["title"] = p.get("title") or output.title
         result["analysis"] = data
     elif isinstance(output, QuestionnaireProposal):
-        preserved = [
-            s
-            for s in p.get("sections", [])
-            if s.get("type") not in {"questions", "object_battery"}
-            or (s.get("metadata") or {}).get("standard_instrument")
-            or (s.get("metadata") or {}).get("instrument_id")
-        ]
+        preserved = [s for s in p.get("sections", []) if not replaceable_section(s)]
         sections = data["sections"]
         used_ids = {s.get("id") for s in preserved}
         used_ids.update(q.get("id") for s in preserved for q in s.get("questions", []))
@@ -962,6 +956,15 @@ WORKERS: Final = WorkerRegistry(_worker(action) for action in ResearchAction)
 def worker_for(action: ResearchAction) -> LeadWorkerSpec:
     """The row of the design worker that runs ``action``."""
     return WORKERS[action.value]
+
+
+def replaceable_section(section: Mapping[str, Any]) -> bool:
+    """Whether a questionnaire proposal replaces ``section``: questions and object batteries,
+    never a standard instrument or any other kind of section, which a proposal keeps as it is."""
+    metadata = section.get("metadata") or {}
+    return section.get("type") in {"questions", "object_battery"} and not (
+        metadata.get("standard_instrument") or metadata.get("instrument_id")
+    )
 
 
 def proposal_documents(

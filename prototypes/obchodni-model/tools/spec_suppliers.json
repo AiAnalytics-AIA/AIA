@@ -1,0 +1,711 @@
+{
+ "objects": [
+  {
+   "id": "DE",
+   "name": "Delta Fulfillment CZ"
+  },
+  {
+   "id": "WI",
+   "name": "Wisła Fulfilment"
+  },
+  {
+   "id": "VL",
+   "name": "Vlastní provoz Velis"
+  },
+  {
+   "id": "MO",
+   "name": "Morava Fulfil*"
+  },
+  {
+   "id": "PO",
+   "name": "Polaris Logistyka*"
+  },
+  {
+   "id": "DU",
+   "name": "Dunaj 3PL*"
+  }
+ ],
+ "flip": [
+  1,
+  1
+ ],
+ "owner": "VN",
+ "stakeholders": {
+  "VN": "vedoucí nákupu (vlastník výběru)",
+  "FR": "finanční ředitel",
+  "OR": "obchodní ředitelka"
+ },
+ "gates": [
+  {
+   "code": "G1",
+   "name": "Slib ve velkých městech: do 1 dne, sám nebo s expresním partnerem",
+   "from": "Zadání · podmínka OR",
+   "values": {
+    "DE": [
+     "pass",
+     "smlouva s. 3"
+    ],
+    "WI": [
+     "pass",
+     "s expresem: nabidka_kuryr_expres"
+    ],
+    "VL": [
+     "pass",
+     "úsudek: Jihlava"
+    ],
+    "MO": [
+     "pass",
+     "web*"
+    ],
+    "PO": [
+     "unknown",
+     "2 dny, expresní partner nedoložen"
+    ],
+    "DU": [
+     "unknown",
+     "2 dny (úsudek), partner nedoložen"
+    ]
+   }
+  }
+ ],
+ "swing": {
+  "VN": {
+   "C": 100,
+   "S": 80,
+   "R": 60,
+   "P": 50,
+   "K": 40,
+   "V": 30,
+   "M": 20
+  },
+  "FR": {
+   "C": 100,
+   "S": 50,
+   "R": 50,
+   "P": 60,
+   "K": 30,
+   "V": 15,
+   "M": 30
+  },
+  "OR": {
+   "C": 60,
+   "S": 100,
+   "R": 70,
+   "P": 30,
+   "K": 50,
+   "V": 50,
+   "M": 10
+  }
+ },
+ "categories": [
+  {
+   "code": "C",
+   "name": "Cena",
+   "why": "náklad na objednávku je hlavní páka",
+   "indicators": [
+    {
+     "code": "C1",
+     "name": "Provozní náklad na objednávku vč. skladného (Kč)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≤ 45 → 10 · ≤ 50 → 8 · ≤ 55 → 6 · ≤ 60 → 4 · > 60 → 2 (při 410 tis. objednávek, 2,3 položky)",
+     "cuts": [
+      [
+       45,
+       10
+      ],
+      [
+       50,
+       8
+      ],
+      [
+       55,
+       6
+      ],
+      [
+       60,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 57.7,
+       "cert": "Vysoká",
+       "src": "smlouva s. 3–4: 46 + 4,8 mil./rok"
+      },
+      "WI": {
+       "state": "known",
+       "v": 47.6,
+       "cert": "Vysoká",
+       "src": "s. 1–3: 34 + 6 svoz + 3,1 mil."
+      },
+      "VL": {
+       "state": "known",
+       "v": 47.1,
+       "cert": "Střední",
+       "src": "nabidka_hala s. 5: 32 Kč + 6,2 mil."
+      },
+      "MO": {
+       "state": "known",
+       "v": 52.0,
+       "cert": "Střední",
+       "src": "veřejný ceník*"
+      },
+      "PO": {
+       "state": "known",
+       "v": 44.0,
+       "cert": "Střední",
+       "src": "veřejný ceník*"
+      },
+      "DU": {
+       "state": "unknown",
+       "src": "ceník nezveřejněn"
+      }
+     }
+    },
+    {
+     "code": "C2",
+     "name": "Roční indexace (%)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≤ 2 → 10 · ≤ 3 → 8 · ≤ 4 → 6 · ≤ 5 → 4 · > 5 → 2",
+     "cuts": [
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       8
+      ],
+      [
+       4,
+       6
+      ],
+      [
+       5,
+       4
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 5,
+       "cert": "Vysoká",
+       "src": "smlouva s. 6"
+      },
+      "WI": {
+       "state": "known",
+       "v": 3,
+       "cert": "Vysoká",
+       "src": "s. 5"
+      },
+      "VL": {
+       "state": "known",
+       "v": 4.5,
+       "cert": "Nízká",
+       "src": "úsudek: mzdy CZ"
+      },
+      "MO": {
+       "state": "unknown",
+       "src": "indexace nezveřejněna"
+      },
+      "PO": {
+       "state": "known",
+       "v": 3.5,
+       "cert": "Střední",
+       "src": "obchodní podmínky*"
+      },
+      "DU": {
+       "state": "unknown",
+       "src": "nezveřejněno"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "code": "S",
+   "name": "Rychlost doručení",
+   "why": "slib ve velkých městech",
+   "overlap": "S2 (uzávěrka) z části určuje S1: obě v jedné kategorii, váha jednou",
+   "indicators": [
+    {
+     "code": "S1",
+     "name": "Doručení do velkých měst (dny)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "1 → 9 · 2 → 5 · 3 → 2",
+     "cuts": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       5
+      ],
+      [
+       1000000000.0,
+       2
+      ]
+     ],
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 1,
+       "cert": "Vysoká",
+       "src": "smlouva s. 3"
+      },
+      "WI": {
+       "state": "known",
+       "v": 2,
+       "cert": "Vysoká",
+       "src": "s. 3"
+      },
+      "VL": {
+       "state": "known",
+       "v": 1,
+       "cert": "Střední",
+       "src": "úsudek: Jihlava"
+      },
+      "MO": {
+       "state": "known",
+       "v": 1,
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "PO": {
+       "state": "known",
+       "v": 2,
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "DU": {
+       "state": "known",
+       "v": 2,
+       "cert": "Nízká",
+       "src": "úsudek: vzdálenost"
+      }
+     }
+    },
+    {
+     "code": "S2",
+     "name": "Uzávěrka expedice (hodina)",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≥ 15 → 10 · 14 → 8 · 13 → 6 · ≤ 12 → 4",
+     "cuts": [
+      [
+       12,
+       4
+      ],
+      [
+       13,
+       6
+      ],
+      [
+       14,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 14,
+       "cert": "Vysoká",
+       "src": "smlouva s. 3"
+      },
+      "WI": {
+       "state": "known",
+       "v": 13,
+       "cert": "Vysoká",
+       "src": "s. 6"
+      },
+      "VL": {
+       "state": "known",
+       "v": 15,
+       "cert": "Nízká",
+       "src": "úsudek"
+      },
+      "MO": {
+       "state": "known",
+       "v": 15,
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "PO": {
+       "state": "known",
+       "v": 12,
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "DU": {
+       "state": "unknown",
+       "src": "uzávěrka nezveřejněna"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "code": "K",
+   "name": "Kapacita",
+   "why": "potřeba 750 tis. objednávek v roce 2032",
+   "indicators": [
+    {
+     "code": "K1",
+     "name": "Kapacita / potřeba 2032",
+     "kind": "pásmo",
+     "from": "Data · Rešerše",
+     "rule": "≥ 1,2 → 10 · ≥ 1,0 → 8 · ≥ 0,9 → 6 · ≥ 0,8 → 4 · < 0,8 → 2",
+     "cuts": [
+      [
+       0.7999,
+       2
+      ],
+      [
+       0.8999,
+       4
+      ],
+      [
+       0.9999,
+       6
+      ],
+      [
+       1.1999,
+       8
+      ],
+      [
+       1000000000.0,
+       10
+      ]
+     ],
+     "values": {
+      "DE": {
+       "state": "unknown",
+       "src": "limit nehlášen · dotaz odeslán 4. 11."
+      },
+      "WI": {
+       "state": "known",
+       "v": 1.12,
+       "cert": "Vysoká",
+       "src": "s. 4"
+      },
+      "VL": {
+       "state": "known",
+       "v": 0.83,
+       "cert": "Vysoká",
+       "src": "nabidka_hala s. 3"
+      },
+      "MO": {
+       "state": "known",
+       "v": 0.9,
+       "cert": "Střední",
+       "src": "výroční zpráva*"
+      },
+      "PO": {
+       "state": "known",
+       "v": 1.4,
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "DU": {
+       "state": "unknown",
+       "src": "nezveřejněno"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "code": "P",
+   "name": "Smluvní podmínky",
+   "why": "ochrana proti zdražení a uzamčení",
+   "indicators": [
+    {
+     "code": "P1",
+     "name": "Checklist podmínek (z 5)",
+     "kind": "checklist",
+     "items": [
+      "strop indexace",
+      "výpověď ≤ 6 měsíců",
+      "sleva za zpoždění",
+      "odpovědnost ≥ 2 mil. Kč",
+      "bez poplatku za ukončení"
+     ],
+     "from": "Data · Rešerše",
+     "rule": "skóre = 1 + 9 × podíl splněných; nedoložená položka je neznámá, ne nesplněná",
+     "values": {
+      "DE": {
+       "state": "checklist",
+       "v": "yyyyy",
+       "cert": "Vysoká",
+       "src": "smlouva s. 3–8"
+      },
+      "WI": {
+       "state": "checklist",
+       "v": "nnyyn",
+       "cert": "Vysoká",
+       "src": "nabidka_3PL_PL s. 5–7"
+      },
+      "VL": {
+       "state": "na",
+       "src": "vlastní provoz nemá smlouvu s 3PL"
+      },
+      "MO": {
+       "state": "checklist",
+       "v": "yy?y?",
+       "cert": "Střední",
+       "src": "obchodní podmínky*"
+      },
+      "PO": {
+       "state": "checklist",
+       "v": "?y?y?",
+       "cert": "Střední",
+       "src": "obchodní podmínky*"
+      },
+      "DU": {
+       "state": "checklist",
+       "v": "?y???",
+       "cert": "Nízká",
+       "src": "zveřejněna jen výpověď"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "code": "R",
+   "name": "Spolehlivost",
+   "why": "zpoždění stojí 3,6 % objednávek",
+   "indicators": [
+    {
+     "code": "R1",
+     "name": "Výpadky za 3 roky",
+     "kind": "slovní",
+     "from": "Data · Rešerše",
+     "rule": "doložená bezchybná historie 9 · hlášený výpadek 5 · nový provoz 5 · bez záznamu = neznámo",
+     "range": [
+      5,
+      9
+     ],
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 9,
+       "cert": "Vysoká",
+       "src": "faktury_3PL_CZ_2025: žádná sleva za zpoždění"
+      },
+      "WI": {
+       "state": "unknown",
+       "src": "nic nehlášeno, nic doloženo"
+      },
+      "VL": {
+       "state": "known",
+       "v": 5,
+       "cert": "Nízká",
+       "src": "rozjezd provozu (úsudek)"
+      },
+      "MO": {
+       "state": "known",
+       "v": 5,
+       "cert": "Střední",
+       "src": "zpráva o výpadku WMS 2025*"
+      },
+      "PO": {
+       "state": "unknown",
+       "src": "nic nehlášeno"
+      },
+      "DU": {
+       "state": "unknown",
+       "src": "nic nehlášeno"
+      }
+     }
+    },
+    {
+     "code": "R2",
+     "name": "Riziko dodavatele podle manažerů",
+     "kind": "přímo",
+     "from": "Data",
+     "rule": "průměr kritéria Riziko dodavatele z hodnoceni_expertu.csv; kdo nebyl hodnocen, je neznámý",
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 6.4,
+       "cert": "Vysoká",
+       "src": "možnost B"
+      },
+      "WI": {
+       "state": "known",
+       "v": 5.0,
+       "cert": "Vysoká",
+       "src": "možnost C"
+      },
+      "VL": {
+       "state": "known",
+       "v": 8.4,
+       "cert": "Vysoká",
+       "src": "možnost A"
+      },
+      "MO": {
+       "state": "unknown",
+       "src": "manažeři nehodnotili"
+      },
+      "PO": {
+       "state": "unknown",
+       "src": "nehodnotili"
+      },
+      "DU": {
+       "state": "unknown",
+       "src": "nehodnotili"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "code": "V",
+   "name": "Služby navíc",
+   "why": "vratky tvoří velkou část práce",
+   "indicators": [
+    {
+     "code": "V1",
+     "name": "Checklist služeb (z 4)",
+     "kind": "checklist",
+     "items": [
+      "vratky do 48 h",
+      "dárkové balení",
+      "napojení na e-shop přes API",
+      "sklad v ČR pro výprodeje"
+     ],
+     "from": "Data · Rešerše",
+     "rule": "skóre = 1 + 9 × podíl splněných; nedoložená položka je neznámá",
+     "values": {
+      "DE": {
+       "state": "checklist",
+       "v": "yyny",
+       "cert": "Vysoká",
+       "src": "smlouva s. 2"
+      },
+      "WI": {
+       "state": "checklist",
+       "v": "??yn",
+       "cert": "Vysoká",
+       "src": "s. 7: napojení systémů; sklad v PL"
+      },
+      "VL": {
+       "state": "checklist",
+       "v": "yyyy",
+       "cert": "Střední",
+       "src": "vlastní provoz"
+      },
+      "MO": {
+       "state": "checklist",
+       "v": "yyy?",
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "PO": {
+       "state": "checklist",
+       "v": "y?yn",
+       "cert": "Střední",
+       "src": "web*"
+      },
+      "DU": {
+       "state": "checklist",
+       "v": "?y??",
+       "cert": "Nízká",
+       "src": "web*"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "code": "M",
+   "name": "Měna (PESTEL E)",
+   "why": "kurzové riziko",
+   "indicators": [
+    {
+     "code": "L2",
+     "name": "Měna fakturace",
+     "kind": "slovní",
+     "from": "Rešerše · PESTEL E",
+     "rule": "Kč 9 · EUR 5 · PLN 4",
+     "values": {
+      "DE": {
+       "state": "known",
+       "v": 9,
+       "cert": "Vysoká",
+       "src": "smlouva"
+      },
+      "WI": {
+       "state": "known",
+       "v": 5,
+       "cert": "Vysoká",
+       "src": "nabídka s. 1"
+      },
+      "VL": {
+       "state": "known",
+       "v": 9,
+       "cert": "Vysoká",
+       "src": "Kč"
+      },
+      "MO": {
+       "state": "known",
+       "v": 9,
+       "cert": "Vysoká",
+       "src": "ceník*"
+      },
+      "PO": {
+       "state": "known",
+       "v": 4,
+       "cert": "Vysoká",
+       "src": "ceník*"
+      },
+      "DU": {
+       "state": "known",
+       "v": 5,
+       "cert": "Vysoká",
+       "src": "ceník*"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "removed": [
+  {
+   "code": "L1",
+   "name": "Vzdálenost od Prahy",
+   "to": "vypuštěno",
+   "why": "vzdálenost už je v S1 (dny doručení) a v C1 (svoz)"
+  },
+  {
+   "code": "R1 · pravidlo 6",
+   "name": "Nic nehlášeno = 8",
+   "to": "neznámo",
+   "why": "chybějící záznam není bezchybná historie"
+  },
+  {
+   "code": "C2 · pravidlo 5",
+   "name": "Nezveřejněná indexace = medián",
+   "to": "neznámo",
+   "why": "mlčení dodavatele není průměr trhu"
+  }
+ ]
+}
