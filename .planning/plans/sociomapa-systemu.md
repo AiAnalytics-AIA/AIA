@@ -9,7 +9,7 @@ chunks:
   - "[ ] SYS4. The baseline: per-variable surrogates (IAAFT by default) after detrending, checked to reproduce each series' autocorrelation; for scenarios, the imposed input correlation (answer 5)"
   - "[ ] SYS5. Pair floors replaced by an autocorrelation-adjusted effective-sample-size floor, the formula and the floor from the synthetic power curves (answer 3)"
   - "[ ] SYS6. Multiple testing: Benjamini-Yekutieli by default, q and the method reported; a resampling-calibrated FDR only on the methodology owner's approval after the suite (answer 1)"
-  - "[ ] SYS7. Credibility: a block bootstrap of rows (block length declared) with Procrustes-aligned displacement per object in place of split-half; stability only, no intervals, below the minimum length (answer 4)"
+  - "[ ] SYS7. Credibility: a block bootstrap of rows (block length declared) with Procrustes-aligned displacement per object in place of split-half; stability only, no intervals, below the minimum length (answer 4); for the scenario map no block bootstrap: stability across seeds and assumptions, with and without each future's mean (ADR 0046 decision 5)"
   - "[ ] SYS8. Fit beside the layout: stress-1 and stress per point against a random-data benchmark and a permutation test; the layout, terrain and determinism unchanged"
   - "[ ] SYS9. The scenario mode: rows a model's Monte Carlo scenarios (>= 800, cost-model-study CR3), the imposed correlation as the baseline, grade MODELLED, the claim 'in this model, A and B move together'; consumed by cost-model-study CS1-CS5"
   - "[ ] SYS10. The expert mode: options or competitors scored by named people on criteria, grade MODELLED with the inputs stated; consumed by situation-reports EX1-EX2"
@@ -59,8 +59,10 @@ suite planted (SYS1), and each reaches the report outline as a point with its me
 
 - A map never says a relation is causal.
 - A scenario map never says it shows how the market or the firm behaves.
-- A structure is never called real unless it beats its surrogate null after FDR and survives
-  resampling.
+- A structure is never called real unless it passes its mode's contract (ADR 0046 decision 5): the
+  period map's surrogate null after FDR and the block bootstrap; the scenario map's stability across
+  seeds and assumptions, with no p-value and no block bootstrap; the expert map's rater resampling; the
+  unit map's cluster resampling.
 - A distance is never read as an effect size, and a terrain height between observed points is never
   read as an estimate.
 - Regimes are never drawn from 24-36 months without a declared break.

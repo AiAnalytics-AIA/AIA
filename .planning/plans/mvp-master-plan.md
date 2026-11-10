@@ -143,9 +143,13 @@ and the population with it (A7-A9, A11; `mvp-master-plan#MP19`).
     person is not shown without a balancing test.
   - M-7: a Deep Research finding is a quote in a captured source. Citation accuracy is at least 90 % and
     unsupported statements are under 10 %.
-  - M-8: a map draws an edge only when it beats its surrogate null after FDR and survives the block
-    bootstrap. Its never-claim list is on screen and in the report. The scenario and expert maps show
-    which options win in the same futures and which hedge each other (A6).
+  - M-8: a map draws an edge only when it passes its own mode's statistical contract (ADR 0046
+    decision 5, R5): the period map's edge beats its surrogate null after Benjamini-Yekutieli and
+    survives the block bootstrap; the scenario map's rows are independent Monte Carlo draws, so it has
+    no p-value and no block bootstrap, and an edge stands only when it is stable across seeds and
+    assumptions, shown with and without each future's mean; the expert map resamples raters, the unit
+    map resamples clusters. Its never-claim list is on screen and in the report. The scenario and
+    expert maps show which options win in the same futures and which hedge each other (A6).
   - M-9: the report says only what the closed report outline holds. An unverified point cannot enter it.
   - M-10: the whole fictional Velis journey runs over HTTP and in a browser on recorded doubles, with zero
     paid calls, within the study's spend limit.
