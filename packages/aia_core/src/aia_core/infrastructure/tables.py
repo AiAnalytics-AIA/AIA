@@ -742,6 +742,8 @@ class StudyWorkspaceRow(Base):
     lineage: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     # The stage the study was last opened on, for "continue where you left off".
     last_stage: Mapped[str | None] = mapped_column(String(32))
+    # The workbench stage beside it (domain WORKBENCH_STAGE_KEYS): NULL when not recorded (CPR23).
+    last_workbench_stage: Mapped[str | None] = mapped_column(String(32))
     bound_by: Mapped[str] = mapped_column(String(64), nullable=False)
     bound_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow

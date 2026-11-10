@@ -156,6 +156,8 @@ class WorkspaceStudy(BaseModel):
     #: When the study was first marked delivered; ``None`` when it never was.
     delivered_at: datetime | None = None
     last_stage: str | None = None
+    #: The workbench stage it was left on, beside the step; null when not recorded (CPR23).
+    last_workbench_stage: str | None = None
     has_working_content: bool = False
     #: Where the study's working content stands (``ContentState``), by name.
     content_state: str = ContentState.EMPTY.value
@@ -645,11 +647,13 @@ class QuestionnaireImportResponse(BaseModel):
 
 
 class StageRequest(BaseModel):
-    """The stage the study was opened on."""
+    """The stage the study was opened on: its classic step, and the workbench stage beside it
+    when the workbench names one (CPR23)."""
 
     model_config = ConfigDict(extra="forbid")
 
     stage: str = Field(max_length=32)
+    workbench_stage: str | None = Field(default=None, max_length=32)
 
 
 class ProposalCreate(BaseModel):
@@ -735,6 +739,7 @@ def _study(study: Study, workspace: StudyWorkspace | None) -> WorkspaceStudy:
         accepts_work=study.status.accepts_work,
         delivered_at=study.delivered_at,
         last_stage=workspace.last_stage if workspace else None,
+        last_workbench_stage=workspace.last_workbench_stage if workspace else None,
         has_working_content=state.has_content or state is ContentState.AWAITING_MIGRATION,
         content_state=state.value,
         created_at=study.created_at,
@@ -2517,7 +2522,9 @@ def study_questionnaire_template(scope: StudyScopeDep) -> Response:
 def record_study_stage(body: StageRequest, scope: StudyScopeDep, session: SessionDep) -> None:
     """For "continue where you left off". A no-op for a role that may not edit."""
     try:
-        StudyWorkspaceRepository(session).record_stage(scope, stage=body.stage)
+        StudyWorkspaceRepository(session).record_stage(
+            scope, stage=body.stage, workbench_stage=body.workbench_stage
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=422, detail={"code": "unknown_stage", "message": str(exc)}

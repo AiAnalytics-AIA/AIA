@@ -39,6 +39,8 @@ __all__ = [
     "SAVE_REASON",
     "STAGE_KEYS",
     "UNIT_PROJECT_ID",
+    "WORKBENCH_STAGE_KEYS",
+    "WORKBENCH_STAGE_STEPS",
     "WORKING_CONTENT_MAX_BYTES",
     "WORKSPACE_PROJECT_OWNER",
     "ContentState",
@@ -90,6 +92,27 @@ STAGE_KEYS: Final = frozenset(
         "next",
     }
 )
+
+# The research workbench's eleven stages, in order (apps/web/src/lib/workbench-stages.ts
+# STAGE_ORDER): where a study was left, beside its classic step, so the client pages can name
+# every stage (client-pages-redesign CPR23). Held to the web's list by the shared fixture
+# tests/fixtures/workbench_stages/stages.json.
+#: Each stage with the classic steps whose route shows it (the web's stageOf): one stage and its
+#: step are stored together, and a pair that does not belong together is refused.
+WORKBENCH_STAGE_STEPS: Final[dict[str, frozenset[str]]] = {
+    "brief": frozenset({"brief"}),
+    "design": frozenset({"plan"}),
+    "questionnaire": frozenset({"questionnaire"}),
+    "audience": frozenset({"audience"}),
+    "dimensions": frozenset({"persona"}),
+    "sample": frozenset({"persona"}),
+    "fieldwork": frozenset({"run", "progress"}),
+    "results": frozenset({"results"}),
+    "sociomap": frozenset({"results"}),
+    "analysis": frozenset({"results"}),
+    "report": frozenset({"results"}),
+}
+WORKBENCH_STAGE_KEYS: Final = tuple(WORKBENCH_STAGE_STEPS)
 
 # Top-level keys that would let saved content pose as identity or scope, refused
 # exactly as a Design Revision refuses them (``design.validate_design``). The
@@ -202,6 +225,8 @@ class StudyWorkspace(BaseModel):
     #: Migration provenance, as recorded when the content was brought over.
     lineage: dict[str, Any] = Field(default_factory=dict)
     last_stage: str | None = None
+    #: The workbench stage it was left on (WORKBENCH_STAGE_KEYS); None when not recorded.
+    last_workbench_stage: str | None = None
     bound_at: datetime | None = None
     modified_at: datetime | None = None
 
