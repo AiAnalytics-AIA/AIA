@@ -27,6 +27,11 @@ chunks:
 ---
 # Run QC and a fieldwork checkpoint
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 Fieldwork that does not repay on retry, and the run QC that the Fieldwork and Results artifacts show. Written 2026-10-19 from `.planning/evidence/mvp-master-traces/trace-2-sample-execution.md`; OI-64 was owned only by `research-agent-workflows` I4.
 
 **Owner: S2.** Takes the gap rows G26, G27, G29 and interfaces I6, I7 of `mvp-master-plan.md` §6.1 and serves AC-05, AC-06, AC-08 and gate I-1.

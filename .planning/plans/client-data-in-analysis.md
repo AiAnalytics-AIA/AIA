@@ -13,9 +13,11 @@ chunks:
   - "[ ] 6. A client's own survey: its own Sociomap through the existing engine, never merged"
   - "[ ] 7. The Lead and the analysis modules see only admitted client-reported results, never rows"
   - "[ ] 8. Brief materials pick a client dataset; `brief_signature` and `design_material` carry the source id and the contract version, with one fixture for Python and TypeScript"
-  - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model"
+  - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model, the class gates enforcing in any deployment that holds a real client's data (ADR 0046 Q2, A4)"
   - "[x] 8a. W0 proposed Brief-material/signature interface and shared fixture; uploaded datasets remain ineligible until an accepted data contract exists"
-  - "[ ] 10. The data contract accepted in the study's Brief drawer with its quality report; the Data tab shows the accepted contract read-only (D-37)"
+  - "[ ] 10. The data contract and its quality report accepted on the study's Data step (ADR 0046 W6, superseding D-37's Brief drawer); Zadání lists only the files it needs"
+  - "[ ] 11. A number from a client's document (a PDF contract or offer): Ada proposes it with its page, code checks it appears literally on that page (Deep Research's grounding rule), the researcher accepts each; one not found on its page refused by name (ADR 0046 W7)"
+  - "[ ] 12. An estimate from client rows (e.g. orders lost after a delay, from matched groups) as a Metodika method with its interval and row count, internal until the methodology owner registers it (ADR 0046 W8)"
 ---
 # A client's own data in a study's analysis
 

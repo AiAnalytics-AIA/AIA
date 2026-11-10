@@ -48,6 +48,11 @@ chunks:
 ---
 # Panel-grounded AI respondents
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 ## Why
 
 Today an AI respondent inherits nothing from the population. `fictional_roster`

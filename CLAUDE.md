@@ -100,8 +100,8 @@ apps/
                             DataClassGates): advisory makes every refusal made solely because of a data class a
                             recorded pass (residency.ClassAdvisory: the ledger row's note,
                             CallProvenance.class_advisories, the tool event, a step event); unclassified material is
-                            judged as Class A; develop only (Compose), refused in staging, production and an unknown
-                            AIA_ENV; EU residency, licences, budgets and scope still hold; Brave's search route takes
+                            judged as Class A; allowed in every environment since 4959b1cb (the owner's "Advisory
+                            everywhere", 2026-10-28), set on develop (Compose), enforce the default; EU residency, licences, budgets and scope still hold; Brave's search route takes
                             any class there (ToolRoute.any_class_when_advisory; ADR 0008, Amendment 2026-10-21, #594);
                             AIA_ROUTING_ENABLED (routing_enabled, off; off on develop until RQC11): a valid display
                             condition passes readiness and a new run pins it (metadata.routing, read by the preflight
@@ -1401,7 +1401,7 @@ packages/aia_core/src/aia_core/
                             Class C, never citable for a number (harness aia-research-lead-4); the request's preset,
                             focus, target and deep_research_retry, grounded by request_ids / request_refusal;
                             harness 6, prompt 2
-    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
+    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166 (v2's capabilities excepted, ADR 0046):
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
                             settings_method (the approved method digest) and method_identity() in
@@ -1682,8 +1682,8 @@ packages/aia_core/src/aia_core/
     deployment.py           AIA_ENV: local / test / develop / staging / production; what each allows
                             (deployed guards, fictional material), the one fictional-material rule the
                             API and the worker both ask; DataClassGates / data_class_gates_problem
-                            (AIA_DATA_CLASS_GATES, enforce | advisory: advisory refused outside local, test and
-                            develop; #594)
+                            (AIA_DATA_CLASS_GATES, enforce | advisory: advisory allowed in every environment since
+                            4959b1cb, enforce the default; #594)
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58);
                             edited_from_current: a save naming no revision is not stale over a working copy that is
@@ -2689,7 +2689,8 @@ authority over respondent data, aggregates, analysis or the canonical Sociomap. 
 carries its purpose, a typed target and a frozen lineage (exact artifacts, by SHA256) in an
 envelope around the unchanged engine request and sealed bundle; a pre-ADR run reads
 `legacy-unversioned`. The engine (retrieval, ladder, investigators, lead, fan-out, recovery,
-verification, grounding, confidence, the bundle) is frozen: change it only on a defect or
+verification, grounding, confidence, the bundle) is frozen but for Deep Research v2's listed capabilities
+(ADR 0046 decision 6, `deep-research-v2`): change it only on a defect or
 evaluation finding. Deep Research helps decide what to measure; respondents determine what we
 observed; deterministic analysis and Sociomapping determine the computed structure; Deep Research
 may then help interpret it. External research never manufactures respondent evidence and never

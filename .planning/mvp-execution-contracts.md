@@ -37,7 +37,7 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E14 | W2 | S2/S3: `sociomap-formula-corrections#I1`, `sociomap-formula-corrections#I3`, `sociomap-formula-corrections#3`, `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#5`, `client-knowledge-lifecycle#K5` | E10, E11, E12, E13 | Actual population/own-dimension values reach respondents, descriptors, filters and map consumers; missing inputs refuse; changing only a hash is insufficient proof |
 | E15 | W2 | S1/S3: `working-copy-edit-ops#WCE8`, `working-copy-edit-ops#WCE9`, `working-copy-edit-ops#WCE11`, `report-delivery#RD3`, `report-delivery#RD4`, `research-lead-workbench#20`, `research-lead-workbench#22` | E06, E11, E12, E14, E29 | Declare/unlock editor, recorded undo before structural auto-accept, real Results/Sociomap/Audience/Dimensions consumers and approved stored snapshot; view operations preserve numerical hash |
 | E16 | W2 | S1: `lead-orchestration#LO11` | E06, E09, E10 | Persistent Lead-file history and rollback (no handover or admin read: D-32 to D-34; a departed member's Lead sealed, then deleted: Q14); private turns and proposal text cannot leak through shared activity |
-| E17 | W3 | S2/S3: `client-data-in-analysis#0`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `client-data-in-analysis#8`, `client-data-in-analysis#9`, `evidence-integrity#8b` | E04, E09, E11 | Accepted ADR 0027 and contract before runtime; pinned analysis copy excludes personal/unnamed columns; client data and modelled evidence stay distinct through run node and fingerprint |
+| E17 | W1 | S2/S3: `client-data-in-analysis#0`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `client-data-in-analysis#8`, `client-data-in-analysis#9` | E04, E09 | Accepted ADR 0027 and contract before runtime; pinned analysis copy excludes personal/unnamed columns; client data and modelled evidence stay distinct through run node and fingerprint **Re-waved W3 → W1 by the pivot (ADR 0046 decision 4)**: the data contracts come first; E11 dropped from its needs (the survey analysis' ResultsContext is not a contract's predecessor) and `evidence-integrity#8b` (the eight modules' two-origin input) parked |
 | E18 | W3 | S3/S2: `report-delivery#RD6`, `run-qc-and-checkpoint#RQC4`, `run-qc-and-checkpoint#RQC5`; S1: `lead-orchestration#LO9b` | E03, E08, E11, E17 | First the semantic-edit/replacement ADRs and accept-result contracts; then worker bindings/proposals; replacement additionally waits for approved weighting/support and preserves the original run |
 | E19 | W3 | S1/S2: `system-prompts-settings#7`, `system-prompts-settings#13` | E03, E11, E18 | Eight analysis pins reach assembly, reuse identity, repairs and usage; all eleven worker slots wired; queued work keeps its pin, new activation changes new work only |
 | E20 | W3 | S2/S3: `evidence-integrity#7`, `evidence-integrity#9b`, `client-data-in-analysis#5`, `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD5`, `research-lead-workbench#21` | E15, E17, E18, E19, E32 | Admitted findings plus separately labelled external/client context; full Report artifact hosts approval/export; revised wording invalidates approval without recollecting fieldwork; a module with no supported finding blocks composition and export (MVPQ-04, settled) |
@@ -72,6 +72,47 @@ resend, ArrowUp, a queued message's send-now and edit; D-38) is the UI of `lead-
 `#LC10`. It stays the UI owner and takes LC10's replacement-turn rule and LC5's server queue as
 acceptance conditions; LC5 and LC10 own the server side.
 
+## The pivot's critical path (2026-11-02)
+
+[ADR 0046](../docs/architecture/adr/0046-business-decisions-pivot.md) (the owner, 2026-11-02: "we are
+pivoting", "Freeze it now") reorders the work: data contracts, then the model platform, then the maps,
+with Deep Research v2, the public data routes and the register personal-data records beside them. The
+rows above stay as they were except E17, re-waved to W1. The rows below are new.
+
+| ID | Wave | Deliverable and owner | Needs | Consumer and observable proof |
+|---|---|---|---|---|
+| E35 | W1 | Method owner/S2: `sociomapa-systemu#SYS0`, `sociomapa-systemu#SYS1`, `sociomapa-systemu#SYS1b` | — | The ten questions sent to A. Bahbouh as one message and each answer recorded; the synthetic suite's generators pinned by SHA-256 and run over today's `-5` statistics as the baseline; no statistic replaced here |
+| E36 | W2 | S4/S5: `cost-model-study#CP1`, `cost-model-study#CP2`, `cost-model-study#CP3`, `cost-model-study#CP4`, `cost-model-study#CP5`, `cost-model-study#CP6`, `cost-model-study#CP7`, `cost-model-study#CP8`, `cost-model-study#CP9`, `cost-model-study#CM1`, `cost-model-study#CM2`, `cost-model-study#CM3`, `cost-model-study#CM4`, `cost-model-study#CM5`, `cost-model-study#CM6`, `cost-model-study#CM7` | E17 | The platform types, the model-type contract, `BUSINESS_MODEL`, data bindings under an accepted contract, the run, API, web, report frame and Lead; cost scenarios CALCULATED end to end, AC-16's journey (CM6) over HTTP with zero paid calls |
+| E37 | W3 | S4/S5 and the method owner: `cost-model-study#CP10`, `cost-model-study#CR1`, `cost-model-study#CR2`, `cost-model-study#CR3`, `cost-model-study#CR4`, `cost-model-study#CR5`, `cost-model-study#CR6`, `cost-model-study#CR7`, `cost-model-study#CR8`, `cost-model-study#CR9`, `cost-model-study#CR10` | E35, E36 | The ESTIMATED layers only after the methodology owner's answers 8-10 (ADR 0046 decision 10's corrections in each chunk's text); the method register entry before any ESTIMATED number reaches a client report |
+| E38 | W2 | S2 and the method owner: `sociomapa-systemu#SYS2`, `sociomapa-systemu#SYS3`, `sociomapa-systemu#SYS4`, `sociomapa-systemu#SYS5`, `sociomapa-systemu#SYS6`, `sociomapa-systemu#SYS7`, `sociomapa-systemu#SYS8` | E35 | Each replaced statistic built only after its answer, judged on the suite against E35's baseline; layout, terrain and determinism unchanged (a rerun equal in bytes) |
+| E39 | W3 | S4/S5/S2: `cost-model-study#CS1`, `cost-model-study#CS2`, `cost-model-study#CS3`, `cost-model-study#CS4`, `cost-model-study#CS5`, `sociomapa-systemu#SYS9`, `sociomapping-engine#2c`, `sociomapping-engine#4b`, `sociomapping-engine#11` | E37, E38 | The scenario map (rows: the model's Monte Carlo scenarios) MODELLED, its claim 'in this model, A and B move together', the never-claim list on screen and in the report; in the MVP (the owner, 2026-11-02) |
+| E40 | W3 | S4-S6/S2: `situation-reports#EX1`, `situation-reports#EX2`, `sociomapa-systemu#SYS10` | E36, E38 | The expert objects × properties map from named experts' scores, MODELLED with inputs stated; the SOMECS name not used where a client reads it until ADR 0046 Q4 is answered; in the MVP (the owner: "Both maps in the MVP") |
+| E41 | W4 | S2 and the method owner: `sociomapa-systemu#SYS11`, `sociomapa-systemu#SYS12` | E38, E39 | The unit and period maps only after the suite passes at the owner's thresholds (answer 7); every mode registered on its own, INTERNAL_ONLY until approved |
+| E42 | W1 | S2/S3: `deep-research-v2#DRV0`, `public-data-routes#PDR0`, `register-personal-data#RPD0`, `register-personal-data#RPD1` | E12 | The gate's rate limits, TDM-reservation check and retention limit; the source register as data the gate reads; the processing record written with counsel and person-naming fields withheld |
+| E43 | W2 | S2/S3: `public-data-routes#PDR1`, `public-data-routes#PDR2`, `public-data-routes#PDR3`, `public-data-routes#PDR4`, `public-data-routes#PDR5`, `public-data-routes#PDR6`, `public-data-routes#PDR8`, `register-personal-data#RPD2`, `register-personal-data#RPD3` | E42 | Each route behind recorded doubles with golden responses pinned by hash, admitted values byte-equal to the response; VIES never stored, NEN's login data refused; a person-naming field released only after its balancing test |
+| E44 | W2 | S2: `deep-research-v2#DRV1`, `deep-research-v2#DRV2`, `deep-research-v2#DRV3`, `deep-research-v2#DRV4` | E42 | Typed inputs (value, unit, period, range, source, licence, as-of) extracted by code at F1 >= 0.90 on the labelled Czech set, accepted by a person; citation precision and recall in verify with a calibrated judge |
+| E45 | W3 | S2: `deep-research-v2#DRV5`, `deep-research-v2#DRV6`, `deep-research-v2#DRV7`, `public-data-routes#PDR7` | E43, E44 | Credibility v2 from declared tables (a model's score refused), contradictions resolved by a person, as-of research with each capture's own datetime; Sbírka listin statements extracted with review and the review's cost measured |
+| E46 | W1 | S1/S2: `research-findings-stage#FND0`, `research-findings-stage#FND1`, `research-findings-stage#FND2` | E06 | The report outline's contract (structure, points, visuals, links) and its ADR record; the survey stages left out of new research studies and read-only on old ones; every number and claim a link resolved by code, an unresolved one unverified |
+| E47 | W2 | S1/S2: `research-findings-stage#FND3`, `research-findings-stage#FND4`, `research-findings-stage#FND5`, `research-findings-stage#FND6`, `research-findings-stage#FND7`, `research-findings-stage#FND8` | E44, E46 | Findings, typed values, tables, graphs and process diagrams in the report outline, every cell and mark linked; the Lead proposes per change; stops closed by a person |
+| E48 | W3 | S1/S2/S3: `research-findings-stage#FND9`, `research-findings-stage#FND10` | E20, E40, E47 | Zpráva written from the closed report outline only (no point it does not hold), every number and claim keeping its link; the research study's Sociomapa stage over the expert map |
+| E49 | W3 | S4/S5: `quantitative-families#MKT2`, `quantitative-families#MKT4`, `quantitative-families#MKT5` | E36, E43, E44 | Top-down market sizing as a chain of typed public inputs, the weakest step printed; the market-sizing Deep Research purpose with queries from a person's focus; confirmed by the owner (ADR 0046 Q6, A10: "Top-down is enough") |
+| E50 | W4 | S1/S2/S3: `research-findings-stage#FND11` | E48 | A fictional research study from brief to approved report through the report outline, every link resolving; zero paid calls |
+
+**Parked by the freeze.** Rows E08, E13, E14, E29, E30, E31, E32, E33 and E34 are parked whole. Every
+open chunk of a plan the master plan's §3.3 marks PARKED is parked. So are these chunks of plans that
+stay core: `research-lead-workbench#17`, `research-lead-workbench#19`, `research-lead-workbench#20`, `research-lead-workbench#22`, `research-lead-workbench#38`, `research-lead-workbench#63`; `evidence-integrity#2`, `evidence-integrity#2b`, `evidence-integrity#2c`, `evidence-integrity#3`, `evidence-integrity#4`, `evidence-integrity#5c`, `evidence-integrity#8a`, `evidence-integrity#8b`, `evidence-integrity#9a`, `evidence-integrity#10`; `client-knowledge-lifecycle#K5`; `client-data-in-analysis#6`; `mvp-acceptance-harness#15`; `working-copy-edit-ops#WCE3b`, `working-copy-edit-ops#WCE3c`, `working-copy-edit-ops#WCE8`, `working-copy-edit-ops#WCE8b`, `working-copy-edit-ops#WCE10`, `working-copy-edit-ops#WCE14`; `lead-orchestration#LO27`; `input-interactions#3b3`, `input-interactions#5`; `report-delivery#RD10`; `study-files#RA1`; `production-environment#PE6`; `settings-redesign#F23`; `artifact-design#DSN10`.
+
+A parked chunk keeps its text and its `[ ]`, and keeps whatever wave a table gives it, for the day it
+returns. It no longer counts toward that wave's gate, and nothing waits on it. Where a row that is not
+parked needs a parked row (E10 needs E08, E15 needs E14 and E29, E24 needs E30, E31 and E34), the
+dependency is dropped: the consumer proceeds without it, and what the parked work built keeps running
+on develop. E24 and E25, the final acceptance, are rewritten with the criteria by
+`mvp-master-plan#MP17`.
+
+**The critical path since the pivot:** E17 (W1) → E36 (W2) → E37 (W3) → E39 (W3), with E35 → E38
+feeding the maps and E42 → E43/E44 → E45 feeding the models and the report outline. A methodology answer that
+does not come moves the forecast. It never reduces scope silently.
+
 ## Every other open chunk of a core plan
 
 The table above names the cross-plan predecessors. This one gives every remaining open chunk of the
@@ -88,9 +129,9 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `segment-maps-and-drilldown#10` | W2 | cross-check G48, owner 2026-10-20: after 1 (E14); before `evidence-integrity#9b` and `artifact-chain-to-draft-report#CHN10` (OI-192) |
 | `working-copy-edit-ops#WCE8b` | W1 | re-waved 2026-10-26 from W2 (cross-check G49: with WCE8, before `research-lead-workbench#17` (E26) is accepted on a map study): `artifact-questionnaire#QST5`'s per-item accept is W1 |
 | `report-delivery#RD5a` | W2 | cross-check G50: before RD5 and RD7 |
-| `client-data-in-analysis#3a` | W3 | cross-check G52: before 2a and 3 (E17) |
-| `client-data-in-analysis#3b` | W3 | cross-check G52: with 3 (E17) |
-| `client-data-in-analysis#2a` | W3 | cross-check G52: after 3a, before the contract is accepted |
+| `client-data-in-analysis#3a` | W1 | cross-check G52: before 2a and 3 (E17); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
+| `client-data-in-analysis#3b` | W1 | cross-check G52: with 3 (E17); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
+| `client-data-in-analysis#2a` | W1 | cross-check G52: after 3a, before the contract is accepted; re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
 | `working-copy-edit-ops#WCE13` | W1 | cross-check G53, owner 2026-10-20: with `research-lead-workbench#17` (E26) |
 | `run-qc-and-checkpoint#RQC11` | W1 | cross-check G53: after WCE13, with RQC0 (E08) |
 | `evidence-integrity#10` | W2 | cross-check G53: after RQC11 |
@@ -119,9 +160,9 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-knowledge-lifecycle#K2f` | W1 | development plan §3 |
 | `client-knowledge-lifecycle#K6` | W3 | development plan §3 |
 | `client-knowledge-lifecycle#K7` | POST | the Simulation extension of the consumer proof; the MVP subset is K7a (E24) |
-| `client-data-in-analysis#1` | W3 | development plan §3 (0-9) |
+| `client-data-in-analysis#1` | W1 | development plan §3 (0-9); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
 | `client-data-in-analysis#4` | W3 | development plan §3 (policy first: `MVPQ-05`) |
-| `client-data-in-analysis#6` | W3 | development plan §3 (0-9) |
+| `client-data-in-analysis#6` | PARKED | a client's own survey Sociomap through the survey engine: parked with the survey lane (ADR 0046); was W3 |
 | `client-data-in-analysis#7` | W3 | development plan §3 (0-9) |
 | `research-integrity-report#5` | W1 | proposed here: a USD 0 run on the existing fictional run, needs a deploy |
 | `research-integrity-report#6` | W3 | development plan §3 (6-8) |
@@ -146,12 +187,17 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `study-data-lifecycle#SDL3` | W4 | proposed here: before SDL5 |
 | `study-data-lifecycle#SDL4` | W4 | proposed here |
 | `production-environment#PE0` | W0 | proposed here: the ADR precedes PE1 |
-| `production-environment#PE1` | W1 | development plan §3 (production applied) |
+| `production-environment#PE1a` | W1 | development plan §3 (production applied); PE1 split into PE1a-PE1f by its plan |
+| `production-environment#PE1b` | W1 | development plan §3 (production applied); PE1 split into PE1a-PE1f by its plan |
+| `production-environment#PE1c` | W1 | development plan §3 (production applied); PE1 split into PE1a-PE1f by its plan |
+| `production-environment#PE1d` | W1 | development plan §3 (production applied); PE1 split into PE1a-PE1f by its plan |
+| `production-environment#PE1e` | W1 | development plan §3 (production applied); PE1 split into PE1a-PE1f by its plan |
+| `production-environment#PE1f` | W1 | development plan §3 (production applied); PE1 split into PE1a-PE1f by its plan |
 | `production-environment#PE2` | W1 | development plan §3 |
 | `production-environment#PE3` | W0 | proposed here: precedes PE1 apply |
 | `production-environment#PE4` | W1 | proposed here |
 | `production-environment#PE5` | W3 | proposed here: before a release candidate |
-| `production-environment#PE6` | W3 | proposed here: before a release candidate |
+| `production-environment#PE6` | PARKED | population provisioning in production: the frozen survey lane is not provisioned in production (ADR 0046 decision 2, proposed); was W3 |
 | `signed-off-sociomap-method#8` | W1 | scope freeze, D-13 and Q1: `-5` the only method of new runs, merged when built; before E13 |
 | `signed-off-sociomap-method#9` | W2 | scope freeze, D-13: the report draws `-5`; before E15 |
 | `signed-off-sociomap-method#10` | W1 | scope freeze, D-14 and Q4: the Metodik mark gates storing and activating |
@@ -208,7 +254,47 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
 | `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
 | `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
-| `client-data-in-analysis#10` | W3 | scope freeze, D-37: with 2 and 2a (E17) |
+| `client-data-in-analysis#10` | W1 | scope freeze, D-37, its place moved to the Data step by the walkthrough (ADR 0046 W6): with 2 and 2a (E17); re-waved W3 → W1 with E17 by the pivot (ADR 0046) |
+| `analysis-frameworks#AF0` | W1 | the catalogue and the sourced-point type before any picker or chapter; added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF1` | W2 | after AF0 and the Lead's per-change accept (`lead-orchestration`); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF2` | W2 | after AF0; the prototype board Z4; added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF3` | W2 | after AF2 and `deep-research-v2#DRV0` (E42); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF4` | W3 | after AF2 and the model platform (E36); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF5` | W3 | after AF2 and `situation-reports#EX1` (E40); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF6` | W2 | with `research-findings-stage#FND2` (E46); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF7` | W3 | after the model platform (E36) and the data contracts (E17); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF8` | W3 | ownership structure after `register-personal-data#RPD2` (E43); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF9` | W4 | with `research-findings-stage#FND11` (E50); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `analysis-frameworks#AF10` | POST | after the MVP (the owner, 2 Nov: portfolio frameworks "later"); added 2026-11-02 (the owner's frameworks in Zadání) |
+| `client-data-in-analysis#11` | W2 | after 2 (E17); numbers from a client's documents, checked on their page; the owner's walkthrough, 2 Nov (ADR 0046 W7) |
+| `client-data-in-analysis#12` | W3 | after 4 and the methodology owner's register entry; the owner's walkthrough, 2 Nov (ADR 0046 W8) |
+| `decision-brief#DB0` | W1 | the business Zadání's contract before any stage screen; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB1` | W2 | after DB0 and `study-files#SF6`; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB2` | W2 | after DB0 and the Lead's per-change accept (`lead-orchestration`); the owner's walkthrough, 2 Nov (ADR 0046 W2, W3) |
+| `decision-brief#DB3` | W2 | after DB0, with `cost-model-study#CR7`; the owner's walkthrough, 2 Nov (ADR 0046 W4) |
+| `decision-brief#DB4` | W2 | after DB3; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB5` | W2 | after DB4 and the data contracts (E17); the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `decision-brief#DB6` | W3 | after DB5; the owner's walkthrough, 2 Nov (ADR 0046 W1) |
+| `legal-context#LGL0` | W1 | scope and disclaimer with counsel before any legal point; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL1` | W2 | with the public data routes (E43); the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL2` | W2 | after LGL1; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL3` | W3 | after LGL2 and the model platform (E36); the owner's walkthrough, 2 Nov (ADR 0046 W18, W19) |
+| `legal-context#LGL4` | W3 | after LGL2 and `deep-research-v2#DRV7`; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL5` | W3 | after LGL2 and `research-findings-stage#FND2` (E46); the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `legal-context#LGL6` | W4 | after LGL3-LGL5; the owner's walkthrough, 2 Nov (ADR 0046 W19) |
+| `research-findings-stage#FND12` | W3 | after FND8 (E47); the shared review; the owner's walkthrough, 2 Nov (ADR 0046 W26) |
+| `diagrams#DG0` | W1 | the spike and the licences, before any dependency is added; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG1` | W1 | after DG0; before `research-findings-stage#FND4` to `#FND6` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG2` | W2 | after DG1; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG3` | W2 | after DG2; with `research-findings-stage#FND4` and `#FND5` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG4` | W2 | after DG2; with `research-findings-stage#FND6` (E47); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG5` | W2 | after DG2; with `analysis-frameworks#AF6`; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG6` | W2 | after DG1; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG7` | W2 | after DG1 and the Lead's edit vocabulary (`working-copy-edit-ops`); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG8` | W3 | after DG3 to DG6; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG9` | W3 | after DG2; with `research-findings-stage#FND9` (E48); added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG10` | W3 | after DG3 to DG5; added 2026-11-02 (the owner's diagrams for the Lead) |
+| `diagrams#DG11` | POST | after the MVP: ArchiMate, value stream and customer journey maps; added 2026-11-02 (the owner's diagrams for the Lead) |
 | `research-lead-workbench#33` | W1 | owner, page Q19: the editor spike before LO19 and RD6 build their surface |
 | `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
 | `deep-research-web-search#57a` | W2 | owner, page Q22: with chunk 57 (E12) |
@@ -629,6 +715,46 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-identity#LI11` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Vypěstovat hero); lead-identity is W3; wave proposed here |
 | `prototype-build#PBA8` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the rail's badge dot and ring), lane A; wave proposed here |
 | `prototype-build#PBA9` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the flyout's fourth column), lane A; wave proposed here |
+| `evidence-integrity#8b` | PARKED | the eight modules' two-origin input, moved out of E17; survey lane (ADR 0046); added by the pivot (ADR 0046) |
+| `evidence-integrity#2b` | PARKED | survey lane (ADR 0046); not scheduled before; added by the pivot (ADR 0046) |
+| `evidence-integrity#2c` | PARKED | survey lane (ADR 0046); not scheduled before; added by the pivot (ADR 0046) |
+| `evidence-integrity#5c` | PARKED | survey lane (ADR 0046); not scheduled before; added by the pivot (ADR 0046) |
+| `situation-reports#SR0` | W2 | ADR 0045 accepted before RC1-RC6 (its own SR0); added by the pivot (ADR 0046) |
+| `situation-reports#RC1` | W3 | ADR 0045 (2026-10-30: "All of it" in the MVP); generalises cost-model-study CP8; added by the pivot (ADR 0046) |
+| `situation-reports#RC2` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#RC3` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#RC4` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#RC5` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#RC6` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#EX3` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#MM1` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#MM2` | W4 | ADR 0045 (2026-10-30: in the MVP); after RC1; added by the pivot (ADR 0046) |
+| `situation-reports#FW1` | UNSCHEDULED | imported real fieldwork under a data contract, with the survey's statistics; a scope call for the owner after the freeze (ADR 0046); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC1` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC2` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC3` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC4` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#ACC5` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN1` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN2` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN3` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN4` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN5` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#FIN6` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR1` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR2` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR3` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR4` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#OR5` | W3 | in the MVP: the owner, 1 Nov 2026 (research-stages prototype v29), finance, accounting, operations research and market size "from the beginning"; after cost-model-study CP1-CP9 (E36); added by the pivot (ADR 0046) |
+| `quantitative-families#MKT1` | PARKED | survey-derived: parked with the survey lane (ADR 0046 Q3, Q6); added by the pivot (ADR 0046) |
+| `quantitative-families#MKT3` | PARKED | survey-derived: parked with the survey lane (ADR 0046 Q3, Q6); added by the pivot (ADR 0046) |
+| `quantitative-families#LINK1` | PARKED | survey-derived: parked with the survey lane (ADR 0046 Q3, Q6); added by the pivot (ADR 0046) |
+| `register-personal-data#RPD4` | W3 | after study-data-lifecycle's delete path; added by the pivot (ADR 0046) |
+| `register-personal-data#RPD5` | W2 | with E43, before a person-naming field reaches a model; added by the pivot (ADR 0046) |
+| `public-data-routes#PDR9` | W3 | the owner registers for ČÚZK first; added by the pivot (ADR 0046) |
+| `public-data-routes#PDR10` | UNSCHEDULED | the owner's buy-or-build decision after PDR7's measured cost; added by the pivot (ADR 0046) |
+| `deep-research-v2#DRV8` | W4 | after E45; added by the pivot (ADR 0046) |
+| `deep-research-v2#DRV9` | UNSCHEDULED | precedents: a scope call (COLIEE's best retrieval F1 0.34); added by the pivot (ADR 0046) |
 
 **Added 2026-10-27** (the unplanned-features inventory, Nigel's decisions of 27 Oct, ~01:10-01:40 UTC, in the PM coordinator's chat). Two new core plans, `study-files` and `client-pages-redesign` (master §3.1), and new chunks in the plans that own each page. Each wave is the one its chunk names, proposed here where nothing did; the after-MVP chunks are POST. `artifact-fieldwork#FLD13` and `#FLD14` had no wave at develop `dbaa7720`, so `tools/master_check.py` failed there; both are W1 now.
 
