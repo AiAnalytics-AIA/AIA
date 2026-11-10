@@ -11,8 +11,8 @@ apps/
                             DataClassGates): advisory makes every refusal made solely because of a data class a
                             recorded pass (residency.ClassAdvisory: the ledger row's note,
                             CallProvenance.class_advisories, the tool event, a step event); unclassified material is
-                            judged as Class A; develop only (Compose), refused in staging, production and an unknown
-                            AIA_ENV; EU residency, licences, budgets and scope still hold; Brave's search route takes
+                            judged as Class A; allowed in every environment since 4959b1cb (the owner's "Advisory
+                            everywhere", 2026-10-28), set on develop (Compose), enforce the default; EU residency, licences, budgets and scope still hold; Brave's search route takes
                             any class there (ToolRoute.any_class_when_advisory; ADR 0008, Amendment 2026-10-21, #594);
                             AIA_ROUTING_ENABLED (routing_enabled, off; off on develop until RQC11): a valid display
                             condition passes readiness and a new run pins it (metadata.routing, read by the preflight
@@ -1123,7 +1123,11 @@ apps/
                             (together or not at all) and AIA_BEDROCK_EFFORT; a capability's own effort,
                             AIA_AI_FIELDWORK_EFFORT (SIMULATION) and AIA_AI_RESEARCH_EFFORT (RESEARCH_REASONING,
                             CRITIC, RESEARCH_LEAD), through ModelPolicy.efforts; unset, the bytes sent are unchanged
-                            (sonnet-5-5-switch)
+                            (sonnet-5-5-switch). No key covers STUDY_LEAD: on the route binding (no Lead model of its
+                            own) the Lead takes AIA_BEDROCK_EFFORT. A Lead model id equal to the route's stops the
+                            worker (leave the Lead keys unset instead). AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS also bounds
+                            each Deep Research kind's output (request_limits.kind_budgets), so raising it raises
+                            Deep Research's ceilings
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check); with AIA_AI_ANALYSIS_ENABLED
                             its analysis modules are answered by RecordedModels behind the real gateway at zero
@@ -1308,7 +1312,7 @@ packages/aia_core/src/aia_core/
                             Class C, never citable for a number (harness aia-research-lead-4); the request's preset,
                             focus, target and deep_research_retry, grounded by request_ids / request_refusal;
                             harness 6, prompt 2
-    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
+    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166 (v2's capabilities excepted, ADR 0046):
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
                             settings_method (the approved method digest) and method_identity() in
@@ -1589,8 +1593,8 @@ packages/aia_core/src/aia_core/
     deployment.py           AIA_ENV: local / test / develop / staging / production; what each allows
                             (deployed guards, fictional material), the one fictional-material rule the
                             API and the worker both ask; DataClassGates / data_class_gates_problem
-                            (AIA_DATA_CLASS_GATES, enforce | advisory: advisory refused outside local, test and
-                            develop; #594)
+                            (AIA_DATA_CLASS_GATES, enforce | advisory: advisory allowed in every environment since
+                            4959b1cb, enforce the default; #594)
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58);
                             edited_from_current: a save naming no revision is not stale over a working copy that is
@@ -2316,7 +2320,12 @@ deploy/reference/           The 18.6.6 unit beside the product, never part of it
                             migration's copy and backup-state.sh
 infra/develop/              Terraform for the develop AWS resources (one root, no modules); CI formats and
                             validates it, and plans it through the read-only aia-develop-github-plan role behind
-                            the terraform-plan environment's approval (README § Terraform in CI)
+                            the terraform-plan environment's approval (README § Terraform in CI);
+                            aws_bedrock_inference_profile.route / .lead: tagged application inference profiles
+                            copying each model's EU system profile, so Bedrock spend carries Environment=develop;
+                            the instance role is granted both; model_source is never read back (ignore_changes),
+                            and a postcondition fails the plan when bedrock_model_id or bedrock_lead_model_id moves
+                            until `terraform apply -replace=…` (develop-spend-attribution 1-2)
 docs/architecture/          System design + the ADRs; ai-step-executor-contract.md;
                             research-journey.md (the research journey: stage owners, interfaces, acceptance)
 docs/design/                Brand and UI direction; the design-system brief
@@ -2591,7 +2600,8 @@ authority over respondent data, aggregates, analysis or the canonical Sociomap. 
 carries its purpose, a typed target and a frozen lineage (exact artifacts, by SHA256) in an
 envelope around the unchanged engine request and sealed bundle; a pre-ADR run reads
 `legacy-unversioned`. The engine (retrieval, ladder, investigators, lead, fan-out, recovery,
-verification, grounding, confidence, the bundle) is frozen: change it only on a defect or
+verification, grounding, confidence, the bundle) is frozen but for Deep Research v2's listed capabilities
+(ADR 0046 decision 6, `deep-research-v2`): change it only on a defect or
 evaluation finding. Deep Research helps decide what to measure; respondents determine what we
 observed; deterministic analysis and Sociomapping determine the computed structure; Deep Research
 may then help interpret it. External research never manufactures respondent evidence and never

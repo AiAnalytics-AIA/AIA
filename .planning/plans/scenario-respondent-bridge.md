@@ -13,6 +13,11 @@ chunks:
 ---
 # Scenario-conditioned respondents: the simulation studio's missing hop, built on the validated panel-respondent contract
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 **Owner:** unassigned. **Written:** 2026-10-27, from a product direction discussion: AIA's goal
 is current-state estimation (research, Sociomap) **and** future/what-if scenario prediction
 (the simulation studio), at business-consulting scale. The MVP correctly scopes simulation out

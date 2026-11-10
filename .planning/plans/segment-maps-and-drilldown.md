@@ -17,6 +17,11 @@ chunks:
 ---
 # Segment maps, map filters and the respondent drill-down
 
+> **Parked, 2026-11-02** ([ADR 0046](../../docs/architecture/adr/0046-business-decisions-pivot.md)): the
+> AI-respondent survey lane is frozen (the product owner: "Freeze it now"). What this plan built stays
+> and keeps running on develop. Its open chunks keep their `[ ]`, count toward no wave, and move only
+> on the owner's word. The master plan's §3.3 lists it.
+
 Track C of the MVP roadmap (`overview.md` § MVP roadmap, #493). Written 2026-10-19 from
 `mvp-cohesion.md` F2 and F7 (#496). **Owner: a chat session, named when chunk 1 starts; the method
 owner decides chunk 0 in an AIA session.**
