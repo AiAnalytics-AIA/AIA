@@ -2429,10 +2429,10 @@ legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the aud
 PostgreSQL 16, Next.js 16, TypeScript, Tailwind 4.
 **Target:** AWS. The `develop` environment is one EC2 host under Docker Compose
 with S3, Cognito, ECR, SSM and Bedrock used for real
-([ADR 0009](docs/architecture/adr/0009-single-host-develop-environment.md));
+([ADR 0009](../../docs/architecture/adr/0009-single-host-develop-environment.md));
 production compute is undecided (ECS Fargate expected, with RDS). Terraform,
 GitHub Actions with OIDC. No Kubernetes, no Redis, no SQS
-([ADR 0002](docs/architecture/adr/0002-postgresql-authoritative-store.md)).
+([ADR 0002](../../docs/architecture/adr/0002-postgresql-authoritative-store.md)).
 
 **Model calls.** Nothing calls a provider except through
 `GovernedModelGateway.invoke`; `make layer_check` forbids a provider SDK or gateway
@@ -2537,7 +2537,7 @@ and refuses it on any other route. Unrecorded client knowledge may likewise reac
 and makes it the default; a person chooses per run on the Run stage, "Kdo bude odpovídat"): a panel run's
 respondents are drawn from the population it recorded and its dataset is `MODELLED_AI_PANEL`; a
 worker without the path parks it, never answering with the roster instead
-([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
+([`panel-grounded-respondents.md`](../../.planning/plans/panel-grounded-respondents.md)).
 A Sociomap's status is the Sociomap register's for the exact method, at its spec fingerprint, that
 computed it (`domain/sociomap_register.py`): `aia-sociomap-3` is approved (the product owner,
 2026-10-13, D6), and `aia-sociomap-5`, what a new run pins (the methodology owner, 2026-10-21); `aia-sociomap-1` and anything not registered is `INTERNAL_ONLY`. A new run pins the organization's methodology in force: `aia-sociomap-5` by default (`default_methods`), or a stored version the organization activated in Metodika, which then wins, pinned under its own name unless it changes nothing of its preset (`domain/methodology/pins.py:85-105`, `application/research.py:1583-1586` @ ffce5c72); a run started before 2026-10-21 keeps the methods it pinned (-1 and -3) and reads as it was; a retry of one on the old default is refused (`ResearchRunOnRetiredMethod`) unless it is an analysis retry over its stored map, which computes nothing (`reuse_only`), and a retry of an edited version drops the reference map (`application/research.py:1146-1150` @ 1fed2969). A study may set a spend limit; a start whose cost
@@ -2550,7 +2550,7 @@ population data only from `PopulationRuntime.load_for_run`, which reads the
 default weight and no fallback version; `make layer_check` enforces the loader.
 Before using a field, a consumer asks `RuntimePopulation.decide(field, use)` and,
 before combining fields, `decide_joint(...)` — never the dictionary directly. The
-contract is [docs/architecture/population.md](docs/architecture/population.md).
+contract is [docs/architecture/population.md](../../docs/architecture/population.md).
 A research run records the LIVE binding at creation (owner, 2026-10-10); only a run that
 pinned the panel persona source reads it (fieldwork), and the run says whether its respondents
 came from it (`read_by_fieldwork`). On develop,
@@ -2562,7 +2562,7 @@ reference's recorded outputs, vendored under
 `index.json`. They run in every CI job. Never edit one to make a test pass.
 
 **A Deep Research finding is a quote in a captured source, or it is nothing** (ADR 0017,
-[deep-research.md](docs/architecture/deep-research.md)). Code picks the subjects and tracks,
+[deep-research.md](../../docs/architecture/deep-research.md)). Code picks the subjects and tracks,
 sends every query and fetch, and grounds every quote in a content-addressed snapshot of the same
 track; models only propose. A query's data class is inherited from what it was written from and
 never lowered by keywords; a design's class is an operator's exact-bytes classification, never
@@ -2610,7 +2610,7 @@ none refuses. Composition still admits only CLIENT_FACING claims. Client-facing 
 still waits for a holdout validation.
 
 **The unit is the oracle, and its functions are fixtures.** The strangler plan
-([`.planning/plans/legacy-strangler.md`](.planning/plans/legacy-strangler.md))
+([`.planning/plans/legacy-strangler.md`](../../.planning/plans/legacy-strangler.md))
 replaces one capability at a time, compared with the running unit (`deploy/reference`),
 reached only through `tools/legacy_oracle.py` and `AIA_LEGACY_REFERENCE_URL`. The 88 research
 functions of `ui_app.html` are ported *from the JavaScript*: a fixture is captured
@@ -2632,14 +2632,14 @@ ungated fixture.
 ## Native Research agents (2026-09-27)
 
 
-[research-agents.md](docs/architecture/research-agents.md) describes contracts,
+[research-agents.md](../../docs/architecture/research-agents.md) describes contracts,
 context, acceptance and activation. Fieldwork activation does not activate design
 jobs. The additional worker keys are `AIA_AI_RESEARCH_AGENTS_ENABLED`,
 `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS` and `AIA_AI_RESEARCH_RESERVATION_USD`; the
 reservation covers primary plus one schema repair. The study Research Lead's own model takes the
 `AIA_AI_RESEARCH_LEAD_MODEL_*` keys and their prices and limits
-([`deploy/develop/README.md` § The Research Lead's own model](deploy/develop/README.md#the-research-leads-own-model)). Analysis/report execution and
+([`deploy/develop/README.md` § The Research Lead's own model](../../deploy/develop/README.md#the-research-leads-own-model)). Analysis/report execution and
 owned web retrieval remain in the complete-workflow plan, not delivered by the
 proposal executor. Do not describe model recollection as web research. The Lead's own web lookup
-("Hledat na webu", `lead-orchestration#LO20`, [ADR 0040](docs/architecture/adr/0040-the-leads-web-lookup.md),
+("Hledat na webu", `lead-orchestration#LO20`, [ADR 0040](../../docs/architecture/adr/0040-the-leads-web-lookup.md),
 accepted 2026-10-20; not built yet) is a governed retrieval path through `RetrievalGate`, never model recollection.
