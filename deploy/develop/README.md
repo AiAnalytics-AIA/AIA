@@ -607,6 +607,15 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   application inference profile ARN in the route's own EU region) stops the worker at start, by name.
   **Who:** the operator who created the profile (develop-spend-attribution 1), after checking with
   `aws bedrock get-inference-profile` that it copies the identity's system profile.
+  - **On develop since 2026-10-28.** Both were set at 11:42 UTC and read by the worker from 12:08 UTC
+    (develop-spend-attribution 2): the route to `aia-develop-route`, the Lead to `aia-develop-lead`.
+  - **Since the switch to Sonnet 5.5 at 19:42 UTC** (sonnet-5-5-switch 4), the route's target is
+    `aia-develop-lead` (`…/hnpij62nm89g`, the tagged Sonnet 5.5 profile), and the Lead's target is
+    deleted with the Lead's own-model keys. `aia-develop-route` (`…/xz0r7v8bizok`, Sonnet 4.5) takes
+    no calls and stays granted until sonnet-5-5-switch 3 retires it.
+  - **A target names one model.** Changing `bedrock_model_id` or `bedrock_lead_model_id` in Terraform
+    needs `terraform apply -replace='aws_bedrock_inference_profile.route'` (or `.lead[0]`), and the new
+    ARN replaces the matching target in the same change.
 - **`AIA_STUDY_WALLET_ENABLED`** (API): the study wallet, Peněženka (`application/wallet.py`, ADR 0028
   decision 2, `lead-orchestration#LO1`, #544). Off, nothing reads or writes a wallet row and
   `/studies/{id}/wallet` answers 409 `wallet_disabled`; a person's start on the Run stage never
@@ -720,6 +729,15 @@ The model is the Lead's profile, and the cost is priced at its rates.
 model keys are then not read), give `aia_ai_policy_version` a new name, and repeat step 4. The
 Lead returns to the route's model. To remove the grant, empty `bedrock_lead_model_id` and
 `terraform apply`.
+
+**Develop since 2026-10-28: the Lead has no model of its own.** The route model is Sonnet 5.5, the
+model the Lead had, and the worker refuses a Lead model id equal to the route's. So the Lead's
+own-model keys were deleted, and the Lead runs on the route binding at the route's effort
+(`aia_bedrock_effort`; no capability key covers `STUDY_LEAD`).
+- `aia_ai_research_lead_max_output_tokens` (8000) and `_reservation_usd` (1.10) still apply.
+- **Do not empty `bedrock_lead_model_id` yet.** The `aia-develop-lead` profile it creates is the
+  route's invocation target now, and the apply would destroy it. sonnet-5-5-switch 3 moves that
+  profile to the route model in Terraform first.
 
 ### Deep Research on Brave search
 
