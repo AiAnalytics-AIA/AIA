@@ -1,0 +1,92 @@
+/* The MVP scope's figures: what ../methodology/style.css does not have. Colours are its variables. */
+figure.full { margin: 6pt 0 10pt 0; }
+figure.full svg { width: 100%; height: auto; }
+figure svg text { font-family: "IBM Plex Sans", Arial, sans-serif; }
+figure svg .mono { font-family: "IBM Plex Mono", Menlo, monospace; }
+figure svg .serif { font-family: "Source Serif 4", Georgia, serif; }
+figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 5pt; line-height: 1.4; }
+figcaption b { color: var(--ink); }
+
+/* Two columns: figure left, words right, or the other way round */
+.row { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16pt; align-items: start; break-inside: avoid; }
+.row.w { grid-template-columns: 3fr 2fr; }
+.row.n { grid-template-columns: 2fr 3fr; }
+.row figure { margin: 0; }
+
+/* Lede under a chapter title */
+p.lede { font-size: 11.5pt; max-width: 150mm; }
+
+/* Compact step blocks: a label in mono, then one sentence each */
+.step { break-inside: avoid; margin: 0 0 10pt 0; }
+.step h2 { margin-top: 10pt; }
+dl.four { display: grid; grid-template-columns: 7.5em 1fr; column-gap: 8pt; row-gap: 3pt; margin: 4pt 0 6pt 0; font-size: 9pt; line-height: 1.4; }
+dl.four dt { font-family: "IBM Plex Mono", monospace; font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2pt; }
+dl.four dt.new { color: var(--accent); }
+dl.four dd { margin: 0; }
+dl.four code { font-size: 0.9em; }
+
+/* Status tiles in words */
+.tile { display: inline-block; font-size: 7.5pt; line-height: 1.2; padding: 1.5pt 5pt; border-radius: 3pt; white-space: nowrap; vertical-align: 0.1em; }
+.tile.e { background: var(--wash); color: var(--ink); }
+.tile.n { background: var(--accent); color: #fff; }
+.tile.p { background: var(--slate-wash); color: var(--slate); }
+.tile.x { background: var(--coral-wash); color: var(--coral); }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin: 6pt 0 10pt 0; }
+.cards.three { grid-template-columns: 1fr 1fr 1fr; }
+.card { border: 0.5pt solid var(--rule); border-radius: 4pt; padding: 7pt 9pt; font-size: 9pt; line-height: 1.4; break-inside: avoid; }
+.card .k { font-family: "IBM Plex Mono", monospace; font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 3pt; }
+.card .k.coral { color: var(--coral); }
+.card .k.slate { color: var(--slate); }
+.card.parked { background: var(--wash); color: var(--muted); border-color: var(--wash); }
+.card.parked .k { color: var(--slate); }
+.card.blocks { border-color: var(--coral); }
+.card p { margin: 0 0 3pt 0; }
+.card p:last-child { margin: 0; }
+.card .who { font-size: 8pt; color: var(--muted); }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 4pt 14pt; font-size: 8pt; color: var(--muted); margin: 2pt 0 8pt 0; }
+.legend i { display: inline-block; width: 9pt; height: 9pt; border-radius: 2pt; vertical-align: -1.5pt; margin-right: 4pt; font-style: normal; }
+
+/* Embedded renders */
+.renders { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+.renders figure { margin: 0; }
+.renders img { width: 100%; display: block; border: 0.5pt solid var(--rule); }
+
+/* Tables of this document */
+table.comp td:first-child { white-space: nowrap; font-weight: 600; }
+table.comp .role { white-space: nowrap; }
+table.comp td.f1 { white-space: nowrap; }
+.dir { font-family: "IBM Plex Mono", monospace; }
+
+/* Executive edition */
+.exec .chapter-label { margin-bottom: 8pt; }
+.exec h1 { font-size: 26pt; margin-bottom: 10pt; }
+.exec p.lede { font-size: 12.5pt; max-width: 160mm; margin-bottom: 10pt; }
+.exec figure.full { margin: 8pt 0 12pt 0; }
+.exec p, .exec li { font-size: 10.5pt; line-height: 1.5; max-width: 160mm; }
+.exec ul { padding-left: 1.1em; margin: 4pt 0 8pt 0; }
+.exec li { margin-bottom: 3pt; }
+.exec .cards.two { grid-template-columns: 1fr 1fr; gap: 10pt; }
+.exec .card { font-size: 10pt; padding: 9pt 11pt; }
+.exec .card .k { font-size: 8pt; }
+.exec dl.gloss { display: grid; grid-template-columns: 11em 1fr; column-gap: 12pt; row-gap: 6pt; font-size: 10.5pt; line-height: 1.45; margin-top: 6pt; }
+.exec dl.gloss dt { font-weight: 600; }
+.exec dl.gloss dd { margin: 0; }
+
+/* MVP scope, version 3: tables and tags */
+.exec table { font-size: 9.5pt; line-height: 1.4; }
+.exec table th { font-size: 8.5pt; }
+.exec table.hyp td:first-child { width: 36%; }
+.exec table.hyp td:nth-child(2) { width: 36%; }
+.exec table.must td:first-child { width: 24%; font-weight: 600; }
+.exec table.must td:last-child { width: 26%; }
+.exec table.must .tile { margin: 0 2pt 2pt 0; white-space: normal; }
+.exec table.stack { margin-bottom: 8pt; }
+.exec table.stack td:first-child { width: 28%; font-weight: 600; }
+.exec table.risk td:first-child { width: 34%; }
+.exec table.risk td:nth-child(2) { width: 24%; }
+.exec .prop { display: inline-block; font-size: 8pt; color: var(--coral); background: var(--coral-wash); border-radius: 3pt; padding: 0 4pt; margin-top: 2pt; }
+.exec .card p { font-size: 10pt; }

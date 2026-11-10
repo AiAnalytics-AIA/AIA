@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Metodika – validační sada (MVP)</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+.sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zcard.need{border-color:var(--you);background:var(--youwash)}
+.zlead{display:flex;flex-direction:column;gap:2px}
+.zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
+.zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
+.zrow>.zv{min-width:0}
+.zgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zcard{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.zcard.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.zcard h3{margin:0;font-size:14px;font-weight:600}
+.zcard p{margin:0;font-size:13px}
+.zq{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;gap:10px;font-size:13px}
+.zq .n{font-family:var(--mono);font-size:12px;color:var(--faint);flex:none;width:18px}
+.zq .why{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.zflag{display:flex;flex-direction:column;gap:6px;border:1px solid var(--you);background:var(--youwash);border-radius:6px;padding:10px 12px;font-size:13px}
+.zflag .was{color:var(--faint);text-decoration:line-through}
+.zword{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);padding:0 2px}
+.zt{width:100%;border-collapse:collapse;font-size:13px}
+.zt th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);background:var(--sunken);padding:8px 10px;border-bottom:1px solid var(--border)}
+.zt td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.zt tr.miss td{background:var(--youwash)}
+.zt td.num{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
+.zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
+.zm{box-shadow:inset 3px 0 0 var(--shviolet)}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;min-height:20px;padding:2px 6px;line-height:16px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
+.zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
+.zseq a{font-weight:500}
+.zstate{display:flex;align-items:center;gap:10px;padding:8px 24px;background:var(--sunken);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.zbox{font-family:inherit;width:100%;box-sizing:border-box;min-height:120px;font-size:15px;line-height:22px;padding:12px 14px}
+.zdrawer{width:360px;flex:none;border-left:1px solid var(--border);background:var(--raised);display:flex;flex-direction:column}
+.zdrawer .dh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px}
+.zdrawer .db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;font-size:13px}
+.zrub{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.zrub>div{display:grid;grid-template-columns:22px 28px minmax(0,1fr);gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:start;font-size:13px;background:var(--raised)}
+.zrub>div:last-child{border-bottom:0}
+.zrub>div.miss{background:var(--youwash)}
+.zrub .i{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
+.zrub .how{display:block;font-size:12px;color:var(--muted)}
+
+.rtabs{display:flex;gap:2px;align-items:center;padding:8px 24px;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}.rtabs .l{font-size:12px;color:var(--faint);margin-right:8px;white-space:nowrap}.rtabs a{padding:6px 12px;border-radius:6px;font:500 13px/1.2 var(--sans);color:var(--muted);white-space:nowrap;text-decoration:none}.rtabs a:hover{background:var(--sunken);color:var(--ink)}.rtabs a.on{background:var(--swash);color:var(--ink);box-shadow:inset 0 -2px 0 var(--signal)}
+.zg{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;font:500 10.5px/1 var(--mono);letter-spacing:.03em;white-space:nowrap;vertical-align:1px}
+.zg.calc{background:var(--sunken);color:var(--ink)}
+.zg.est{background:var(--swash);color:var(--signal)}
+.zg.mod{background:var(--youwash);color:var(--youink)}
+.zg.data{background:var(--sunken);color:var(--muted)}
+.zfig{width:100%;height:auto;display:block}
+.zleg{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.zleg span{display:inline-flex;align-items:center;gap:6px}.zleg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.zramp{display:flex;height:10px;border-radius:3px;overflow:hidden;width:200px}.zramp i{flex:1}
+.zkpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.zkpi{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.zkpi .v{font:600 22px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.zcols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+.zbar{display:flex;align-items:center;gap:10px;padding:10px 24px;background:var(--swash);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ink)}
+.zbar.warn{background:var(--youwash)}
+.zpaper{background:#fffdfa;color:#0f1216;border:1px solid #d6d3cc;border-radius:4px;padding:28px 34px;font:14px/1.62 var(--sans);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.zpaper h3{font:600 20px/1.25 var(--serif);margin:6px 0 4px}
+.zpaper h4{font:600 15px/1.3 var(--serif);margin:14px 0 4px}
+.zpaper .pm{font:11px/1.4 var(--sans);color:#44484e;letter-spacing:.06em;text-transform:uppercase}
+.zpaper hr{border:0;border-top:1px solid #c6c4be;margin:14px 0}
+.zpaper p{margin:6px 0}
+.zref{font:500 11.5px/1 var(--mono);color:#0d5279;background:#e8eef2;border-radius:3px;padding:2px 5px;white-space:nowrap}
+.zpaper .src{font:12px/1.5 var(--sans);color:#44484e}
+.zstage{background:#14171c;border-radius:8px;overflow:hidden;position:relative}
+.zstage img{display:block;width:100%;height:auto}
+.zcap{font-size:12px;color:var(--muted);margin:6px 0 0}
+.zcard.lead{background:var(--aiwash);border-color:var(--aiedge)}
+.zbefore{color:var(--faint);text-decoration:line-through}
+
+.mvx{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:4px;background:var(--youwash);color:var(--youink);font:600 10.5px/1 var(--mono);letter-spacing:.04em}
+.zref{font:500 11.5px/1 var(--mono);color:var(--signal);background:var(--swash);border-radius:3px;padding:3px 6px;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.zref:hover{text-decoration:underline}
+.zref.on{box-shadow:inset 0 0 0 1.5px var(--signal);background:var(--stint)}
+.zref.bad{color:var(--youink);background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you)}
+.pt{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:20px}
+.pt:last-child{border-bottom:0}
+.pt .pk{font:500 11px/20px var(--mono);color:var(--faint)}
+.pt.bad{background:var(--youwash);box-shadow:inset 3px 0 0 var(--you);padding-left:6px}
+.vis{border:1px dashed var(--strong);border-radius:6px;padding:10px 12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.vis .vh{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:nowrap}
+.flow .st{flex:1 1 0;min-width:0;border:1px solid var(--border);border-radius:6px;background:var(--raised);padding:8px 10px;font-size:12px;line-height:17px;display:flex;flex-direction:column;gap:2px}
+.flow .st b{font-size:12.5px}
+.flow .st.dec{border-color:var(--you);background:var(--youwash)}
+.flow .ar{flex:none;width:22px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.stop{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--raised);font-size:13px}
+.stop.open{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal)}
+.mode{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+.mode.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.mode.lock{background:var(--sunken);color:var(--muted)}
+.mode h3{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.never{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;font-size:13px}
+.never div{display:flex;gap:8px;align-items:flex-start}
+.never i{color:var(--you);margin-top:3px}
+.mx{border-collapse:collapse;font-size:12.5px;width:100%}
+.mx th,.mx td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+.mx th{background:var(--sunken);font-weight:500;color:var(--muted);font-size:12px}
+.mx td.l{text-align:left}
+.mx td.hi{background:var(--swash)}
+.mx td.dis{background:var(--youwash)}
+.srcd{display:flex;flex-direction:column;gap:10px;font-size:13px}
+.srcd .q{border-left:3px solid var(--signal);background:var(--surface);padding:8px 10px;font-size:13px;line-height:19px}
+.srcd .q mark{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);color:inherit;padding:0 1px}
+.kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 12px;font-size:12.5px}
+.kv .kk{color:var(--muted)}
+.kv .vv{min-width:0;overflow-wrap:anywhere}
+.mono{font-family:var(--mono)}
+.swot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.swot .sq{border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--raised);display:flex;flex-direction:column;font-size:13px}
+.swot .sq>b{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding-top:4px}
+</style>
+</helmet>
+<div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px; background: var(--surface)">
+<div style="max-width: 1344px; display: flex; flex-direction: column; gap: 20px">
+<div><div class="cap">Metodika · modely a mapy · MVP · 8. 11. 2026</div><h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Co musí projít, než odhad nebo mapa řekne klientovi, že něco platí</h1><p class="muted" style="max-width: 980px; font-size: 14px; line-height: 21px">Zpráva 2 (ChemVitro) stojí na pěti metodách, které čekají na schválení metodika; každé číslo z nich nese stupeň odhad a doporučení zůstává předběžné. Validace běží dvakrát: na spočteném případu se známým výsledkem a na ChemVitro jako nedokonalém skutečném případu. Čísla na deskách Velis jsou <span class="mvx">ilustrativní, ne validační</span>.</p></div>
+<section class="sec"><div class="sh"><span class="num">00</span><h2>Plán validace</h2><span class="grow"></span><span class="cap">spočtený případ · ChemVitro · ilustrativní fixtury odděleně</span></div><div class="sb"><div class="zgrid3">
+<div class="zcard"><span class="mono" style="color: var(--signal); font-size: 12px">1 · spočtený případ</span><h3>Známé očekávané chování</h3><p>Celá cesta na případu, jehož výsledek je znám předem: zasazená vítězná lokalita, zasazená hranice rozhodnutí, zasazená korelace budoucností, zasazená hodnota informace. Projde, když studie vrátí, co bylo zasazeno, a pravidlo rozhodne tak, jak je zapsané.</p><span class="cap">generátory G7–G10</span></div>
+<div class="zcard on"><span class="mono" style="color: var(--signal); font-size: 12px">2 · nedokonalý skutečný případ</span><h3>ChemVitro, zpráva 2</h3><p>22 vstupů úsudek, 16 prozatímních, dvě páky bez dokumentu, výklad pravidla čeká na finanční ředitelku, mapa neobstála ve zkoušce stability. Projde, když Stav podkladů a T9 ukážou každou mezeru, rozpětí zůstane rozpětím, doporučení zůstane předběžné a mapa řekne, že neobstála.</p><span class="cap">klíč odpovědí: MVP-SCOPE · <a href="MV0Scope.dc.html">MV0</a></span></div>
+<div class="zcard"><span class="mono" style="color: var(--signal); font-size: 12px">co se nepočítá</span><h3>Ilustrativní fixtury</h3><p>Případ Velis na kanvasu slouží jen k ukázce rozhraní. Žádná validační metrika z něj nevzniká a v registru metod se na něj nic neodvolává.</p><span class="cap"><span class="mvx">ilustrativní, ne validační</span></span></div>
+</div></div></section>
+<section class="sec"><div class="sh"><span class="num">01</span><h2>Registr metod: na co zpráva 2 čeká</h2><span class="grow"></span><span class="cap">ke klientovi jen zapsané · sedm řádků</span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 190px">Metoda</th><th>Ve zprávě 2</th><th>Co metodik podepíše</th><th style="width: 170px">Stav</th></tr></thead><tbody><tr><td><b>Monte Carlo s PERT a korelacemi</b></td><td>20 000 budoucností, semínko 20270201; tři body → PERT (Vose 2008); korelace cen 0,8 / 0,6 / 0,4; překročení a zpoždění losovány spolu ze 36 závodů · kap. 3.3, 5–8</td><td>PERT ze tří bodů jako výchozí rozdělení · způsob korelace vstupů · pravidlo zastavení vázané na verdikt (±0,5 pp) · směs při neshodě expertů (R6) · semínko a stejné bajty</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><b>Hodnota informace pro pravidlo</b></td><td>budoucnosti rozděleny podle odpovědi, pravidlo v každé skupině znovu, vážený průměr úspory toho, co vybere, proti „nic“: Odrzyca 122,5 · kap. 8.1</td><td>definice míry · že stojí první, protože rozhoduje pravidlo · že není rozpočet · tabulka zjištění zvlášť s dobou a cenou (R7)</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><b>EVPPI</b></td><td>Strong a Oakley 2013 z již provedené simulace: Odrzyca 4,9; vše 14,2 · kap. 8.2</td><td>postup výpočtu · označení jako náhrada za kritérium klienta · že se hodnoty nesčítají</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><b>Hranice rozhodnutí</b></td><td>jeden předpoklad v celém rozpětí (0–30 %), budoucnosti znovu pro každou hodnotu: 14 / 15 / 16 % · kap. 5.3</td><td>mřížka hodnot a krok · čtení „hranice, ne číslo“ · vazba na žádost o doklad</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><b>Mapa budoucností</b></td><td>aia-sociomap-5 s budoucnostmi jako pozorovateli, centrování na průměr lokalit, spojnice jen u spolehlivých párů (2 z 28), shoda polovin 0,91, zkouška stability tří nastavení, práh 0,8 · kap. 11.2, T7</td><td>smlouva režimu Budoucnosti (<a href="MV3SystemMap.dc.html">MV3</a>, R5): co je řádek, co znamená nula, zda se čtou statistiky dvojic, když řádky jsou losy modelu · zkouška stability jako brána · centrovaná a necentrovaná vedle sebe</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká · hodnocení lidí schváleno 21. 10. 2026</span></td></tr><tr><td><b>Mapa scénářů vah</b></td><td>objekty osm lokalit; řádky pojmenované vektory vah nad perspektivami nebo složkami, s autorem a datem v ledgeru před výsledky; vějíř k porušených vektorů z deklarované koncentrace; buňka vážené skóre na deklarovaných mezích, brány mimo; výška relativní i absolutní; rozložení aia-sociomap-5, statistiky dvojic se nečtou · nová deska MV9 (MVP-SCOPE § 4); ChemVitro: 22 skórovaných složek, 18 v modelu, marketingová perspektiva prázdná</td><td>záznam vah před výsledky (swing, R3) · brány mimo skóre, chybějící složka drží rozpětí (R2) · vějíř jako nastavení citlivosti, „podíl testovaných nastavení“, nikdy P (R4) · kontrola překryvu: vektor vážící úsporu i její část odmítnut, dvě poctivé rodiny · smlouva režimu Scénáře (MV3, R5) · mapa jen do „Co by závěr změnilo“ · vlastní položka registru (sociomapa-systemu#SYS12)</td><td><span class="row" style="gap: 6px"><span class="stg sm dash" aria-hidden="true"></span>návrh</span></td></tr><tr><td><b>NPV, IRR, návratnost, body zvratu, tornádo</b></td><td>základní případ, jediný výpočet · kap. 7, 9, 10, T4–T6</td><td>—</td><td><span class="row" style="gap: 6px"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span>v registru</span></td></tr></tbody></table></div></section>
+<section class="sec"><div class="sh"><span class="num">02</span><h2>Otázky pro metodika</h2><span class="grow"></span><span class="cap">šest pro páteř studie typu 2; otázky režimů Jednotky a Období odloženy</span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 40px"></th><th style="width: 200px">Rozhodnutí</th><th style="width: 300px">Možnosti</th><th>Doporučení z rešerše</th><th style="width: 100px">Stav</th></tr></thead><tbody><tr><td><span class="num">1</span></td><td>Vstupy PERT</td><td>PERT všude · fit z dat, kde jsou (36 závodů) · směs při neshodě expertů</td><td>fit z dat, PERT jinak; směs vždy při neshodě</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><span class="num">2</span></td><td>Korelace vstupů</td><td>Iman–Conover · Gaussova kopule · losování společného závodu</td><td>společný závod pro překročení a zpoždění; kopule pro ceny; historické řady, kde jsou</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><span class="num">3</span></td><td>Pravidlo zastavení</td><td>pevných 20 000 · do stability verdiktu ±0,5 pp</td><td>do stability, nejméně 20 000</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><span class="num">4</span></td><td>Diskontní sazba v pravidle</td><td>sazba klienta · bezriziková · WACC</td><td>sazba klienta (8 %) s 6 a 10 % vedle; nikdy nižší kvůli simulaci</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><span class="num">5</span></td><td>Statistiky dvojic na mapě budoucností</td><td>číst · nečíst, když řádky jsou losy modelu</td><td>číst jen jako určenost; o čitelnosti rozhoduje zkouška stability</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr><tr><td><span class="num">6</span></td><td>Práh stability mapy</td><td>0,8 na pořadí 28 vzdáleností · jiná míra</td><td>potvrdit 0,8 a Spearmana; práh zapsat před výpočtem</td><td><span class="row" style="gap: 6px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>čeká</span></td></tr></tbody></table></div></section>
+<section class="sec"><div class="sh"><span class="num">03</span><h2>Validační sada</h2><span class="grow"></span><span class="cap">generátory páteře; G1–G6 (režimy Jednotky a Období) odloženy</span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 40px"></th><th style="width: 300px">Generátor</th><th style="width: 220px">Co testuje</th><th>Kdy projde</th><th style="width: 110px">Stav</th></tr></thead><tbody><tr><td><span class="num">G7</span></td><td>20 000 budoucností × 8 lokalit se známou korelací Iman–Conover</td><td>režim Budoucnosti; mapa najde zasazené skupiny zemí</td><td>korelace výstupů v chybě Monte Carlo; skupiny podle ARI; falešné spojnice ≤ FDR</td><td><span class="row" style="gap: 6px"><span class="stg sm dash" aria-hidden="true"></span>připraveno</span></td></tr><tr><td><span class="num">G8</span></td><td>zasazená hranice rozhodnutí: jeden vstup překlápí verdikt ve známém bodě</td><td>hranice rozhodnutí</td><td>nalezena v toleranci kroku mřížky</td><td><span class="row" style="gap: 6px"><span class="stg sm dash" aria-hidden="true"></span>nové</span></td></tr><tr><td><span class="num">G9</span></td><td>dvě skupiny budoucností se zasazeným rozdílem</td><td>hodnota pro pravidlo a EVPPI</td><td>shoda s analytickým výsledkem v chybě Monte Carlo</td><td><span class="row" style="gap: 6px"><span class="stg sm dash" aria-hidden="true"></span>nové</span></td></tr><tr><td><span class="num">G10</span></td><td>scénáře vah se zasazeným vítězem a známým bodem překlopení</td><td>mapa scénářů vah; podíly testovaných nastavení</td><td>vítěz a bod překlopení přesně (součty jsou ve váze lineární)</td><td><span class="row" style="gap: 6px"><span class="stg sm dash" aria-hidden="true"></span>nové</span></td></tr></tbody></table></div></section>
+<section class="sec"><div class="sh"><span class="num">04</span><h2>Pravidlo vydání zprávy klientovi</h2><span class="grow"></span><span class="cap"><span class="mvx">navrženo, čeká na rozhodnutí vlastníka produktu</span></span></div><div class="sb"><table class="zt"><thead><tr><th style="width: 300px">Co</th><th>Pravidlo</th></tr></thead><tbody><tr><td>Tvrzení, na kterém rozhodnutí stojí</td><td>ověří se dvakrát: opora ve zdroji (kód) a správný výklad (člověk, ne autor tvrzení)</td></tr><tr><td>Doporučení na metodě mimo registr</td><td>zůstává <b>předběžné doporučení</b>; nevydá se jako schválená investiční rada</td></tr><tr><td>Průzkumný materiál</td><td>smí do zprávy s výslovnými mezemi („průzkumné, nepodkládá doporučení“); mapa scénářů vah sem patří</td></tr><tr><td>Schválení</td><td>zapíše přesnou verzi zprávy a nevyřešené výhrady (zpráva 2: čtyři); „schválená zpráva“ znamená věcně připravená</td></tr><tr><td>Prahy M-7 (přesnost ≥ 90 %, nepodložené &lt; 10 %)</td><td>jedna z kontrol, ne jediné kritérium vydání</td></tr></tbody></table><p class="muted" style="font-size: 12px; margin: 8px 0 0">Řeší rozpor „neregistrované odhady zůstávají interní“ proti „smí ke klientovi se štítkem a varováním“. Mění RD0 z 22. 10. jen pro doporučení obchodní studie. Zpráva 2 je první, která by podle něj vyšla: Předběžné doporučení, verze 5. 11. 2026, čtyři výhrady.</p></div></section>
+<div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div>Sada nejdřív projde nad dnešními statistikami <span class="mono">aia-sociomap-5</span> jako výchozí stav. Odložené generátory a otázky (nulové světy, faktory, VAR, kontaminace, podíly, pobočky; korekce testování, úrovně či změny, efektivní n, převzorkování, surogátní nula, MASE) patří režimům Jednotky a Období a zůstávají v historii desky.</div></div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2516}}'>
+class Component extends DCLogic {
+renderVals() { return { theme: this.props.theme ?? 'light', busy: false, idle: true }; }
+}
+</script>
+</body>
+</html>

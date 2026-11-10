@@ -1,0 +1,935 @@
+{
+ "case": "ChemVitro",
+ "decision": "Vlastní závod na VTX-40: která z osmi lokalit",
+ "objects": [
+  {
+   "id": "VR",
+   "name": "Vrbice"
+  },
+  {
+   "id": "LI",
+   "name": "Lipová"
+  },
+  {
+   "id": "KA",
+   "name": "Kamenec"
+  },
+  {
+   "id": "WE",
+   "name": "Wendelstedt"
+  },
+  {
+   "id": "LN",
+   "name": "Lindenau"
+  },
+  {
+   "id": "ES",
+   "name": "Eschfeld"
+  },
+  {
+   "id": "OD",
+   "name": "Odrzyca"
+  },
+  {
+   "id": "BO",
+   "name": "Bory"
+  }
+ ],
+ "owner_scenario": "FR_A",
+ "families": {
+  "a": {
+   "name": "Úspora proti tomu, co model nepočítá",
+   "roles": [
+    "saving",
+    "outside"
+   ]
+  },
+  "b": {
+   "name": "Části úspory proti sobě, bez úspory samé",
+   "roles": [
+    "part",
+    "outside"
+   ]
+  }
+ },
+ "perspectives": [
+  {
+   "code": "F",
+   "name": "Finanční",
+   "components": [
+    {
+     "code": "F1",
+     "name": "Medián úspory proti nákupu",
+     "unit": "mil. EUR, NPV 2027–2044 při 8 %",
+     "source": "T1",
+     "grade": "odhad",
+     "role": "saving",
+     "anchors": [
+      60,
+      140
+     ],
+     "values": {
+      "VR": 110.8,
+      "LI": 126.0,
+      "KA": 132.4,
+      "WE": 82.3,
+      "LN": 86.5,
+      "ES": 61.2,
+      "OD": 134.7,
+      "BO": 123.2
+     }
+    },
+    {
+     "code": "F2",
+     "name": "Investice v základním případě",
+     "unit": "mil. EUR",
+     "source": "T5",
+     "grade": "výpočet",
+     "role": "part",
+     "anchors": [
+      180,
+      140
+     ],
+     "values": {
+      "VR": 160.6,
+      "LI": 158.6,
+      "KA": 152.3,
+      "WE": 171.8,
+      "LN": 170.8,
+      "ES": 175.5,
+      "OD": 148.9,
+      "BO": 143.9
+     },
+     "gate": "G4"
+    },
+    {
+     "code": "F3",
+     "name": "P(investice ≤ 175 mil. EUR)",
+     "unit": "podíl budoucností",
+     "source": "T5",
+     "grade": "odhad",
+     "role": "part",
+     "anchors": [
+      0.4,
+      1.0
+     ],
+     "values": {
+      "VR": 0.79,
+      "LI": 0.82,
+      "KA": 0.9,
+      "WE": 0.56,
+      "LN": 0.57,
+      "ES": 0.5,
+      "OD": 0.92,
+      "BO": 0.92
+     }
+    },
+    {
+     "code": "F4",
+     "name": "IRR",
+     "unit": "%",
+     "source": "T4",
+     "grade": "výpočet",
+     "role": "saving",
+     "anchors": [
+      12,
+      22
+     ],
+     "values": {
+      "VR": 18.2,
+      "LI": 19.2,
+      "KA": 19.9,
+      "WE": 14.8,
+      "LN": 15.5,
+      "ES": 14.4,
+      "OD": 20.5,
+      "BO": 20.1
+     }
+    },
+    {
+     "code": "F5",
+     "name": "Rok návratnosti",
+     "unit": "rok",
+     "source": "T4",
+     "grade": "výpočet",
+     "role": "saving",
+     "anchors": [
+      2037,
+      2033
+     ],
+     "values": {
+      "VR": 2035,
+      "LI": 2034,
+      "KA": 2034,
+      "WE": 2035,
+      "LN": 2035,
+      "ES": 2036,
+      "OD": 2034,
+      "BO": 2035
+     }
+    },
+    {
+     "code": "F6",
+     "name": "NPV po zdanění při 8 %",
+     "unit": "mil. EUR, základní případ",
+     "source": "T4",
+     "grade": "výpočet",
+     "role": "saving",
+     "anchors": [
+      60,
+      130
+     ],
+     "values": {
+      "VR": 96.6,
+      "LI": 116.3,
+      "KA": 121.3,
+      "WE": 84.3,
+      "LN": 92.4,
+      "ES": 69.3,
+      "OD": 118.6,
+      "BO": 99.7
+     },
+     "state": "daň je pevný parametr; sazby prozatímní"
+    },
+    {
+     "info": true,
+     "name": "Pobídky: daňová úleva (CZ, PL) nebo dotace (DE), podíl a P(schválení) 0,5",
+     "text": "informační: CZ 20–25 %, Odrzyca 35 %, Bory 50 %, Wendelstedt 15 %, Lindenau 20 %, Eschfeld 0; v základním případě nezapočteno, ve výhledu po zdanění ano",
+     "source": "R2-P10, T9",
+     "grade": "z dat klienta · právní předpis · úsudek"
+    }
+   ]
+  },
+  {
+   "code": "S",
+   "name": "Strategická",
+   "components": [
+    {
+     "code": "S1",
+     "name": "Společné selhání s vedoucí lokalitou (Odrzyca)",
+     "unit": "podíl budoucností, v nichž je horší než nákup i tato lokalita",
+     "source": "T8, R2-P12",
+     "grade": "odhad",
+     "role": "outside",
+     "anchors": [
+      1.0,
+      0.7
+     ],
+     "values": {
+      "VR": 0.9,
+      "LI": 0.84,
+      "KA": 0.79,
+      "WE": 0.98,
+      "LN": 0.97,
+      "ES": 0.99,
+      "OD": null,
+      "BO": 0.91
+     },
+     "state": "Odrzyca je vedoucí lokalita sama: neuplatní se"
+    },
+    {
+     "info": true,
+     "name": "Závislost na jednom dodavateli · přirážka při prodloužení 12–22 % · podmínky po roce 2035 · zůstatková hodnota 30 %",
+     "text": "stejné pro všechny lokality: páky nákupu proti vlastní výrobě, ne rozdíly mezi lokalitami",
+     "source": "R2-P03 §2.4, R2-P08 §7.2, T9",
+     "grade": "z dat klienta · úsudek"
+    },
+    {
+     "info": true,
+     "name": "Tržní pozice",
+     "text": "neuplatní se: závod zásobuje jen Brno (62 %) a Pardubice (38 %)",
+     "source": null,
+     "grade": null
+    }
+   ]
+  },
+  {
+   "code": "P",
+   "name": "Provozní",
+   "components": [
+    {
+     "code": "P1",
+     "name": "Energie na tunu 2032",
+     "unit": "EUR/t",
+     "source": "T6",
+     "grade": "výpočet",
+     "role": "part",
+     "anchors": [
+      200,
+      170
+     ],
+     "values": {
+      "VR": 179,
+      "LI": 179,
+      "KA": 179,
+      "WE": 182,
+      "LN": 190,
+      "ES": 190,
+      "OD": 192,
+      "BO": 192
+     }
+    },
+    {
+     "code": "P2",
+     "name": "Údržba, pojištění a poplatek parku na tunu 2032",
+     "unit": "EUR/t",
+     "source": "T6",
+     "grade": "výpočet",
+     "role": "part",
+     "anchors": [
+      160,
+      100
+     ],
+     "values": {
+      "VR": 113,
+      "LI": 124,
+      "KA": 111,
+      "WE": 157,
+      "LN": 132,
+      "ES": 122,
+      "OD": 105,
+      "BO": 103
+     }
+    },
+    {
+     "code": "P3",
+     "name": "Odpad a voda na tunu 2032",
+     "unit": "EUR/t",
+     "source": "T6",
+     "grade": "výpočet",
+     "role": "part",
+     "anchors": [
+      50,
+      35
+     ],
+     "values": {
+      "VR": 43,
+      "LI": 45,
+      "KA": 42,
+      "WE": 38,
+      "LN": 47,
+      "ES": 48,
+      "OD": 39,
+      "BO": 37
+     }
+    },
+    {
+     "info": true,
+     "name": "Provozní náklad na tunu 2032 celkem",
+     "text": "součet položek (P1–P3, L1, H1, suroviny 760 a CO₂ 56): 1 311 · 1 300 · 1 295 · 1 455 · 1 434 · 1 463 · 1 292 · 1 290 EUR/t; kreslí se po položkách, aby se mechanismus nepočítal dvakrát",
+     "source": "T6",
+     "grade": "výpočet"
+    },
+    {
+     "info": true,
+     "name": "Najíždění 60–90 % v prvním půlroce",
+     "text": "stejné pro všechny lokality",
+     "source": "T9",
+     "grade": "úsudek"
+    }
+   ]
+  },
+  {
+   "code": "M",
+   "name": "Marketingová a obchodní",
+   "note": "Pro ChemVitro prázdná: vázaná poptávka, žádný slib zákazníkům. Pro Velis ústřední (slib doručení, doba doručení, růst poptávky).",
+   "components": []
+  },
+  {
+   "code": "L",
+   "name": "Logistická",
+   "components": [
+    {
+     "code": "L1",
+     "name": "Doprava produktu do Brna a Pardubic",
+     "unit": "EUR/t",
+     "source": "T6",
+     "grade": "výpočet",
+     "role": "part",
+     "anchors": [
+      60,
+      15
+     ],
+     "values": {
+      "VR": 38,
+      "LI": 20,
+      "KA": 24,
+      "WE": 58,
+      "LN": 53,
+      "ES": 55,
+      "OD": 37,
+      "BO": 33
+     }
+    },
+    {
+     "code": "L2",
+     "name": "Vlečka k postavení: 3,4 km × 1,9–2,8 mil. EUR/km",
+     "unit": "mil. EUR",
+     "source": "T5, T9",
+     "grade": "z dat klienta · odhad",
+     "role": "part",
+     "anchors": [
+      8,
+      0
+     ],
+     "values": {
+      "VR": 0,
+      "LI": 0,
+      "KA": 0,
+      "WE": 0,
+      "LN": 0,
+      "ES": 0,
+      "OD": [
+       6.5,
+       9.5
+      ],
+      "BO": 0
+     },
+     "state": "Odrzyca: cena za km je rozpětí; získání pozemků 6–24 měsíců (úsudek)"
+    },
+    {
+     "code": "L3",
+     "name": "Silniční přístup: zesílení mostu (nosnost 16 t proti 40 t)",
+     "unit": "mil. EUR",
+     "source": "T5, T9",
+     "grade": "z dat klienta",
+     "role": "part",
+     "anchors": [
+      6,
+      0
+     ],
+     "values": {
+      "VR": 0,
+      "LI": 0,
+      "KA": 0,
+      "WE": 0,
+      "LN": 0,
+      "ES": [
+       3.2,
+       5.0
+      ],
+      "OD": 0,
+      "BO": 0
+     },
+     "state": "Eschfeld: 3,2–5,0 mil. EUR, základní případ 4,1"
+    },
+    {
+     "code": "L4",
+     "name": "Doprava surovin přes překladiště do stavby vlečky",
+     "unit": "EUR/t surovin navíc",
+     "source": "T9",
+     "grade": "úsudek",
+     "role": "part",
+     "anchors": [
+      40,
+      0
+     ],
+     "values": {
+      "VR": 0,
+      "LI": 0,
+      "KA": 0,
+      "WE": 0,
+      "LN": 0,
+      "ES": 0,
+      "OD": [
+       10,
+       40
+      ],
+      "BO": 0
+     },
+     "state": "Odrzyca: žádná nabídka, úsudek 10–40"
+    }
+   ]
+  },
+  {
+   "code": "E",
+   "name": "Prostředí a povolování",
+   "components": [
+    {
+     "code": "E1",
+     "name": "Šance na kompenzační opatření (stanice nad limitem memoranda)",
+     "unit": "podíl",
+     "source": "R2-P05, T9",
+     "grade": "z dat klienta · úsudek",
+     "role": "part",
+     "anchors": [
+      1,
+      0
+     ],
+     "values": {
+      "VR": 0.8,
+      "LI": 0.2,
+      "KA": 0.2,
+      "WE": 0,
+      "LN": 0,
+      "ES": 0,
+      "OD": 0.2,
+      "BO": 0.8
+     },
+     "state": "rozhodující vstup modelu; bez dokladu o konkrétní lokalitě",
+     "gate": "G3"
+    },
+    {
+     "code": "E2",
+     "name": "Prodloužení povolování s kompenzací",
+     "unit": "měsíce",
+     "source": "T9",
+     "grade": "z dat klienta",
+     "role": "part",
+     "anchors": [
+      18,
+      0
+     ],
+     "values": {
+      "VR": [
+       9,
+       15
+      ],
+      "LI": [
+       9,
+       15
+      ],
+      "KA": [
+       9,
+       15
+      ],
+      "WE": 0,
+      "LN": 0,
+      "ES": 0,
+      "OD": [
+       12,
+       18
+      ],
+      "BO": [
+       12,
+       18
+      ]
+     },
+     "state": "Česko 9–15, Polsko 12–18, Německo bez kompenzace"
+    },
+    {
+     "code": "E3",
+     "name": "Předčištění odpadních vod",
+     "unit": "mil. EUR",
+     "source": "T5, T9",
+     "grade": "z dat klienta · odhad",
+     "role": "part",
+     "anchors": [
+      15,
+      0
+     ],
+     "values": {
+      "VR": 0,
+      "LI": [
+       6.7,
+       14.1
+      ],
+      "KA": 0,
+      "WE": 0,
+      "LN": [
+       6.7,
+       14.1
+      ],
+      "ES": 0,
+      "OD": 0,
+      "BO": 0
+     },
+     "state": "Lipová a Lindenau: 6,7–14,1 ze srovnatelných závodů, základní případ 10"
+    },
+    {
+     "info": true,
+     "name": "Poplatek chemického parku (Wendelstedt 1,1 mil. EUR ročně)",
+     "text": "uvnitř P2, údržba a park (T6): počítá se jednou, tady ne podruhé",
+     "source": "T9",
+     "grade": "z dat klienta"
+    },
+    {
+     "info": true,
+     "name": "Emise CO₂ a EU ETS",
+     "text": "stejné pro všechny lokality: 56 EUR/t",
+     "source": "T6",
+     "grade": "výpočet"
+    }
+   ]
+  },
+  {
+   "code": "H",
+   "name": "Lidé",
+   "components": [
+    {
+     "code": "H1",
+     "name": "Náklady na zaměstnance na tunu 2032",
+     "unit": "EUR/t",
+     "source": "T6, T9",
+     "grade": "výpočet · právní předpis (prozatímní)",
+     "role": "part",
+     "anchors": [
+      250,
+      90
+     ],
+     "values": {
+      "VR": 121,
+      "LI": 116,
+      "KA": 124,
+      "WE": 203,
+      "LN": 195,
+      "ES": 232,
+      "OD": 102,
+      "BO": 109
+     }
+    },
+    {
+     "code": "H2",
+     "name": "Doba obsazení místa operátora",
+     "unit": "dny",
+     "source": "R2-P07 §6.2, Trh práce v regionech",
+     "grade": "z dat klienta",
+     "role": "outside",
+     "anchors": [
+      120,
+      40
+     ],
+     "values": {
+      "VR": [
+       49,
+       71
+      ],
+      "LI": [
+       49,
+       71
+      ],
+      "KA": [
+       49,
+       71
+      ],
+      "WE": [
+       49,
+       71
+      ],
+      "LN": [
+       49,
+       71
+      ],
+      "ES": 118,
+      "OD": [
+       49,
+       71
+      ],
+      "BO": [
+       49,
+       71
+      ]
+     },
+     "state": "jen zátěžová zkouška modelu; zpráva uvádí Eschfeld a rozpětí ostatních regionů"
+    },
+    {
+     "code": "H3",
+     "name": "Velký nábor v okolí do roku 2028",
+     "unit": "lidí",
+     "source": "Trh práce v regionech, kap. 13",
+     "grade": "z dat klienta",
+     "role": "outside",
+     "anchors": [
+      400,
+      0
+     ],
+     "values": {
+      "VR": 0,
+      "LI": 0,
+      "KA": 380,
+      "WE": 0,
+      "LN": 0,
+      "ES": 0,
+      "OD": 0,
+      "BO": [
+       0,
+       380
+      ]
+     },
+     "state": "Kamenec 380; u Borů zpráva nábor jmenuje bez čísla: rozsah"
+    },
+    {
+     "info": true,
+     "name": "Růst mezd po roce 2031",
+     "text": "stejné pro všechny lokality",
+     "source": "T9",
+     "grade": "úsudek"
+    }
+   ]
+  }
+ ],
+ "gates": [
+  {
+   "code": "G1",
+   "name": "Porazí nákup s pravděpodobností ≥ 0,75",
+   "source": "T1",
+   "values": {
+    "VR": [
+     "pass",
+     "0,88"
+    ],
+    "LI": [
+     "pass",
+     "0,91"
+    ],
+    "KA": [
+     "pass",
+     "0,92"
+    ],
+    "WE": [
+     "pass",
+     "0,80"
+    ],
+    "LN": [
+     "pass",
+     "0,81"
+    ],
+    "ES": [
+     "fail",
+     "0,73"
+    ],
+    "OD": [
+     "pass",
+     "0,92"
+    ],
+    "BO": [
+     "pass",
+     "0,91"
+    ]
+   }
+  },
+  {
+   "code": "G2",
+   "name": "Ztráta > 20 mil. EUR nejvýš v 10 % budoucností",
+   "source": "T1",
+   "values": {
+    "VR": [
+     "pass",
+     "0,08"
+    ],
+    "LI": [
+     "pass",
+     "0,06"
+    ],
+    "KA": [
+     "pass",
+     "0,05"
+    ],
+    "WE": [
+     "fail",
+     "0,15"
+    ],
+    "LN": [
+     "fail",
+     "0,14"
+    ],
+    "ES": [
+     "fail",
+     "0,21"
+    ],
+    "OD": [
+     "pass",
+     "0,05"
+    ],
+    "BO": [
+     "pass",
+     "0,06"
+    ]
+   }
+  },
+  {
+   "code": "G3",
+   "name": "Výroba k 1. 7. 2030 s pravděpodobností ≥ 0,80",
+   "source": "T1",
+   "values": {
+    "VR": [
+     "fail",
+     "0,21"
+    ],
+    "LI": [
+     "fail",
+     "0,76"
+    ],
+    "KA": [
+     "fail",
+     "0,76"
+    ],
+    "WE": [
+     "pass",
+     "0,94"
+    ],
+    "LN": [
+     "fail",
+     "0,77"
+    ],
+    "ES": [
+     "fail",
+     "0,67"
+    ],
+    "OD": [
+     "fail",
+     "0,75"
+    ],
+    "BO": [
+     "fail",
+     "0,19"
+    ]
+   }
+  },
+  {
+   "code": "G4",
+   "name": "Investice nejvýš 175 mil. EUR (základní případ)",
+   "source": "T5",
+   "values": {
+    "VR": [
+     "pass",
+     "160,6"
+    ],
+    "LI": [
+     "pass",
+     "158,6"
+    ],
+    "KA": [
+     "pass",
+     "152,3"
+    ],
+    "WE": [
+     "pass",
+     "171,8"
+    ],
+    "LN": [
+     "pass",
+     "170,8"
+    ],
+    "ES": [
+     "fail",
+     "175,5"
+    ],
+    "OD": [
+     "pass",
+     "148,9"
+    ],
+    "BO": [
+     "pass",
+     "143,9"
+    ]
+   }
+  }
+ ],
+ "gate_settings": [
+  {
+   "code": "dnes",
+   "name": "Pravidlo dnes (šance na kompenzaci 20 %)",
+   "override": {}
+  },
+  {
+   "code": "urady",
+   "name": "Po písemném stanovisku úřadů: bez kompenzace (0 %)",
+   "source": "kap. 5.3 a 6.1",
+   "override": {
+    "G3": {
+     "LI": [
+      "pass",
+      "0,942"
+     ],
+     "KA": [
+      "pass",
+      "0,942"
+     ],
+     "OD": [
+      "pass",
+      "0,942"
+     ]
+    }
+   }
+  }
+ ],
+ "composed": "ilustrační, 8. 11. 2026; ve studii zapsáno do schvalovací knihy před výsledky",
+ "scenarios": [
+  {
+   "code": "FR_ALL",
+   "name": "FŘ, jak zadáno",
+   "who": "finanční ředitelka",
+   "family": null,
+   "weights": {
+    "F": 0.5,
+    "P": 0.3,
+    "L": 0.2
+   }
+  },
+  {
+   "code": "FR_A",
+   "name": "FŘ · a",
+   "who": "finanční ředitelka (vlastník pravidla)",
+   "family": "a",
+   "weights": {
+    "F": 0.6,
+    "S": 0.2,
+    "H": 0.2
+   }
+  },
+  {
+   "code": "EQ_A",
+   "name": "Rovné váhy · a",
+   "who": "každá perspektiva rodiny stejně",
+   "family": "a",
+   "weights": {
+    "F": 1,
+    "S": 1,
+    "H": 1
+   }
+  },
+  {
+   "code": "VR_B",
+   "name": "VŘ · b",
+   "who": "výrobní ředitel",
+   "family": "b",
+   "weights": {
+    "P": 0.4,
+    "H": 0.2,
+    "L": 0.2,
+    "F": 0.2
+   }
+  },
+  {
+   "code": "LOG_B",
+   "name": "LOG · b",
+   "who": "vedoucí logistiky (zadání: logistika 0,3 · provoz 0,5 · finance 0,2)",
+   "family": "b",
+   "weights": {
+    "L": 0.3,
+    "P": 0.5,
+    "F": 0.2
+   }
+  },
+  {
+   "code": "EHS_B",
+   "name": "EHS · b",
+   "who": "vedoucí EHS",
+   "family": "b",
+   "weights": {
+    "E": 0.5,
+    "L": 0.3,
+    "F": 0.2
+   }
+  },
+  {
+   "code": "EQ_B",
+   "name": "Rovné váhy · b",
+   "who": "každá perspektiva rodiny stejně",
+   "family": "b",
+   "weights": {
+    "F": 1,
+    "P": 1,
+    "L": 1,
+    "E": 1,
+    "H": 1
+   }
+  }
+ ],
+ "fan": {
+  "concentration": 60,
+  "draws": 300,
+  "seed": 20261108
+ }
+}

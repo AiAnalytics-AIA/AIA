@@ -1,0 +1,58 @@
+<section class="chapter" id="model">
+  <p class="chapter-label">Chapter 7 · Step 5</p>
+  <h1 data-label="7"><i lang="cs">Model</i>: one computation for every option</h1>
+  <p class="lede">The model computes the measure the rule reads for every option in the same futures. It is code, pinned by version and seed, and a rerun gives the same bytes. Nothing in it is a forecast or a legal opinion.</p>
+
+  <h2 class="part" data-n="7.1">What goes in</h2>
+  <ul>
+    <li>The input table of step 4, frozen as a revision; the options and the baseline of step 1; the rule's measure.</li>
+    <li>The timeline every option shares: the decision date, permitting with each option's own extensions, construction with the drawn comparable's delay, ramp-up below full capacity for its first months.</li>
+    <li>The seed and the number of futures, or a stopping rule that sets the number.</li>
+  </ul>
+
+  <h2 class="part" data-n="7.2">What comes out</h2>
+  <ul>
+    <li><b>The base case:</b> one computation with every input at its likely value. It compares the options and feeds the sensitivity analyses; it is not an estimate of what the client will save.</li>
+    <li><b>The futures:</b> N seeded draws of all inputs at once, with their correlations, each future computing the baseline and every option. From them: the median, the 90 % interval, and every probability as a share of futures.</li>
+    <li><b>The extra computations</b> on the same model and the same futures, each changing one assumption: the decision boundary over an assumption's range, delay of the decision, hiring delay, alternative terms, correlation settings.</li>
+    <li><b>The run record:</b> model type and version, input revision, seed, N, the methods pinned, the artefacts with their SHA-256.</li>
+  </ul>
+
+  <h2 class="part" data-n="7.3">Checks</h2>
+  <ul>
+    <li>Every option is computed in the same futures by the same model; the baseline is one of them.</li>
+    <li>The same inputs and seed give the same bytes. This verifies the implementation, not the model's fitness for the decision (chapter 14).</li>
+    <li>The number of futures follows the convergence rule of chapter 2: 20 000 independent joint futures, doubled at declared checkpoints up to 1,28 million, until every gate and decisive comparison clears its repeated-look-valid bound; a comparison that has not cleared prints as unresolved. A fixed N and a ±0,5 pp margin alone certify nothing; 20 000 is the starting point, not the criterion.</li>
+    <li>Cash flows are discounted at the rule's rate, nominal or real as declared, with the convention named (mid-year or end-year; the inflation assumption and its state).</li>
+    <li>Tax is inside the model as a fixed parameter per jurisdiction, so the after-tax view agrees with every other view. The rule reads the pre-tax figure unless it says otherwise.</li>
+    <li>What is outside the model is listed where the model is described, not discovered in the limits: transfer prices, hiring time in the schedule, freight the delivered price already holds, the model's time step.</li>
+    <li>An extra computation changes one assumption; combinations that are not computed are said not to be.</li>
+  </ul>
+
+  <h2 class="part" data-n="7.4">In AIA today</h2>
+  <ul>
+    <li>Runs as workflows on the worker, with lease-fenced steps, artefacts, provenance and dependency edges, each artefact pinned by SHA-256 (<code>apps/worker</code>, <code>infrastructure/artifact_repository.py</code>, <code>domain/workflow.py</code>, <code>domain/pipeline.py</code> fingerprints).</li>
+    <li>A run pins the organization's methodology in force and records it in its identity (<code>domain/methodology/pins.py</code>, <code>application/research.py</code>).</li>
+    <li>The deterministic simulation core: a frozen WorldModel, reject-not-clip validation, seeded scenarios and frozen results (<code>domain/simulation/</code>). Its discipline is the model's; its content is not.</li>
+    <li>Seeded synthetic data from <code>random.Random(seed)</code> and the Sociomap golden fixtures pinned by SHA-256: the rerun-equals-bytes practice (<code>packages/aia_core/tests/fixtures/sociomap/</code>).</li>
+    <li>Budgets and cost ceilings per run, which a model computed by code does not need (a CALCULATED run has a known 0,00 USD ceiling, <code>cost-model-study</code> CP5).</li>
+  </ul>
+
+  <h2 class="part" data-n="7.5">New</h2>
+  <ul>
+    <li>The platform: the model-type contract and the determinism harness (<code>cost-model-study#CP2</code>), the kind and the working copy (<code>#CP3</code>), the run with inputs frozen by artefact id (<code>#CP5</code>), the API (<code>#CP6</code>), the ESTIMATED grade with seed and method pinned and the Metodika module of defaults (<code>#CP10</code>). The screen shows the shared timeline as one drawing and the items of the cost of supply with their kind and base formula.</li>
+    <li><b>A model type of its own, <code>site_cost_of_supply</code></b> (<code>cost-model-study#CM8</code>, <b>new</b>): a timeline per option whose dates are inputs, purchases, operations, residual value, tax as a fixed parameter, yearly cash flows, NPV before and after tax at a stated rate, the decision, finance and schedule tables as its results, and the convergence rule of chapter 2. The planned type <i lang="cs">scénáře nákladů</i> (<code>#CM1</code>–<code>#CM7</code>) has no timeline and no bought baseline, so this is a second type rather than an extension.</li>
+    <li>Monte Carlo with the input table's distributions and correlations (<code>#CR3</code>), the joint draw from comparables (<code>#CR3b</code>), PCG64 under the run's seed.</li>
+    <li>The cash-flow schedule, NPV and discounted payback, and IRR by a stated root rule (<code>#CM7</code>; <code>quantitative-families#FIN1</code>, <code>#FIN2</code>).</li>
+    <li>The extra computations as declared operations on a stored run, each one change at a time and said so: the boundary, delay and hiring tables, alternative terms and correlation recomputations (<code>cost-model-study#CR7b</code>, <b>new</b>, chapter 8).</li>
+  </ul>
+
+  <h2 class="part" data-n="7.6">Acceptance</h2>
+  <ul>
+    <li>First the oracle fixture O-CF (chapter 14): two years, 10 % discount, present costs 173,554 / 154,132 / 158,843 and a 12,1 receipt in year 2 worth exactly 10. Then the test case's seed and 20 000 futures as the first checkpoint; the same seed gives the same result.</li>
+    <li>A late start is bought at the spot price for the months between the end of the current terms and the plant's start.</li>
+    <li>Tax reliefs stay out of the pre-tax figure the rule reads; after-tax values use each jurisdiction's rate.</li>
+    <li>Every option shares the timeline from the decision date; an option's extra months (compensation, infrastructure, a permit) enter its own schedule.</li>
+    <li>The options are comparable, the material costs and dependencies are in the model, and a revised input invalidates the run's results and approvals.</li>
+  </ul>
+</section>

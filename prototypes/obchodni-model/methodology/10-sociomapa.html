@@ -1,0 +1,78 @@
+<section class="chapter" id="sociomapa">
+  <p class="chapter-label">Chapter 9 · Step 7</p>
+  <h1 data-label="9"><i lang="cs">Sociomapa</i>: two map types</h1>
+  <p class="lede">A Sociomap places objects as points in a landscape: two objects lie close when the rows rate them alike, and the height shows their level. Where the rows come from decides how a pattern is tested, so the method has two map types. A <b>scenario map</b> reads rows the model generates; an <b>observed-data map</b> reads rows someone observed. Both run on the <code>aia-sociomap-5</code> engine's layout and terrain. A map supports the recommendation by showing why it holds and how robust it is; it never makes the recommendation.</p>
+
+  <h2 class="part" data-n="9.1">What goes in</h2>
+  <ul>
+    <li><b>The table:</b> one row per observation, one column per object. The person declares, before any result, which type the rows are and the configuration: for a scenario map the row source; for an observed-data map the scale and the dependence (9.3).</li>
+    <li><b>Scenario map, two row sources:</b> the futures of step 5 (one row per future, the cell the measure the rule reads, the saving against the baseline), or the tested weight settings of chapter 12 (one row per setting, the cell the option's weighted score); or both crossed, each future scored under each setting.</li>
+    <li><b>Observed-data map, three configurations:</b> experts (named people scoring options or competitors on stated criteria; a row is one expert's scores on one criterion); units (comparable branches, products or customers from the client's data under its contract; a row is one unit, the objects its measures); months (a series of the client's figures; a row is one month, the objects the measures).</li>
+    <li><b>The map's contract</b>, one per configuration: what a row is, what the claim is about, what is measured, the test, the resampling, what the height means.</li>
+    <li><b>The test, declared before the computation:</b> for a scenario map, the alternative settings and the agreement that counts as stable; for an observed-data map, the resampling and the error rate.</li>
+    <li>The method pinned: <code>aia-sociomap-5</code>, the organization's methodology in force.</li>
+  </ul>
+
+  <h2 class="part" data-n="9.2">What comes out</h2>
+  <ul>
+    <li><b>The map</b> in two views: the 3D terrain and the top view that does not distort distances by perspective. Links are drawn only between pairs the map's contract allows; a warm link means co-movement, its width the relation's strength.</li>
+    <li><b>The relation matrix:</b> each pair's relation across the rows, from which the map is drawn.</li>
+    <li><b>Scenario map:</b> the shared-failure table (when an option is worse than the baseline, the share of those futures in which each other option is worse too, with its denominators); the shares of tested settings in which each option is uniquely first, tied or unresolved, per scenario; heights the mean outcome over the rows, with the NPV printed beside, unweighted.</li>
+    <li><b>Observed-data map:</b> each drawn pair with the result of its test (its interval, or its surrogate p-value after the correction); one uncertainty radius where whole raters are resampled; heights the experts' mean scores. What height means for units and months is the methodologist's to fix; until then those maps are drawn without terrain.</li>
+    <li><b>Three separate results, never one word:</b> layout convergence (did the layout converge in every setting or resample), representation fit (how well the layout represents the relation matrix) and robustness (the map's own test). A grouping the report keeps after a failed robustness test is tested on its own, or the matrix is printed without a spatial reading.</li>
+    <li><b>The register status:</b> the map's method at its spec fingerprint, approved or <i lang="cs">interní</i> (<code>domain/sociomap_register.py</code>), printed on the map and in the report.</li>
+  </ul>
+
+  <h2 class="part" data-n="9.3">Checks</h2>
+  <h3>Scenario map: rows the model generates</h3>
+  <ul>
+    <li><b>No p-values.</b> The rows are draws the model can make without limit, so any pattern turns "significant" if enough are drawn. No pair is called reliable on a pair test. The test is stability: the map is recomputed under the alternative settings written down in step 4 (for correlations: none, the judgement's, strong) and under new seeds, and counts as stable only if every two versions agree in the order of the inter-object distances at or above the threshold (Spearman ≥ 0,8 by default). A setting whose layout did not converge does not count until it does. Failure is printed, not softened; after a failure only the heights are read.</li>
+    <li><b>Relative apart from absolute.</b> Each row is centred on the mean of the options, so the map shows relative performance: who does better in the same future or under the same weights. Whether option B is a backup for A is answered by the uncentred shared-failure table, not by the map: centring removes the common level, which is exactly what shared failure is made of. The table answers downside dependence only; whether one option could operationally stand in for another is a separate assessment the report names as such.</li>
+    <li><b>Shares, never probabilities.</b> A share is a share of tested settings, per scenario, per fan; shares are never pooled across scenarios. Chapter 12 holds the weight settings' construction: the partition, the value functions, the fans and the view's contract.</li>
+    <li><b>Never claims:</b> how the market or the firm behaves; that a relation is observed rather than a property of the model; that close options "win together".</li>
+  </ul>
+  <h3>Observed-data map: rows someone observed</h3>
+  <ul>
+    <li><b>Two declarations before any result.</b> <b>Scale:</b> when the objects share one scale (experts' 0–10 scores), each row is centred as the engine centres it; when they do not (a branch's revenue and its floor area), each measure is standardised across the rows and the rows are not centred; months are detrended by a transformation declared in advance, then standardised. <b>Dependence:</b> how the rows depend on each other picks the resampling. Nobody picks a test after seeing the results.</li>
+    <li><b>Experts.</b> Rows from one expert are not independent, so whole experts are resampled with replacement, all their rows with them; each sample is laid out by the engine's own layout and aligned onto the full map, and one radius, the engine's safety factor times the median spread, shows the uncertainty on the map. Each expert is named beside their scores.</li>
+    <li><b>Units.</b> Units are resampled (by cluster where they belong to regions or chains), giving each pair a 95 % interval; a pair is drawn only when its interval excludes zero. Its relation is Pearson's r on the standardised measures.</li>
+    <li><b>Months.</b> Neighbouring months are not independent. Each pair's correlation of the detrended series is compared with surrogates (IAAFT: per series, the same values and the same spectrum, so the same autocorrelation, but no relation); a pair is drawn only when it beats its surrogates after Benjamini–Yekutieli at 5 %. Each pair's effective number of months is reported. A block bootstrap of the months measures how stable the layout is.</li>
+    <li><b>Layout.</b> The engine's own layout, given this configuration's relation matrix: the same object-count rule, soft-rank Spearman with Coulomb repulsion or Interval MDS, and the ruler.</li>
+    <li><b>Never claims:</b> cause, lead or lag; anything about a single unit; that a small group's judgement is a market's; regimes from a short series without a declared break; precision the rows cannot give.</li>
+  </ul>
+  <h3>Both types</h3>
+  <ul>
+    <li><b>Determinedness.</b> Where the configuration allows it, split-half agreement against the method's threshold says the layout is not an artefact of the rows. It does not replace the map's own test.</li>
+    <li><b>Grades.</b> A scenario map's results print <i lang="cs">odhad</i> (code grade MODELLED). An expert map's inputs are <i lang="cs">úsudek</i>, each expert named, and its results MODELLED with the inputs stated. Unit and month maps print <i lang="cs">odhad</i> (ESTIMATED).</li>
+    <li><b>Never claims, in every map:</b> causation; that a distance is an effect size in any unit; that the terrain between points is an estimate; validity borrowed from team-communication Sociomaps, which do not cover this use.</li>
+    <li><b>Internal until approved.</b> Each configuration needs its own register entry, approved by the methodologist; until then its results print <i lang="cs">odhad (metoda čeká na schválení metodikem)</i> and carry the internal label. The engine's approval of 21. 10. 2026 covers people's ratings, a map this method does not use.</li>
+  </ul>
+
+  <h2 class="part" data-n="9.4">In AIA today</h2>
+  <ul>
+    <li>The <code>aia-sociomap-5</code> engine, signed off by the methodologist on 21. 10. 2026 and what a new run pins: <code>domain/sociomap/signed_off_inputs.py</code> (per-row centring, the baseline, pair floors, Benjamini–Hochberg), <code>signed_off_layout.py</code>, <code>signed_off_credibility.py</code> (split-half agreement, map uncertainty, the Procrustes alignment the expert resampling reuses), <code>signed_off_respondents.py</code>, <code>signed_off_segments.py</code>; <code>engine_v2.py</code> <code>compute_object_map</code> and the contract-3 artefact. Its layout and terrain are what both map types reuse; the respondent map itself is not part of this method.</li>
+    <li>The register: which method at which spec fingerprint is approved; anything absent is <code>INTERNAL_ONLY</code>, never presumed (<code>domain/sociomap_register.py</code>, ADR 0038).</li>
+    <li>Map snapshots drawn on the server from the stored map at the report's camera and approved as artefacts (<code>application/map_snapshots.py</code>, RD4); the map chapters of the report (<code>application/report_maps.py</code>, <code>infrastructure/report_docx/object_map_figure.py</code>).</li>
+    <li>The canvas's proof that the engine takes model rows: <code>prototypes/obchodni-model/tools/engine_maps.py</code> ran <code>compute_object_map</code> on 2 000 futures and drew the maps with the report's renderer; the same tools drew a futures map in three settings and a weighting map.</li>
+    <li>The web's map: <code>ObjectMapPanel</code>, <code>lib/object-map-signed-off.ts</code>, <code>lib/sociomap-display.ts</code>, display only.</li>
+  </ul>
+
+  <h2 class="part" data-n="9.5">New</h2>
+  <ul>
+    <li>The scenario map's contract (<code>sociomapa-systemu#SYS9</code>): rows the model's draws or the tested weight settings, each centred on the mean of the objects; the claim about the model and its assumptions; no p-value; stability across settings and seeds declared before the computation. The screen shows the map, the relation matrix, the shared-failure table, the relative and absolute readings side by side, and the stability test with its results and verdict.</li>
+    <li>The shared-failure table and the stability test: Spearman on the inter-object distances between every two settings ≥ 0,8, the settings declared before computing, a failure printed as it is (<code>#SYS9b</code>, <b>new</b>); the weight settings as a row source (<code>#SYS13</code>, <b>new</b>; chapter 12).</li>
+    <li>The observed-data map: the scale and dependence declarations (<code>#SYS2</code>), the relation statistic (<code>#SYS3</code>), surrogates for months (<code>#SYS4</code>), the effective-sample-size floor (<code>#SYS5</code>), Benjamini–Yekutieli (<code>#SYS6</code>), the resampling by experts, units or blocks of months (<code>#SYS7</code>), fit beside the layout (<code>#SYS8</code>); the expert configuration (<code>#SYS10</code>) and the unit and month configurations (<code>#SYS11</code>), all in the MVP.</li>
+    <li>Fixtures with a planted answer for every configuration (<code>#SYS1</code>, <code>SYS1b</code>), part of the MVP's acceptance (chapter 14).</li>
+    <li>Each configuration its own Metodika entry, internal until approved (<code>#SYS12</code>); the maps on Výsledky and in the report (<code>cost-model-study#CS5</code>), declared extremes and direction per property (<code>#CS1</code>). SI1–SI4 keep only what the weight settings read: states, gates, coverage, the overlap check.</li>
+  </ul>
+
+  <h2 class="part" data-n="9.6">Acceptance</h2>
+  <ul>
+    <li>Each map's type and configuration declared before any result; the test applied is the one the declaration picks.</li>
+    <li>On fixtures with a planted answer, each configuration recovers the planted groups and relations, and in worlds with no relation (independent and autocorrelated series alike) draws no more pairs than its declared error rate allows.</li>
+    <li>Scenario maps: the stability test declared before the computation and its result printed whether it passed or failed; the relation matrix and the shared-failure table printed; the backup question answered from the table.</li>
+    <li>Observed-data maps: every drawn pair carries its test result; the expert map names its experts and shows its radius.</li>
+    <li>Each map labelled internal until Metodika approves its configuration.</li>
+    <li>The map supports the recommendation and never makes it; the recommendation comes from the decision rule, and the matrix, the text and the figure agree with it.</li>
+  </ul>
+</section>

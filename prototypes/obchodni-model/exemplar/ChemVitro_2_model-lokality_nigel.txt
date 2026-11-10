@@ -1,0 +1,2371 @@
+STUDIE TYPU 2 · MODEL NÁKLADŮ LOKALITY
+
+
+
+
+ChemVitro: vlastní závod na
+VTX-40? Rozhodnutí podle
+pravidla finanční ředitelky
+
+
+
+
+Autor: Nigel · Verze: pracovní, 5. 11. 2026
+Pro: výkonného ředitele, zpětná vazba po částech (každá část nese své číslo,
+např. R1-P08)
+Případová studie ChemVitro je fiktivní; data i dokumenty vytvořil A. Bahbouh.
+
+ PROZATÍMNÍ · VEŘEJNÉ VSTUPY ČEKAJÍ NA OVĚŘENÍ
+              AIA · ChemVitro · Model nákladů lokality                                                        Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+   Pracovní verze, 5. 11. 2026. Část veřejných vstupů čeká na ověření (rámeček Stav podkladů). Částky
+   jsou čistá současná hodnota (NPV) let 2027–2044 v mil. EUR před zdaněním při diskontní sazbě 8 %.
+
+
+R2-P01
+
+
+Shrnutí
+Doporučení. Na zasedání 29. 1. 2027 neschvalovat žádnou lokalitu. Požádat vojvodský úřad
+v Opolí a krajské úřady v Ostravě a Olomouci o písemné stanovisko ke kompenzačním opatřením
+a prověřit s nákupem cenu Hanshinu z roku 2026. K lokalitě se vrátit do 26. 3. 2027 úsudek.
+
+Důvod. Pravidlo finanční ředitelky nesplnila žádná z osmi lokalit, ani při sazbě 6 % či 10 %. Li‐
+pová (Olomoucký kraj), Kamenec (Moravskoslezský kraj) a Odrzyca (Opolské vojvodství) splní
+všechny podmínky kromě termínu: výrobu k 1. 7. 2030 zahájí s pravděpodobností 0,75 až 0,76
+místo požadovaných 0,80 odhad 1. Jistotu jim bere jediný předpoklad: 20% šance na uložení kom‐
+penzačních opatření i tam, kde měřicí stanice limity nepřekračuje úsudek. Wendelstedt (Sasko-An‐
+haltsko) termín stihne, ztráta vyšší než 20 mil. EUR však nastává v 15 % budoucností místo nej‐
+výše 10 % odhad 1. Žádná lokalita není zálohou jiné.
+
+Jistota. Verdikt je hranice, nikoli jedno číslo: při šanci na kompenzaci do 14 % by pravidlo vy‐
+bralo Odrzycu, při 15 % Kamenec a od 16 % žádnou lokalitu; předpoklady o korelaci, tedy vzá‐
+jemné souvislosti cen energie, verdikt nemění odhad 1. Zda stavět, rozhoduje cena Hanshinu,
+v roce 2026 o 19 až 41 % vyšší než v roce 2025 z dat klienta 2. Druhou pákou jsou podmínky po roce
+2035, které dopis dodavatele nepokrývá: bez přirážky po roce 2035 by se úspora každé lokality
+snížila zhruba o 53 mil. EUR odhad 1.
+
+Další rozhodnutí. Model počítá s rozhodnutím 1. 2. 2027. Potvrdí-li úřad v Opolí písemně, že
+kompenzační opatření neuloží, vybere pravidlo Odrzycu i po dvouměsíčním odkladu, po čtyř‐
+měsíčním už ne odhad 1. Dotazy proto odešle vedoucí ochrany životního prostředí a bezpečnosti do
+20. 11. 2026 a cenu prověří vedoucí nákupu do 15. 1. 2027. Představenstvo rozhodne do
+26. 3. 2027, aby žádosti šly na úřad do 1. 4. 2027, a samo určí, co uzná za potvrzení úsudek.
+
+Lokalita      Medián úspory     P(porazí nákup)     P(ztráta > 20)    P(výroba k 1. 7. 2030)      Investice (základ)   Splní pravidlo
+
+Vrbice                  110,8              0,88 ✔            0,08 ✔                      0,21 ✘                160,6 ✔ ne
+Lipová                  126,0              0,91 ✔            0,06 ✔                      0,76 ✘                158,6 ✔ ne
+Kamenec                 132,4              0,92 ✔            0,05 ✔                      0,76 ✘                152,3 ✔ ne
+Wendelstedt              82,3              0,80 ✔            0,15 ✘                      0,94 ✔                171,8 ✔ ne
+Lindenau                 86,5              0,81 ✔            0,14 ✘                      0,77 ✘                170,8 ✔ ne
+Eschfeld                 61,2              0,73 ✘            0,21 ✘                      0,67 ✘                175,5 ✘ ne
+Odrzyca                 134,7              0,92 ✔            0,05 ✔                      0,75 ✘                148,9 ✔ ne
+Bory                    123,2              0,91 ✔            0,06 ✔                      0,19 ✘                143,9 ✔ ne
+
+Medián a pravděpodobnosti odhad 1, investice výpočet; prahy a intervaly v tabulce T1 v příloze.
+
+
+
+
+              Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                           strana 1 z 44
+                AIA · ChemVitro · Model nákladů lokality                                 Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+   Stav podkladů. Zpráva vychází ze dvou druhů nedokončených vstupů: z mezer v podkladech klienta
+   a z veřejných vstupů, které dosud nejsou ověřené. (a) Mezery v podkladech klienta. Tři z nich mohou změ‐
+   nit výsledek. Žádný dokument neuvádí, zda úřady na konkrétních lokalitách uloží kompenzační opatření;
+   šance 20 % je úsudek a rozhoduje o verdiktu. Ze souborů nelze určit, proč cena Hanshinu v roce 2026
+   vzrostla více, než dovoluje smluvní strop ±10 % ročně; právě to rozhoduje o tom, zda se vlastní výroba vy‐
+   platí. Dopis dodavatele se nevztahuje na podmínky nákupu po roce 2035, které mohou verdikt změnit
+   (kapitola 7). Ostatní mezery zpřesní úspory a investici, ale neočekáváme, že by jejich doplnění samo změ‐
+   nilo verdikt úsudek. Podklady neuvádějí, jak dlouho potrvá najmout 95 lidí, ani jak daleko jsou měřicí sta‐
+   nice od lokalit. Chybí také nabídka silniční dopravy do Odrzyce na dobu před postavením vlečky, datum
+   začátku fixace cen energií, ceny odpadů po roce 2028 a cena předčištění odpadních vod v Lipové
+   a v Lindenau. (b) Veřejné vstupy, které autoři dosud neověřili u pramene, protože přístup k veřejným zdro‐
+   jům byl během psaní zprávy uzavřen. Jde o 16 z 54 vstupů modelu: cenu povolenek a její vývoj, bezplat‐
+   nou alokaci, kolísání a dlouhodobý vývoj cen energie, tři korelace cen, kurzy, odvody zaměstnavatele
+   a inflaci. Neověřené jsou dále daňové sazby, odpisy, forma pobídek a revidovaná směrnice EU o kvalitě
+   vnějšího ovzduší (EU) 2024/2881 s limity pro rok 2030. Po ověření se částky mohou změnit. Korelace cen
+   ani dlouhodobý vývoj cen energie podle propočtů verdikt nemění (kapitola 7). Přísnější limity kvality ovz‐
+   duší by však mohly zvýšit riziko kompenzace na všech lokalitách, a tím změnit doporučení úsudek. Stav
+   každého vstupu uvádí tabulka T9 v příloze.
+
+
+
+ZDROJE A STUPNĚ
+ 1. odhad (metoda čeká na schválení metodikem)
+ 2. z dat klienta: Nákupy VTX-40 2023–2026
+
+
+
+
+R2-P02
+
+
+1 Úvod
+1.1 Od roku 2030 bude nákup dražší
+Představenstvo se ptá, zda má ChemVitro vyrábět meziprodukt VTX-40 sama, a pokud ano,
+kde. ChemVitro dnes nakupuje celou svou spotřebu, přibližně 34 000 t ročně s ročním růstem o 1
+až 3 %, od jediného dodavatele, společnosti Hanshin Fine Chemicals, s dopravou z Asie. Smlouva
+končí 30. 6. 2030 z dat klienta 1. V září 2026 dodavatel napsal, že smlouvu prodlouží o dalších pět let
+jen za cenu o 12 až 22 % vyšší, než bude cena v roce 2029, a jen při odběru nejméně 30 000 t
+ročně. Závaznou nabídku pošle nejdříve v polovině roku 2029 z dat klienta 2. V únoru 2026 už ChemVi‐
+tro jednou musela výpadek dodávek pokrýt nákupem na spotovém trhu. Otázka tedy není akade‐
+mická: od roku 2030 bude ChemVitro buď nakupovat dráže, nebo vyrábět sama.
+
+
+1.2 Jeden závod, osm lokalit, pevný termín
+Vlastní výroba je pevně vymezena: jeden závod na jedné z osmi lokalit. Závod bude mít kapa‐
+citu 40 000 t ročně, 95 zaměstnanců na plný úvazek a na všech lokalitách stejný návrh procesu.
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                    strana 2 z 44
+                  AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Lokality prošly prvním výběrem agentur pro umístění investic. V Česku jsou to Vrbice
+v Ústeckém, Lipová v Olomouckém a Kamenec v Moravskoslezském kraji. V Německu jde
+o Wendelstedt v Sasku-Anhaltsku, Lindenau v Sasku a Eschfeld v Bavorsku, v Polsku o Odrzycu
+v Opolském a Bory ve Slezském vojvodství z dat klienta 3. Závod bude zásobovat jen vlastní závody
+ChemVitro v Brně (62 % spotřeby) a v Pardubicích (38 %). Otázkou proto není poptávka, ale vše,
+co se závodem souvisí: lidé a mzdy, odpadní vody a nebezpečné odpady, poplatky za emise, po‐
+volování a doprava z dat klienta 4.
+
+Rozhoduje finanční ředitelka s představenstvem na zasedání 29. 1. 2027; o lokalitě se rozhodne
+1. 2. 2027 a žádosti o povolení se podají ihned poté. Výroba má běžet nejpozději od 1. 7. 2030
+a investice nesmí překročit 175 mil. EUR, a to včetně všeho, co lokalita vyžaduje z dat klienta 5.
+
+
+1.3 Pravidlo bylo zapsáno před prvním výsledkem
+Finanční ředitelka zapsala rozhodovací pravidlo 2. 11. 2026, dříve než byl k dispozici jakýkoli
+výsledek. Pravidlo zní: doporučit lokalitu s nejvyšším mediánem úspory proti dalšímu nákupu
+(NPV nákladů na zásobování 2027–2044 při 8 %), pokud splní čtyři podmínky:
+
+    (1) porazí nákup s pravděpodobností alespoň 0,75;
+    (2) ztráta vyšší než 20 mil. EUR nastane nejvýše v 10 % budoucností;
+    (3) výroba poběží k 1. 7. 2030 s pravděpodobností alespoň 0,80;
+    (4) investice nepřekročí 175 mil. EUR.
+
+Jinak nedoporučit žádnou lokalitu a uvést, který předpoklad nejvíce stojí za ověření z dat klienta 6.
+Pravidlo pracuje s NPV před zdaněním; zpráva podle požadavku klienta uvádí i NPV po zdanění
+a verdikt při 6 % a 10 %. To, že bylo pravidlo zapsáno před výpočtem, brání tomu, aby se výsle‐
+dek dodatečně zdůvodňoval pravidlem, které by mu vyhovovalo.
+
+Jednu podmínku jsme museli vyložit: u investice pravidlo neuvádí pravděpodobnost. Posuzu‐
+jeme ji proto na základním případu, v němž mají všechny vstupy nejpravděpodobnější hodnotu,
+a vedle toho uvádíme pravděpodobnost, že investice nepřekročí 175 mil. EUR (tabulka T5
+v příloze). Přísnější výklad „v každé budoucnosti“ by vyřadil všech osm lokalit, protože
+v nejhorších budoucnostech překročí strop každá z nich; verdikt „nic nedoporučit“ by se tím ne‐
+změnil odhad 7. Výklad je třeba potvrdit s finanční ředitelkou úsudek.
+
+ZDROJE A STUPNĚ
+ 1. z dat klienta: Zápis zadání s klientem §1, Zadání projektu s. 1–2
+ 2. z dat klienta: Dopis dodavatele, s. 1
+ 3. z dat klienta: Zápis zadání s klientem §4, Nabídky lokalit s. 1–8
+ 4. z dat klienta: Zápis zadání s klientem §2, Zadání projektu s. 3
+ 5. z dat klienta: Zápis zadání s klientem §3 a §5
+ 6. z dat klienta: Zápis zadání s klientem §6
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                              strana 3 z 44
+                AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+ 7. odhad (metoda čeká na schválení metodikem)
+
+
+
+
+R2-P03
+
+
+2 Přehled literatury
+2.1 Odhad třídy 4 podceňuje horní riziko
+Skutečná investice může odhad převýšit více, než o kolik ho může podkročit. Odhad investice
+od dodavatele stavby na klíč (EPC) je podle odhadce odhadem třídy 4 s přesností ±25 % z dat klienta 1.
+Podle doporučeného postupu mezinárodní asociace nákladových inženýrů (AACE 18R-97) má
+odhad třídy 4, který vzniká ve fázi studie proveditelnosti, typickou přesnost −15 % až −30 % smě‐
+rem dolů a +20 % až +50 % směrem nahoru. Sám odhadce píše, že skutečnost bývá „nejčastěji
+vyšší“ z dat klienta 2. Flyvbjerg (2014) shrnuje zkušenost s velkými projekty jako „železný zákon“:
+„over budget, over time, over and over again“. Merrow (2011) na průmyslových projektech uka‐
+zuje, že o překročení rozpočtu rozhoduje hlavně kvalita přípravy před investičním rozhodnutím.
+Pro tuto zprávu z toho plyne, že investici modelujeme jako rozdělení zešikmené doprava, odvo‐
+zené ze srovnatelných závodů klienta (kapitola 4), nikoli jako jedno číslo s pásmem ±25 %.
+
+
+2.2 Simulace je tak dobrá jako její vstupy
+Je-li nejistých vstupů mnoho, dosazením nejpravděpodobnějších hodnot se ztratí kombinace
+nepříznivých hodnot. Simulace Monte Carlo proto losuje všechny vstupy najednou
+a zaznamenává rozdělení výsledku (Vose 2008). Vose doporučuje popsat vstup, k němuž je
+k dispozici jen odhad experta, třemi čísly a rozdělením PERT a zachytit korelace mezi vstupy. Pro
+tuto zprávu z toho plyne, že každá pravděpodobnost platí jen pro rozpětí a korelace, z nichž vzni‐
+kla, a proto u ní uvádíme, na kterém předpokladu stojí.
+
+
+2.3 Hodnota informace závisí na rozhodovacím kritériu
+Hodnota informace je vždy hodnotou pro určité kritérium volby. Teorie rozhodování umí
+vyčíslit, jakou hodnotu má zjištění nejistého vstupu dříve, než padne rozhodnutí; Strong a Oakley
+(2013) popsali, jak tuto hodnotu spočítat přímo z již provedené simulace. Pro tuto zprávu z toho
+plyne, že hodnotu pro průměrnou úsporu a hodnotu pro pravidlo finanční ředitelky uvádíme od‐
+děleně (kapitola 8) a ani jednu nepovažujeme za rozpočet na zjištění.
+
+
+2.4 Závislost na jednom dodavateli má cenu
+Podle ekonomie transakčních nákladů rozhoduje o vlastní výrobě specifičnost aktiv (William‐
+son 1985): je-li odběratel vázán na jednoho dodavatele a přechod k jinému je drahý nebo pomalý,
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                              strana 4 z 44
+                  AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+získává dodavatel při každém vyjednávání navrch. Dopis od Hanshinu tomu odpovídá: prod‐
+loužení jen s přirážkou 12–22 % a s minimálním odběrem 30 000 t ročně a závazná nabídka až
+v polovině roku 2029, kdy už ChemVitro nestihne postavit závod z dat klienta 3. Vlastní závod je ovšem
+rovněž specifickou investicí: vyrábí jen pro dva závody ChemVitro. Pro tuto zprávu z toho plyne,
+že cena nákupu a podmínky prodloužení patří k největším pákám výsledku (kapitola 7).
+
+
+2.5 Pravidlo hledá volbu odolnou v mnoha budoucnostech
+Pravidlo finanční ředitelky je navrženo v duchu robustního rozhodování. Lempert, Popper
+a Bankes (2003) tak nazývají přístup, který nehledá volbu vycházející nejlépe v jedné předpovědi,
+ale volbu, která obstojí v mnoha budoucnostech a nemá nepřijatelný chvost rozdělení. Pro tuto
+zprávu z toho plyne, že lokalita s nejvyšší úsporou pravidlo nesplní, pokud její nepříznivé budou‐
+cnosti překročí jeho prahy.
+
+ZDROJE A STUPNĚ
+ 1. z dat klienta: Odhad investičních nákladů, s. 1
+ 2. z dat klienta: Odhad investičních nákladů, s. 3
+ 3. z dat klienta: Dopis dodavatele, s. 1; úsudek
+
+
+
+
+R2-P04
+
+
+3 Metodika
+3.1 O AIA
+AIA (Agentic AI Analytics) je výzkumný tým a analytická platforma, na které jeho analytici navr‐
+hují a provádějí studie pro klienty: od zadání a kontroly dat přes rešerši a výpočty až po zprávu.
+Umělá inteligence v ní pomáhá vybírat postupy a psát text. Čísla však nepočítá jazykový model:
+každé číslo v této zprávě spočítal ověřitelný program z uvedených vstupů, stejné vstupy dávají
+stejný výsledek a každé číslo nese svůj zdroj a stupeň jistoty. Za obsah zprávy odpovídá její autor.
+
+
+3.2 Sociomapa
+Sociomapa je metoda, kterou v letech 1993–1994 vyvinul R. Bahbouh (Bahbouh 2004). Zobrazuje
+hodnocené objekty, zde lokality, jako body v krajině. Dva objekty leží blízko sebe, když je pozoro‐
+vatelé hodnotí podobně, tedy když ten, kdo jeden z nich hodnotí nad svým průměrem, hodnotí
+nad průměrem i druhý; výška terénu ukazuje průměrné hodnocení. Pozorovateli bývají lidé;
+v této studii jsou jimi budoucnosti modelu. Mapy počítá a kreslí program AIA podle metodiky
+aia-sociomap-5. Ta u každé dvojice objektů testuje, zda je vztah silnější, než by odpovídalo ná‐
+hodě, s korekcí na falešné poplachy (Benjamini a Hochberg 1995), a ověřuje, zda dvě poloviny
+pozorovatelů dávají tutéž mapu. Pokud ne, je mapa slabě určená a lze z ní číst jen výšky, nikoli
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                              strana 5 z 44
+            AIA · ChemVitro · Model nákladů lokality                              Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+vzdálenosti ani skupiny. Metodiku pro mapy z hodnocení lidí schválil metodik AIA 21. 10. 2026;
+mapy, jejichž pozorovateli jsou vlastnosti nebo budoucnosti, jsou zatím odhadem, který na
+schválení teprve čeká.
+
+
+3.3 Všechny lokality se počítají ve stejných budoucnostech
+Studie počítá další nákup i vlastní závod na každé z osmi lokalit ve stejných budoucnostech.
+Modeluje náklady na zásobování VTX-40 v letech 2027–2044 a pravidlo uplatňuje přesně tak, jak
+bylo zapsáno. Není předpovědí ani právním stanoviskem k povolování. Časovou osu, nákup, pro‐
+voz a dodatečné propočty podrobně popisuje příloha B.
+
+Náklady na zásobování a úspora. Náklady na zásobování se skládají z investice, z provozu závodu
+od zahájení výroby, z nákupu VTX-40 do zahájení výroby a z nákupu poptávky nad 40 000 t.
+Odečítá se od nich zůstatková hodnota ve výši 30 % investice v roce 2044 z dat klienta 1. Úspora loka‐
+lity je rozdíl mezi náklady dalšího nákupu a náklady vlastní výroby na dané lokalitě, vyjádřený
+v NPV; kladná úspora znamená, že vlastní výroba je levnější.
+
+Čistá současná hodnota. NPV převádí platby let 2027–2044 na dnešní hodnotu tak, že každou
+z nich diskontuje sazbou za každý rok, který do ní zbývá. Finanční ředitelka stanovila sazbu 8 %,
+zpráva uvádí i 6 a 10 %. Vnitřní výnosové procento (IRR) je diskontní sazba, při které by úspora
+klesla na nulu; návratnost je rok, v němž kumulované úspory poprvé převýší investici.
+
+Budoucnosti (Monte Carlo) a základní případ. Každý nejistý vstup má dolní, nejpravděpodobnější
+a horní hodnotu, ze kterých rozdělení PERT vytvoří spojitou křivku (Vose 2008). Program 20
+000krát vylosuje všechny vstupy najednou, s korelacemi mezi vstupy, které se pohybují společně,
+a pro každou budoucnost spočítá nákup i všech osm lokalit. Stejné semínko losování (20270201)
+dává stejný výsledek. Základní případ je jediný výpočet, v němž mají všechny vstupy nejpravdě‐
+podobnější hodnotu; slouží ke srovnání lokalit a k analýze citlivosti.
+
+Medián, interval a pravděpodobnost. Medián dělí budoucnosti na dvě poloviny; 90% interval sahá
+od 5. do 95. percentilu. Percentil udává hodnotu, pod kterou leží daný podíl budoucností. Pravdě‐
+podobnost je podíl budoucností modelu, ve kterých daný jev nastane. Je to relativní četnost za
+uvedených předpokladů, nikoli pozorovaná četnost, a proto u každé pravděpodobnosti uvádíme,
+na kterém předpokladu stojí.
+
+Tornádový graf, bod zvratu a hranice rozhodnutí. Tornádový graf v základním případě posouvá
+vždy jeden vstup na dolní a na horní mez; šířka pruhu ukazuje, jak silně výsledek na daném
+vstupu závisí. Bod zvratu je hodnota vstupu, při které se dvě možnosti vyrovnají. Hranice roz‐
+hodnutí ukazuje, co pravidlo vybere, když se jeden předpoklad mění v celém svém rozpětí
+a budoucnosti se pro každou jeho hodnotu počítají znovu.
+
+
+
+
+            Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                 strana 6 z 44
+                   AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Hodnota informace. Měříme ji dvěma mírami, protože každá slouží jinému cíli. Hodnota pro pra‐
+vidlo udává, co by přineslo, kdybychom odpověď znali předem a pravidlo podle ní uplatnili
+znovu. Pravidlo se přitom uplatní zvlášť v budoucnostech s každou možnou odpovědí; hodnota je
+průměrná úspora toho, co pravidlo pak vybere, proti dnešnímu výsledku „nic“. Očekávaná hod‐
+nota dokonalé dílčí informace (EVPPI) udává, o kolik by vzrostla průměrná úspora, kdybychom
+hodnotu jednoho vstupu znali předem a podle ní volili mezi nákupem a osmi lokalitami. Počí‐
+táme ji postupem Stronga a Oakleyho (2013).
+
+Mapa budoucností. Je to sociomapa (oddíl 3.2), v níž každá budoucnost „hodnotí“ každou lokalitu
+její úsporou proti dalšímu nákupu. Program nejprve každou budoucnost vycentruje na průměr
+osmi lokalit, takže mapa ukazuje, kterým lokalitám se ve stejných budoucnostech daří relativně
+lépe, nikoli jak se daří všem najednou. Před výpočtem jsme stanovili zkoušku stability mapy vůči
+předpokladům o korelaci cen (příloha B).
+
+
+3.4 Data klienta jsou použitelná, cena Hanshinu však nesouhlasí
+Data klienta jsou použitelná; nejdůležitější nesoulad se týká ceny Hanshinu. Model vychází ze
+všech datových souborů klienta kromě Průzkumu pracovníků 2026, který patří do třetí zprávy
+této studie, a ze všech sedmi dokumentů (příloha A) z dat klienta 2. Kontrola jednotek, měn, cenových
+let, duplicit, chybějících a odlehlých hodnot přinesla 42 nálezů. Ke každému je zaznamenáno ro‐
+zhodnutí: použito, opraveno s uvedením důvodu, vynecháno, nebo převzato jako předpoklad
+s rozpětím. Nálezy, které mění výsledek, uvádí tabulka P1 v příloze B. U ceny Hanshinu uvádí Zá‐
+pis zadání „asi 1 470 EUR/t“, soubor nákupů však průměr 1 296 EUR/t za rok 2025, 1 694 EUR/t za
+rok 2026 a 1 868 EUR/t za září 2026 z dat klienta 3. Model proto pracuje s výchozí cenou roku 2026 jako
+s rozpětím 1 470–1 694–1 868 EUR/t úsudek. Kde podklady údaj neobsahují, je vstup úsudkem
+s rozpětím; takových vstupů je 22.
+
+
+3.5 Každé číslo nese stupeň a zdroj
+Každé číslo nese v hranatých závorkách jeden ze sedmi stupňů. Jeho zdroj je uveden
+v číslovaných poznámkách na konci kapitoly.
+
+   z dat klienta   je číslo přečtené ze souboru nebo dokumentu ChemVitro.
+
+   výpočet   je číslo, které program spočítal z uvedených vstupů jediným výpočtem; jde zde hlavně
+   o základní případ, body zvratu, finance a provoz.
+   odhad   je rozpětí vstupu odvozené z dat klienta, například ze srovnatelných závodů. Výsledek
+   metody, kterou metodik AIA dosud neschválil, nese celé označení odhad 4. To platí pro každé čí‐
+   slo z 20 000 budoucností: pro mediány, intervaly, pravděpodobnosti, hodnotu informace, hra‐
+   nici rozhodnutí, odklady i mapu budoucností.
+
+
+
+
+                   Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                              strana 7 z 44
+                     AIA · ChemVitro · Model nákladů lokality                             Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+     úsudek   označuje předpoklad autora tam, kde klient odpověď nemá (Zápis zadání s klientem §8,
+     v překladu: „nevíme; vezměte to jako předpoklad s rozpětím a řekněte to“), a také navržené
+     termíny jednotlivých kroků.
+     veřejný zdroj   a právní předpis jsou údaje z rešerše veřejných zdrojů, které jsou do ověření u pramene
+     prozatímní.
+     průzkum      označuje odpovědi z průzkumu pracovníků; tato zpráva ho nepoužívá.
+
+ZDROJE A STUPNĚ
+ 1. z dat klienta: Zápis zadání s klientem §6, §8
+ 2. z dat klienta: Zápis zadání s klientem §9
+ 3. z dat klienta: Zápis zadání s klientem §1; Nákupy VTX-40 2023–2026
+ 4. odhad (metoda čeká na schválení metodikem)
+
+
+
+
+R2-P05
+
+
+4 Dva klíčové předpoklady nemají oporu
+v dokumentech
+Dva předpoklady, na kterých verdikt závisí, nemají oporu v dokumentech: šance, že úřad uloží
+kompenzační opatření tam, kde stanice limity nepřekračuje, a podmínky nákupu po roce 2035.
+Ostatní předpoklady, na nichž výsledek stojí, vycházejí z dat klienta. Model má 54 vstupů a každý
+z nich má dolní, nejpravděpodobnější a horní hodnotu, zdroj, stupeň a odpovědnou osobu (ta‐
+bulka T9 v příloze). Kde to data klienta dovolují, počítáme rozpětí z nich, jinak ho stanoví úsu‐
+dek. Oba předpoklady bez opory popisujeme jako první dva z pěti níže; zbylé tři vycházejí z dat
+klienta, nebo verdikt nemění.
+
+Zaprvé, šance na kompenzační opatření je nejslabším místem modelu. Šanci 0,2, se kterou
+model počítá na českých a polských lokalitách se stanicí pod limity, nepodkládá žádný dokument
+o konkrétních lokalitách, a verdikt přitom stojí právě na ní (kapitola 5). Memorandum konzul‐
+tanta uvádí, že v oblastech s překročenými imisními limity může úřad podmínit povolení
+snížením emisí jinde v téže oblasti na náklady investora. Povolování se tím podle memoranda
+v Česku prodlouží o 9–15 měsíců a v Polsku o 12–18 měsíců z dat klienta 1. U srovnatelných závodů
+byla kompenzace uložena u 5 z 9 českých a u 4 z 9 polských, v Německu u žádného ze 14
+z dat klienta 2   . Model proto přisuzuje kompenzaci pravděpodobnost 0,8 tam, kde stanice překračuje
+limity uvedené v memorandu, 0,2 na ostatních českých a polských lokalitách a nulovou
+v Německu úsudek. U Vrbice stanice překračuje limit benzo[a]pyrenu, u Borů limity jemných pra‐
+chových částic PM2,5 a benzo[a]pyrenu ve všech letech 2023–2025. Stanice u Kamence pře‐
+kročila cílovou hodnotu benzo[a]pyrenu jen v roce 2021 (1,30 ng/m³) a v letech 2022–2025 se po‐
+hybovala pod ní, od 0,97 do 0,88 ng/m³. Model ji proto řadí mezi stanice pod limity z dat klienta 3.
+
+
+
+
+                     Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                strana 8 z 44
+                    AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Zadruhé, po roce 2035 předpokládá model podmínky prvního prodloužení. Dopis dodavatele
+popisuje jen prodloužení o pět let, tedy do poloviny roku 2035; co bude potom, podklady klienta
+neuvádějí z dat klienta 4. Model proto v základním nastavení předpokládá, že cena podle vzorce
+s přirážkou 12–22 % platí i po roce 2035 úsudek. Jde o druhou polovinu sledovaného období, a tento
+předpoklad je proto druhým, na kterém verdikt závisí (kapitola 7).
+
+Zatřetí, překročení rozpočtu a zpoždění stavby přebíráme ze 36 srovnatelných závodů, nikoli
+z pásma ±25 % uvedeného odhadcem. Medián překročení činí 17 %, 90. percentil 30,2 % (31,2 %
+při lineární interpolaci) a maximum 61 %; zpoždění má medián 3 měsíce a maximum 15 měsíců
+z dat klienta 2   . Skutečnost tak může odhad převýšit více, než připouští pásmo odhadce. Překročení
+a zpoždění spolu úzce souvisí (Spearmanova korelace 0,89). Model proto v každé budoucnosti vy‐
+losuje jeden skutečný srovnatelný závod a převezme jeho překročení i zpoždění současně, takže
+se v modelu prodražují a zpožďují tytéž stavby. Již základní případ počítá s odhadem investice na‐
+výšeným o 17 %, tedy o medián překročení (tabulka T5 v příloze).
+
+Začtvrté, položky, které odhad investice nezahrnuje, oceňujeme podle dokumentů lokality.
+Odhad výslovně nezahrnuje pozemek, infrastrukturu mimo areál (vlečky, přípojky, úpravy
+komunikací a mostů), předčištění odpadních vod nad rámec neutralizace, kompenzační opa‐
+tření, poplatky chemického parku ani pobídky z dat klienta 5. Doplnili jsme je podle toho, co o každé
+lokalitě uvádějí její dokumenty (tabulka T5 v příloze):
+
+     pozemek o rozloze 18 ha na všech lokalitách;
+     zesílení mostu u Eschfeldu za 3,2–5,0 mil. EUR, protože most má nosnost jen 16 t a cisterny
+     váží 40 t z dat klienta 6;
+     vlečku v Odrzyci o délce 3,4 km za 1,9–2,8 mil. EUR/km z dat klienta 7;
+
+     předčištění odpadních vod v Lipové a v Lindenau za 6,7–14,1 mil. EUR, protože městské čis‐
+     tírny tam přijímají jen vody s nízkým obsahem síranů a s nízkou chemickou spotřebou kys‐
+     líku (CHSK) z dat klienta 8;
+     kompenzační opatření v Česku a Polsku za 3–15 mil. EUR tam, kde je úřad uloží;
+     poplatek chemického parku ve Wendelstedtu ve výši 1,1 mil. EUR ročně z dat klienta 9.
+
+Zapáté, korelace cen energie jsou úsudek: ceny elektřiny v různých zemích model losuje
+s korelací 0,8, elektřinu a plyn s korelací 0,6, plyn a povolenku s korelací 0,4 úsudek 10. Cena Hans‐
+hinu a ceny surovin vlastního závodu se pohybují podle téhož surovinového indexu, protože sm‐
+luvní vzorec dodavatele je na takový index vázán z dat klienta 4. Když suroviny zdraží, zdraží proto ná‐
+kup i vlastní výroba a rozdíl mezi nimi se mění méně než obě ceny úsudek. Jak málo na korelaci zá‐
+
+
+
+
+                    Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                              strana 9 z 44
+                  AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+leží pro verdikt, ukazuje propočet v kapitole 7; pro mapu budoucností má větší význam (kapitola
+11).
+
+Z dat klienta vychází také výchozí cena Hanshinu a růst spotřeby. Přirážka spotové ceny stojí na
+jediném pozorování z února 2026 a její rozpětí je úsudek. Jak jsme tyto vstupy odvodili, popisuje
+tabulka P1 v příloze B. Přirážka při prodloužení činí 12–22 %, nejpravděpodobněji 17 %, jak od‐
+haduje útvar nákupu z dat klienta 11.
+
+ZDROJE A STUPNĚ
+ 1. z dat klienta: Memorandum k povolování emisí, s. 2–3
+ 2. z dat klienta: Srovnatelné závody
+ 3. z dat klienta: Měření kvality ovzduší
+ 4. z dat klienta: Dopis dodavatele, s. 1
+ 5. z dat klienta: Odhad investičních nákladů, s. 3
+ 6. z dat klienta: Vyjádření k dopravě, s. 6
+ 7. z dat klienta: Vyjádření k dopravě, s. 7; Srovnatelné závody
+ 8. z dat klienta: Vyjádření provozovatelů čistíren, s. 2 a 5
+ 9. z dat klienta: Vyjádření provozovatelů čistíren, s. 4
+10. úsudek: do ověření historickými řadami
+11. z dat klienta: Dopis dodavatele, s. 1; Zápis zadání s klientem §8
+
+
+
+
+R2-P06
+
+
+5 Žádná lokalita zatím nesplňuje pravidlo
+Pravidlo dnes nedoporučuje žádnou lokalitu. Každá z osmi lokalit nesplní alespoň jednu ze čtyř
+podmínek: české a polské lokality podmínku termínu, německé hlavně podmínku rizika ztráty.
+Rozdíl mezi nimi není v tom, zda vlastní výroba šetří, protože šetří všude, ale v tom, s jakou jisto‐
+tou a jak včas.
+
+
+5.1 Všechny lokality šetří, nejistota převyšuje rozdíly
+Všech osm lokalit v mediánu šetří, ale každá může v nepříznivých budoucnostech prodělat.
+Další nákup by v mediánu stál 897 mil. EUR a každá lokalita by v mediánu vyšla levněji odhad 1.
+V grafu je podstatné, že čáry všech lokalit sahají pod nulu.
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                             strana 10 z 44
+             AIA · ChemVitro · Model nákladů lokality                                       Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Všech osm lokalit v mediánu šetří, ale každá může v nepříznivých budoucnostech prodělat. Medián (bod) a 90% interval
+(čára) úspory proti dalšímu nákupu z 20 000 budoucností modelu, NPV 2027–2044 při 8 % před zdaněním; vpravo pod‐
+mínky pravidla, které lokalita nesplnila.
+
+
+České a polské lokality šetří výrazně více než německé, nejistota u každé lokality je však ještě vě‐
+tší. Mediány úspory činí v Česku a Polsku 110,8 až 134,7 mil. EUR, v Německu 61,2 až
+86,5 mil. EUR odhad 1. Proti tomu 90% interval Odrzyce sahá od ztráty 23,8 mil. EUR po úsporu
+359,1 mil. EUR, u Eschfeldu od ztráty 94,4 po úsporu 285,7 mil. EUR odhad 1. Pořadí podle mediánu
+proto samo nestačí; pravidlo vedle něj hlídá i to, jak často lokalita prodělá.
+
+Rozdělení úspor je zešikmené doprava, tedy s dlouhým chvostem velmi vysokých úspor, takže
+průměrná úspora je vyšší než medián, u Odrzyce 147,6 proti 134,7 mil. EUR odhad 1. Pravidlo pra‐
+cuje s mediánem, a dlouhý pravý chvost rozdělení tak záměrně nezapočítává: dobré budoucnosti
+nemají vyvažovat špatné.
+
+
+5.2 Pět lokalit nesplní pravidlo jen kvůli termínu
+Všech pět českých a polských lokalit nesplní jen termín: Lipová, Kamenec a Odrzyca těsně,
+Vrbice a Bory výrazně. Tabulka uvádí podmínky, které lokalita nesplnila, a jejich hodnotu proti
+prahu; všechny podmínky uvádějí tabulky T1 (8 %), T2 (6 %) a T3 (10 %) v příloze.
+
+            Medián úspory,
+Lokalita    mil. EUR                Nesplněná podmínka (hodnota proti prahu)
+
+Odrzyca                      134,7 výroba k 1. 7. 2030: 0,75 proti ≥ 0,80
+Kamenec                      132,4 výroba k 1. 7. 2030: 0,76 proti ≥ 0,80
+
+
+
+
+             Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                          strana 11 z 44
+            AIA · ChemVitro · Model nákladů lokality                                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+           Medián úspory,
+Lokalita   mil. EUR                Nesplněná podmínka (hodnota proti prahu)
+
+Lipová                      126,0 výroba k 1. 7. 2030: 0,76 proti ≥ 0,80
+Bory                        123,2 výroba k 1. 7. 2030: 0,19 proti ≥ 0,80
+Vrbice                      110,8 výroba k 1. 7. 2030: 0,21 proti ≥ 0,80
+Lindenau                     86,5 ztráta > 20 mil. EUR: 0,14 proti ≤ 0,10; výroba k 1. 7. 2030: 0,77
+Wendel‐                      82,3 ztráta > 20 mil. EUR: 0,15 proti ≤ 0,10
+stedt
+Eschfeld                     61,2 porazí nákup: 0,73 proti ≥ 0,75; ztráta: 0,21; výroba včas: 0,67; investice: 175,5
+                                  proti ≤ 175
+
+
+Mediány a pravděpodobnosti odhad 1; investice v základním případě výpočet.
+
+Ostatní tři podmínky splní všech pět. Nákup porazí s pravděpodobností 0,88 až 0,92 a ztráta vyšší
+než 20 mil. EUR je u nich vzácná, s pravděpodobností 0,05 až 0,08 odhad 1. Jejich investice
+v základním případě zůstane pod stropem, na 143,9 až 160,6 mil. EUR výpočet 2. Vrbice a Bory nes‐
+plní termín výrazně, protože jejich stanice překračují limity uvedené v memorandu (kapitoly 4
+a 6). Německé lokality nesplní pravidlo hlavně kvůli riziku ztráty: jsou dražší, a v nepříznivých
+budoucnostech proto častěji prohrávají s nákupem.
+
+Při sazbě 6 % i 10 % je verdikt stejný, protože pravděpodobnost včasného zahájení výroby na dis‐
+kontní sazbě nezávisí. Při 6 % se úspory zvýší a Wendelstedt podmínku rizika ztráty téměř splní
+(0,105 proti 0,10); lokalita Lindenau pak nesplní jen podmínku termínu (0,77). Při 10 % se úspory
+sníží. U Vrbice pak k termínu přibude nesplněná podmínka rizika ztráty (0,12). U Wendelstedtu
+a Lindenau přibude i podmínka, že lokalita porazí nákup (0,71 a 0,73) odhad 1. Podrobnosti uvádějí
+tabulky T2 a T3 v příloze.
+
+Výklad investiční podmínky (oddíl 1.3) verdikt také nemění. Pravděpodobnost, že investice ne‐
+překročí 175 mil. EUR, činí u Odrzyce a Borů 0,92, u Kamence 0,90, u Lipové 0,82, u Vrbice 0,79
+a u německých lokalit 0,50 až 0,57 odhad 1. Strop tedy ohrožuje hlavně německé lokality.
+
+Verdikt nezlepší ani menší šance na kompenzaci u Vrbice a Borů, jejichž stanice limity pře‐
+kračují. Kdyby činila 0,5 místo 0,8, stihly by Vrbice a Bory termín s pravděpodobností 0,49 a 0,47,
+tedy stále hluboko pod prahem odhad 1.
+
+
+5.3 Verdikt je hranice, nikoli jedno číslo
+Verdikt „nic“ stojí na jediném úsudku: platí jen při šanci na kompenzaci 16 % a vyšší. Splnění
+termínu u Lipové, Kamence a Odrzyce závisí na šanci, že úřad uloží kompenzační opatření tam,
+kde stanice limity podle memoranda nepřekračuje; model počítá s 20 % (kapitola 4). Tabulka
+proto ukazuje, co pravidlo vybere, když se tato šance mění a vše ostatní zůstává stejné.
+
+
+
+
+            Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                             strana 12 z 44
+                  AIA · ChemVitro · Model nákladů lokality                                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Šance na                  Pravidlo        Výroba včas: Lipová / Kamenec /    Medián úspory: Lipová / Kamenec / Odrzyca,
+kompenzaci                vybere          Odrzyca                            mil. EUR
+
+                   0 % Odrzyca            0,942 / 0,942 / 0,942              130,7 / 137,1 / 141,3
+                   5 % Odrzyca            0,896 / 0,894 / 0,893              129,9 / 135,9 / 139,6
+
+                 10 % Odrzyca             0,852 / 0,851 / 0,844              128,7 / 134,9 / 137,8
+                 14 % Odrzyca             0,817 / 0,813 / 0,808              127,6 / 133,7 / 136,6
+                 15 % Kamenec             0,807 / 0,804 / 0,797              127,3 / 133,6 / 136,3
+                 16 % nic                 0,797 / 0,795 / 0,787              127,1 / 133,3 / 136,0
+20 % (model)              nic             0,760 / 0,759 / 0,748              126,0 / 132,4 / 134,7
+
+                 30 % nic                 0,669 / 0,668 / 0,653              123,5 / 129,5 / 131,3
+
+Pravděpodobnost výroby včas a mediány z 20 000 budoucností odhad 1.
+
+Do 14 % vybere pravidlo Odrzycu; při 15 % klesne Odrzyca těsně pod 0,80 (0,797) a pravidlo vy‐
+bere Kamenec; od 16 % nesplní pravidlo žádná lokalita odhad 1. Medián úspory se přitom mění jen
+málo, u Odrzyce ze 141,3 mil. EUR při nulové šanci na 134,7 mil. EUR při 20 %. Šance na kom‐
+penzaci tedy rozhoduje o tom, zda lze vůbec vybírat, nikoli o tom, kolik se ušetří. Žádný doku‐
+ment klienta neuvádí, na které straně hranice se ChemVitro nachází; zjistit to lze jen u úřadů (ka‐
+pitola 13).
+
+ZDROJE A STUPNĚ
+ 1. odhad (metoda čeká na schválení metodikem)
+ 2. výpočet: tabulka T5 v příloze
+
+
+
+
+R2-P07
+
+
+6 Nejlevnější lokality nesplňují požadavek na jistotu
+termínu
+Lipová, Kamenec a Odrzyca mají v typické budoucnosti půlroční rezervu, nikoli však jistotu,
+kterou pravidlo požaduje. Medián startu výroby u nich připadá na leden 2030, tedy půl roku
+před koncem smlouvy s Hanshinem. U Lipové a Kamence však 90. percentil startu, tedy datum,
+které překročí jen desetina budoucností, připadá na konec roku 2030, u Odrzyce až na březen
+2031 odhad 1. Příčinou jsou kompenzační opatření, se kterými model počítá ve 20 % budoucností
+a která prodlouží povolování o 9 až 18 měsíců z dat klienta 2.
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                             strana 13 z 44
+             AIA · ChemVitro · Model nákladů lokality                                         Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Lipová, Kamenec a Odrzyca v mediánu zahájí výrobu v lednu 2030, ale chvost jejich rozdělení sahá daleko za 1. 7. 2030;
+nad prahem 0,80 je jen Wendelstedt. Medián a 10. až 90. percentil data zahájení výroby osmi lokalit ve srovnání
+s 1. 7. 2030, vpravo pravděpodobnost včasného zahájení výroby; spočteno z harmonogramu dodavatele stavby, ze zpož‐
+dění 36 srovnatelných závodů, z memoranda k povolování a z dokumentů lokalit.
+
+
+V grafu je podstatná délka čar vpravo od 1. 7. 2030, nikoli poloha bodů. Odrzyca má delší chvost
+než české lokality, protože v Polsku se povolování prodlužuje více.
+
+Vrbice a Bory mají medián startu až v listopadu 2030, respektive v únoru 2031, protože tam mo‐
+del počítá s pravděpodobností kompenzace 0,8 odhad 1. Jejich problém nespočívá v nejhorších bu‐
+doucnostech, ale v typických: závod nestihne termín ani v nejpravděpodobnějším případě.
+
+Wendelstedt je nejrychlejší, s mediánem startu na konci roku 2029 a s pravděpodobností 0,94,
+že výroba začne včas odhad 1; v Německu model s kompenzačními opatřeními nepočítá (kapitola
+4). Dokumenty navíc uvádějí, že v chemických parcích s povolovací službou bývá povolování kra‐
+tší z dat klienta 3. Model tuto výhodu nezapočítává a všem lokalitám přisuzuje stejných 8–11 měsíců;
+harmonogram Wendelstedtu je tedy v modelu spíše pesimistický úsudek.
+
+Lindenau a Eschfeld mají medián startu na jaře 2030, těsně před termínem. Lokalitu Lindenau
+zdržuje povolení k přímému vypouštění předčištěných vod, Eschfeld změna územního plánu
+a zesílení mostu, bez kterého cisterny nesmějí k areálu z dat klienta 4. Termín proto stihnou
+s pravděpodobností 0,77 a 0,67 odhad 1.
+
+
+6.1 Každý měsíc odkladu snižuje jistotu termínu
+Odpověď úřadů pomůže jen tehdy, přijde-li zhruba do dvou měsíců; po čtyřech měsících od‐
+kladu by termín nezachránila ani příznivá odpověď. Časová osa každé lokality v modelu začíná
+
+
+
+
+             Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                            strana 14 z 44
+                AIA · ChemVitro · Model nákladů lokality                                                            Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+rozhodnutím a podáním žádostí o povolení 1. 2. 2027 z dat klienta 5. Každý měsíc čekání posouvá start
+výroby, termín 1. 7. 2030 však zůstává. První tabulka ukazuje pravděpodobnost včasného zahá‐
+jení výroby při šanci na kompenzaci 20 %, se kterou model počítá.
+
+Odklad rozhodnutí       Vrbice      Lipová    Kamenec      Wendelstedt      Lindenau     Eschfeld     Odrzyca       Bory   Pravidlo vybere
+
+0 měsíců                    0,212     0,760        0,759            0,942        0,772        0,667         0,748    0,190 nic
+
+2 měsíce                    0,182     0,726        0,726            0,908        0,602        0,480         0,720    0,183 nic
+
+4 měsíce                    0,147     0,583        0,586            0,731        0,403        0,298         0,580    0,146 nic
+
+6 měsíců                    0,115     0,453        0,456            0,568        0,210        0,141         0,452    0,114 nic
+
+
+Pravděpodobnost zahájení výroby k 1. 7. 2030 odhad 1.
+
+Při této šanci nevybere pravidlo nic v žádném řádku tabulky; čekání jen dále snižuje jistotu ter‐
+mínu všech lokalit. Druhá tabulka předpokládá, že úřady potvrdí, že kompenzační opatření neu‐
+loží (šance 0).
+
+Odklad rozhodnutí                                                        0 měsíců         2 měsíce           4 měsíce            6 měsíců
+
+Výroba včas: Lipová, Kamenec, Odrzyca                                            0,942              0,908              0,731            0,568
+Pravidlo vybere                                                          Odrzyca          Odrzyca            nic                 nic
+
+
+Pravděpodobnost zahájení výroby k 1. 7. 2030 bez kompenzace odhad 1.
+
+Bude-li potvrzeno, že kompenzace uložena nebude, vybere pravidlo Odrzycu i po dvou měsících
+čekání, po čtyřech a šesti měsících už žádnou lokalitu odhad 1. Dotaz na úřady se tedy vyplatí jen te‐
+hdy, přijde-li odpověď zhruba do dvou měsíců od 1. 2. 2027, nebo poběží-li zjišťování souběžně
+s rozhodnutím úsudek. Jak toho dosáhnout, uvádí kapitola 13.
+
+
+6.2 Zpoždění náboru se sčítá s odkladem
+Zpoždění náboru o jeden až tři měsíce dnešní verdikt nemění, sčítá se však s odkladem roz‐
+hodnutí. Jde o zátěžovou zkoušku, nikoli o předpověď: soubory klienta neuvádějí, jak dlouho
+potrvá najmout 95 lidí úsudek. Obsazení místa operátora trvá podle souboru nejdéle v Eschfeldu
+(118 dní), v ostatních regionech 49 až 71 dní. V okolí Kamence probíhá do roku 2028 velký nábor
+380 lidí z dat klienta 6.
+
+Posuneme-li start každé lokality o měsíc, klesne pravděpodobnost včasného zahájení výroby
+u Lipové na 0,745, u Kamence na 0,744 a u Odrzyce na 0,737. Posun o dva měsíce dává tatáž čísla
+jako dvouměsíční odklad, posun o tři měsíce 0,672, 0,671 a 0,666 odhad 1. Lokality blízko hranice
+ztrácejí zpočátku přibližně 0,015 za měsíc, po dvou měsících více. Wendelstedt zůstane nad 0,80
+i při třech měsících (0,840), nadále však nesplňuje podmínku rizika ztráty. Zpoždění náboru po‐
+souvá start stejně jako odklad rozhodnutí, a oba vlivy se proto sčítají. Dva měsíce odkladu a dva
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                strana 15 z 44
+                  AIA · ChemVitro · Model nákladů lokality                                                       Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+měsíce zpoždění náboru by odpovídaly čtyřměsíčnímu odkladu, po kterém pravidlo nevybere
+nic ani při příznivé odpovědi úřadu úsudek.
+
+ZDROJE A STUPNĚ
+ 1. odhad (metoda čeká na schválení metodikem)
+ 2. z dat klienta: Memorandum k povolování emisí, s. 2–3; úsudek
+ 3. z dat klienta: Odhad investičních nákladů, s. 2; Memorandum k povolování emisí, s. 3
+ 4. z dat klienta: Vyjádření provozovatelů čistíren, s. 5; Souhrn parametrů lokalit; Vyjádření k dopravě, s. 6
+ 5. z dat klienta: Zápis zadání s klientem §5
+ 6. z dat klienta: Trh práce v regionech
+
+
+
+
+R2-P08
+
+
+7 Úspora stojí na dnešní ceně od Hanshinu
+Výchozí cena Hanshinu má větší vliv než kterýkoli jiný vstup. Určuje totiž cenu nákupu po celé
+období 2027–2044. Do konce smlouvy se od ní cena podle vzorce může odchýlit nejvýše o 10 %
+ročně a přirážka za prodloužení se počítá z ceny roku 2029. Graf ukazuje vedoucí lokalitu Odr‐
+zyca; u ostatních lokalit vypadá podobně.
+
+
+
+
+Úspora Odrzyce závisí hlavně na ceně Hanshinu v roce 2026, na přirážce při prodloužení a na překročení rozpočtu.
+Úspora v základním případě (svislá čára, 170,7 mil. EUR) při posunu jednoho vstupu na dolní mez (modré pruhy) a na
+horní mez (oranžové), přičemž ostatní vstupy zůstávají na nejpravděpodobnější hodnotě; překročení rozpočtu a zpoždění
+v rozpětí 10. až 90. percentilu 36 srovnatelných závodů.
+
+
+Cena Hanshinu posouvá úsporu více než dvakrát silněji než druhý nejvlivnější vstup. U Odrzyce
+ji posouvá z 84,8 mil. EUR při 1 470 EUR/t na 237,5 mil. EUR při 1 868 EUR/t, tedy
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                         strana 16 z 44
+                   AIA · ChemVitro · Model nákladů lokality                                                                  Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+o 152,7 mil. EUR; u ostatních lokalit činí rozkmit 134,6 (Bory) až 152,7 mil. EUR výpočet. Druhým
+nejvlivnějším vstupem je přirážka při prodloužení v rozpětí 12–22 %, s rozkmitem u všech lokalit
+shodně 57,7 mil. EUR. Třetím je překročení rozpočtu v rozpětí srovnatelných závodů (−6 % až
+31 %), s rozkmitem od 34,2 mil. EUR v Borech po 44,5 mil. EUR ve Wendelstedtu. U německých
+lokalit je tento rozkmit větší, protože mají vyšší odhad investice výpočet 1.
+
+Tyto tři páky jsou na všech osmi lokalitách na prvních třech místech a dvě z nich jsou obchodní,
+nikoli technické. Ověřovat má tedy smysl hlavně cenu Hanshinu; přesnější odhad údržby nebo
+mezd by verdikt nezměnil. Další vstupy mají menší vliv a jejich pořadí se podle lokality liší:
+
+     dlouhodobý vývoj cen energie (prozatímní údaj) mění úsporu o 23,1 až 25,8 mil. EUR;
+     údržba a pojištění (úsudek) o 17,8 až 24,4 mil. EUR;
+     přirážka spotové ceny (úsudek) o 16,9 až 31,2 mil. EUR, nejvíce v Borech a ve Vrbici, které ter‐
+     mín pravděpodobně nestihnou;
+     skladba mezd (úsudek) o 10,1 až 23,5 mil. EUR, nejvíce v Německu výpočet.
+
+
+7.1 Body zvratu leží blízko ceny roku 2025
+To, zda zdražení z roku 2026 vydrží, rozhoduje o tom, zda se vlastní výroba vyplatí. Body
+zvratu ukazují, jak daleko má základní případ k překlopení výsledku.
+
+                                                                            Vr‐      Li‐     Kame‐     Wendel‐      Linde‐     Es‐        Odr‐
+                                                                            bice     pová    nec       stedt        nau        chfeld     zyca      Bory
+
+Cena Hanshinu v roce 2026, při které se vlastní výroba a nákup vyrovnají,   1 308    1 277     1 261        1 434      1 413      1 450     1 249 1 263
+EUR/t
+
+Přirážka při prodloužení, při které se vyrovnají, %                           −6,3   −10,7     −11,7         −0,3       −1,3        1,2     −12,6   −8,2
+
+Překročení rozpočtu, při kterém investice dosáhne 175 mil. EUR, %             28,2    30,2      35,0         19,3       20,1       16,7      38,9   43,6
+
+
+Základní případ výpočet.
+
+Při průměrné ceně roku 2025 by vlastní výroba vyšla levněji jen v základním případě, který
+nepočítá s riziky. Základní případ a budoucnosti tu dávají opačnou odpověď, protože každý
+z obou pohledů měří něco jiného. Základní případ je jediný výpočet, v němž má každý vstup nej‐
+pravděpodobnější hodnotu. Nepočítá s riziky, která nastanou jen v části budoucností:
+s kompenzačními opatřeními, se zpožděním, během něhož se platí spotová cena,
+a s překročením rozpočtu nad medián. Budoucnosti tato rizika zahrnují úsudek.
+
+V základním případě by vlastní výroba při 1 296 EUR/t stále porazila nákup na čtyřech lokalitách,
+jejichž bod zvratu leží pod touto cenou. Jsou to Lipová s bodem zvratu 1 277 EUR/t, Kamenec
+s 1 261, Odrzyca s 1 249 a Bory s 1 263 EUR/t. Ve Vrbici s bodem zvratu 1 308 EUR/t a na ně‐
+meckých lokalitách s body zvratu 1 413 až 1 450 EUR/t by prohrála výpočet 2. V mediánu 20 000 bu‐
+
+
+
+
+                   Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                        strana 17 z 44
+                   AIA · ChemVitro · Model nákladů lokality                                                              Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+doucností by však při téže ceně prohrála na všech osmi lokalitách, a to od −6,1 mil. EUR
+v Odrzyci po −78,1 mil. EUR v Eschfeldu odhad 3. Body zvratu Lipové, Kamence, Odrzyce a Borů to‐
+tiž leží jen málo pod cenou roku 2025, a rizika proto v mediánu rezervu převáží.
+
+Při ceně ze Zápisu zadání, přibližně 1 470 EUR/t, leží všechny body zvratu pod ní a vlastní výroba
+vychází v základním případě levněji než nákup výpočet. V budoucnostech by však mediány klesly
+na −16 až 57 mil. EUR a české a polské lokality by nesplnily ani podmínku rizika ztráty (0,17 až
+0,24); pravidlo by nesplnila žádná lokalita odhad 3.
+
+Řádek přirážky ukazuje rezervu českých a polských lokalit: porazily by nákup i tehdy, kdyby
+Hanshin prodloužil smlouvu bez přirážky, a dokonce i se slevou 6,3 až 12,6 % výpočet. To, zda ná‐
+kup porazí, tedy u nich v základním případě nezávisí na tom, co dodavatel udělá v roce 2030, ale
+na tom, zda vydrží dnešní cena. Na přirážce závisí jen to, o kolik ušetří. Německé lokality jsou na
+hraně: Wendelstedt a Lindenau se s nákupem vyrovnají již při přirážce −0,3 a −1,3 % a Eschfeld
+potřebuje přirážku alespoň 1,2 %.
+
+Řádek překročení rozpočtu ukazuje rezervu pod investičním stropem. Bory, Odrzyca a Kamenec
+by strop překročily až při překročení rozpočtu o 35,0 až 43,6 %, k jakému u srovnatelných závodů
+došlo jen výjimečně. Eschfeld by ho překročil již při 16,7 %, tedy pod mediánem srovnatelných
+závodů výpočet 4.
+
+
+7.2 Podmínky po roce 2035 jsou druhou pákou verdiktu
+Podmínky nákupu po roce 2035 mohou verdikt změnit. Dopis dodavatele se vztahuje jen na pr‐
+vních pět let prodloužení a model v základním nastavení předpokládá, že jeho podmínky platí
+i poté (kapitola 4). Tabulka ukazuje mediány úspor a volbu pravidla při třech variantách podmí‐
+nek od roku 2036.
+
+Přirážka od roku 2036                     Vrbice   Lipová    Kamenec    Wendelstedt    Lindenau    Eschfeld    Odrzyca     Bory   Pravidlo vybere
+
+0 % (zpět na cenu vzorce)                   58,2      73,2       79,1           29,2        33,7         8,7       81,7      70,7 nic
+
+jako při prvním prodloužení (základ)       110,8    126,0       132,4           82,3        86,5        61,2      134,7     123,2 nic
+
+                                   30 %    151,7    166,7       173,1          122,7       127,0       102,2      175,3     163,8 Wendelstedt
+
+
+Medián úspory v mil. EUR odhad 3.
+
+Při přirážce 30 % by pravidlo splnil Wendelstedt: nákup by porazil s pravděpodobností 0,87,
+ztráta vyšší než 20 mil. EUR by u něj nastala v 9 % budoucností a termín by stihl
+s pravděpodobností 0,94; české a polské lokality by nadále nesplňovaly podmínku termínu odhad 3.
+Při návratu k ceně podle vzorce bez přirážky by se úspora na každé lokalitě snížila zhruba
+o 53 mil. EUR a riziko ztráty by i u Lipové, Kamence a Odrzyce vzrostlo nad práh 0,10 (0,14, 0,12
+
+
+
+
+                   Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                 strana 18 z 44
+                  AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+a 0,12) odhad 3. Podmínky po roce 2035 jsou tedy vedle kompenzačních opatření druhou pákou ver‐
+diktu. Na rozdíl od nich je dnes nelze zjistit, protože dodavatel pošle závaznou nabídku až
+v polovině roku 2029 a i ta bude pokrývat jen pět let z dat klienta 5.
+
+
+7.3 Korelace cen verdikt nemění
+Předpoklady o korelaci cen verdikt nemění. Korelace jsou úsudkem (kapitola 4). Protože pra‐
+vidlo hlídá chvosty rozdělení, přepočítali jsme jeho výsledek při třech nastaveních: bez korelací,
+s korelacemi podle úsudku a se silnými korelacemi (příloha B). Ve verzi bez korelací se
+i překročení rozpočtu a zpoždění losují nezávisle. Ve všech třech nastaveních nesplní pravidlo
+žádná lokalita. Mediány se změní nejvýše o 1,4 mil. EUR (Lipová 124,6–126,3, Kamenec 131,3–
+132,7, Odrzyca 134,2–135,3, Wendelstedt 81,9–82,4) a pravděpodobnosti nejvýše o 0,01 odhad 3. Na
+korelaci závisí jen jemný tvar mapy budoucností (kapitola 11).
+
+ZDROJE A STUPNĚ
+ 1. výpočet; z dat klienta: Dopis dodavatele, s. 1; Srovnatelné závody
+ 2. výpočet; z dat klienta: Nákupy VTX-40 2023–2026
+ 3. odhad (metoda čeká na schválení metodikem)
+ 4. výpočet; z dat klienta: Srovnatelné závody
+ 5. z dat klienta: Dopis dodavatele, s. 1; úsudek
+
+
+
+
+R2-P09
+
+
+8 Stanovisko úřadů rozhoduje o tom, zda lze vybírat
+Odpověď úřadů má pro pravidlo mnohem větší hodnotu než pro průměrnou úsporu, protože
+rozhoduje, zda lze vybrat vůbec nějakou lokalitu. Hodnotu informace měří dvě míry s různým
+cílem (oddíl 3.3). Hodnota pro pravidlo udává, kolik by v průměru přineslo zjištění, zda úřad
+kompenzaci uloží, kdybychom ho získali před rozhodnutím a pravidlo pak uplatnili znovu.
+Očekávaná hodnota dokonalé dílčí informace (EVPPI) udává, o kolik by táž informace zvýšila
+průměrnou úsporu, kdyby se podle ní volilo mezi nákupem a lokalitami bez ohledu na prahy
+pravidla. Rozhoduje pravidlo, a proto uvádíme první míru na prvním místě.
+
+
+8.1 Pro pravidlo rozhoduje odpověď úřadů
+Odpověď úřadu k Odrzyci má pro pravidlo hodnotu 122,5 mil. EUR odhad 1. Jde o průměr přes
+obě možné odpovědi. Bez této informace pravidlo nevybere nic, takže ChemVitro zůstane
+u dalšího nákupu s úsporou 0. S informací se pravidlo uplatní zvlášť v budoucnostech s každou
+z odpovědí: při příznivé, tedy že kompenzace uložena nebude, vybere Odrzycu, při nepříznivé
+nic. Hodnota je vysoká, protože odpověď zhruba ve čtyřech pětinách budoucností změní výsle‐
+dek pravidla z „nic“ na konkrétní lokalitu.
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                             strana 19 z 44
+               AIA · ChemVitro · Model nákladů lokality                                       Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+                                   Hodnota pro pravidlo,
+Co se zjistí                       mil. EUR              Co pravidlo pak vybere
+
+Zda úřad uloží kompenzační                        122,5 bez kompenzace (79,4 % budoucností) Odrzycu s průměrnou
+opatření v Odrzyci                                      úsporou 154,2; s kompenzací nic
+… v Kamenci                                       120,7 bez kompenzace (79,9 %) Kamenec, 151,1; s kompenzací nic
+… v Lipové                                        115,2 bez kompenzace (80,0 %) Lipovou, 144,1; s kompenzací nic
+… ve všech třech                                  152,1 Odrzycu, není-li tam kompenzace; jinak Kamenec, pak Lipo‐
+                                                        vou; nic jen v 0,8 % budoucností
+
+Hodnota pro pravidlo odhad 1.
+
+U Borů, kde stanice překračuje limity podle memoranda ve všech letech 2023–2025, jsme hod‐
+notu pro pravidlo nepočítali.
+
+
+8.2 Pro průměrnou úsporu má informace malou hodnotu
+Pro průměrnou úsporu má táž informace hodnotu jen 4,9 mil. EUR. Podle průměrné úspory je
+nejlepší volbou Odrzyca (147,6 mil. EUR) a informace o kompenzaci tuto volbu sotva mění:
+v Odrzyci má hodnotu 4,9 mil. EUR, v Borech 3,1 a v Kamenci 2,2, všechny ostatní vstupy nejvýše
+0,7 mil. EUR odhad 1.
+
+
+
+
+Pro průměrnou úsporu mají největší hodnotu informace o kompenzačních opatřeních v Odrzyci, v Borech a v Kamenci;
+ostatní vstupy nejvýše 0,7 mil. EUR. Očekávaná hodnota dokonalé dílčí informace o jednotlivých vstupech v mil. EUR při
+8 %, z 20 000 budoucností modelu; dokonalá informace o všech vstupech by měla hodnotu 14,2 mil. EUR.
+
+
+Dokonalá informace o všech vstupech by měla hodnotu 14,2 mil. EUR; hodnoty jednotlivých
+vstupů se nesčítají, protože se jejich přínosy překrývají odhad 1. Kurzy a ceny energie mají malou
+hodnotu i proto, že je nelze předem zjistit; lze se proti nim jen zajistit smlouvou nebo cenovou
+doložkou úsudek. Cena Hanshinu v této míře hodnotu nemá, přestože je největší pákou. V celém
+rozpětí, se kterým model počítá (1 470–1 868 EUR/t), se totiž při každé ceně v průměru vyplatí
+
+
+
+
+               Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                          strana 20 z 44
+                AIA · ChemVitro · Model nákladů lokality                                       Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+stavět, a to v Odrzyci; znalost ceny by tedy rozhodnutí podle průměru nezměnila. Průměr roku
+2025 (1 296 EUR/t), při kterém by se odpověď mohla obrátit, leží mimo toto rozpětí odhad 2. Proto se
+cena prověřuje zvlášť (kapitola 13).
+
+
+8.3 Ani jedna hodnota není rozpočtem na zjištění
+Ani jedna hodnota neudává, kolik smí zjištění stát. Obě míry počítají s dokonalou informací
+a s neutrálním postojem k riziku a nezapočítávají náklady ani čas potřebný k jejímu získání; sta‐
+novisko úřadu přitom dokonalou informací být nemusí úsudek. Čas je u této volby rozhodující, pro‐
+tože odpověď má hodnotu jen tehdy, přijde-li zhruba do dvou měsíců od 1. 2. 2027, nebo poběží-li
+zjišťování souběžně s rozhodnutím (kapitola 6). Tabulka přiřazuje každému zjištění jeho výstup,
+dobu a cenu.
+
+Zjištění             Výstup                                         Doba                               Cena
+
+Kompenzace           písemné stanovisko vojvodského úřadu         do dvou měsíců od 1. 2. 2027, nebo   v podkladech
+v Odrzyci            v Opolí, zda novému zdroji uloží kompenzační souběžně s podmíněným                není
+                     opatření                                     rozhodnutím
+Kompenzace           písemné stanovisko Krajského úřadu Moravs‐ totéž                                  v podkladech
+v Kamenci            koslezského kraje                                                                 není
+Kompenzace           písemné stanovisko Krajského úřadu Olo‐        totéž                              v podkladech
+v Lipové             mouckého kraje                                                                    není
+Cena Hanshinu        vysvětlení, proč cena překročila smluvní strop do 15. 1. 2027                     v podkladech
+v roce 2026          ±10 % ročně a z jakého základu se počítá                                          není
+                     cena roku 2029
+
+Doby jsou návrhem úsudek; náklady na zjištění ani na případnou souběžnou přípravu žádostí
+o povolení podklady klienta neuvádějí.
+
+ZDROJE A STUPNĚ
+ 1. odhad (metoda čeká na schválení metodikem)
+ 2. odhad (metoda čeká na schválení metodikem); úsudek
+
+
+
+
+R2-P10
+
+
+9 Finance potvrzují pořadí českých a polských lokalit
+Finanční ukazatele potvrzují náskok českých a polských lokalit, vycházejí však ze základního
+případu, který je příznivější než medián budoucností. U Odrzyce dává základní případ úsporu
+170,7 mil. EUR při 8 % výpočet 1, kdežto medián činí 134,7 mil. EUR odhad 2. Rozdíl způsobují rizika,
+která v základním případě nenastanou, ale v části budoucností ano: kompenzační opatření,
+zpoždění s nákupy na spotovém trhu a překročení rozpočtu nad medián úsudek. Základní případ
+proto slouží ke srovnání lokalit, nikoli k odhadu toho, kolik ChemVitro skutečně ušetří.
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                         strana 21 z 44
+                    AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Před zdaněním vedou při každé sazbě Odrzyca, Kamenec a Lipová; vyšší sazba snižuje úspory
+všech lokalit, pořadí však nemění. Při 8 % činí úspora tří vedoucích lokalit 170,7, 165,9
+a 159,9 mil. EUR, při 6 % se zvýší na 230,6, 225,6 a 219,3 mil. EUR, při 10 % se sníží na 124,2,
+119,6 a 113,8 mil. EUR výpočet. Německé lokality mají při 8 % úsporu 91,2 až 105,7 mil. EUR. Další
+nákup by v základním případě stál 911,6 mil. EUR při 8 % (1 067,9 při 6 % a 787,2 při 10 %).
+
+Vnitřní výnosové procento činí u českých a polských lokalit 18,2 až 20,5 %, u německých 14,4 až
+15,5 % výpočet. Všechny lokality tedy v základním případě vynášejí více než 8 %, které požaduje fi‐
+nanční ředitelka. Investice se vrátí v roce 2034 (Odrzyca, Kamenec, Lipová), 2035 (Bory, Vrbice,
+Wendelstedt, Lindenau) nebo 2036 (Eschfeld) výpočet.
+
+Po zdanění jsou Kamenec a Odrzyca prakticky rovnocenné; pravidlo však pracuje jen s NPV
+před zdaněním. Při 8 % dává základní případ po zdanění úsporu 121,3 mil. EUR pro Kamenec,
+118,6 pro Odrzycu a 116,3 pro Lipovou výpočet. Medián budoucností po zdanění činí 107,3 pro Ka‐
+menec a 107,2 pro Odrzycu odhad 2. Daňové sazby jsou prozatímní. Německé lokality ztrácejí
+zdaněním méně, protože jejich vyšší sazba daně z příjmu (28–30 % v roce 2027, 23–25 % od roku
+2032) zvyšuje daňovou hodnotu provozních nákladů a odpisů. Nákup, který vlastní výroba
+nahradí, by se přitom odečítal jen při české sazbě 21 %; v Polsku model počítá s 19 %. Německá
+daň se skládá z daně z příjmu právnických osob 10 %, solidárního příplatku a živnostenské daně
+právní předpis 3   . Úspora Wendelstedtu tak klesne z 99,8 před zdaněním na 84,3 po zdanění, úspora
+Odrzyce ze 170,7 na 118,6 výpočet.
+
+Pobídky jsou nejisté, a základní případ je proto nezapočítává: musí je schválit úřad a klient neví,
+zda je dostane z dat klienta 4. V budoucnostech je model přiznává s pravděpodobností 0,5 úsudek. Agen‐
+tury uvádějí v Česku investiční pobídku až 20–25 % a v Polsku osvobození od daně z příjmu až
+35 % v Odrzyci a 50 % v Borech. V Německu uvádějí regionální podporu (GRW) až 15 % ve Wen‐
+delstedtu a 20 % v Lindenau, v Eschfeldu žádnou z dat klienta 5. České a polské pobídky jsou daňové
+úlevy, německá podpora je hotovostní dotace právní předpis 3. Daňová úleva má hodnotu jen tehdy,
+má-li ChemVitro dostatečný zisk, od kterého ji může odečíst, a to model neověřuje.
+
+ZDROJE A STUPNĚ
+ 1. výpočet: tabulka T4 v příloze
+ 2. odhad (metoda čeká na schválení metodikem)
+ 3. právní předpis: rešerše veřejných zdrojů, čeká na ověření u pramene
+ 4. z dat klienta: Zápis zadání s klientem §8, Nabídky lokalit s. 1–8
+ 5. z dat klienta: Nabídky lokalit s. 1–8
+
+
+
+
+                    Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                            strana 22 z 44
+                AIA · ChemVitro · Model nákladů lokality                                      Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+R2-P11
+
+
+10 Lokality se liší mzdami, údržbou a dopravou
+Rozdíl mezi zeměmi tvoří náklady na lidi, údržbu a dopravu, nikoli suroviny ani energie. Graf
+rozkládá provozní náklad roku 2032, kdy už závod v základním případě všude běží naplno, do
+pěti skupin položek.
+
+
+
+
+Provoz v Německu je dražší kvůli mzdám, údržbě a dopravě; suroviny a energie stojí všude podobně. Provozní náklad na
+tunu VTX-40 v roce 2032 podle lokalit, základní případ, nominálně a bez investice; spočteno z návrhu procesu, z nabídek
+lokalit a z cenových cest modelu, jednotlivé položky uvádí tabulka T6 v příloze.
+
+
+Provozní náklad na tunu VTX-40 z vlastního závodu je v Německu vyšší než v Česku a Polsku:
+v roce 2032 činí 1 434 až 1 463 EUR proti 1 290 až 1 311 EUR výpočet 1. Suroviny jsou zdaleka největší
+položkou a stojí všude stejně, 760 EUR na tunu produktu, protože je klient pro všechny lokality
+oceňuje stejnou cenou franko závod. Energie stojí 179 až 192 EUR/t a oxid uhličitý (CO₂) všude
+56 EUR/t výpočet 2.
+
+Rozdíl tvoří tři položky. Náklady na zaměstnance činí 102 až 124 EUR/t v Česku a Polsku a 195 až
+232 EUR/t v Německu, protože německé mzdy jsou vyšší výpočet 3. Údržba, pojištění a poplatek
+parku stojí 103 až 124 EUR/t v Česku a Polsku a 122 až 157 EUR/t v Německu. Údržba se počítá
+z odhadu investice, který je v Německu nejvyšší, a ve Wendelstedtu se k tomu platí poplatek che‐
+mického parku 1,1 mil. EUR ročně výpočet 4. Doprava produktu do Brna a Pardubic stojí 20 až
+38 EUR/t z českých a polských lokalit a 53 až 58 EUR/t z německých, protože jsou vzdálenější
+výpočet 5   .
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                       strana 23 z 44
+                  AIA · ChemVitro · Model nákladů lokality                                                             Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+I nejdražší německý provoz je výrazně levnější než nákup. Nakoupená tuna by v roce 2032
+v základním případě stála přibližně 2 340 EUR včetně přirážky za prodloužení a dopravy výpočet;
+z tohoto rozdílu se splácí investice. Rozdíl se však ztrácí čekáním: dokud závod neběží, ChemVi‐
+tro nakupuje, a po 30. 6. 2030 platí spotovou cenu (kapitola 6).
+
+ZDROJE A STUPNĚ
+ 1. výpočet: tabulka T6 v příloze
+ 2. výpočet; z dat klienta: Návrh procesu
+ 3. výpočet; z dat klienta: Trh práce v regionech
+ 4. výpočet; z dat klienta: Odhad investičních nákladů, s. 1; Vyjádření provozovatelů čistíren, s. 4
+ 5. výpočet; z dat klienta: Nabídky dopravy
+
+
+
+
+R2-P12
+
+
+11 Žádná lokalita není zálohou jiné
+Druhá lokalita v záloze ChemVitro před hlavním rizikem neochrání. Záloha má smysl jen te‐
+hdy, když druhá lokalita dopadne dobře právě v těch budoucnostech, v nichž první dopadne
+špatně. Tabulka společných selhání i mapa budoucností ukazují, že mezi osmi lokalitami taková
+není.
+
+
+11.1 Lokality selhávají ve stejných budoucnostech
+I nejlepší záloha selže spolu s vybranou lokalitou ve většině špatných budoucností. Tabulka to
+ukazuje pro dvě vedoucí lokality. Bere budoucnosti, v nichž je vybraná lokalita dražší než další
+nákup, a uvádí, v jakém podílu z nich je dražší i každá z ostatních lokalit. Úplná čísla uvádí ta‐
+bulka T8 v příloze.
+
+Když je dražší než nákup            nejlepší záloha a jak často selže                                                         německé
+…                                   zároveň                                            další české a polské lokality          lokality
+
+Odrzyca                             Kamenec: 79 %                                      Lipová 84 %, Vrbice 90 %, Bory         97–99 %
+                                                                                       91 %
+Kamenec                             Odrzyca: 75 %                                      Bory 83 %, Lipová 93 %, Vrbice         98–100 %
+                                                                                       99 %
+
+Podíly budoucností odhad 1.
+
+Nejlepší záloha selže spolu s vybranou lokalitou v 75 až 79 % takových budoucností, německé lo‐
+kality téměř ve všech odhad 1. Vlastní závod totiž prodělá hlavně tehdy, když je nákup levný, tedy
+když cena Hanshinu klesne zpět nebo přirážka za prodloužení vyjde nízká. Levný nákup přitom
+postihne všechny lokality najednou (kapitola 7) úsudek. Rozdíly mezi lokalitami, ať jde o mzdy,
+energii, nebo povolování, jsou proti tomu malé. Nejméně společného rizika sdílejí navzájem
+Odrzyca a Kamenec, protože leží v různých zemích s odlišnými mzdami, kurzy a povolovacími
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                              strana 24 z 44
+             AIA · ChemVitro · Model nákladů lokality                                        Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+režimy úsudek. Pokud by ChemVitro chtěla mít v přípravě náhradní lokalitu pro případ, že úřad na
+první uloží kompenzační opatření, je jí pro Odrzycu Kamenec a naopak. Před levným nákupem,
+hlavním rizikem, však neochrání ani tato dvojice.
+
+
+11.2 Mapa dělí lokality podle zemí
+Mapa budoucností dělí lokality podle zemí: německé leží v údolí, české a polské na hřebeni.
+Pozorovateli jsou budoucnosti modelu (oddíly 3.2 a 3.3). Výška terénu ukazuje průměrnou
+úsporu, od 74,2 mil. EUR v Eschfeldu v modrém údolí po 147,6 mil. EUR v Odrzyci na červeném
+vrcholu odhad 1. Spojnice jsou nakresleny jen mezi páry, jejichž vztah program vyhodnotil jako spo‐
+lehlivý; teplá barva znamená souhlasný pohyb, šířka spojnice sílu vztahu. Matici vztahů uvádí ta‐
+bulka T7 v příloze. Pro výklad jsme zvolili verzi s korelacemi podle úsudku, protože odpovídá
+předpokladům modelu. Vedle prostorového pohledu ukazujeme i pohled shora, který vzdále‐
+nosti nezkresluje perspektivou; dvě další verze slouží jako zkouška stability.
+
+
+
+
+Německé lokality leží pohromadě v údolí, české a polské na hřebeni s vyššími úsporami. Mapa budoucností, prostorový
+pohled: osm lokalit podle toho, ve kterých budoucnostech modelu se jim relativně daří; výška a barva = průměrná
+úspora proti nákupu. Korelace cen podle úsudku. Program AIA, metodika aia-sociomap-5.
+
+
+
+
+             Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                         strana 25 z 44
+                AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Německé lokality leží pohromadě v údolí a vedou mezi nimi oba vztahy, které program na mapě
+označil za spolehlivé. Jejich vzájemné vztahy jsou na mapě nejsilnější (Lindenau–Eschfeld 0,71,
+Wendelstedt–Eschfeld 0,70, Wendelstedt–Lindenau 0,56) odhad 1. Na protější straně leží na hřebeni
+české a polské lokality. V matici vztahů tvoří české lokality vlastní skupinu (Lipová–Kamenec
+0,55, Vrbice–Kamenec 0,52, Vrbice–Lipová 0,50). Polské lokality tvoří vlastní dvojici (Odrzyca–
+Bory 0,48). Všechny vztahy mezi lokalitami různých zemí jsou slabé a záporné, od −0,07 do −0,27
+odhad 1   . Záporné znaménko je zčásti dáno centrováním: když se jedné skupině daří relativně lépe,
+ostatním se musí dařit relativně hůře úsudek.
+
+Rozdělení podle zemí má jednoduché vysvětlení: lokality jedné země sdílejí mzdy, ceny energie,
+kurz měny a povolovací režim, takže je stejné budoucnosti posouvají stejným směrem úsudek.
+I v kapitole 8 mají po kompenzacích největší hodnotu informace kurz koruny, polské ceny ener‐
+gie a kurz zlotého. Výška odpovídá výsledkům kapitoly 5: česko-polský hřeben představuje vyšší
+úspory než německé údolí.
+
+Mapa je určená, tedy není dílem náhody, ale není stabilní: její tvar závisí na předpokladech
+o korelaci cen. Mapy z obou polovin budoucností se shodují na úrovni 0,91 proti prahu 0,59
+odhad 1   , takže rozložení bodů není dílem náhody při losování. Za spolehlivé však program označil
+jen 2 z 28 párů, mimo jiné proto, že centrování odstranilo společný pohyb všech lokalit, který je
+v budoucnostech nejsilnější úsudek. Ve zkoušce stability vůči korelacím cen (příloha B) mapa
+neobstála.
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                            strana 26 z 44
+               AIA · ChemVitro · Model nákladů lokality                                      Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Při pohledu shora je rozdělení na německou skupinu a česko-polskou stranu vidět bez zkreslení perspektivou. Mapa bu‐
+doucností shora, korelace podle úsudku: tytéž polohy jako v prostorovém pohledu.
+
+
+Bez korelací                                                  Silné korelace
+
+
+
+
+Vlevo verze bez korelací cen energie a se zpožděním losovaným nezávisle na překročení roz‐
+počtu, vpravo verze se silnými korelacemi. Výška a barva jsou ve všech třech verzích prakticky
+stejné, protože průměrná úspora na korelaci téměř nezávisí.
+
+
+
+
+               Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                        strana 27 z 44
+                AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Tvar mapy zčásti vychází z našich předpokladů o tom, jak spolu ceny energie souvisejí, nikoli jen
+z lokalit samotných. Verze podle úsudku se s verzí bez korelací shoduje na úrovni 0,95 a s verzí se
+silnými korelacemi na úrovni 0,84. Verze bez korelací a verze se silnými korelacemi se však
+shodují jen na úrovni 0,75, tedy pod prahem 0,8 odhad 1. Bez korelací jsou vztahy uvnitř zemí nej‐
+silnější, program označí 7 párů za spolehlivé a české lokality splynou v jedno místo. Se silnými
+korelacemi se národní skupiny rozvolní, žádný pár není spolehlivý a Vrbice se vzdálí od Lipové
+a Kamence odhad 2. Samotné vztahy v matici jsou stálejší než nakreslené polohy: shodují se na úro‐
+vni 0,966, 0,899 a 0,826 odhad 1.
+
+Z mapy proto lze číst výšky a rozdělení na německou skupinu v údolí a česko-polskou stranu na
+hřebeni, které se objevuje ve všech třech verzích. Nelze z ní číst přesné vzdálenosti ani jemné
+polohy uvnitř česko-polské strany, například zda má Vrbice blíže ke Kamenci, nebo k Borům;
+nelze z ní číst ani příčiny, ani pravděpodobnosti.
+
+
+11.3 Pro otázku zálohy platí tabulka
+Pro otázku zálohy platí tabulka, nikoli mapa. Mapa centrováním odstraní společnou úroveň
+všech lokalit, tedy právě vliv levného nákupu, hlavní příčiny společných selhání úsudek. Odrzyca
+a Kamenec proto na ní vypadají jako lokality s nezávislými osudy, se vzájemným vztahem −0,14
+odhad 1   , přestože v 75 až 79 % špatných budoucností selžou společně. Tabulka navíc není na kore‐
+lace cen energie tolik citlivá. Mapa přidává vysvětlení, proč jsou Odrzyca a Kamenec nejméně
+špatnou dvojicí: sdílejí jen riziko levného nákupu, nikoli národní rizika. Obojí vede ke stejnému
+závěru: zálohu nehledat, ale před rozhodnutím zmenšit nejistotu.
+
+ZDROJE A STUPNĚ
+ 1. odhad (metoda čeká na schválení metodikem)
+ 2. odhad (metoda čeká na schválení metodikem); úsudek z obrázků
+
+
+
+
+R2-P13
+
+
+12 Diskuse
+Obě nejistoty, které o výsledku rozhodují, leží mimo závod samotný. Vlastní závod v Česku
+nebo v Polsku je při dnešní ceně levnější než další nákup, ale pravidlo ho dnes doporučit ne‐
+může, protože nevíme, zda závod stihne termín. Cena Hanshinu rozhoduje o tom, zda se vlastní
+výroba vyplatí (kapitola 7), a postoj úřadů ke kompenzačním opatřením o tom, zda lokalita splní
+pravidlo (kapitoly 5 a 6). Položky, kterými se lokality liší, tedy mzdy, údržba a doprava, určují
+pořadí lokalit, verdikt však nemění úsudek.
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                            strana 28 z 44
+            AIA · ChemVitro · Model nákladů lokality                            Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Dohromady to znamená, že představenstvo dnes nevybírá mezi lokalitami, ale rozhoduje o tom,
+zda a jak rychle zmenšit jednu nejistotu. Odpověď úřadů může verdikt překlopit jen tehdy, při‐
+jde-li včas, protože odklad snižuje jistotu termínu stejně jako kompenzace; podmínky nákupu po
+roce 2035 jsou druhou pákou, kterou dnes nelze zjistit úsudek. Výsledek tedy leží blízko hranice
+a není pevným odmítnutím vlastní výroby.
+
+Z toho plyne dilema, které model nevyřeší. Nejlevnější lokality nesou riziko povolování
+a nejrychlejší lokalita, Wendelstedt, je drahá a v nepříznivých budoucnostech prodělává častěji,
+než pravidlo připouští. Kdyby vedení zvažovalo, zda pozdní start vyvážit dočasným nákupem,
+tedy zda v pravidle zmírnit podmínku termínu, bylo by to rozhodnutí o pravidle, nikoli
+o modelu, a tato zpráva ho nečiní.
+
+Situační zpráva této studie stavěla na první místa Kamenec a Wendelstedt, protože hodnotila do‐
+kumenty lokalit, tedy jejich připravenost a podmínky nabídek. Tento model řadí lokality podle
+nákladů a rizika a Wendelstedt v něm nesplní podmínku rizika ztráty kvůli vyšší investici, ně‐
+meckým mzdám, poplatku chemického parku a nejdelší dopravě produktu. Každá ze zpráv odpo‐
+vídá na jinou otázku, a jejich pořadí si proto neodporuje úsudek.
+
+Výsledky neukazují, kolik ChemVitro skutečně ušetří. Základní případ vychází příznivěji než me‐
+dián (kapitola 9). Medián i pravděpodobnosti jsou spočteny z budoucností modelu a platí jen za
+jeho předpokladů; mezi ně patří výchozí cena Hanshinu, o níž soubory klienta nerozhodnou (od‐
+díl 3.4). Proto doporučení směřuje ke zjištění, nikoli ke stavbě.
+
+
+
+R2-P14
+
+
+13 Doporučení a provedení
+Neschvalovat 29. 1. 2027 žádnou lokalitu. Pravidlo dnes nedoporučuje žádnou lokalitu; schválit
+lokalitu nyní by znamenalo dodatečně změnit pravidlo, a to by mělo být výslovným rozhodnutím
+představenstva, nikoli důsledkem čtení tabulek úsudek. Představenstvo může místo toho na zase‐
+dání rozhodnout o dvou níže uvedených zjištěních, o souběžné přípravě žádostí o povolení
+a o datu, kdy se k volbě lokality vrátí.
+
+Požádat úřady o písemné stanovisko ke kompenzačním opatřením. Dotaz na vojvodský úřad
+v Opolí a na krajské úřady Moravskoslezského a Olomouckého kraje zní: uloží úřad novému
+zdroji emisí podle návrhu procesu na této lokalitě kompenzační opatření? Výsledek pravidla
+změní jen jedna odpověď: písemné stanovisko, že na lokalitě kompenzační opatření požadována
+nebudou. Pravidlo pak vybere:
+
+
+
+
+            Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                             strana 29 z 44
+                AIA · ChemVitro · Model nákladů lokality                                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+      Odrzycu, potvrdí-li to úřad v Opolí;
+      jinak Kamenec, potvrdí-li to Krajský úřad Moravskoslezského kraje;
+      jinak Lipovou, potvrdí-li to Krajský úřad Olomouckého kraje odhad 1.
+
+Ústní ani neurčitou odpověď zpráva neumí převést na pravděpodobnost. Zda lze odpověď po‐
+važovat za potvrzení, posoudí finanční ředitelka s vedoucím ochrany životního prostředí
+a bezpečnosti; co za potvrzení přijme, rozhodne představenstvo úsudek. Dotazy připraví a odešle
+vedoucí ochrany životního prostředí a bezpečnosti.
+
+Při jednání s úřady je třeba počítat s revidovanou směrnicí EU o kvalitě vnějšího ovzduší (EU)
+2024/2881 a s jejími limity pro rok 2030. Jejich hodnoty a dopad ověřujeme u pramene. Kdyby
+ovzduší v okolí lokalit těmto limitům nevyhovovalo, mohlo by riziko kompenzace vzrůst na
+všech lokalitách úsudek.
+
+Odpověď úřadu musí přijít do dvou měsíců od 1. 2. 2027. Model počítá s rozhodnutím
+a podáním žádostí o povolení 1. 2. 2027 z dat klienta 2. Kdyby úřad v Opolí potvrdil, že kompenzaci
+neuloží, stihla by Odrzyca termín s pravděpodobností 0,908 i po dvouměsíčním odkladu. Po čtyř‐
+měsíčním odkladu by ho stihla jen s pravděpodobností 0,731 a pravidlo by ji už nevybralo odhad 1.
+Zjišťování proto musí skončit zhruba do dvou měsíců, nebo běžet souběžně s rozhodnutím. Sou‐
+běžnou cestou je rozhodnutí z 1. 2. 2027 podmíněné odpovědí úřadu. Takové rozhodnutí lokalitu
+neschvaluje, pouze stanoví, že zvolenou lokalitou se stane Odrzyca, jakmile úřad v Opolí pí‐
+semně potvrdí, že kompenzaci neuloží; do té doby se připravují žádosti o povolení. O této cestě
+rozhoduje představenstvo úsudek. Navrhujeme tento postup:
+
+Kdy                Co                                              Kdo                             Výstup
+
+do                 odeslat dotazy vojvodskému úřadu v Opolí        vedoucí ochrany životního       dotazy s popisem
+20. 11. 2026       a krajským úřadům Moravskoslezského             prostředí a bezpečnosti         zdroje emisí podle ná‐
+                   a Olomouckého kraje                                                             vrhu procesu
+
+do 15. 1. 2027     prověřit cenu Hanshinu za rok 2026 a základ     vedoucí nákupu                  písemné vysvětlení
+                   ceny roku 2029                                                                  ceny
+
+do 15. 1. 2027     přepočítat model s ověřenými veřejnými          autor studie                    aktualizovaná zpráva
+                   vstupy a s odpověďmi, které do té doby
+                   přijdou
+      29. 1. 2027 zasedání: žádnou lokalitu neschvalovat; roz‐     představenstvo s finanční       usnesení
+                  hodnout o souběžné přípravě žádostí, pří‐        ředitelkou
+                  padně o podmíněném rozhodnutí
+jakmile odpo‐      posoudit, zda lze odpověď považovat za          finanční ředitelka s vedoucím   návrh pro
+věď přijde         potvrzení                                       ochrany životního prostředí     představenstvo
+                                                                   a bezpečnosti
+nejpozději         zasedání k volbě lokality                       představenstvo                  rozhodnutí; žádosti
+26. 3. 2027                                                                                        o povolení podat do
+                                                                                                   1. 4. 2027
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                            strana 30 z 44
+              AIA · ChemVitro · Model nákladů lokality                                          Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Termíny jsou návrhem úsudek. Kolik stojí dotazy na úřady a souběžná příprava žádostí, podklady
+klienta neuvádějí.
+
+Pokud do 26. 3. 2027 písemné potvrzení nepřijde, pravidlo zůstane u „nic“. Každý další měsíc
+čekání totiž snižuje pravděpodobnost včasného zahájení výroby i při příznivé odpovědi. Po
+čtyřech měsících odkladu by pravidlo Odrzycu nevybralo ani s potvrzením, že kompenzace
+uložena nebude odhad 1. Pak je na představenstvu, zda pravidlo, a zejména podmínku termínu,
+přehodnotí.
+
+Prověřit s útvarem nákupu cenu Hanshinu. Proč cena v roce 2026 vzrostla o 19 až 41 %, když
+smluvní vzorec dovoluje nejvýše ±10 % ročně? A z jakého základu se bude počítat cena roku
+2029, ze které dodavatel odvodí přirážku z dat klienta 3? Odpověď rozhoduje o tom, zda se vlastní
+výroba vůbec vyplatí. V základním případě se vlastní výroba přestane vyplácet, klesne-li výchozí
+cena pod bod zvratu lokality: v Česku a Polsku 1 249 až 1 308 EUR/t, v Německu 1 413 až
+1 450 EUR/t výpočet. V mediánu budoucností, které zahrnují rizika, prohrává vlastní výroba při prů‐
+měrné ceně roku 2025 (1 296 EUR/t) již na všech lokalitách odhad 1. Rozdíl mezi oběma výsledky vy‐
+světluje kapitola 7. Za tento krok odpovídá vedoucí nákupu. Je to jediná páka, která rozhoduje
+mezi „vyrábět“ a „kupovat“ a kterou žádná volba lokality nezmírní.
+
+Další otázky jsou méně významné, ale nahradí úsudky v modelu fakty:
+
+Co vyjasnit                  S kým                        Kdo v ChemVitro        Proč
+
+Předčištění odpadních vod, Vodovody Lipovsko (Li‐   vedoucí ochrany život‐ Předčištění stojí 6,7–14,1 mil. EUR
+nebo příplatek za nadli‐   pová), Abwasserzweckver‐ ního prostředí         a v Lindenau může prodloužit
+mitní znečištění; cena     band Lindenau (Lindenau) a bezpečnosti          povolování
+a lhůta
+Získání pozemků pro vlečku Zarząd Infrastruktury Ko‐      vedoucí logistiky      Pro silniční dopravu přes překladiště
+a cena silniční dopravy do lejowej Opole (Odrzyca)                               nemáme nabídku
+jejího postavení
+Jak dlouho potrvá najmout interně a s místními úřady personální ředitelka        Zpoždění náboru posouvá start stejně
+95 lidí v regionech Odrzyce, práce                                               jako odklad (kapitola 6)
+Kamence a Lipové
+Pobídky a jejich forma       CzechInvest, správy zón      finanční ředitelka     Model je přiznává s pravděpodobností
+                             Polské investiční zóny,                             0,5
+                             spolková země (GRW)
+Od kdy platí fixace cen      dodavatelé z nabídek         vedoucí nákupu         Fixace cen energií nemá uvedené da‐
+energií a zda ceny odpadů                                                        tum začátku a nabídky likvidace od‐
+zahrnují dopravu                                                                 padů platí do roku 2028
+Zda práce operátorů směn interně                          personální ředitelka   Ovlivňuje české odvody
+spadá v Česku mezi rizikové                                                      zaměstnavatele
+práce
+
+Neočekáváme, že by tyto odpovědi samy změnily verdikt úsudek; zpřesní však úspory a investici lo‐
+kalit, které mají ke splnění pravidla nejblíže. Po jejich získání a po ověření veřejných vstupů se
+
+
+
+
+              Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                            strana 31 z 44
+                  AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+model přepočítá a pravidlo se uplatní znovu.
+
+Budou-li stanoviska úřadů příznivá a cena se potvrdí, má ChemVitro kandidáta, Odrzycu,
+a Kamenec jako alternativu, která je po zdanění rovnocenná (kapitola 9). Budou-li stanoviska ne‐
+příznivá pro všechny tři lokality, zůstane pravidlo u „nic“. Mezitím je třeba sledovat:
+
+    závaznou nabídku Hanshinu, která má přijít nejdříve v polovině roku 2029;
+    ceny povolenek a energie, které jsou prozatímní a ovlivňují provozní náklady;
+    velké nábory v okolí Kamence a Borů, které mohou zvýšit mzdové náklady úsudek.
+
+ZDROJE A STUPNĚ
+ 1. odhad (metoda čeká na schválení metodikem)
+ 2. z dat klienta: Zápis zadání s klientem §5
+ 3. z dat klienta: Nákupy VTX-40 2023–2026; Dopis dodavatele, s. 1
+
+
+
+
+R2-P15
+
+
+14 Meze studie
+Šance na kompenzační opatření je úsudek, nikoli zjištění. Pro šanci 20 % tam, kde stanice li‐
+mity nepřekračuje, nemá zpráva oporu v žádném dokumentu o konkrétních lokalitách; uvádí ji
+proto jako hranici rozhodnutí (kapitola 5), nikoli jako zjištěnou pravděpodobnost. Soubor měření
+kvality ovzduší navíc neuvádí, jak daleko je každá stanice od své lokality z dat klienta 1, takže nevíme,
+zda stanice popisuje ovzduší v místě závodu.
+
+Veřejné vstupy jsou prozatímní. Rozsah a dopad neověřených veřejných vstupů shrnují rá‐
+meček Stav podkladů za shrnutím a tabulka T9 v příloze (sloupec „Stav“). Revidovaná směrnice
+EU o kvalitě vnějšího ovzduší (EU) 2024/2881 a její limity pro rok 2030 se ověřují u pramene a do
+modelu zatím nevstoupily.
+
+Srovnatelné závody obsahují jeden odlehlý údaj o kapacitě. Jeden ze 36 závodů má uvedenou
+kapacitu 91 kt, tedy mimo rozsah 18–60 kt, který databáze uvádí; jde nejspíš o kapacitu celého
+areálu. Zpráva tento závod používá jen pro překročení rozpočtu a zpoždění, nikoli pro přepočet
+podle kapacity z dat klienta 2.
+
+Zpráva netvrdí příčiny ani pravděpodobnosti mimo model. Mapa budoucností neukazuje
+příčiny, jen korelaci výsledků v modelu. Pravděpodobnosti jsou četnosti v budoucnostech mo‐
+delu; zpráva neurčuje pravděpodobnost ničeho, s čím model nepočítá, například toho, že by
+Hanshin přerušil dodávky nebo že by se změnil návrh procesu.
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                            strana 32 z 44
+                  AIA · ChemVitro · Model nákladů lokality                           Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Metody budoucností čekají na schválení. Simulace Monte Carlo s rozděleními PERT, obě míry
+hodnoty informace, hranice rozhodnutí a mapa budoucností jsou odhady; jejich metoda čeká na
+schválení metodikem. Překročení rozpočtu a zpoždění stavby vycházejí z empirického rozdělení
+36 srovnatelných závodů klienta z dat klienta 2. U mapy budoucností není náhodnost losování pod‐
+statnou nejistotou, protože budoucnosti jsou losy samotného modelu, nikoli vzorek skutečných
+pozorovatelů úsudek. Mapu proto prověřujeme zkouškou určenosti a zkouškou stability vůči před‐
+pokladům o korelaci cen, stanovenou před výpočtem (kapitola 11). Výpočet verze bez korelací
+podle záznamu programu nedokonvergoval; i to je důvodem číst jemné polohy opatrně.
+
+Zjednodušení mohou výsledek posunout. Model počítá náklady s ročním krokem, takže ná‐
+klady spojené se startem v průběhu roku a nákupy na spotovém trhu kolem 1. 7. 2030 zachycuje
+jen přibližně úsudek. Daň počítá po započtení pobídek bez ohledu na to, zda má ChemVitro dosta‐
+tečný zisk, od kterého by úlevu odečetla. Převodní ceny mezi závodem v Německu nebo Polsku
+a ChemVitro nemodeluje. Podmínky nákupu po roce 2035 v základním nastavení přebírá
+z prvního prodloužení (kapitola 7) a poptávku převyšující kapacitu nakupuje na spotovém trhu.
+Všem lokalitám přisuzuje stejnou délku povolování 8–11 měsíců a délku náboru do harmono‐
+gramu nezahrnuje, pouze ji prověřuje zátěžovou zkouškou (kapitola 6). Dopravu surovin ne‐
+přičítá, protože cena surovin je stanovena franko závod (příloha B).
+
+Každá změna předpokladů je počítána zvlášť. Hranice rozhodnutí, odklad, zpoždění náboru,
+podmínky po roce 2035, korelace i změny v kapitole 7 mění vždy jen jeden předpoklad; ne
+všechny kombinace jsou propočteny.
+
+ZDROJE A STUPNĚ
+ 1. z dat klienta: Měření kvality ovzduší
+ 2. z dat klienta: Srovnatelné závody
+
+
+
+
+R2-P16
+
+
+Literatura
+AACE International. Recommended Practice 18R-97: Cost Estimate Classification System – As Applied
+in Engineering, Procurement, and Construction for the Process Industries. Morgantown, WV: AACE
+International.
+
+Bahbouh, R. (2004). Sociomapping (disertační práce). Praha: Univerzita Karlova. Metoda vznikla
+v letech 1993–1994.
+
+Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate: A practical and power‐
+ful approach to multiple testing. Journal of the Royal Statistical Society, Series B, 57(1), 289–300.
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                            strana 33 z 44
+               AIA · ChemVitro · Model nákladů lokality                                         Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Flyvbjerg, B. (2014). What You Should Know About Megaprojects and Why: An Overview. Project
+Management Journal, 45(2), 6–19. doi:10.1002/pmj.21409
+
+Lempert, R. J., Popper, S. W., & Bankes, S. C. (2003). Shaping the Next One Hundred Years: New Met‐
+hods for Quantitative, Long-Term Policy Analysis (MR-1626). Santa Monica, CA: RAND.
+
+Merrow, E. W. (2011). Industrial Megaprojects: Concepts, Strategies, and Practices for Success. Ho‐
+boken, NJ: Wiley.
+
+Strong, M., & Oakley, J. E. (2013). An efficient method for computing single-parameter partial ex‐
+pected value of perfect information. Medical Decision Making, 33(6), 755–766.
+doi:10.1177/0272989X12465123
+
+Vose, D. (2008). Risk Analysis: A Quantitative Guide (3rd ed.). Chichester: Wiley.
+
+Williamson, O. E. (1985). The Economic Institutions of Capitalism: Firms, Markets, Relational Con‐
+tracting. New York: The Free Press.
+
+
+
+
+R2-P17
+
+
+Seznam zkratek
+Zkratka Význam
+
+AACE     AACE International, mezinárodní asociace nákladových inženýrů
+
+AIA      Agentic AI Analytics, výzkumný tým a jeho analytická platforma
+CHSK     chemická spotřeba kyslíku, ukazatel znečištění odpadní vody
+CO₂      oxid uhličitý
+EPC      dodavatel stavby na klíč (z angl. engineering, procurement, construction)
+EU ETS systém EU pro obchodování s povolenkami na emise
+
+EVPPI    očekávaná hodnota dokonalé dílčí informace (z angl. expected value of partial perfect information)
+GRW      německá regionální podpora (Gemeinschaftsaufgabe „Verbesserung der regionalen Wirtschaftsstruktur“)
+IRR      vnitřní výnosové procento (z angl. internal rate of return)
+NPV      čistá současná hodnota (z angl. net present value)
+PERT     tříbodové rozdělení vstupu zadané dolní, nejpravděpodobnější a horní hodnotou (z angl. program evaluation
+         and review technique)
+PM2,5 jemné prachové částice o velikosti do 2,5 mikrometru
+
+
+
+
+               Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                          strana 34 z 44
+              AIA · ChemVitro · Model nákladů lokality                                       Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+R2-P18
+
+
+Přílohy
+A Dokumenty a soubory klienta
+Zpráva cituje dokumenty klienta jejich názvy. Tabulka ke každému z nich uvádí původní název
+souboru.
+
+Dokument                                      Soubor
+
+Zadání projektu                               zadani_projektu.pdf
+Dopis dodavatele                              dopis_dodavatele.pdf
+Nabídky lokalit                               nabidky_lokalit.pdf
+Odhad investičních nákladů                    epc_odhad.pdf
+
+Vyjádření provozovatelů čistíren              vyjadreni_cov.pdf
+Vyjádření k dopravě                           vyjadreni_doprava.pdf
+Memorandum k povolování emisí                 memo_povolovani_ovzdusi.pdf
+Souhrn parametrů lokalit                      lokality_parametry.xlsx
+Trh práce v regionech                         trh_prace_regiony.xlsx
+Nabídky energií a poplatků                    energie_a_poplatky.csv
+Nabídky likvidace odpadů                      odpady_nabidky.csv
+Nabídky dopravy                               doprava_nabidky.csv
+Měření kvality ovzduší                        ovzdusi_stanice.csv
+Návrh procesu                                 proces_emise_odpady.xlsx
+
+Nákupy VTX-40 2023–2026                       nakup_vtx40_2023-2026.xlsx
+Srovnatelné závody                            srovnatelne_zavody.xlsx
+Hodnocení lokalit                             hodnoceni_lokalit.csv
+Průzkum pracovníků 2026                       pruzkum_pracovniku_2026.csv (v této zprávě nepoužit)
+
+
+
+B Metodika podrobně
+Časová osa. Časová osa každé lokality začíná rozhodnutím a podáním žádostí 1. 2. 2027. Násle‐
+duje povolování v délce 8–11 měsíců podle odhadce z dat klienta 1, prodloužené o kompenzační opa‐
+tření tam, kde je úřad uloží, o změnu územního plánu v Eschfeldu a o povolení přímého vypouš‐
+tění vod v Lindenau. Poté následuje výstavba v délce 22 měsíců podle plánu dodavatele, k níž se
+přičte zpoždění vylosovaného srovnatelného závodu. V Eschfeldu může výroba začít nejdříve po
+zesílení mostu. Během prvního půlroku závod najíždí na 60–90 % výkonu úsudek.
+
+Nákup. Do 30. 6. 2030 se platí cena podle vzorce, která sleduje surovinový index a mění se nej‐
+výše o ±10 % ročně, plus doprava 96 EUR/t z dat klienta 2. Poté ChemVitro při dalším nákupu platí
+
+
+
+
+              Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                        strana 35 z 44
+            AIA · ChemVitro · Model nákladů lokality                            Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+cenu podle vzorce s přirážkou za prodloužení; ve variantě s vlastním závodem platí spotovou
+cenu, dokud závod neběží, takže se každý měsíc zpoždění promítá přímo do nákladů. Poptávku
+nad 40 000 t nakupuje na spotovém trhu.
+
+Provoz. Provozní náklady jsou součtem těchto položek:
+
+   suroviny: 1,25 t na tunu produktu za 540 EUR/t franko závod, s cenou sledující surovinový
+   index;
+   elektřina (0,35 MWh/t) a plyn (3,1 MWh/t) za ceny z nabídek lokality, které se dále vyvíjejí
+   podle cenových cest dané země;
+   CO₂ (0,62 t na tunu) za cenu povolenky v systému EU pro obchodování s povolenkami (EU
+   ETS) po odečtení bezplatné alokace;
+   voda, stočné, nebezpečný odpad a doprava produktu podle nabídek;
+   95 zaměstnanců za mzdu operátora násobenou skladbou mezd a odvody;
+   údržba s pojištěním ve výši 2–4 % odhadu investice ročně z dat klienta 3.
+
+Peněžní toky se diskontují k polovině roku, v nominálním vyjádření, s inflací 2 % (prozatímní
+údaj).
+
+Dodatečné propočty. Všechny dodatečné propočty používají týž model, týchž 20 000 budoucností
+se semínkem 20270201 a pravidlo v zapsaném znění, s investiční podmínkou posuzovanou na zá‐
+kladním případu; mění vždy jen jeden předpoklad. Hranice rozhodnutí mění šanci na kompen‐
+zaci tam, kde stanice limity nepřekračuje, od 0 do 30 %. Korelace se počítají ve třech nasta‐
+veních: nulové (a s překročením rozpočtu a zpožděním losovanými nezávisle), podle úsudku
+a silné. Odklad posouvá rozhodnutí a podání žádostí o 2, 4 a 6 měsíců; zpoždění náboru přidává
+ke startu každé lokality 1 až 3 měsíce. Pro podmínky po roce 2035 se počítají tři varianty: při‐
+rážka 0 %, podmínky prvního prodloužení a přirážka 30 %. Výpočet hodnoty pro pravidlo rozdělí
+budoucnosti podle toho, zda úřad kompenzaci uloží, v každé skupině uplatní pravidlo znovu
+a sečte průměrné úspory toho, co pravidlo vybere, vážené podílem skupiny. Bez informace pra‐
+vidlo nevybere nic, takže zůstane u dalšího nákupu s úsporou 0.
+
+Zkouška stability mapy budoucností. Před výpočtem jsme stanovili, že mapu spočítáme ve třech
+verzích: s korelacemi podle úsudku (kapitola 4), bez korelací a se silnými korelacemi. Bez kore‐
+lací jsou korelace cen energie nulové a překročení rozpočtu a zpoždění se losují nezávisle. Silné
+korelace znamenají 0,95 pro elektřinu mezi zeměmi, 0,85 pro elektřinu a plyn a 0,4 pro plyn
+a povolenku. Mapa je stabilní, jen pokud se každé dvě verze shodnou v pořadí 28 vzdáleností
+mezi lokalitami alespoň na úrovni 0,8.
+
+Tabulka P1 · Nálezy kontroly dat, které mění výsledek nebo jeho výklad
+
+
+
+
+            Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                             strana 36 z 44
+              AIA · ChemVitro · Model nákladů lokality                                          Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Nález                                                                   Co s ním
+
+Cena Hanshinu: Zápis zadání uvádí „asi 1 470 EUR/t“, soubor nákupů      Výchozí cena 2026 modelována jako rozdělení
+ukazuje průměr 1 694 EUR/t za rok 2026 a 1 868 EUR/t za září 2026,      1 470–1 694–1 868 EUR/t; strop ±10 % platí
+meziročně +19 až +41 %; dopis přitom uvádí, že se vzorec pohybuje       do konce smlouvy, poté cena sleduje trh
+„nejvýše ±10 % ročně“
+Červenec 2025: množství 2 844 000                                       Interpretováno jako kilogramy, tedy 2 844 t; za
+                                                                        rok 2025 pak vychází 34 037 t, jak uvádí klient
+Spotový trh: jediný nákup, únor 2026, 2 320 proti 1 672 EUR/t           Přirážka spotové ceny 20–60 %, nejpravděpo‐
+(+39 %)                                                                 dobněji 39 %
+Srovnatelné závody: jeden závod zapsán dvakrát, jeden bez cenové        Zdvojený závod započten jednou (36 závodů);
+hladiny, jeden s kapacitou 91 kt                                        závod bez cenové hladiny a závod s kapacitou
+                                                                        91 kt použity jen pro překročení rozpočtu
+                                                                        a zpoždění
+Spotřeba rostla o 4 % ročně, klient uvádí 1–3 %                         Model používá 1–3 %; poptávka převýší kapa‐
+                                                                        citu 40 000 t v letech 2032 (3 %) až 2043
+                                                                        (1 %), přebytek se nakupuje na spotovém trhu
+Cena surovin je „franko závod“, nabídky dopravy přitom uvádějí          Nepřičítáno; přičtení by snížilo úspory o 9–
+i dopravu surovin                                                       14 mil. EUR a verdikt by nezměnilo
+Nabídka dopravy pro Odrzycu počítá s vlečkou, která neexistuje, a pro   Odrzyca: do postavení vlečky silniční doprava
+Eschfeld s cisternami přes most s limitem 16 t                          s přirážkou; Eschfeld: start až po zesílení
+                                                                        mostu
+
+Údaj klienta „asi 1 470 EUR/t“ neodpovídá žádnému období v souboru nákupů, který ukazuje
+průměr 1 296 EUR/t za rok 2025 a 1 610 EUR/t za období od října 2025 do září 2026 z dat klienta 4. Zda
+dodavatel smluvní strop ±10 % porušil, nebo zda vzorec funguje jinak, než jak ho vykládáme
+z dopisu, nelze ze souborů rozhodnout. Model proto zahrnuje obě možnosti do rozpětí výchozí
+ceny a údaj ze Zápisu zadání bere jako dolní mez úsudek. Údaje, které v podkladech chyběly, jsme
+převzali jako předpoklady s rozpětím a se stupněm úsudek. Takových vstupů je 22, například
+údržba a pojištění, skladba mezd, průběh najíždění, doba získání pozemků pro vlečku v Odrzyci
+a šance, že úřad uloží kompenzační opatření tam, kde stanice limity nepřekračuje.
+
+
+C Kontrola dat a výpočet
+Datové smlouvy a všech 42 nálezů kontroly dat uvádí samostatný dokument Kontrola dat; otázky
+z tabulky v kapitole 13 odpovídají jeho oddílu 5. Výpočet: 20 000 budoucností, semínko losování
+20270201; stejné vstupy dávají stejný výsledek.
+
+
+D Tabulky T1–T9
+Tabulky T1–T9 následují za přílohami. Generuje je přímo model z výstupů téhož výpočtu, takže
+se shodují s čísly ve zprávě: T1–T3 pravidlo při sazbě 8, 6 a 10 %; T4 finance; T5 investice podle
+položek a pravděpodobnost, že nepřekročí 175 mil. EUR; T6 provozní náklad na tunu v roce 2032;
+T7 matice vztahů lokalit, ze které se kreslí mapa budoucností; T8 společná selhání vedoucích lo‐
+kalit; T9 všech 54 vstupů s rozpětím, zdrojem, stupněm, odpovědnou osobou a stavem.
+
+
+
+
+              Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                            strana 37 z 44
+              AIA · ChemVitro · Model nákladů lokality                                                         Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Tabulky T1–T9
+T1 · Pravidlo při 8 % (mil. EUR, NPV 2027–2044 před zdaněním)
+           Medián                     P(porazí nákup) ≥   P(ztráta > 20) ≤   P(výroba k 1. 7. 2030) ≥   Investice ≤ 175     Splnila
+Lokalita   úspory        90% interval 0,75                0,10               0,80                       (základ)            pravidlo
+
+Vrbice          110,8 -40,7 až                   0,88 ✔             0,08 ✔                     0,21 ✘              160,6 ✔ ne
+                      331,5
+
+Lipová          126,0 -30,2 až                   0,91 ✔             0,06 ✔                     0,76 ✘              158,6 ✔ ne
+                      349,4
+
+Kamenec         132,4 -23,5 až                   0,92 ✔             0,05 ✔                     0,76 ✘              152,3 ✔ ne
+                      356,9
+
+Wendel‐             82,3 -74,7 až                0,80 ✔             0,15 ✘                     0,94 ✔              171,8 ✔ ne
+stedt                    308,1
+Lindenau            86,5 -68,8 až                0,81 ✔             0,14 ✘                     0,77 ✘              170,8 ✔ ne
+                         311,7
+Eschfeld            61,2 -94,4 až                0,73 ✘             0,21 ✘                     0,67 ✘              175,5 ✘ ne
+                         285,7
+
+Odrzyca         134,7 -23,8 až                   0,92 ✔             0,05 ✔                     0,75 ✘              148,9 ✔ ne
+                      359,1
+
+Bory            123,2 -30,9 až                   0,91 ✔             0,06 ✔                     0,19 ✘              143,9 ✔ ne
+                      344,4
+
+
+Stupeň: medián, interval a pravděpodobnosti z 20 000 budoucností odhad 5; investice v základním
+případě výpočet.
+
+
+T2 · Pravidlo při 6 %
+           Medián                     P(porazí nákup) ≥   P(ztráta > 20) ≤   P(výroba k 1. 7. 2030) ≥   Investice ≤ 175     Splnila
+Lokalita   úspory        90% interval 0,75                0,10               0,80                       (základ)            pravidlo
+
+Vrbice          160,0 -24,4 až                   0,92 ✔             0,06 ✔                     0,21 ✘              160,6 ✔ ne
+                      433,2
+Lipová          177,9 -11,4 až                   0,94 ✔             0,04 ✔                     0,76 ✘              158,6 ✔ ne
+                      455,9
+Kamenec         184,5 -4,3 až                    0,94 ✔             0,04 ✔                     0,76 ✘              152,3 ✔ ne
+                      463,4
+
+Wendel‐         126,2 -62,8 až                   0,86 ✔             0,10 ✘                     0,94 ✔              171,8 ✔ ne
+stedt                 404,9
+
+Lindenau        130,9 -57,9 až                   0,87 ✔             0,10 ✔                     0,77 ✘              170,8 ✔ ne
+                      407,9
+
+Eschfeld        102,2 -85,8 až                   0,81 ✔             0,15 ✘                     0,67 ✘              175,5 ✘ ne
+                      378,9
+
+Odrzyca         187,0 -4,8 až                    0,95 ✔             0,04 ✔                     0,75 ✘              148,9 ✔ ne
+                      464,9
+
+Bory            172,3 -14,9 až                   0,94 ✔             0,05 ✔                     0,19 ✘              143,9 ✔ ne
+                      445,7
+
+
+
+
+              Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                          strana 38 z 44
+                AIA · ChemVitro · Model nákladů lokality                                                                 Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Stupeň: medián, interval a pravděpodobnosti z 20 000 budoucností odhad 5; investice v základním
+případě výpočet.
+
+
+T3 · Pravidlo při 10 %
+            Medián                            P(porazí nákup) ≥    P(ztráta > 20) ≤   P(výroba k 1. 7. 2030) ≥    Investice ≤ 175        Splnila
+Lokalita    úspory           90% interval     0,75                 0,10               0,80                        (základ)               pravidlo
+
+Vrbice               73,3 -53,2 až                       0,82 ✔              0,12 ✘                    0,21 ✘                160,6 ✔ ne
+                          253,2
+
+Lipová               85,6 -44,8 až                       0,86 ✔              0,09 ✔                    0,76 ✘                158,6 ✔ ne
+                          269,2
+
+Kamenec              91,6 -38,6 až                       0,87 ✔              0,08 ✔                    0,76 ✘                152,3 ✔ ne
+                          275,7
+
+Wendel‐              48,3 -83,2 až                       0,71 ✘              0,21 ✘                    0,94 ✔                171,8 ✔ ne
+stedt                     232,8
+Lindenau             52,6 -77,5 až                       0,73 ✘              0,19 ✘                    0,77 ✘                170,8 ✔ ne
+                          237,1
+Eschfeld             29,5 -100,1 až                      0,63 ✘              0,28 ✘                    0,67 ✘                175,5 ✘ ne
+                          212,7
+
+Odrzyca              93,9 -37,7 až                       0,88 ✔              0,08 ✔                    0,75 ✘                148,9 ✔ ne
+                          277,9
+
+Bory                 85,5 -42,1 až                       0,86 ✔              0,09 ✔                    0,19 ✘                143,9 ✔ ne
+                          265,3
+
+
+Stupeň: medián, interval a pravděpodobnosti z 20 000 budoucností odhad 5; investice v základním
+případě výpočet.
+
+
+T4 · Finance (základní případ, mil. EUR; úspora = nákup minus vlastní
+výroba)
+           Před zdaněním                   Po zdanění                   Medián po                    Návrat‐     Investice (ceny    Zahájení výroby
+Lokalita   6%                 8%      10 % 6 %              8%     10 % zdanění 8 %         IRR      nost        2026)              (základ)
+
+Vrbice               189,2 134,5       92,7         142,0   96,6   61,9                87,5 18,2 %      2035               160,6              2030,92
+
+Lipová               219,3 159,9 113,8              165,8 116,3    78,0                99,9 19,2 %      2034               158,6              2029,92
+
+Kamenec              225,6 165,9 119,6              170,8 121,3    82,9               107,3 19,9 %      2034               152,3              2029,92
+
+Wendel‐              149,8     99,8    61,2         129,4   84,3   49,5                72,1 14,8 %      2035               171,8              2029,92
+stedt
+
+Lindenau             156,0 105,7       67,0         138,7   92,4   56,7                80,0 15,5 %      2035               170,8              2030,17
+
+Eschfeld             139,4     91,2    54,2         111,9   69,3   36,7                45,9 14,4 %      2036               175,5              2030,25
+
+Odrzyca              230,6 170,7 124,2              166,5 118,6    81,4               107,2 20,5 %      2034               148,9              2029,92
+
+Bory                 200,5 145,8 103,9              143,4   99,7   66,4                96,0 20,1 %      2035               143,9              2031,17
+
+
+Stupeň: základní případ výpočet; medián po zdanění z budoucností odhad 5.
+
+Další nákup (NPV nákladů 2027–2044, základ): 1 067,9 / 911,6 / 787,2 mil. EUR při 6 / 8 / 10 %.
+
+
+
+
+                Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                        strana 39 z 44
+                  AIA · ChemVitro · Model nákladů lokality                                                                                  Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+T5 · Investice podle položek (základní případ, mil. EUR, ceny 2026)
+              EPC × (1 +         Pozemek              Kompen‐         Předčiš‐                    Jednorá‐             Cel‐        P(investice ≤
+Lokalita      17 %)              18 ha                zace            tění            Most Vlečka zové                 kem         175)                 p10 / p50 / p90
+
+Vrbice                 149,8                 4,3                6,5             0,0    0,0        0,0           0,0      160,6                     0,79 128,0 / 159,9 /
+                                                                                                                                                        181,1
+
+Lipová                 145,1                 3,4                0,0           10,0     0,0        0,0           0,1      158,6                     0,82 129,6 / 160,3 /
+                                                                                                                                                        181,9
+
+Kamenec                147,4                 4,9                0,0             0,0    0,0        0,0           0,0      152,3                     0,90 121,6 / 153,9 /
+                                                                                                                                                        175,9
+
+Wendel‐                165,0                 6,8                0,0             0,0    0,0        0,0           0,0      171,8                     0,56 136,6 / 171,0 /
+stedt                                                                                                                                                   193,2
+
+Lindenau               155,6                 5,2                0,0           10,0     0,0        0,0           0,0      170,8                     0,57 137,7 / 170,9 /
+                                                                                                                                                        190,9
+
+Eschfeld               161,5                 9,9                0,0             0,0    4,1        0,0           0,0      175,5                     0,50 141,0 / 175,2 /
+                                                                                                                                                        196,3
+
+Odrzyca                139,2                 2,9                0,0             0,0    0,0        6,8           0,0      148,9                     0,92 120,3 / 150,7 /
+                                                                                                                                                        170,5
+
+Bory                   136,9                 2,5                4,5             0,0    0,0        0,0           0,0      143,9                     0,92 114,8 / 144,2 /
+                                                                                                                                                        163,4
+
+
+Stupeň: položky a součet v základním případě výpočet; P(investice ≤ 175) a p10 / p50 / p90
+z budoucností odhad 5.
+
+
+T6 · Provozní náklad na tunu v roce 2032 (základní případ, EUR/t)
+Lokalita              CO₂        doprava              energie          lidé      odpad            suroviny           voda          údržba a park               Celkem
+
+Vrbice                      56                   38             179       121                17              760              26                        113             1 311
+
+Lipová                      56                   20             179       116                20              760              25                        124             1 300
+
+Kamenec                     56                   24             179       124                16              760              26                        111             1 295
+
+Wendelstedt                 56                   58             182       203                13              760              25                        157             1 455
+
+Lindenau                    56                   53             190       195                15              760              32                        132             1 434
+
+Eschfeld                    56                   55             190       232                14              760              34                        122             1 463
+
+Odrzyca                     56                   37             192       102                18              760              21                        105             1 292
+
+Bory                        56                   33             192       109                17              760              20                        103             1 290
+
+
+Stupeň: výpočet.
+
+
+T7 · Vztahy lokalit napříč budoucnostmi (podle metodiky aia-sociomap-5;
+z této matice vychází mapa budoucností)
+                       Vrbice           Lipová          Kamenec               Wendelstedt                 Lindenau             Eschfeld           Odrzyca           Bory
+
+Vrbice                 –                         0,50                 0,52                        -0,27               -0,27               -0,26             -0,15       -0,07
+
+Lipová                           0,50 –                               0,55                        -0,22               -0,23               -0,27             -0,14       -0,15
+
+Kamenec                          0,52            0,55 –                                           -0,23               -0,23               -0,26             -0,14       -0,15
+
+Wendelstedt                  -0,27           -0,22                    -0,23 –                                         0,56                0,70              -0,12       -0,17
+
+Lindenau                     -0,27           -0,23                    -0,23                       0,56 –                                  0,71              -0,12       -0,15
+
+Eschfeld                     -0,26           -0,27                    -0,26                       0,70                0,71 –                                -0,15       -0,15
+
+Odrzyca                      -0,15           -0,14                    -0,14                       -0,12               -0,12               -0,15 –                         0,48
+
+Bory                         -0,07           -0,15                    -0,15                       -0,17               -0,15               -0,15               0,48 –
+
+
+
+
+                  Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                                               strana 40 z 44
+                     AIA · ChemVitro · Model nákladů lokality                                                                        Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+Stupeň: odhad 5.
+
+
+T8 · Když je lokalita horší než nákup, jak často je horší i jiná (podíl
+budoucností)
+Když je horší …              Vrbice       Lipová          Kamenec          Wendelstedt            Lindenau             Eschfeld          Odrzyca          Bory
+
+Odrzyca                            90 %          84 %               79 %                   98 %                 97 %              99 % –                    91 %
+
+Kamenec                            99 %          93 % –                                    98 %                 98 %           100 %               75 %     83 %
+
+
+Stupeň: odhad 5.
+
+
+T9 · Vstupy modelu (stav: ověřeno = z dat klienta; prozatímní = čeká na
+ověřenou rešerši; úsudek = zápis zadání s klientem odpověď neobsahuje)
+                                               Ne‐                Rozdě‐                                                   Stu‐
+Vstup                   Jednotka      Dolní    jspíš      Horní   lení       Zdroj                                         peň        Stojí za ním        Stav
+
+Spotřeba VTX-40         t             34 000 34 000 34 000 pevná             Zápis zadání s klientem §8; Nákupy VTX-       z dat      výrobní ředitel     ověřeno
+v roce 2026                                                hodnota           40 2023–2026 (2025: 34 037 t)                 klienta
+
+Růst spotřeby ročně     %               1,00       2,00     3,00 PERT        Zápis zadání s klientem §8 (1–3 %); histo‐    z dat      výrobní ředitel     ověřeno
+                                                                             rie 2023–2025 kolem 4 %, jen jako             klienta
+                                                                             citlivost
+
+Cena Hanshinu 2026, EUR/t              1 470    1 694      1 868 PERT        Zápis zadání s klientem §1: „asi 1 470“       z dat      vedoucí nákupu      ověřeno
+výchozí pro cenový                                                           (dolní mez, údaj klienta); Nákupy VTX-40      klienta
+vzorec                                                                       2023–2026: průměr 2026 1 694, září
+                                                                             2026 1 868
+
+Strop ročního pohybu %                    10        10       10 pevná        Dopis dodavatele s. 1: „nejvýše ±10 %         z dat      vedoucí nákupu      ověřeno
+cenového vzorce                                                 hodnota      ročně“                                        klienta
+
+Volatilita indexu su‐   -               0,06       0,10     0,15 PERT        Ceny 2023–2025 se meziročně pohybovaly úsudek autor                          úsudek
+rovin (roční,                                                                −7 až +11 %, 2026 +19 až +41 %
+logaritmická)
+
+Přirážka při prod‐      %                 12        17       22 PERT         Dopis dodavatele s. 1 (12–22 %); nákup:       z dat      vedoucí nákupu      ověřeno
+loužení smlouvy                                                              nejpravděpodobněji 17 % (Zápis zadání         klienta
+                                                                             s klientem §8)
+
+Doprava z Asie          EUR/t             96        96       96 pevná        Nákupy VTX-40 2023–2026: průměr za            z dat      vedoucí logistiky   ověřeno
+                                                                hodnota      45 měsíců 96,4                                klienta
+
+Přirážka spotové        %                 20        39       60 PERT         Nákupy VTX-40 2023–2026 ř. 40: únor        odhad         vedoucí nákupu      úsudek
+ceny proti ceně                                                              2026, 2 320 proti 1 672 EUR/t = +39 %, je‐
+vzorce (s dopravou)                                                          diné pozorování
+
+Obecná inflace          %               2,00       2,00     2,00 pevná       cíl ECB 2 % (rešerše, neověřeno)              veřejný autor                  proza‐
+                                                                 hodnota                                                   zdroj                          tímní
+
+Povolení (EIA, IPPC,    měsíce          8,00       9,00      11 PERT         Odhad investičních nákladů s. 2               z dat      výrobní ředitel     ověřeno
+stavební)                                                                                                                  klienta
+
+Výstavba a najetí,      měsíce            22        22       22 pevná        Odhad investičních nákladů s. 2: nejpra‐      z dat      výrobní ředitel     ověřeno
+plán EPC                                                        hodnota      vděpodobněji 22 (20–26). Nejistotu plánu      klienta
+                                                                             nese skutečné zpoždění 36 srovnatelných
+                                                                             závodů, stejně jako u investice nese neji‐
+                                                                             stotu odhadu EPC skutečné překročení, ne
+                                                                             pásmo ±25 %
+
+Potřeba plochy          ha                18        18       18 pevná        Souhrn parametrů lokalit, poznámka            z dat      výrobní ředitel     ověřeno
+                                                                hodnota                                                    klienta
+
+Podíl EPC utracený      %                 10        15       20 PERT         Není v podkladech                             úsudek autor                   úsudek
+ve fázi povolování
+
+Kompenzační opa‐        mil. EUR        3,00       6,50      15 PERT         Srovnatelné závody v Česku: 4,1–8,6, me‐ odhad           vedoucí ochrany     ověřeno
+tření, Česko                                                                 dián 6,5; Memorandum k povolování emisí                  životního pros‐
+                                                                             s. 2: „jednotky až nižší desítky milionů eur“            tředí
+                                                                                                                                      a bezpečnosti
+
+
+
+
+                     Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                               strana 41 z 44
+                     AIA · ChemVitro · Model nákladů lokality                                                                       Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+                                                Ne‐              Rozdě‐                                                   Stu‐
+Vstup                    Jednotka      Dolní    jspíš    Horní   lení      Zdroj                                          peň        Stojí za ním        Stav
+
+Prodloužení povolení     měsíce          9,00       12      15 PERT        Memorandum k povolování emisí s. 2: 9–         z dat      vedoucí ochrany     ověřeno
+s kompenzací, Česko                                                        15 měsíců                                      klienta    životního pros‐
+                                                                                                                                     tředí
+                                                                                                                                     a bezpečnosti
+
+Vyrovnání emisí,         mil. EUR        3,00     4,50      15 PERT        Srovnatelné závody v Polsku: 3,4–6,4;          odhad      vedoucí ochrany     ověřeno
+Polsko                                                                     horní mez jako v Česku (memorandum)                       životního pros‐
+                                                                                                                                     tředí
+                                                                                                                                     a bezpečnosti
+
+Prodloužení povolení     měsíce           12        15      18 PERT        Memorandum k povolování emisí s. 3: 12–        z dat      vedoucí ochrany     ověřeno
+v programu ochrany                                                         18 měsíců                                      klienta    životního pros‐
+ovzduší, Polsko                                                                                                                      tředí
+                                                                                                                                     a bezpečnosti
+
+Pravděpodobnost          -               0,80     0,80     0,80 ano / ne   Vrbice (BaP), Bory (PM2,5, BaP) nad limi‐      úsudek vedoucí ochrany         úsudek
+kompenzace, kde                                                            tem ve všech letech 2023–2025 (situační               životního pros‐
+stanice překračuje li‐                                                     zpráva)                                               tředí
+mit memoranda                                                                                                                    a bezpečnosti
+
+Pravděpodobnost          -               0,20     0,20     0,20 ano / ne   Srovnatelné závody: kompenzace u 5 z 9         úsudek vedoucí ochrany         úsudek
+kompenzace jinde                                                           českých a 4 z 9 polských závodů,                      životního pros‐
+v Česku a Polsku                                                           u německých 0 ze 14                                   tředí
+                                                                                                                                 a bezpečnosti
+
+Předčištění odpad‐       mil. EUR        6,70       10      14 PERT        Srovnatelné závody: 8 závodů, 6,7–14,1;        odhad      vedoucí ochrany     ověřeno
+ních vod (Lipová,                                                          Vyjádření provozovatelů čistíren s. 2 a s. 5              životního pros‐
+Lindenau)                                                                                                                            tředí
+                                                                                                                                     a bezpečnosti
+
+Provoz předčištění,      %               3,00     5,00     8,00 PERT       Není v podkladech                              úsudek autor                   úsudek
+ročně z investice
+
+Lindenau: povolení       měsíce          0,00     3,00     9,00 PERT       Vyjádření provozovatelů čistíren s. 5 (povo‐ úsudek vedoucí ochrany           úsudek
+přímého vypouštění                                                         lení vodoprávního úřadu); délka není                životního pros‐
+navíc                                                                      uvedena                                             tředí
+                                                                                                                               a bezpečnosti
+
+Eschfeld: zesílení       mil. EUR        3,20     4,10     5,00 PERT       Vyjádření k dopravě s. 6: 3,2–5,0 mil. EUR     z dat      vedoucí logistiky   ověřeno
+mostu                                                                                                                     klienta
+
+Eschfeld: zesílení       měsíce           12        18      30 PERT        Vyjádření k dopravě s. 6: povolení až po do‐ úsudek vedoucí logistiky         úsudek
+mostu od rozhodnutí                                                        končení; délka není uvedena
+do povolení těžké
+dopravy
+
+Eschfeld: změna     měsíce               0,00     4,00      12 PERT        Souhrn parametrů lokalit: „Änderung            úsudek právník                 úsudek
+územního plánu před                                                        läuft“; délka není uvedena
+povolením
+
+Odrzyca: vlečka,         mil. EUR/km     1,90     2,00     2,80 PERT       Srovnatelné závody: 4 vlečky 1,94–             odhad      vedoucí logistiky   ověřeno
+cena za km                                                                 2,76 mil. EUR/km
+
+Odrzyca: délka           km              3,40     3,40     3,40 pevná      Vyjádření k dopravě s. 7                       z dat      vedoucí logistiky   ověřeno
+vlečky                                                          hodnota                                                   klienta
+
+Odrzyca: získání po‐     měsíce          6,00       12      24 PERT        Není v podkladech                              úsudek vedoucí logistiky       úsudek
+zemků pro vlečku
+
+Odrzyca: stavba          měsíce           14        19      24 PERT        Vyjádření k dopravě s. 7: 14–24 měsíců         z dat      vedoucí logistiky   ověřeno
+vlečky od získání                                                                                                         klienta
+pozemků
+
+Odrzyca: silniční        EUR/t            10        20      40 PERT        Žádná nabídka                                  úsudek vedoucí logistiky       úsudek
+doprava surovin přes     surovin
+překladiště navíc
+
+Kapacita závodu          t/rok         40 000 40 000 40 000 pevná          Návrh procesu                                  z dat      výrobní ředitel     ověřeno
+                                                            hodnota                                                       klienta
+
+Najíždění: podíl         %                60        75      90 PERT        Není v podkladech                              úsudek výrobní ředitel         úsudek
+výroby v prvních 6
+měsících
+
+Suroviny na tunu         t/t             1,25     1,25     1,25 pevná      Návrh procesu                                  z dat      první technolog     ověřeno
+produktu                                                        hodnota                                                   klienta
+
+Cena surovin franko      EUR/t           540       540     540 pevná       Návrh procesu: stejná pro všechny lokality,    z dat      vedoucí nákupu      ověřeno
+závod (2026)                                                   hodnota     franko závod                                   klienta
+
+
+
+
+                     Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                              strana 42 z 44
+                     AIA · ChemVitro · Model nákladů lokality                                                                    Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+                                              Ne‐              Rozdě‐                                                  Stu‐
+Vstup                    Jednotka    Dolní    jspíš    Horní   lení      Zdroj                                         peň        Stojí za ním        Stav
+
+Připočíst dopravu su‐ -                0,00     0,00     1,00 pevná      Cena surovin je „franko závod“; nabídky       úsudek autor                   úsudek
+rovin z nabídek                                               hodnota    dopravy surovin by ji počítaly dvakrát. Zá‐
+                                                                         klad: nepřičítat; citlivost: přičíst
+
+Elektřina na tunu        MWh/t         0,35     0,35     0,35 pevná      Návrh procesu                                 z dat      první technolog     ověřeno
+                                                              hodnota                                                  klienta
+
+Plyn na tunu             MWh/t         3,10     3,10     3,10 pevná      Návrh procesu                                 z dat      první technolog     ověřeno
+                                                              hodnota                                                  klienta
+
+Emisní faktor plynu      t CO2/MWh     0,20     0,20     0,20 pevná      Návrh procesu                                 z dat      první technolog     ověřeno
+                                                              hodnota                                                  klienta
+
+Odpadní voda na          m³/t          4,20     4,20     4,20 pevná      Návrh procesu                                 z dat      první technolog     ověřeno
+tunu                                                          hodnota                                                  klienta
+
+Voda na tunu             m³/t          4,20     4,20     4,20 pevná      Není v podkladech; počítáno jako objem        úsudek první technolog         úsudek
+                                                              hodnota    odpadní vody
+
+Podíl spotřeby Brna      -             0,62     0,62     0,62 pevná      Zápis zadání s klientem §1: Brno 62 %,        z dat      vedoucí logistiky   ověřeno
+                                                              hodnota    Pardubice 38 %                                klienta
+
+Wendelstedt: platí se -                0,00     0,50     1,00 ro‐        Vyjádření provozovatelů čistíren s. 4 proti   úsudek vedoucí nákupu          úsudek
+k poplatku parku                                              vnoměrné   Nabídky energií a poplatků
+i stočné? (podíl
+stočného)
+
+Nebezpečný odpad         t/t           0,04     0,04     0,04 pevná      Návrh procesu                                 z dat      první technolog     ověřeno
+na tunu                                                       hodnota                                                  klienta
+
+Cena odpadu po roce %                  0,00       10      30 PERT        Nabídky likvidace odpadů: „cena platí do      úsudek vedoucí nákupu          úsudek
+2028 proti nabídce                                                       2028, pak podle ceníku“
+
+Zaměstnanci              FTE            95        95      95 pevná       Návrh procesu                                 z dat      personální          ověřeno
+                                                             hodnota                                                   klienta    ředitelka
+
+Průměrná mzda 95         ×             1,10     1,25     1,50 PERT       Soubor uvádí jen mzdu operátora; 25 FTE       úsudek personální              úsudek
+zaměstnanců (FTE)                                                        mimo směny jsou technici, inženýři, vedení           ředitelka
+proti mzdě operátora
+
+Nábor před startem       měsíce        3,00     6,00     9,00 PERT       Není v podkladech                             úsudek personální              úsudek
+                                                                                                                              ředitelka
+
+Růst mezd po roce   %                  2,00     3,50     5,00 PERT       Soubor uvádí průměr posledních 3 let (Če‐ úsudek personální                  úsudek
+2031 (všechny země)                                                      sko 6, Německo 3,5, Polsko 7); 18 let tako‐      ředitelka
+                                                                         vého růstu není předpoklad, ale
+                                                                         extrapolace
+
+Údržba a pojištění,      %             2,00     3,00     4,00 PERT       Není v podkladech (Zápis zadání s klientem úsudek výrobní ředitel            úsudek
+ročně z odhadu EPC                                                       §8: jiná data nejsou)
+
+Cena povolenky EUA       EUR/t          80        89      95 PERT        rešerše: 89,10 EUR/t 28. 10. 2026             veřejný autor                  proza‐
+2026                                                                     (Investing.com, neověřeno)                    zdroj                          tímní
+
+Růst ceny povolenky      %             0,00     3,00     6,00 PERT       rešerše: termínové kontrakty na prosinec      veřejný autor                  proza‐
+ročně                                                                    2030 kolem 104,50; analytici 91–              zdroj                          tímní
+                                                                         109 EUR/t pro 2030 (neověřeno)
+
+Volatilita povolenky     -             0,15     0,20     0,30 PERT       Neověřeno; ověří historická mapa nákladů      úsudek autor                   proza‐
+(roční, logaritmická)                                                                                                                                 tímní
+
+Bezplatná alokace        %             0,00       15      30 PERT        rešerše: referenční hodnota pro teplo   veřejný autor                        proza‐
+povolenek (podíl                                                         2026–2030, seznam úniku uhlíku; po 2030 zdroj                                tímní
+emisí)                                                                   otevřené (neověřeno)
+
+Volatilita cen energie   -             0,08     0,15     0,25 PERT       rešerše: forwardové ceny klesají ze 154       úsudek autor                   proza‐
+(roční, logaritmická)                                                    (2027) na 114 EUR/MWh (2028) (neo‐                                           tímní
+                                                                         věřeno); historická mapa nákladů
+
+Dlouhodobý pohyb         %            -2,00     1,00     3,00 PERT       Žádný oficiální výhled s čísly (rešerše)      úsudek autor                   proza‐
+cen energie ročně                                                                                                                                     tímní
+
+Korelace cen energie     -             0,80     0,80     0,80 pevná      Úsudek do ověření historickou mapou           úsudek autor                   proza‐
+mezi zeměmi                                                   hodnota    nákladů                                                                      tímní
+
+Korelace plynu           -             0,40     0,40     0,40 pevná      Úsudek do ověření historickou mapou           úsudek autor                   proza‐
+a povolenky                                                   hodnota    nákladů                                                                      tímní
+
+Korelace elektřiny       -             0,60     0,60     0,60 pevná      Úsudek do ověření historickou mapou           úsudek autor                   proza‐
+a plynu                                                       hodnota    nákladů                                                                      tímní
+
+
+
+
+                     Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                           strana 43 z 44
+                    AIA · ChemVitro · Model nákladů lokality                                                                     Pracovní verze · prozatímní · 5. 11. 2026
+
+
+
+
+                                               Ne‐              Rozdě‐                                                 Stu‐
+Vstup                   Jednotka      Dolní    jspíš    Horní   lení      Zdroj                                        peň        Stojí za ním         Stav
+
+Kurz CZK/EUR 2026       CZK              24        24      24 pevná       rešerše: ČNB 4. 11. 2026 (neověřeno)         veřejný autor                   proza‐
+                                                              hodnota                                                  zdroj                           tímní
+
+Kurz PLN/EUR 2026       PLN             4,42     4,42     4,42 pevná      rešerše: ECB 3. 11. 2026 (neověřeno)         veřejný autor                   proza‐
+                                                               hodnota                                                 zdroj                           tímní
+
+Volatilita kurzů        -               0,02     0,04     0,06 PERT       Historická mapa nákladů                      úsudek autor                    proza‐
+(roční, logaritmická)                                                                                                                                  tímní
+
+Odvody zaměstnava‐      %                34        34      39 PERT        rešerše: 24,8 + 9; rizikové práce až +5 p. b. právní personální              proza‐
+tele, Česko                                                               (neověřeno, otázka pro personální             předpis ředitelka              tímní
+                                                                          ředitelku)
+
+Odvody zaměstnava‐      %                20        22      23 PERT        rešerše: důchodové, zdravotní včetně prů‐    právní personální               proza‐
+tele, Německo                                                             měrného Zusatzbeitrag, nezaměstnanost,       předpis ředitelka               tímní
+                                                                          péče, úrazové (neověřeno)
+
+Odvody zaměstnava‐      %                20        22      24 PERT        rešerše: 9,76 + 6,5 + 1,67 + 2,45 + 0,1 +    právní personální               proza‐
+tele, Polsko                                                              PPK 1,5 (neověřeno)                          předpis ředitelka               tímní
+
+Pravděpodobnost, že -                   0,50     0,50     0,50 ano / ne   Zápis zadání s klientem §8: „nevíme, berte   úsudek finanční ředitelka       úsudek
+úřad pobídku schválí                                                      je jako nejisté“
+
+Zůstatková hodnota      % investice      30        30      30 pevná       Zápis zadání s klientem §8                   z dat      finanční ředitelka   ověřeno
+2044                                                          hodnota                                                  klienta
+
+Podíl technologie na    %                80        80      80 pevná       Není v podkladech                            úsudek autor                    úsudek
+investici (odpisy)                                            hodnota
+
+
+ZDROJE A STUPNĚ
+ 1. z dat klienta: Odhad investičních nákladů, s. 2
+ 2. z dat klienta: Dopis dodavatele, s. 1; Nákupy VTX-40 2023–2026
+ 3. z dat klienta: Návrh procesu, Nabídky energií a poplatků, Nabídky likvidace odpadů, Nabídky dopravy, Trh práce v regionech; úsudek u údržby a skladby
+    mezd
+ 4. z dat klienta: Nákupy VTX-40 2023–2026
+ 5. odhad (metoda čeká na schválení metodikem)
+
+
+
+
+                    Fiktivní případová studie. Žádná skutečná firma, obec ani osoba.                                                                             strana 44 z 44
+

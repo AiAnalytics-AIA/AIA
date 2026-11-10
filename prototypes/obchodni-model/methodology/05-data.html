@@ -1,0 +1,63 @@
+<section class="chapter" id="data">
+  <p class="chapter-label">Chapter 4 · Step 2</p>
+  <h1 data-label="4"><i lang="cs">Data</i>: the client's files under contract</h1>
+  <p class="lede">Every client file is read, checked and bound by a contract before a number from it reaches the model. The checks produce findings, and every finding gets a disposition the report can print.</p>
+
+  <h2 class="part" data-n="4.1">What goes in</h2>
+  <ul>
+    <li>The client's data files: purchases, prices, volumes, quotes, wages, measurements. A file that holds respondents' answers belongs to a survey study and is not read here.</li>
+    <li>The client's documents: briefs, offers, memos, letters. Each number taken from one is cited with its page.</li>
+    <li>The decision record from step 1, which says what each file is for.</li>
+  </ul>
+
+  <h2 class="part" data-n="4.2">What comes out</h2>
+  <ul>
+    <li><b>A data contract per file:</b> which columns are used and how; units, currency and price year per column; which columns are personal and never leave the analysis copy; the period covered (<code>client-data-in-analysis</code> chunk 2).</li>
+    <li><b>A quality report per file</b>, accepted by a person before use: missing, duplicate and out-of-range counts per used column over every row (<code>client-data-in-analysis</code> 2a).</li>
+    <li><b>The findings table with dispositions.</b> Every finding of the checks, with one of four dispositions: used; corrected, with the reason; left out; taken over as an assumption with a range. The findings that change the result or its reading go into the report; the rest stay in a separate data-check document the report names.</li>
+    <li><b>A document register:</b> each document by the name the report cites it under and its file name.</li>
+  </ul>
+
+  <h2 class="part" data-n="4.3">Checks</h2>
+  <table class="compact">
+    <thead><tr><th style="width:22%">Check</th><th>What it looks for</th><th style="width:34%">Typical instance</th></tr></thead>
+    <tbody>
+      <tr><td>Units</td><td>a row whose unit differs from its column's</td><td>one month's volume in kilograms in a column of tonnes</td></tr>
+      <tr><td>Currencies</td><td>mixed currencies in one column; a currency column that contradicts the header</td><td>one purchase row priced in another currency</td></tr>
+      <tr><td>Price years</td><td>amounts in different years' prices without a year</td><td>a comparable project with no price year</td></tr>
+      <tr><td>Duplicates</td><td>the same entity twice</td><td>one comparable entered twice, once with a rounded figure</td></tr>
+      <tr><td>Missing values</td><td>cells the contract expects and does not find</td><td>a price series that stops before the horizon</td></tr>
+      <tr><td>Outliers</td><td>a value outside the range the file itself declares</td><td>a capacity recorded in another unit, far outside the file's range</td></tr>
+      <tr><td>Scope of a quote</td><td>quotes that do not cover the same thing</td><td>a cheaper quote that covers only part of the service; a rate that assumes infrastructure the site does not have</td></tr>
+      <tr><td>File against brief</td><td>a number the brief states and the file contradicts</td><td>a price the brief rounds that the purchase file shows rising</td></tr>
+      <tr><td>Personal data</td><td>a column holding a person's identifier</td><td>a named contact or an employee number</td></tr>
+    </tbody>
+  </table>
+  <p>A contract that names a column the file does not hold, or a quality report the person has not accepted, blocks the file from the model.</p>
+
+  <h2 class="part" data-n="4.4">In AIA today</h2>
+  <ul>
+    <li>A client's sources kept once per client and SHA-256, read by a format reader into segments with locators (<code>domain/client_sources.py</code>, <code>infrastructure/source_reading.py</code>, <code>infrastructure/client_source_repository.py</code>): PDF by page and table row, XLSX and CSV by sheet and row, DOCX by paragraph.</li>
+    <li>The dataset preview: per column the header, kind, fill, distinct values and samples, with personal columns detected and masked (<code>domain/client_datasets.py</code>; patterns pinned in <code>fixtures/client_datasets/personal.json</code>).</li>
+    <li>The intake sheet, <i lang="cs">Přidat podklady</i>: each file kept and read at once, one knowledge item per file (<code>apps/web/src/components/aia/clients/IntakeSheet</code>).</li>
+    <li>Document text with ZIP bounds and a bounded table reader (<code>infrastructure/document_text.py</code>).</li>
+    <li>The evidence policy for client data: client-reported evidence under an accepted contract (ADR 0027, ADR 0037; <code>client-data-in-analysis</code> 8a built).</li>
+  </ul>
+
+  <h2 class="part" data-n="4.5">New</h2>
+  <ul>
+    <li>The data contract as a type and the route a person accepts it through (<code>client-data-in-analysis#2</code>), the quality report (<code>#2a</code>), the analysis copy of named columns and its accessor (<code>#3</code>, <code>#3a</code>, <code>#3b</code>), admission as <i lang="cs">z dat klienta</i> (<code>#5</code>), the contract accepted on the Data step (<code>#10</code>). The screen shows the contract per column with its check note, the quality report with a disposition per row, what the model gets from the file (summaries, never rows), and the findings with those that change the result marked.</li>
+    <li>A number from a document proposed with its page and checked literally on that page (<code>client-data-in-analysis#11</code>); an estimate from client rows as a Metodika method (<code>#12</code>).</li>
+    <li>Declared conversions (unit, currency at a dated rate, price year), each a finding with its disposition, and the findings table with the four dispositions <i lang="cs">použito / opraveno / vynecháno / převzato jako předpoklad</i> (<code>client-data-in-analysis#13</code>, <b>new</b>). <code>cost-model-study#CR1</code> covers reconciliation, period coverage, currency and robust outliers, accepted on record.</li>
+    <li>The document register with cited names (part of <code>decision-brief#DB5</code>'s hand-off).</li>
+  </ul>
+
+  <h2 class="part" data-n="4.6">Acceptance</h2>
+  <p>The frozen test case plants faults of every kind in the table above. A study that misses one has a gap in its checks, whatever its verdict.</p>
+  <ul>
+    <li>Each planted fault is found and has a disposition; a corrected one propagates to every result that read it.</li>
+    <li>Where one row can be read two ways (a price alone or a price plus freight, say), the study says which reading it prints and why.</li>
+    <li>A quote that covers less than its competitors is compared on the same scope, or not at all.</li>
+    <li>Where a table and the text disagree about a reading, the disagreement is found and resolved before the report prints either.</li>
+  </ul>
+</section>
