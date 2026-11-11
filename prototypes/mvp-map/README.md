@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 20, version id `1794393379-7882`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 21, version id `1794401387-d2b5`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -29,12 +29,29 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   can be trusted, what is in and out, how it is built and when it is done, what follows, what we need from the
   owner). Back and Next buttons, dots, and the arrow keys.
 - **Czech by default, English one click away** (version 19). The page's source stays English. In Czech mode every
-  text the page draws is looked up in a dictionary of 1,416 entries inside the page (`<script id="i18n-cs">`), keyed
+  text the page draws is looked up in a dictionary of 1,417 entries inside the page (`<script id="i18n-cs">`), keyed
   by the English text with each number replaced by `§`, so counts carry across. Left in English on purpose, marked
   `data-notr`: the plan chunks and each step's build detail (quoted from the plan files, which are English) and the
   owner's quoted words. The Session notes export is plain text and stays English. The translation was done in five
   parts against one glossary and then unified; the executive-facing screens were read through, the rest was
   spot-checked. A methodologist's read of the Sociomapa and Methods tabs in Czech is still owed.
+  **Proofread in full** (version 21): every entry was read against its English source by five proofreaders, one
+  per tab group, plus one pass for terms across the whole page, and the corrected entries were read again. 185 of
+  the 1,416 earlier entries changed and one was added. The proofreaders' 133 corrections, by their own labels: 75 for clarity (plainer, more direct Czech), 20 to
+  follow the glossary, 18 language errors (agreement, case, typos), 15 where the Czech said something other than
+  the English, 3 sentence fragments that did not join, 2 number slips. The rest are terms made the same everywhere.
+  The terms now fixed across the page: a named person is „člověk uvedený jménem“ (experts: „jmenovitě uvedení
+  experti“), "backs up" is „je zálohou“, the decision rule „dává“ the recommendation and the map „podporuje“ it,
+  the PRIM box is „rámeček“, drivers are „faktory“, a baseline forecast is „základní prognóza“, the validation
+  suite is „sada validačních zkoušek“, and the lifecycle page keeps its name, Sociomap Lifecycles.
+  Found by reading the drawn page rather than the dictionary: a space left before a full stop where a sentence is
+  assembled from parts; the kind of a money line glossed twice; the empty plan-chunk message, the "not saved"
+  status and the add-item kinds still in English; the two fixed labels of the header; and „z/ze“, „v/ve“ before a
+  number, which depend on how the number is read („ve 42 %“, „ze 6“, „z 9“) and are now chosen from the number
+  itself, dates left as written.
+  Left for the owner or the methodologist to choose, unchanged: „sdílená zastávka“ for a shared stop,
+  „myšlenková mapa“ for the mindmap, the group label „Evidence“, and „navrženo“ standing for both "proposed" and
+  "designed".
   Numbers are carried across as written, with three rules (version 20): a comma group is read as thousands only
   when the number does not start with 0 (so `20,000` becomes `20 000` and `0,871` stays), a decimal point becomes
   a comma, and a number inside an id (`MOD-13.1`) is left alone. Checked by comparing every number drawn in English
