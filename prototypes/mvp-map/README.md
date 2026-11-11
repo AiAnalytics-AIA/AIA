@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 13, version id `1794373608-62d0`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 14, version id `1794373988-a09c`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -42,6 +42,9 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   time the new version syncs.
 - **A note on one of Aram's questions reaches the session export** even when no answer or stance was chosen
   (version 13).
+- **A change by someone else is no longer lost while you are typing** (version 14). An update that arrived while a
+  text field had focus was discarded; it now waits until focus leaves the field. "Copy as text" copies the marks as
+  they are at that moment. An item just added is kept while its save is in flight, the same rule as for marks.
 
 ## Consistency check, 11 Nov 2026
 

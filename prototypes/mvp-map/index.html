@@ -927,10 +927,10 @@ const PAIRS=[["NK", "NL", 0.92, "reliable"], ["NK", "EK", -0.49, "reliable"], ["
 
 /* ================= state ================= */
 let db=null, marks={}, ideas={}, saveState="local";
-const pending=new Set(), writeSeq={}; /* ids of marks this browser changed and the database has not confirmed */
+const pending=new Set(), pendingIdeas=new Set(), writeSeq={}; /* ids of marks this browser changed and the database has not confirmed */
 const LSK="aia-mvp-map-v1";
-function lsLoad(){try{const s=JSON.parse(localStorage.getItem(LSK)||"{}");marks=s.marks||{};ideas=s.ideas||{};(s.pending||[]).forEach(i=>pending.add(i))}catch(e){}}
-function lsSave(){try{localStorage.setItem(LSK,JSON.stringify({marks,ideas,pending:[...pending]}))}catch(e){}}
+function lsLoad(){try{const s=JSON.parse(localStorage.getItem(LSK)||"{}");marks=s.marks||{};ideas=s.ideas||{};(s.pending||[]).forEach(i=>pending.add(i));(s.pendingIdeas||[]).forEach(i=>pendingIdeas.add(i))}catch(e){}}
+function lsSave(){try{localStorage.setItem(LSK,JSON.stringify({marks,ideas,pending:[...pending],pendingIdeas:[...pendingIdeas]}))}catch(e){}}
 function key(id){return id.replace(/[^A-Za-z0-9_\-.~:@+]/g,"_")}
 function setSave(t,c){const el=document.getElementById("save");el.textContent=t;el.className="save "+(c||"")}
 async function putMark(id){
@@ -945,11 +945,12 @@ async function putMark(id){
   }catch(e){setSave("Not saved: "+(e&&e.code||"error"),"warn")}
 }
 async function putIdea(iid){
-  lsSave();
+  pendingIdeas.add(iid); lsSave();
   if(!db){setSave("This browser only","warn");return}
   try{ setSave("Saving…");
     const v=ideas[iid];
     if(!v) await db.collection("ideas").doc(iid).delete(); else await db.collection("ideas").doc(iid).set(v);
+    if(ideas[iid]===v){pendingIdeas.delete(iid);lsSave()}
     setSave("Saved","ok");
   }catch(e){setSave("Not saved: "+(e&&e.code||"error"),"warn")}
 }
@@ -1280,7 +1281,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.aq){const id="aq:"+t.dataset.aq;const m=M(id);m.answer=m.answer===t.dataset.v?"":t.dataset.v;putMark(id);const y=scrollY;renderSocio();scrollTo(0,y);return}
   if(t.dataset.delidea){const iid=t.dataset.delidea;delete ideas[iid];delete marks["idea:"+iid];putIdea(iid);putMark("idea:"+iid);renderStageDetail();return}
   if(t.dataset.chunk){const [p,c]=t.dataset.chunk.split("|");openChunk(p,c,t);return}
-  if(t.id==="copy"){const ta=$("#sumtext");navigator.clipboard.writeText(ta.value).then(()=>{t.textContent="Copied"},()=>{ta.select();t.textContent="Selected: press Ctrl/Cmd+C"});return}
+  if(t.id==="copy"){const ta=$("#sumtext");ta.value=summaryText();navigator.clipboard.writeText(ta.value).then(()=>{t.textContent="Copied"},()=>{ta.select();t.textContent="Selected: press Ctrl/Cmd+C"});return}
   if(t.dataset.opt){state.map.sel=state.map.sel===t.dataset.opt?null:t.dataset.opt;drawMap();return}
   if(t.dataset.pair){state.map.sel=state.map.sel===t.dataset.pair?null:t.dataset.pair;drawMap();return}
 });
@@ -1733,12 +1734,14 @@ lsLoad(); route(); setSave("This browser only","warn");
   if(!db){setSave("This browser only","warn");return}
   setSave("Saved","ok");
   for(const id of [...pending])putMark(id);
+  for(const iid of [...pendingIdeas])putIdea(iid);
   db.collection("marks").onSnapshot(s=>{const fresh={};s.docs.forEach(d=>{const v=d.data();if(v&&v.id)fresh[v.id]={stance:v.stance||"",note:v.note||"",answer:v.answer||"",star:v.star||false}});
     for(const k of pending){const v=marks[k];if(v&&(v.stance||v.note||v.answer||v.star))fresh[k]=v;else delete fresh[k]}
     marks=fresh;lsSave();rerenderSoft()},e=>setSave("Sync stopped","warn"));
-  db.collection("ideas").onSnapshot(s=>{const fresh={};s.docs.forEach(d=>{fresh[d.id]=d.data()});ideas=fresh;lsSave();rerenderSoft()},e=>{});
+  db.collection("ideas").onSnapshot(s=>{const fresh={};s.docs.forEach(d=>{fresh[d.id]=d.data()});for(const k of pendingIdeas){if(ideas[k])fresh[k]=ideas[k];else delete fresh[k]}ideas=fresh;lsSave();rerenderSoft()},e=>{});
 })();
-let softT;function rerenderSoft(){clearTimeout(softT);softT=setTimeout(()=>{if(document.activeElement&&(document.activeElement.tagName==="TEXTAREA"||document.activeElement.tagName==="INPUT"))return;const y=scrollY;rerender();scrollTo(0,y)},120)}
+let softT,softDue=false;function rerenderSoft(){clearTimeout(softT);softT=setTimeout(()=>{const a=document.activeElement;if(a&&(a.tagName==="TEXTAREA"||a.tagName==="INPUT"||a.tagName==="SELECT")){softDue=true;return}softDue=false;const y=scrollY;rerender();scrollTo(0,y)},120)}
+document.addEventListener("focusout",()=>{if(softDue)rerenderSoft()});
 </script>
 
 </body></html>
