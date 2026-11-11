@@ -927,18 +927,20 @@ const PAIRS=[["NK", "NL", 0.92, "reliable"], ["NK", "EK", -0.49, "reliable"], ["
 
 /* ================= state ================= */
 let db=null, marks={}, ideas={}, saveState="local";
+const pending=new Set(), writeSeq={}; /* ids of marks this browser changed and the database has not confirmed */
 const LSK="aia-mvp-map-v1";
-function lsLoad(){try{const s=JSON.parse(localStorage.getItem(LSK)||"{}");marks=s.marks||{};ideas=s.ideas||{}}catch(e){}}
-function lsSave(){try{localStorage.setItem(LSK,JSON.stringify({marks,ideas}))}catch(e){}}
+function lsLoad(){try{const s=JSON.parse(localStorage.getItem(LSK)||"{}");marks=s.marks||{};ideas=s.ideas||{};(s.pending||[]).forEach(i=>pending.add(i))}catch(e){}}
+function lsSave(){try{localStorage.setItem(LSK,JSON.stringify({marks,ideas,pending:[...pending]}))}catch(e){}}
 function key(id){return id.replace(/[^A-Za-z0-9_\-.~:@+]/g,"_")}
 function setSave(t,c){const el=document.getElementById("save");el.textContent=t;el.className="save "+(c||"")}
 async function putMark(id){
-  const k=key(id), v=marks[id];
-  lsSave();
+  const k=key(id), v=marks[id], n=(writeSeq[id]=(writeSeq[id]||0)+1);
+  pending.add(id); lsSave();
   if(!db){setSave("This browser only","warn");return}
   try{ setSave("Saving…");
     if(!v||(!v.stance&&!v.note&&!v.answer&&!v.star)) await db.collection("marks").doc(k).delete();
     else await db.collection("marks").doc(k).set({id, ...v, at:new Date().toISOString()});
+    if(writeSeq[id]===n){pending.delete(id);lsSave()}
     setSave("Saved","ok");
   }catch(e){setSave("Not saved: "+(e&&e.code||"error"),"warn")}
 }
@@ -1238,7 +1240,7 @@ function summaryText(){
   const L=[];L.push("# AIA MVP brainstorm — "+new Date().toISOString().slice(0,10));
   for(const [k,l] of STANCES){const ids=Object.keys(marks).filter(i=>marks[i].stance===k);if(!ids.length)continue;L.push("","## "+l);for(const i of ids)L.push("- "+label(i)+(marks[i].note?"\n  Note: "+marks[i].note:""))}
   const aqs=Object.keys(marks).filter(i=>i.startsWith("aq:")&&marks[i].answer);if(aqs.length){L.push("","## Methodology answers");for(const i of aqs)L.push("- "+label(i)+": "+marks[i].answer+(marks[i].note?" — "+marks[i].note:""))}
-  const notes=Object.keys(marks).filter(i=>marks[i].note&&!marks[i].stance&&!i.startsWith("aq:"));if(notes.length){L.push("","## Notes");for(const i of notes)L.push("- "+label(i)+"\n  "+marks[i].note)}
+  const notes=Object.keys(marks).filter(i=>marks[i].note&&!marks[i].stance&&!(i.startsWith("aq:")&&marks[i].answer));if(notes.length){L.push("","## Notes");for(const i of notes)L.push("- "+label(i)+"\n  "+marks[i].note)}
   const ids=Object.entries(ideas);if(ids.length){L.push("","## Added in the session");for(const [iid,v] of ids){const m=marks["idea:"+iid]||{};L.push(`- [${STAGES.find(s=>s.id===v.stage).name}] ${v.kind}: ${v.text}`+(m.stance?` (${m.stance})`:"")+(m.note?"\n  Note: "+m.note:""))}}
   return L.join("\n");
 }
@@ -1730,8 +1732,9 @@ lsLoad(); route(); setSave("This browser only","warn");
   try{db=await window.claude?.use?.("db")}catch(e){db=null}
   if(!db){setSave("This browser only","warn");return}
   setSave("Saved","ok");
+  for(const id of [...pending])putMark(id);
   db.collection("marks").onSnapshot(s=>{const fresh={};s.docs.forEach(d=>{const v=d.data();if(v&&v.id)fresh[v.id]={stance:v.stance||"",note:v.note||"",answer:v.answer||"",star:v.star||false}});
-    for(const [k,v] of Object.entries(marks))if(!fresh[k]&&(v.stance||v.note||v.answer))fresh[k]=v;
+    for(const k of pending){const v=marks[k];if(v&&(v.stance||v.note||v.answer||v.star))fresh[k]=v;else delete fresh[k]}
     marks=fresh;lsSave();rerenderSoft()},e=>setSave("Sync stopped","warn"));
   db.collection("ideas").onSnapshot(s=>{const fresh={};s.docs.forEach(d=>{fresh[d.id]=d.data()});ideas=fresh;lsSave();rerenderSoft()},e=>{});
 })();

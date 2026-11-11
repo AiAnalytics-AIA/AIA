@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 12, version id `1794368688-1c7a`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 13, version id `1794373608-62d0`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -35,6 +35,13 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 - Mark ids are unchanged, so earlier marks still attach to their items.
 - **"+ Note" opens the editor of the item that was clicked.** Several tabs draw the same item, and a hidden tab
   keeps its markup, so the page-wide lookup opened the hidden copy (version 12).
+- **A mark someone else cleared now disappears for everyone** (version 13). The page used to keep every local mark
+  the database no longer held, to protect writes still in flight, so a cleared mark stayed on other people's screens
+  and in their session export. Only marks this browser has not yet saved are kept now, and they are retried on the
+  next visit. A mark that an older version failed to save, and that the database never held, is dropped the first
+  time the new version syncs.
+- **A note on one of Aram's questions reaches the session export** even when no answer or stance was chosen
+  (version 13).
 
 ## Consistency check, 11 Nov 2026
 
