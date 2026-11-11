@@ -408,6 +408,7 @@ svg.conn{position:absolute;inset:0;pointer-events:none;z-index:0}
 .cands .eyebrow{width:100%}
 .cand{position:relative;border:2px dashed var(--strong);border-radius:10px;padding:8px 14px;font-weight:600;font-size:16px}
 .cand .marks{margin:0}
+.cand .notebox{flex-basis:100%;min-width:min(320px,70vw);margin-top:6px}
 .cand .mk{min-height:30px;padding:2px 8px;font-size:13px}
 @media (hover:hover){.cand .marks{position:absolute;top:calc(100% - 2px);right:-2px;z-index:3;width:max-content;max-width:330px;padding:6px;background:var(--raised);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.14);opacity:0;pointer-events:none}.cand:hover .marks,.cand:focus-within .marks{opacity:1;pointer-events:auto}}
 @media (hover:none){.cand{display:flex;flex-direction:column;gap:6px}}
@@ -955,6 +956,7 @@ async function putIdea(iid){
   }catch(e){setSave("Not saved: "+(e&&e.code||"error"),"warn")}
 }
 function M(id){return marks[id]||(marks[id]={})}
+function nearest(from,sel){for(let n=from.parentElement;n;n=n.parentElement){const x=n.querySelector(sel);if(x)return x}return null}
 
 /* ================= helpers ================= */
 const $=(s,r=document)=>r.querySelector(s);
@@ -1275,7 +1277,7 @@ document.addEventListener("click",e=>{
   if(seg&&seg.dataset.f){state.filter[seg.dataset.f]=t.dataset.v;renderStageDetail();return}
   if(seg&&seg.dataset.m){state.map.fdr=t.dataset.v==="1";renderSocio();$("#mapbox").scrollIntoView({block:"nearest"});return}
   if(t.dataset.st){const id=t.closest(".marks").dataset.id;const m=M(id);m.stance=m.stance===t.dataset.st?"":t.dataset.st;putMark(id);const y=scrollY;rerender();scrollTo(0,y);return}
-  if(t.hasAttribute("data-note")){const id=t.closest(".marks").dataset.id;const nb=(t.closest("main>section,.pop")||document).querySelector(`.notebox[data-for="${CSS.escape(id)}"]`);if(nb){nb.hidden=!nb.hidden;if(!nb.hidden)nb.querySelector("textarea").focus()}return}
+  if(t.hasAttribute("data-note")){const id=t.closest(".marks").dataset.id;const nb=nearest(t.closest(".marks"),`.notebox[data-for="${CSS.escape(id)}"]`);if(nb){nb.hidden=!nb.hidden;if(!nb.hidden)nb.querySelector("textarea").focus()}return}
   if(t.hasAttribute("data-expand")){const tx=t.closest(".item").querySelector(".tx");tx.classList.toggle("clamp");t.textContent=tx.classList.contains("clamp")?"more":"less";return}
   if(t.dataset.step){state.step=+t.dataset.step;const y=scrollY;renderSocio();scrollTo(0,y);return}
   if(t.dataset.aq){const id="aq:"+t.dataset.aq;const m=M(id);m.answer=m.answer===t.dataset.v?"":t.dataset.v;putMark(id);const y=scrollY;renderSocio();scrollTo(0,y);return}
@@ -1292,7 +1294,7 @@ document.addEventListener("change",e=>{
   if(t.id==="m-terrain"){state.map.terrain=t.checked;drawMap()}
   if(t.id==="m-drift"){state.map.drift=t.checked;drawMap()}
   if(t.id==="m-hedge"){state.map.hedge=t.checked;state.map.sel=null;drawMap()}
-  if(t.tagName==="TEXTAREA"&&t.closest(".notebox")){const id=t.closest(".notebox").dataset.for;M(id).note=t.value.trim();putMark(id);const b=(t.closest("main>section,.pop")||document).querySelector(`.marks[data-id="${CSS.escape(id)}"] [data-note]`);if(b){b.setAttribute("aria-pressed",!!M(id).note);b.textContent=M(id).note?"Note ✓":"+ Note"}}
+  if(t.tagName==="TEXTAREA"&&t.closest(".notebox")){const id=t.closest(".notebox").dataset.for;M(id).note=t.value.trim();putMark(id);const q=CSS.escape(id);document.querySelectorAll(`.notebox[data-for="${q}"] textarea`).forEach(x=>{if(x!==t)x.value=M(id).note});document.querySelectorAll(`.marks[data-id="${q}"] [data-note]`).forEach(b=>{b.setAttribute("aria-pressed",!!M(id).note);b.textContent=M(id).note?"Note ✓":"+ Note"})}
 });
 document.addEventListener("toggle",e=>{if(e.target.id==="builders")state.builders=e.target.open},true);
 let qT;document.addEventListener("input",e=>{if(e.target.id==="f-q"){clearTimeout(qT);const v=e.target.value;qT=setTimeout(()=>{state.filter.q=v;const pos=e.target.selectionStart;renderStageDetail();const n=$("#f-q");n.focus();n.setSelectionRange(pos,pos)},250)}});
@@ -1388,7 +1390,7 @@ function mtMarks(id){return `${marksHtml("mt:"+id)}${noteHtml("mt:"+id)}`}
 function modelTypesHtml(){
   const p=MT.platform, r=MT.risk, m=MT.map;
   const tpl=MT.templates.map(t=>t.on?`<div class="mtc mtc-on"><div class="row"><b>${esc(t.name)}</b><span class="chip w1">MVP · first</span>${waveChip(t.wave)}</div><p class="mq">${esc(t.q)}</p><div class="mchips">${t.calc.map(x=>`<span>${esc(x)}</span>`).join("")}</div><p class="mv">${ico("bulb","ico sm")} ${esc(t.velis)}</p><span class="tech">cost-model-study ${esc(t.src)}</span>${mtMarks("tpl:"+t.id)}</div>`
-    :"").join("")+`<div class="cands"><span class="eyebrow">Candidates for the next template</span>${MT.templates.filter(t=>!t.on).map(t=>`<div class="cand">${esc(t.name)}${marksHtml("mt:tpl:"+t.id)}</div>`).join("")}</div>`;
+    :"").join("")+`<div class="cands"><span class="eyebrow">Candidates for the next template</span>${MT.templates.filter(t=>!t.on).map(t=>`<div class="cand">${esc(t.name)}${marksHtml("mt:tpl:"+t.id)}${noteHtml("mt:tpl:"+t.id)}</div>`).join("")}</div>`;
   const fam=MT.families.map(f=>`<div class="mtc"><div class="row"><span class="badge" style="width:36px;height:36px;border-radius:10px">${ico(f.icon)}</span><b>${esc(f.name)}</b></div><p class="mq">${esc(f.q)}</p><div class="mchips">${f.calc.map(x=>`<span>${esc(x)}</span>`).join("")}</div><div class="row" style="gap:6px">${f.grades.map(g=>`<span class="chip">${esc(g)}</span>`).join("")}${waveChip("W3")}</div>${f.parked?`<span class="cap">${esc(f.parked)}</span>`:""}<span class="tech">quantitative-families ${esc(f.src)}</span>${mtMarks("fam:"+f.id)}</div>`).join("");
   return `<div class="mtypes">
    <div class="mtt"><span class="iohead">${ico("model")}Model types</span><span class="cap">read bottom-up: the platform, what runs on any model, the calculation families, the templates by decision type</span></div>
