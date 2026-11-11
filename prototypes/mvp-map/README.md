@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 19, version id `1794393026-e83e`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 20, version id `1794393379-7882`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -35,6 +35,10 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   owner's quoted words. The Session notes export is plain text and stays English. The translation was done in five
   parts against one glossary and then unified; the executive-facing screens were read through, the rest was
   spot-checked. A methodologist's read of the Sociomapa and Methods tabs in Czech is still owed.
+  Numbers are carried across as written, with three rules (version 20): a comma group is read as thousands only
+  when the number does not start with 0 (so `20,000` becomes `20 000` and `0,871` stays), a decimal point becomes
+  a comma, and a number inside an id (`MOD-13.1`) is left alone. Checked by comparing every number drawn in English
+  with the Czech rendering: 3,971 numbers over 40 views, no difference.
 - **Machine learning follows the MVP** (version 18). The owner, 11 Nov: "after the mvp we also want to use ML".
   Recorded as decision ML-AFTER. The Methods & ML tab ends with "After the MVP: machine learning": the candidates
   (the mindmap's two first: weights learned from outcomes and from past shocks), and what has to be true before one
