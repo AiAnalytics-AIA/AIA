@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 11, version id `1794364341-9994`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 12, version id `1794368688-1c7a`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -33,6 +33,8 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 - **Wording:** every tab opens with what it is for and how to read it; the stage header shows the step's plain
   explanation; "ML" is now "Methods & ML".
 - Mark ids are unchanged, so earlier marks still attach to their items.
+- **"+ Note" opens the editor of the item that was clicked.** Several tabs draw the same item, and a hidden tab
+  keeps its markup, so the page-wide lookup opened the hidden copy (version 12).
 
 ## Consistency check, 11 Nov 2026
 

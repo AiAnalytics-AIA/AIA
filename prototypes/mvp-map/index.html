@@ -1272,7 +1272,7 @@ document.addEventListener("click",e=>{
   if(seg&&seg.dataset.f){state.filter[seg.dataset.f]=t.dataset.v;renderStageDetail();return}
   if(seg&&seg.dataset.m){state.map.fdr=t.dataset.v==="1";renderSocio();$("#mapbox").scrollIntoView({block:"nearest"});return}
   if(t.dataset.st){const id=t.closest(".marks").dataset.id;const m=M(id);m.stance=m.stance===t.dataset.st?"":t.dataset.st;putMark(id);const y=scrollY;rerender();scrollTo(0,y);return}
-  if(t.hasAttribute("data-note")){const id=t.closest(".marks").dataset.id;const nb=document.querySelector(`.notebox[data-for="${CSS.escape(id)}"]`);if(nb){nb.hidden=!nb.hidden;if(!nb.hidden)nb.querySelector("textarea").focus()}return}
+  if(t.hasAttribute("data-note")){const id=t.closest(".marks").dataset.id;const nb=(t.closest("main>section,.pop")||document).querySelector(`.notebox[data-for="${CSS.escape(id)}"]`);if(nb){nb.hidden=!nb.hidden;if(!nb.hidden)nb.querySelector("textarea").focus()}return}
   if(t.hasAttribute("data-expand")){const tx=t.closest(".item").querySelector(".tx");tx.classList.toggle("clamp");t.textContent=tx.classList.contains("clamp")?"more":"less";return}
   if(t.dataset.step){state.step=+t.dataset.step;const y=scrollY;renderSocio();scrollTo(0,y);return}
   if(t.dataset.aq){const id="aq:"+t.dataset.aq;const m=M(id);m.answer=m.answer===t.dataset.v?"":t.dataset.v;putMark(id);const y=scrollY;renderSocio();scrollTo(0,y);return}
@@ -1289,7 +1289,7 @@ document.addEventListener("change",e=>{
   if(t.id==="m-terrain"){state.map.terrain=t.checked;drawMap()}
   if(t.id==="m-drift"){state.map.drift=t.checked;drawMap()}
   if(t.id==="m-hedge"){state.map.hedge=t.checked;state.map.sel=null;drawMap()}
-  if(t.tagName==="TEXTAREA"&&t.closest(".notebox")){const id=t.closest(".notebox").dataset.for;M(id).note=t.value.trim();putMark(id);const b=document.querySelector(`.marks[data-id="${CSS.escape(id)}"] [data-note]`);if(b){b.setAttribute("aria-pressed",!!M(id).note);b.textContent=M(id).note?"Note ✓":"+ Note"}}
+  if(t.tagName==="TEXTAREA"&&t.closest(".notebox")){const id=t.closest(".notebox").dataset.for;M(id).note=t.value.trim();putMark(id);const b=(t.closest("main>section,.pop")||document).querySelector(`.marks[data-id="${CSS.escape(id)}"] [data-note]`);if(b){b.setAttribute("aria-pressed",!!M(id).note);b.textContent=M(id).note?"Note ✓":"+ Note"}}
 });
 document.addEventListener("toggle",e=>{if(e.target.id==="builders")state.builders=e.target.open},true);
 let qT;document.addEventListener("input",e=>{if(e.target.id==="f-q"){clearTimeout(qT);const v=e.target.value;qT=setTimeout(()=>{state.filter.q=v;const pos=e.target.selectionStart;renderStageDetail();const n=$("#f-q");n.focus();n.setSelectionRange(pos,pos)},250)}});
