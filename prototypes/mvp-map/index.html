@@ -1147,7 +1147,7 @@ function renderSocio(){
    <div class="cols c3">${VIEWS.map(w=>`<div class="card ${w.now?"mvp":""}"><div class="vthumb"><svg viewBox="0 0 240 120" aria-hidden="true">${THUMBS[w.thumb]}</svg></div><div class="row"><h3>${esc(w.name)}</h3><span class="grow"></span>${w.now?'<span class="chip w1">MVP</span>':'<span class="chip">proposed</span>'}</div>
     <p style="font-size:17px">${esc(w.shows)}</p><dl class="kv"><dt>Example</dt><dd>${esc(w.velis)}</dd><dt>Fails</dt><dd>${esc(w.risk)}</dd></dl><span class="tech">${esc(w.computes)}</span>${marksHtml("view:"+w.id)}${noteHtml("view:"+w.id)}</div>`).join("")}</div></div>
 
-  <div class="section"><h2>Aram's questions</h2><p class="lede">Thirteen method choices only the methodologist can make. The methodology proposes an answer to most; he confirms each through the register. Click an answer to record it. ★ marks our recommendation.</p>
+  <div class="section"><h2>Aram's questions</h2><p class="lede">Thirteen method choices only the methodologist can make. The methodology proposes an answer to most; he confirms each through the register. Click an answer to record it; where the recommendation combines two, click both. ★ marks our recommendation.</p>
    <div class="cols c2">${AQ.map(aqCard).join("")}</div></div>
 
   <div class="cols c2 section">
@@ -1157,10 +1157,10 @@ function renderSocio(){
   <div class="section"><div class="srcnote"><b>Where this tab comes from.</b> The method is the one on the Sociomap Lifecycles page (10 Nov, computed on develop 12bb21c4e); the figures were checked against its stored runs on 11 Nov. The plan chunks quoted in small type (SYS0–SYS12) and M-8 in the master plan were written on 2 Nov and still say four “modes”, grade MODELLED, 800 scenarios and edges on the scenario map. The methodology replaces that wording; the plan files have not been updated yet (Q-PLANWORDS).</div></div>`;
   drawMap();
 }
-function aqCard(a){const [n,title,plain,opts,rec,recText,ch]=a;const id="aq:"+n;const m=marks[id]||{};
+function aqCard(a){const [n,title,plain,opts,rec,recText,ch]=a;const id="aq:"+n;const m=marks[id]||{};const sel=new Set((m.answer||"").split(" + "));
   return `<div class="card"><div class="row"><span class="chip">Q${n}</span><h3>${esc(title)}</h3><span class="grow"></span><span class="tech">${esc(ch)}</span></div>
    <p style="font-size:18px">${esc(plain)}</p>
-   <div class="opts">${opts.map(o=>{const l=o.split(" · ")[0];const r=rec&&rec.split("+").includes(l);return `<button class="opt ${r?"rec":""}" data-aq="${n}" data-v="${esc(o)}" aria-pressed="${m.answer===o}">${r?'<span class="star">★</span>':""}${esc(o)}</button>`}).join("")}<button class="opt" data-aq="${n}" data-v="other" aria-pressed="${m.answer==="other"}">something else</button></div>
+   <div class="opts">${opts.map(o=>{const l=o.split(" · ")[0];const r=rec&&rec.split("+").includes(l);return `<button class="opt ${r?"rec":""}" data-aq="${n}" data-v="${esc(o)}" aria-pressed="${sel.has(o)}">${r?'<span class="star">★</span>':""}${esc(o)}</button>`}).join("")}<button class="opt" data-aq="${n}" data-v="other" aria-pressed="${sel.has("other")}">something else</button></div>
    <p class="cap" style="margin:0"><b>We recommend:</b> ${esc(recText)}</p>${marksHtml(id)}${noteHtml(id)}</div>`}
 function drawMap(){
   const box=$("#mapbox"); if(!box)return;
@@ -1280,7 +1280,7 @@ document.addEventListener("click",e=>{
   if(t.hasAttribute("data-note")){const id=t.closest(".marks").dataset.id;const nb=nearest(t.closest(".marks"),`.notebox[data-for="${CSS.escape(id)}"]`);if(nb){nb.hidden=!nb.hidden;if(!nb.hidden)nb.querySelector("textarea").focus()}return}
   if(t.hasAttribute("data-expand")){const tx=t.closest(".item").querySelector(".tx");tx.classList.toggle("clamp");t.textContent=tx.classList.contains("clamp")?"more":"less";return}
   if(t.dataset.step){state.step=+t.dataset.step;const y=scrollY;renderSocio();scrollTo(0,y);return}
-  if(t.dataset.aq){const id="aq:"+t.dataset.aq;const m=M(id);m.answer=m.answer===t.dataset.v?"":t.dataset.v;putMark(id);const y=scrollY;renderSocio();scrollTo(0,y);return}
+  if(t.dataset.aq){const id="aq:"+t.dataset.aq;const m=M(id);const sel=new Set((m.answer||"").split(" + ").filter(Boolean));sel.has(t.dataset.v)?sel.delete(t.dataset.v):sel.add(t.dataset.v);m.answer=[...AQ.find(a=>a[0]===+t.dataset.aq)[3],"other"].filter(o=>sel.has(o)).join(" + ");putMark(id);const y=scrollY;renderSocio();scrollTo(0,y);return}
   if(t.dataset.delidea){const iid=t.dataset.delidea;delete ideas[iid];delete marks["idea:"+iid];putIdea(iid);putMark("idea:"+iid);renderStageDetail();return}
   if(t.dataset.chunk){const [p,c]=t.dataset.chunk.split("|");openChunk(p,c,t);return}
   if(t.id==="copy"){const ta=$("#sumtext");ta.value=summaryText();navigator.clipboard.writeText(ta.value).then(()=>{t.textContent="Copied"},()=>{ta.select();t.textContent="Selected: press Ctrl/Cmd+C"});return}

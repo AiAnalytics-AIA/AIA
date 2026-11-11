@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 16, version id `1794374531-1379`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 17, version id `1794374826-eed2`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -40,6 +40,9 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   templates had mark buttons and no editor; they have one now.
 - **A chunk's popover on Build order shows the stance just picked** (version 16). It sits outside the tabs and was
   not redrawn with them, so a second click on the button that still looked unselected cleared the saved mark.
+- **An answer to one of Aram's questions can combine options** (version 17). Q4, Q6, Q9 and Q13 recommend two
+  options together, and picking the second used to replace the first. The answer is stored as one string joined with
+  " + ", so answers saved earlier read the same.
 - **A mark someone else cleared now disappears for everyone** (version 13). The page used to keep every local mark
   the database no longer held, to protect writes still in flight, so a cleared mark stayed on other people's screens
   and in their session export. Only marks this browser has not yet saved are kept now, and they are retried on the
