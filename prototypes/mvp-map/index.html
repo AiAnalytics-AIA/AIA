@@ -1261,7 +1261,7 @@ function route(){const h=(location.hash||"#overview").slice(1);const r=ROUTES[h]
   for(const k of Object.keys(ROUTES))$("#v-"+k).hidden=k!==r;
   document.querySelectorAll("nav.views a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+r?"page":"false"));
   ROUTES[r]();}
-function rerender(){const h=(location.hash||"#overview").slice(1);(ROUTES[h]||renderOverview)()}
+function rerender(){const h=(location.hash||"#overview").slice(1);(ROUTES[h]||renderOverview)();refreshPop()}
 window.addEventListener("hashchange",()=>{route();scrollTo(0,0)});
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-opt],[data-pair],line,[data-ipo]");
@@ -1300,8 +1300,11 @@ document.addEventListener("toggle",e=>{if(e.target.id==="builders")state.builder
 let qT;document.addEventListener("input",e=>{if(e.target.id==="f-q"){clearTimeout(qT);const v=e.target.value;qT=setTimeout(()=>{state.filter.q=v;const pos=e.target.selectionStart;renderStageDetail();const n=$("#f-q");n.focus();n.setSelectionRange(pos,pos)},250)}});
 document.addEventListener("submit",e=>{if(e.target.matches("[data-ideaform]")){e.preventDefault();const text=$("#idea-text").value.trim();if(!text)return;const iid="i"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);ideas[iid]={stage:state.stage,kind:$("#idea-kind").value,text,at:new Date().toISOString()};putIdea(iid);renderStageDetail()}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#pop").hidden=true});
-function openChunk(p,c,el){const ch=PLANS[p].find(x=>x.id===c);const id="chunk:"+p+":"+c;const pop=$("#pop");
-  pop.innerHTML=`<div class="row"><b>${esc(PLAN_NAME[p]||p)}</b><span class="tech">${esc(p)}#${esc(c)}</span>${waveChip(ch.wave)}<span class="grow"></span><button class="btn" onclick="document.getElementById('pop').hidden=true">Close</button></div><p style="margin:10px 0">${esc(ch.text)}</p><div class="row">${marksHtml(id)}</div>${noteHtml(id)}`;
+let popChunk=null;
+function popHtml(p,c){const ch=PLANS[p].find(x=>x.id===c);const id="chunk:"+p+":"+c;
+  return `<div class="row"><b>${esc(PLAN_NAME[p]||p)}</b><span class="tech">${esc(p)}#${esc(c)}</span>${waveChip(ch.wave)}<span class="grow"></span><button class="btn" onclick="document.getElementById('pop').hidden=true">Close</button></div><p style="margin:10px 0">${esc(ch.text)}</p><div class="row">${marksHtml(id)}</div>${noteHtml(id)}`}
+function refreshPop(){const pop=$("#pop");if(!pop.hidden&&popChunk)pop.innerHTML=popHtml(...popChunk)}
+function openChunk(p,c,el){const pop=$("#pop");popChunk=[p,c];pop.innerHTML=popHtml(p,c);
   pop.hidden=false;const r=el.getBoundingClientRect();pop.style.left=Math.max(16,Math.min(r.left,innerWidth-pop.offsetWidth-16))+"px";pop.style.top=Math.max(16,Math.min(r.bottom+6,innerHeight-pop.offsetHeight-16))+"px";}
 document.addEventListener("click",e=>{const p=$("#pop");if(!p.hidden&&!p.contains(e.target)&&!e.target.closest("[data-chunk]"))p.hidden=true},true);
 

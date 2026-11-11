@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 15, version id `1794374381-625d`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 16, version id `1794374531-1379`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -38,6 +38,8 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   tab), and a hidden tab keeps its markup, so a lookup by id opened another copy. The editor is now found from the
   clicked buttons' own card, and a typed note updates every copy (versions 12 and 15). The candidate model
   templates had mark buttons and no editor; they have one now.
+- **A chunk's popover on Build order shows the stance just picked** (version 16). It sits outside the tabs and was
+  not redrawn with them, so a second click on the button that still looked unselected cleared the saved mark.
 - **A mark someone else cleared now disappears for everyone** (version 13). The page used to keep every local mark
   the database no longer held, to protect writes still in flight, so a cleared mark stayed on other people's screens
   and in their session export. Only marks this browser has not yet saved are kept now, and they are retried on the
