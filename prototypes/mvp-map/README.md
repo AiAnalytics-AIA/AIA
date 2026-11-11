@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 17, version id `1794374826-eed2`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 18, version id `1794391605-9466`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -22,6 +22,11 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 
 ## What changed in this version
 
+- **Machine learning follows the MVP** (version 18). The owner, 11 Nov: "after the mvp we also want to use ML".
+  Recorded as decision ML-AFTER. The Methods & ML tab ends with "After the MVP: machine learning": the candidates
+  (the mindmap's two first: weights learned from outcomes and from past shocks), and what has to be true before one
+  starts. Which comes first is the new open question Q-MLFIRST. This agrees with the mindmap ("the ML branch is out
+  of MVP scope"); the MVP's own six methods are fixed statistics and do not learn.
 - **A new first tab, Overview:** what the MVP is in plain words, where the plan stands, the nine steps, what is in
   the MVP and what is not, the open questions by who has to answer, where each reader goes next, how the three
   documents fit together, and a glossary.

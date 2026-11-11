@@ -850,6 +850,7 @@ const DECISIONS=[
  ["D4","all","Data contracts first, then the model platform","\"Keep it Proposed\" (ADR 0044)","owner"],
  ["A1","all","Everything stays in the MVP; no single journey is its spine (2 Nov; the scope record of 9 Nov says this was replaced on 8 Nov, see Q-SPINE)","\"Keep all in MVP\"","owner"],
  ["A2","all","One study for a business decision, nine steps","\"One merged study\"","owner"],
+ ["ML-AFTER","all","Machine learning follows the MVP. The MVP's six methods are fixed statistics; methods that learn from data come after it","\"after the mvp we also want to use ML\" (11 Nov)","owner"],
  ["A15","osnova","The stage is called Osnova zprávy, the report outline","\"i just called it an xray, lets change the name for that\"","owner"],
  ["W1","zadani","A plan of its own builds the business Zadání (decision-brief)","\"New plan\"","walk"],
  ["W2","zadani","Triage asks every question that matters, by importance; first three open","\"All that matter, top 3 first\"","walk"],
@@ -911,6 +912,7 @@ const QUESTIONS=[
  ["Q-DATASET","all","Who builds the test dataset from real figures, and when?","The mindmap asks for a new dataset as close to reality as possible: real places, real public statistics and prices, with planted traps (double counting, a misleading leader, an outlier, a wrong direction) and real-world mess. TD-1 seals its answer before any map. No plan chunk builds it yet. Velis and the fleet are invented.","owner"],
  ["Q-XLSX","zprava","Does the client also get the processed data and the map coordinates?","The mindmap lists three deliverables: the maps (PNG or PDF, with coordinates), the processed data file (raw, oriented, normalised, weighted, sources) and the report. This page hands over the report only.","owner"],
  ["Q-FETCH","reserse","Public data connectors: in the MVP or after it?","The mindmap puts automatic data fetching after the MVP (“can integrate into phase 2/3”). The build order has the public data routes, 11 chunks, in waves W1 to W3.","owner"],
+ ["Q-MLFIRST","all","Which machine-learning use comes first after the MVP?","You decided on 11 Nov that machine learning follows the MVP. The candidates are at the end of the Methods & ML tab: weights learned from outcomes or from past shocks, customer and product groups, delivery-time models, odd-row detection. Each needs data the MVP does not produce: the outcomes of real studies, or tens of thousands of client rows. Proposed: choose the first one when the first real client study is known (Q-FIRST), and record what happened after each decision from the first study on, so there is something to learn from.","owner"],
  ["Q-FIRST","all","What is the first real client study?","You have one in mind; the decision type is deliberately not recorded yet. It decides which template and data routes matter first.","owner"]
 ];
 const MODES=[
@@ -1478,15 +1480,21 @@ const ML=[
   risk:"A distance read as an effect size. The group exists only in the model.",viz:"cowin",cap:"Options joined low in the tree win in the same futures."}
 ];
 const ML_LATER=[
+ ["wout","Weights learned from outcomes","Supervised learning over past decisions","sociomapa","Past studies and what happened after each decision","A weight adjusted because last year's choice proved wrong","A note on how the weights were set","Needs the outcomes of real studies; the MVP has none (mindmap)"],
+ ["wshock","Weights raised after a shock","Rules or a model learned from past shocks","sociomapa","Past shocks and what they did to the indicators, e.g. a war and the fuel price","A higher fuel weight when Deep Research reports a similar scenario","The report's state-of-the-world chapter","Needs the indicator profile and a history of shocks (mindmap)"],
  ["logit","Lost orders after a late delivery","Logistic regression or matched groups (W8)","data","Order rows with delay and repeat purchase","Repeat purchase 31 % vs 38 % for matched orders: −7 points (3–11)","An assumption's range, with “association, not effect” printed","Needs Aram's method; high risk of a causal reading"],
  ["elas","Price elasticity","Log-log regression (FIN5)","data","Prices and volumes over time","Elasticity −1.4 (−2.1 to −0.8)","A model input for pricing decisions","Most e-shops rarely change prices: wide interval"],
  ["gbm","Delivery-time percentiles","Gradient boosting, quantile loss","data","Tens of thousands of delivery rows","95th percentile delivery time by region and carrier","The operations view's service-level input","Needs a new library in the domain (ARCHITECTURE.md change)"],
  ["clus","Customer or SKU groups","k-means / G-means, PCA","sociomapa","Customer or SKU rows","Groups by recency, frequency, value","The unit map (SYS11)","The unit map waits on the validation suite"],
  ["iso","Odd invoice rows","Isolation forest","data","Invoice rows","A short list of rows to check","The data quality appendix","Only if the robust flags miss things"],
  ["basket","What is picked together","Association rules","vysledky","Order rows with SKUs","Cases and screen protectors together, lift 4.2","Warehouse slotting in the logistics view","Only if the own-warehouse option needs layout"],
- ["causal","What a change caused","Difference-in-differences, synthetic control, uplift","data","An experiment, or a clean break and a comparable series","The effect of a change, with its assumptions","A finding only with a design behind it","Clients rarely have the design"],
- ["wout","Weights learned from outcomes","Supervised learning over past decisions","sociomapa","Past studies and what happened after each decision","A weight adjusted because last year's choice proved wrong","A note on how the weights were set","Needs the outcomes of real studies; the MVP has none (mindmap)"],
- ["wshock","Weights raised after a shock","Rules or a model learned from past shocks","sociomapa","Past shocks and what they did to the indicators, e.g. a war and the fuel price","A higher fuel weight when Deep Research reports a similar scenario","The report's state-of-the-world chapter","Needs the indicator profile and a history of shocks (mindmap)"]
+ ["causal","What a change caused","Difference-in-differences, synthetic control, uplift","data","An experiment, or a clean break and a comparable series","The effect of a change, with its assumptions","A finding only with a design behind it","Clients rarely have the design"]
+];
+const ML_NEEDS=[
+ ["data","Something to learn from","What happened after past decisions, or tens of thousands of client rows. Monthly figures give 24 to 36 rows: a model fitted to those looks precise and is not."],
+ ["flask","Fixed first, then registered","The settings are chosen before the data is seen, and the methodologist registers the method. A method that picks itself cannot be registered."],
+ ["law","The data stays inside AIA","No client rows go to an outside machine-learning service. A new library in the domain needs a change to ARCHITECTURE.md first."],
+ ["link","It says what it is","The report prints the result as an estimate about the data or the model. It is never called a cause unless a design supports that."]
 ];
 const ML_AVOID=[["Random forests, boosted trees, deepnets on monthly KPIs","24–36 rows: they over-fit and look precise."],["OptiML / AutoML, fusions","A method that picks itself can't be fixed before results or registered."],["Topic models","A finding is a quote in a source, not a topic."],["WhizzML, batch predictions","AIA already has its workflow engine."],["Client data to BigML","Class A/B data leaves only over an EU route approved for its class. BigML is none."]];
 
@@ -1518,7 +1526,7 @@ function renderML(){
  const v=$("#v-ml");const st=id=>STAGES.find(s=>s.id===id);
  const touch=sid=>[...ML.filter(m=>m.stage===sid||m.also.includes(sid)).map(m=>`<a href="#ml" data-mlgo="${m.id}" class="${m.status==="mvp"?"":"later"}">${m.n}. ${esc(m.name)}</a>`),...ML_LATER.filter(l=>l[3]===sid).map(l=>`<a href="#ml" data-mlgo="later" class="later">${esc(l[1])}</a>`)].join("")||`<span class="none">none</span>`;
  v.innerHTML=`<h2>Statistical methods and machine learning in the study</h2>
- <p class="lede">Where a statistical method helps the nine steps: what goes in, what happens, what comes out, and what it adds to the report. Six methods are in the MVP. Each is fixed before the results are seen and none of them learns from outcomes. Methods that do learn, such as weights adjusted after a decision proved wrong, come after the MVP and are listed under Later. All numbers are the fictional Velis case.</p>
+ <p class="lede">Where a statistical method helps the nine steps: what goes in, what happens, what comes out, and what it adds to the report. Six methods are in the MVP. Each is fixed before the results are seen and none of them learns from outcomes. Methods that do learn, such as weights adjusted after a decision proved wrong, follow the MVP (decided on 11 Nov) and are listed at the end of this tab. All numbers are the fictional Velis case.</p>
  <div class="mlrules">
   <div class="mlrule">${ico("model")}<div><b>Code computes</b><p>Built in AIA on numpy and scipy. No language model computes a number; Ada may only suggest.</p></div></div>
   <div class="mlrule">${ico("flask")}<div><b>Fixed before results</b><p>Every setting is chosen before the data is seen, and registered in Metodika by A. Bahbouh.</p></div></div>
@@ -1538,7 +1546,9 @@ function renderML(){
    <p class="cap" style="margin:0"><b>Risk:</b> ${esc(m.risk)}</p>
    <div class="row">${marksHtml(k)}</div>${noteHtml(k)}
   </div></article>`}).join("")}
- <section class="section" id="ml-later"><h2>Later</h2><p class="lede">Useful once a client has the rows, or once a decision says when. Each still goes through Metodika.</p>
+ <section class="section" id="ml-later"><h2>After the MVP: machine learning</h2><p class="lede">Decided on 11 Nov: after the MVP we also want to use machine learning. These are the candidates, the two from the 9 Nov mindmap first. Some learn from data (weights, groups, delivery times, odd rows); the others are statistical methods that need rows a client rarely has yet. Which one comes first is open (Q-MLFIRST).</p>
+  <h3 style="margin-bottom:10px">What has to be true before one starts</h3>
+  <div class="mlrules">${ML_NEEDS.map(([i,t,p])=>`<div class="mlrule">${ico(i)}<div><b>${esc(t)}</b><p>${esc(p)}</p></div></div>`).join("")}</div>
   <div class="tscroll"><table class="t" style="min-width:1000px"><thead><tr><th>What it answers</th><th>Method</th><th>Step</th><th>In</th><th>Out (Velis)</th><th>Into the report</th><th>Why later</th><th>Discuss</th></tr></thead><tbody>
   ${ML_LATER.map(l=>{const k="ml:"+l[0];return `<tr><td><b>${esc(l[1])}</b></td><td class="tech">${esc(l[2])}</td><td><span class="chip">${esc(st(l[3]).name)}</span></td><td>${esc(l[4])}</td><td>${esc(l[5])}</td><td>${esc(l[6])}</td><td>${esc(l[7])}</td><td>${marksHtml(k)}${noteHtml(k)}</td></tr>`}).join("")}
   </tbody></table></div></section>
@@ -1578,8 +1588,8 @@ const SCOPE=[
   ["More model types: pricing, market entry, investment, make or buy, hiring, financing","Q-TEMPL"],
   ["Reports in English","W28"],
   ["Maps compared across years, and maps redrawn when a scenario changes the data","mindmap"],
-  ["Weights learned from outcomes or from past shocks","mindmap"],
-  ["Seven further statistical methods","Methods tab"]]},
+  ["Machine learning: weights learned from outcomes and past shocks, customer and product groups, delivery-time models","ML-AFTER"],
+  ["Further statistical methods that need rows a client rarely has yet","Methods tab"]]},
  {id:"out",name:"Out",note:"Decided against, or frozen.",items:[
   ["The AI-respondent survey: frozen now, archived after MVP acceptance","D2"],
   ["Respondent maps, the panel and the population","R2-Q15 · A11"],
@@ -1611,7 +1621,7 @@ const DIFFS=[
  ["Which scope is current","The master plan and this page keep the 2 Nov decision: everything stays in the MVP and no single study is its spine (A1). The scope record of 9 Nov says your words of 8 Nov replaced A1: one study, report 2, is the spine, and a list of things is parked. It also plans five two-week waves where this page shows four, and accepts the MVP on an independent calculation with known answers before the case.","This page keeps the wider scope and marks what the 9 Nov record parks. Nothing was removed. Your decision.","Q-SPINE","open"],
  ["What “the MVP” is","The mindmap calls the indicator map the MVP. This page's MVP is the nine-step study, and the indicator map is one proposed map inside it.","Shown as proposed everywhere on this page. Your decision.","Q-PROFILE","open"],
  ["Four method choices","The mindmap leaves open what “close” means, how indicators are put on one scale, where the weights act and the minimum number of rows. This page stated two of them as settled and left one out.","All four are now open questions for the methodologist, with what each option costs.","Q-CLOSE · Q-NORM · Q-WACT · Q-MINROWS","open"],
- ["The word “ML”","The mindmap says ML is out of the MVP. This page had six “ML” methods in it. They are different things: the mindmap means weights that learn from outcomes; the six are fixed statistical methods.","The tab is now “Methods & ML”, and the two learning ideas are listed under Later.","Methods tab","fixed"],
+ ["The word “ML”","The mindmap says ML is out of the MVP. This page had six “ML” methods in it. They are different things: the mindmap means weights that learn from outcomes; the six are fixed statistical methods.","Decided on 11 Nov: machine learning follows the MVP. The tab is now “Methods & ML” and ends with the candidates and what each needs first.","ML-AFTER","fixed"],
  ["What the client receives","The mindmap lists three deliverables: the maps with coordinates, the processed data file and the report. This page hands over the report only.","Raised as a question.","Q-XLSX","open"],
  ["Public data connectors","After the MVP in the mindmap; in waves W1–W3 in the build order.","Raised as a question.","Q-FETCH","open"],
  ["The test dataset","The mindmap asks for a dataset built from real figures, with planted traps. This page had only the rule that its answer is sealed first.","The traps are now on the Sociomapa tab; who builds it is a question.","Q-DATASET","open"],
@@ -1634,7 +1644,8 @@ const GLOSSARY=[
   ["Register","The methodologist's list of approved methods. A map configuration enters it after it passes its planted-answer test."],
   ["Data contract","The agreement on which columns of a client file may be used and how. Personal columns stay out."],
   ["Future","One possible combination of the uncertain inputs (prices, wages, demand). The model computes 20,000 of them."],
-  ["Approval ledger","The record of who accepted what and when."]]],
+  ["Approval ledger","The record of who accepted what and when."],
+  ["Machine learning (ML)","Methods that learn a rule from data instead of being given one. None is in the MVP; they follow it."]]],
  ["The maps",[
   ["Sociomapa systémů","AIA's map of business options. Two objects sit close when the rows of a table rate them alike; the height shows how well each does."],
   ["Object and row","Objects are what the map places (usually the options). Rows are what rates them: futures, weight settings, experts, units or months."],
