@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 18, version id `1794391605-9466`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 19, version id `1794393026-e83e`, 11 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -16,12 +16,25 @@ methodologist. It is a planning page, not product code. Velis and the fleet are 
 
 ## How to open it
 
+The page opens in Czech; the switch in the header (Česky / English) changes it and is remembered in that browser.
+
 Open [`index.html`](index.html) in a browser. It is one file; the fonts come from Google Fonts. Outside claude.ai
 the marks (Keep, Change, Cut, Later, Discuss) and notes are kept in that browser only; in the artifact they are
 saved for everyone in the page's database (collections `marks` and `ideas`).
 
 ## What changed in this version
 
+- **A Presentation tab** (version 19; "Prezentace"), asked for by the owner on 11 Nov: thirteen slides that walk an
+  executive through the MVP step by step (what we build and why, the nine steps on the Velis example, why the numbers
+  can be trusted, what is in and out, how it is built and when it is done, what follows, what we need from the
+  owner). Back and Next buttons, dots, and the arrow keys.
+- **Czech by default, English one click away** (version 19). The page's source stays English. In Czech mode every
+  text the page draws is looked up in a dictionary of 1,416 entries inside the page (`<script id="i18n-cs">`), keyed
+  by the English text with each number replaced by `§`, so counts carry across. Left in English on purpose, marked
+  `data-notr`: the plan chunks and each step's build detail (quoted from the plan files, which are English) and the
+  owner's quoted words. The Session notes export is plain text and stays English. The translation was done in five
+  parts against one glossary and then unified; the executive-facing screens were read through, the rest was
+  spot-checked. A methodologist's read of the Sociomapa and Methods tabs in Czech is still owed.
 - **Machine learning follows the MVP** (version 18). The owner, 11 Nov: "after the mvp we also want to use ML".
   Recorded as decision ML-AFTER. The Methods & ML tab ends with "After the MVP: machine learning": the candidates
   (the mindmap's two first: weights learned from outcomes and from past shocks), and what has to be true before one
