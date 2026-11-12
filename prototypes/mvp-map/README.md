@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 23, version id `1794475505-7777`, 12 Nov 2026.
+**Version:** "AIA MVP Map", version 24, version id `1794496371-8b68`, 12 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -24,6 +24,31 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 
 ## What changed in this version
 
+- **Fully Czech, more room, less repetition** (version 24). The owner, 12 Nov: "the czech version is not fully
+  czech, do a language and visibility pass, some elements need more space than others. some text is redundant or
+  doesnt help explain."
+  *Language.* The parts left in English on purpose until now are translated: the 175 plan chunks, each step's
+  process (actions, details, rules, outputs, failure paths, fields, data objects and their states, open points) and
+  the owner's 46 quoted answers, about 1,700 strings in six parts against the same glossary, then harmonised (the
+  Lead is Ada; canvas is „plátno“). The English original stays available: a chunk's window and a process card's
+  detail have „Původní znění v plánu“, a quote shows the original on hover. Code values, field names, ids and the
+  product's own Czech screen labels are unchanged. The Hand-offs table translates each action before joining them.
+  The glossary drops the English glosses in Czech. What is still English in Czech mode is code (`accepted_by`,
+  `derived: [...]`) and the step-detail fields that are field lists.
+  *Room.* The tabs sit on one row (at 1440 px all eleven fit; narrower screens scroll the row, with a fade at the
+  edge), with the title and the language switch above them: the header is 114 px instead of about 200 on a desktop
+  and 140 px instead of about 380 on a phone. The plan names in the Build order table were unreadable: the cell
+  borrowed the small round step-number style (26 px high, light text on a light background); it has its own style
+  now. "Where each method sits" on Methods & ML is one row per step instead of nine narrow columns. A step's data
+  objects and open points each take the full width. On a phone the process board is two columns of steps instead of
+  a 1,180 px sideways scroll, and a step's header stacks so the Velis box is not one word per line. Cards in a row
+  keep their own height instead of stretching into empty boxes (the open questions on the Overview). The map's
+  display buttons are stacked beside the map; a label clipped at the map's edge ("far = unrelated") is inside it.
+  The search box in a step's chunk list is wider. A chunk's window closes when you change tab.
+  *Repetition.* The comparison of the four documents and where they differed folds away on the Overview (it is the
+  record of the 11 Nov check, not what the executive needs first). Each map card no longer repeats its group and
+  title under the title. In Czech a grade card no longer shows its name twice. The notes that the step detail and the
+  chunks are "in English" are gone with the English.
 - **The Hand-offs diagram is readable** (version 23). The owner, 12 Nov: the arrows were "very chaotic", "duplicated
   or overlap". They were: 35 hand-offs share 25 pairs of steps, and each was drawn as its own arc, so pairs with two
   or three hand-offs showed as stacked near-copies; every arc left and landed on the same dot in the middle of a
@@ -66,10 +91,10 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   can be trusted, what is in and out, how it is built and when it is done, what follows, what we need from the
   owner). Back and Next buttons, dots, and the arrow keys.
 - **Czech by default, English one click away** (version 19). The page's source stays English. In Czech mode every
-  text the page draws is looked up in a dictionary of 1,448 entries inside the page (`<script id="i18n-cs">`), keyed
-  by the English text with each number replaced by `§`, so counts carry across. Left in English on purpose, marked
-  `data-notr`: the plan chunks and each step's build detail (quoted from the plan files, which are English) and the
-  owner's quoted words. The Session notes export is plain text and stays English. The translation was done in five
+  text the page draws is looked up in a dictionary of 3,057 entries inside the page (`<script id="i18n-cs">`), keyed
+  by the English text with each number replaced by `§`, so counts carry across. Since version 24 everything the page draws is
+  Czech, including the plan chunks, each step's build detail and the owner's quoted words; the English original of
+  those is one click or one hover away. The Session notes export is plain text and stays English. The translation was done in five
   parts against one glossary and then unified; the executive-facing screens were read through, the rest was
   spot-checked. A methodologist's read of the Sociomapa and Methods tabs in Czech is still owed.
   **Proofread in full** (version 21): every entry was read against its English source by five proofreaders, one
