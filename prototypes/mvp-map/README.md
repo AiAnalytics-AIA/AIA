@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 22, version id `1794472729-b200`, 12 Nov 2026.
+**Version:** "AIA MVP Map", version 23, version id `1794475505-7777`, 12 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -24,6 +24,16 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 
 ## What changed in this version
 
+- **The Hand-offs diagram is readable** (version 23). The owner, 12 Nov: the arrows were "very chaotic", "duplicated
+  or overlap". They were: 35 hand-offs share 25 pairs of steps, and each was drawn as its own arc, so pairs with two
+  or three hand-offs showed as stacked near-copies; every arc left and landed on the same dot in the middle of a
+  box's top edge; and all of them were drawn above the row. Now there is one arrow per pair of steps, with a number
+  on it when it carries more than one hand-off (eight carry 2, one carries 3; the names are in its tooltip and in
+  the panels when a step is clicked). Each box spreads its arrows along its edge, incoming on the left and outgoing
+  on the right, ordered by distance so that arcs nest instead of crossing at the box. What goes to the report
+  outline and on to the client is drawn below the boxes, the rest above. The "2 in · 3 out" line under each box was
+  removed: it ran past the boxes into the arrows, and the panels show the same counts. The table under the diagram
+  is unchanged.
 - **"Zpráva" is now "Report"** (version 22). The owner, 12 Nov: "lets change zprava to Report or Studie". The page
   uses Report, because "studie" already names the whole job on this page (a study, `study_id`). The step Zpráva is
   Report, Osnova zprávy is Osnova reportu, and the Czech text says "report" (masculine) wherever it said "zpráva",
