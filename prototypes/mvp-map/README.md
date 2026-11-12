@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 24, version id `1794496371-8b68`, 12 Nov 2026.
+**Version:** "AIA MVP Map", version 25, version id `1794496913-ea2e`, 12 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -45,6 +45,10 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   keep their own height instead of stretching into empty boxes (the open questions on the Overview). The map's
   display buttons are stacked beside the map; a label clipped at the map's edge ("far = unrelated") is inside it.
   The search box in a step's chunk list is wider. A chunk's window closes when you change tab.
+  Two faults found in review of version 24 and fixed in version 25: a step's chunk search matched only the English
+  original, so a phrase shown in Czech found nothing; and on a phone, with "Příklad Velis" on, the Velis cards kept
+  their desktop columns and broke the two-column board. Search now matches the text shown as well as the English,
+  and each Velis card sits beside its own step on a phone (desktop unchanged).
   *Repetition.* The comparison of the four documents and where they differed folds away on the Overview (it is the
   record of the 11 Nov check, not what the executive needs first). Each map card no longer repeats its group and
   title under the title. In Czech a grade card no longer shows its name twice. The notes that the step detail and the

@@ -662,6 +662,7 @@ details.orig summary{cursor:pointer;color:var(--faint)}
  .mapgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}
  .mapgrid .grp{display:none}
  .mapgrid .node{grid-column:auto!important;grid-row:auto;min-height:0}
+ .mapgrid .story{grid-column:auto!important;grid-row:auto;margin-top:0}
  .map{padding:12px}
  .lane{grid-template-columns:minmax(0,1fr);min-width:0}
  .lane>*{grid-column:1/-1!important}
@@ -1116,11 +1117,11 @@ function renderFlow(){
   const selS=STAGES.find(x=>x.id===state.stage), feeds=new Set(inputsOf(state.stage).map(a=>a.from)), uses=new Set(outputsOf(state.stage).flatMap(a=>a.to));
   const nodes=STAGES.map((s,i)=>{const c=counts(s.id);const rel=state.lane||s.id===state.stage?"":feeds.has(s.id)&&uses.has(s.id)?"both":feeds.has(s.id)?"in":uses.has(s.id)?"out":"none";
     const relchip=rel==="in"?`<span class="relchip">feeds step ${selS.n}</span>`:rel==="out"?`<span class="relchip out">uses step ${selS.n}</span>`:rel==="both"?`<span class="relchip">feeds and uses ${selS.n}</span>`:"";
-    return `<button class="node ${s.g}${rel==="none"?" dim":""}" style="grid-column:${i+1}" data-stage="${s.id}" aria-pressed="${state.stage===s.id&&!state.lane}">${relchip}
+    return `<button class="node ${s.g}${rel==="none"?" dim":""}" style="grid-column:${i+1};order:${2*i}" data-stage="${s.id}" aria-pressed="${state.stage===s.id&&!state.lane}">${relchip}
     <span class="badge">${ico(s.icon)}</span><span class="num">Step ${s.n}</span><span class="nm">${esc(s.name)}</span><span class="what">${esc(s.what)}</span>
     <span class="foot">${s.model?'<span class="model-only">needs a calculation</span>':""}${wbar(c)}
     <span class="stats"><span><b>${c.f}</b>to build</span><span><b>${c.dec}</b>decided</span>${c.q?`<span class="o"><b>${c.q}</b>open</span>`:""}${c.mk?`<span class="k"><b>${c.mk}</b>marked</span>`:""}</span></span></button>`}).join("");
-  const story=state.story?STAGES.map((s,i)=>`<div class="story ${s.g}" style="grid-column:${i+1}">${esc(s.vshort)}</div>`).join(""):"";
+  const story=state.story?STAGES.map((s,i)=>`<div class="story ${s.g}" style="grid-column:${i+1};order:${2*i+1}">${esc(s.vshort)}</div>`).join(""):"";
   const lanes=LANES.map(l=>`<div class="lane ${l.cls}"><button class="lanebar" style="grid-column:${l.span[0]}/${l.span[1]+1}" data-lane="${l.id}" aria-pressed="${state.lane===l.id}">${ico(l.icon)}<b>${esc(l.name)}</b><span>${esc(l.text)}</span></button></div>`).join("");
   v.innerHTML=`<h2>The MVP, end to end</h2>
   <p class="lede">Every study follows the same nine steps, from the client's question to the approved report. Click a step to see what happens in it, who does it, what it hands on and how it gets built. The four bars under the steps are rules that run across several steps.</p>
@@ -1149,7 +1150,7 @@ function renderStageDetail(){
     box.innerHTML=`<div class="panel" style="margin-top:20px"><div class="sthead"><span class="badge big g3" style="--g:var(--signal)">${ico(l.icon)}</span><div><div class="eyebrow">Runs across the steps</div><h2>${esc(l.name)}</h2><p class="explain">${esc(l.text)}</p></div><div class="nav"><button class="btn" data-lane="${l.id}">Close</button></div></div>
       <div class="pb"><div class="tiles g3" style="--g:var(--signal)">${l.items.map((t,i)=>tile("lane:"+l.id+":"+i,i+1,t,"")).join("")}</div></div></div>`;return}
   const s=STAGES.find(x=>x.id===state.stage), gi=GROUPS.find(gr=>gr[3]===s.g);
-  const ch=ALLCH.filter(c=>c.stage===s.id&&passWave(c)&&passQ(c.text+" "+c.id)&&passMarked(c.key));
+  const ch=ALLCH.filter(c=>c.stage===s.id&&passWave(c)&&passQ(c.text+" "+(LANG==="cs"?tr(c.text):"")+" "+c.id)&&passMarked(c.key));
   const byPlan={};for(const c of ch)(byPlan[c.plan]=byPlan[c.plan]||[]).push(c);
   const fnHtml=Object.entries(byPlan).map(([p,cs])=>`<div class="planhead">${esc(PLAN_NAME[p]||p)} <span class="tech">${esc(p)}</span></div>`+cs.map(c=>itemRow(c.key,esc(c.id),esc(c.text),`${waveChip(c.wave)}${c.done?'<span class="chip done">done</span>':""}`)).join("")).join("")||`<p class="empty">No plan chunks match these filters.</p>`;
   const decs=DECISIONS.filter(d=>d[1]===s.id), qs=QUESTIONS.filter(d=>d[1]===s.id);
