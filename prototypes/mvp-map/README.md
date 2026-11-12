@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 21, version id `1794401387-d2b5`, 11 Nov 2026.
+**Version:** "AIA MVP Map", version 22, version id `1794472729-b200`, 12 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -24,12 +24,39 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 
 ## What changed in this version
 
+- **"Zpráva" is now "Report"** (version 22). The owner, 12 Nov: "lets change zprava to Report or Studie". The page
+  uses Report, because "studie" already names the whole job on this page (a study, `study_id`). The step Zpráva is
+  Report, Osnova zprávy is Osnova reportu, and the Czech text says "report" (masculine) wherever it said "zpráva",
+  including the data quality report and the situation reports. Recorded on the page as decision NAME-REPORT; A15,
+  which named the stage Osnova zprávy on 2 Nov, now says so.
+  Left as they were, on purpose: the 175 plan chunks, which are quoted from the plan files and still match develop
+  word for word, and the product's screen labels quoted from the design canvas („Předat do Zprávy“, „Zpráva o
+  kvalitě“, „Přidat do osnovy zprávy“ and others). So the plan files, ADR 0046 and the design screens say Zpráva
+  and Osnova zprávy while this page says Report and Osnova reportu; Q-PLANWORDS now lists that as well. Step ids
+  (`zprava`, `osnova`) and mark ids are unchanged, so earlier marks still attach.
+- **A second pass for plain wording** (version 22), asked for by the owner on 12 Nov. Five editors read every Czech
+  entry again against one rule sheet (one idea per sentence, everyday words, verbs before noun chains, active
+  voice, change nothing for taste). 107 entries changed: 67 only for the rename, 37 for clarity, 3 where a term
+  fixed in the first pass had not been applied. The editors also flagged 25 English source sentences as hard to
+  follow (dropped verbs, stacked clauses, "accepts the MVP on an independent calculation with known answers before
+  the case"); all 25 were rewritten in the source and carry the same numbers. Two readings were chosen by me and
+  should be confirmed by the methodologist: "in a world with no relation, draws no more than its declared error
+  rate" now names its object ("no more false relations"), and "names are personal data inside the client" now
+  reads "personal data of people at the client".
+- **An Abbreviations tab** (version 22; "Zkratky"), asked for by the owner on 12 Nov: every abbreviation and code
+  family the page uses, 108 rows in seven groups (product and this page, codes on this page, business and finance,
+  analysis frameworks, methods and statistics, public sources and registers, files and technology), each with what
+  the letters stand for and what it means in plain words, in Czech and English, with a filter box. The rows for
+  plan chunk ids (SYS…, CR…, FND…) are drawn from the plan data on the page, so they follow it. The Overview
+  glossary links to it. Three things it states rather than hides: W1–W4 are build waves while W2–W28 are answers
+  from the 2 Nov walkthrough (the same letter for two things); the page quotes MOD-3.3 and MOD-13.1 without saying
+  where the numbered text is kept; and SOMECS, BB1 and WIND are names the page never spells out.
 - **A Presentation tab** (version 19; "Prezentace"), asked for by the owner on 11 Nov: thirteen slides that walk an
   executive through the MVP step by step (what we build and why, the nine steps on the Velis example, why the numbers
   can be trusted, what is in and out, how it is built and when it is done, what follows, what we need from the
   owner). Back and Next buttons, dots, and the arrow keys.
 - **Czech by default, English one click away** (version 19). The page's source stays English. In Czech mode every
-  text the page draws is looked up in a dictionary of 1,417 entries inside the page (`<script id="i18n-cs">`), keyed
+  text the page draws is looked up in a dictionary of 1,448 entries inside the page (`<script id="i18n-cs">`), keyed
   by the English text with each number replaced by `§`, so counts carry across. Left in English on purpose, marked
   `data-notr`: the plan chunks and each step's build detail (quoted from the plan files, which are English) and the
   owner's quoted words. The Session notes export is plain text and stays English. The translation was done in five
