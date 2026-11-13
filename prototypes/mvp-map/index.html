@@ -1681,7 +1681,8 @@ function label(id){
   if(id.startsWith("does:")){const [,s,i]=id.split(":");const st=STAGES.find(x=>x.id===s);return `${st.name} — ${st.does[+i][0]}`}
   if(id.startsWith("lane:")){const [,l,i]=id.split(":");const ln=LANES.find(x=>x.id===l);return `${ln.name} — ${ln.items[+i]}`}
   if(id.startsWith("idea:")){const v=ideas[id.slice(5)];return v?`New ${v.kind} (${STAGES.find(s=>s.id===v.stage).name}) — ${v.text}`:id}
-  if(id.startsWith("ml:")){const a=ML.find(x=>"ml:"+x.id===id),b=ML_LATER.find(x=>"ml:"+x[0]===id);return `Machine learning — ${a?a.name:b?b[1]:id}`}
+  if(id.startsWith("ml:")){const k=id.slice(3),a=ML.find(x=>x.id===k),b=ML_LATER.find(x=>x[0]===k),c=ML_MAP.find(x=>"map-"+x.id===k)||ML_DQ.find(x=>"dq-"+x.id===k),p=ML_PREREQ.find(x=>"pre-"+x.id===k),w={"w-elicit":"Weights, proposed for the MVP: pairwise comparison with the client","w-check":"Weights, already decided: show what changes when one weight doubles or halves"}[k];return `Machine learning — ${a?a.name:b?b[1]:c?c.q:p?p.t:w||id}`}
+  if(id.startsWith("wt:")){const k=id.slice(3);if(!(k in WT_Q))WT_SLIDES.forEach(s=>{try{s.body()}catch(e){}});return `Walk-through — ${WT_Q[k]||id}`}
   if(id.startsWith("proc:")){const [,s,n]=id.split(":");const p=(SPEC[s]?.process||[]).find(x=>x.n===+n);const st=STAGES.find(x=>x.id===s);return p?`${st.name} process ${n} — ${p.action} (${p.actor})`:id}
   if(id.startsWith("mt:")){const k=id.slice(3);const t=k.startsWith("tpl:")?MT.templates.find(x=>x.id===k.slice(4)):k.startsWith("fam:")?MT.families.find(x=>x.id===k.slice(4)):MT[k];return `Model type — ${t?t.name:k}`}
   if(id.startsWith("gap:")){const [,s,i]=id.split(":");const st=STAGES.find(x=>x.id===s);return `${st.name} — not designed yet: ${(SPEC[s]?.gaps||[])[+i]}`}
@@ -2319,8 +2320,9 @@ const wtNum = v => String(v).replace(".", ",");
 const wtOpt = k => WT_OPT_EN[k] || k;
 const wtDir = d => d > 0 ? `<span class="wt-dir up" title="More is better">▲</span>` : `<span class="wt-dir down" title="Less is better">▼</span>`;
 const wtKind = k => `<span class="wt-kind" style="--kc:${WT_KINDS[k].c}">${esc(WT_KINDS[k].name)}</span>`;
+const WT_Q = {};
 function wtAsk(id, q) {
-  const k = "wt:" + id;
+  const k = "wt:" + id; WT_Q[id] = q;
   return `<div class="wt-ask${itemCls(k)}"><div class="row"><span class="badge g0">${ico("bulb")}</span><b>${esc(q)}</b><span class="grow"></span>${marksHtml(k)}</div>${noteHtml(k)}</div>`;
 }
 function wtScale(r) {

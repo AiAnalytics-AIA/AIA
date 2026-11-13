@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 28, version id `1794567359-1d6a`, 13 Nov 2026.
+**Version:** "AIA MVP Map", version 29, version id `1794567829-ae68`, 13 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -61,6 +61,10 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
   and the dictionary. And one embedded map image's base64 happened to contain the letters of a client token that
   `make exposure_check` refuses; a JPEG comment segment re-encodes it, with identical pixels (checked by decoding
   both). The check is not loosened.
+  *A second fault in version 26, fixed in version 29* (found by Codex): the Session notes export named a mark on a
+  walk-through question or on one of the new ML cards (map methods, table checks, weights, prerequisites) only by its
+  id, such as `wt:case` or `ml:dq-agree`, so a note copied out lost the question it answers. Each now exports with
+  its text; a browser check collects all 464 mark ids the page draws and finds none exported bare.
 - **Fully Czech, more room, less repetition** (version 24). The owner, 12 Nov: "the czech version is not fully
   czech, do a language and visibility pass, some elements need more space than others. some text is redundant or
   doesnt help explain."
