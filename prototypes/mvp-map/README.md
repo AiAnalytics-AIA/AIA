@@ -1,6 +1,6 @@
 # AIA MVP Map
 
-**Version:** "AIA MVP Map", version 25, version id `1794496913-ea2e`, 12 Nov 2026.
+**Version:** "AIA MVP Map", version 28, version id `1794567359-1d6a`, 13 Nov 2026.
 
 What the MVP is and how it gets built, on one page: the nine steps of a business-decision study, who does what in
 each, the hand-offs, the Sociomapa systémů maps, the statistical methods, the decisions made and open, the build
@@ -24,6 +24,43 @@ saved for everyone in the page's database (collections `marks` and `ideas`).
 
 ## What changed in this version
 
+- **The Sociomapa tab rewritten for the methodology** (version 26, published 13 Nov by another writer of the
+  artifact, built on version 25; the artifact service does not show who). The tab now starts from what AIA's
+  clients ask (about twenty analyses of 2023–2026 reviewed), defines one way to read every map (close = the same
+  pattern, height = how well a point serves the question), and lists seven map inputs on one engine: Profil
+  ukazatelů, Konkurence and Vlivy (both new), Experti, Jednotky, Čas and Budoucnosti; weight settings are no longer a
+  map of their own and respondent maps are out. It adds the lessons and rules from AIA's past maps, a seven-step
+  process from question to report, ten decisions and nine open points ("Where we are"). Methods & ML gains a
+  proposal for setting weights (Fuller triangle, AHP) and the decided one-weight-doubled check; Presentation gains a
+  second deck, "Walk-through example". 545 Czech entries were added with it.
+- **The rest of the page brought in line with that tab** (version 27, 13 Nov). The owner asked for the whole page
+  to be consistent with it.
+  *Hand-offs:* Sociomapa now receives the question and weights from Zadání, indicator and competitor tables (and
+  the real-world population for the absolute scale) from Rešerše, unit and monthly tables from Data, ratings from
+  named people, and the futures from Model; "Futures and weight settings" is now "Futures". 38 hand-offs over 27
+  artefacts.
+  *Process map, step 7:* the step card, its inputs and its detailed process follow the seven steps (question and
+  weights, input, table, preparation, relations and layout, height, test, report, register, hand-off); the step's
+  open points are the tab's open list; data objects gain the influence rating (Vlivy).
+  *Decisions:* the tab's decisions are recorded as SM1–SM9 (labelled "map decision"); Q-CLOSE, Q-NORM, Q-WACT,
+  Q-HEIGHT and Q-FAN are removed as answered, each decision naming the question it answers; the tab's open points
+  are open questions (Q-KONK, Q-VLIVY, Q-ONEWAY, Q-IMPORT, Q-FUTSCALE, Q-TIMETEST, Q-LINES); Q-PROFILE now asks
+  which map inputs enter the MVP, and says the owner's Keep of 11 Nov was on its earlier wording. 55 decisions and 24
+  open questions; every question id the page mentions resolves.
+  *Wording:* "configuration", "two map types and five configurations", "scenario map" and "weight settings" are
+  replaced in the glossary (Point and row, Modelled input, Observed input, Map input; the Fan of weights entry is
+  gone), the Overview, the acceptance test M-8, the Metodika lane, the futures model type, the methods card and
+  Aram's question titles. Left on purpose: the plan chunks quoted from the plan files (Q-PLANWORDS now also says
+  they predate the 13 Nov tab and that Konkurence and Vlivy have no plan chunk), the dated record of the 11 Nov
+  comparison, and the description of the Sociomap Lifecycles page (with a note that the tab has moved on).
+  *A fault in version 26, fixed:* answering one of the methodologist's 13 questions re-drew the tab and closed the
+  collapsed list after every click. A re-draw now keeps open sections open, and the answer and step clicks go
+  through the general re-draw.
+  *Two things kept out of the repository* (version 28): the walk-through deck named the real client whose study it
+  is modelled on; the sentence now says "modelled on a real AIA client study", and the name is gone from the source
+  and the dictionary. And one embedded map image's base64 happened to contain the letters of a client token that
+  `make exposure_check` refuses; a JPEG comment segment re-encodes it, with identical pixels (checked by decoding
+  both). The check is not loosened.
 - **Fully Czech, more room, less repetition** (version 24). The owner, 12 Nov: "the czech version is not fully
   czech, do a language and visibility pass, some elements need more space than others. some text is redundant or
   doesnt help explain."
