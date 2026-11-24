@@ -7,7 +7,10 @@ series is tested in an order that keeps their autocorrelation:
 2. the relation is Pearson's r on the detrended series;
 3. its p-value comes from IAAFT surrogates (Schreiber & Schmitz 1996), 1,000 per series by
    default: series with the same spectrum and value distribution as the real one, but no link to
-   the other series; each surrogate set is checked to reproduce the series' autocorrelation;
+   the other series; each surrogate set is checked to reproduce the series' autocorrelation. The
+   null is pooled over all pairs (amendment of 24 Nov 2026): a pair's own null can never give a
+   p-value below 1 / (2 * surrogates + 1), and Benjamini-Yekutieli multiplies the smallest by
+   pairs * sum(1/i), so from about 12 series (66 pairs) no relation could pass at all;
 4. the p-values of all pairs are corrected by Benjamini-Yekutieli, which holds under the dependence
    these tests share (Benjamini-Hochberg has no such guarantee);
 5. each pair carries its effective number of months (Pyper & Peterman 1998, modified), printed
@@ -189,18 +192,24 @@ def month_relations(
         real = autocorrelation(clean[name], lags)
         mean_surrogate = np.mean([autocorrelation(s, lags) for s in nulls[name]], axis=0)
         reproduced[name] = bool(np.max(np.abs(real - mean_surrogate)) <= autocorrelation_tolerance)
-    raw = []
+    raw, pooled = [], []
     for i, a in enumerate(names):
         for b in names[i + 1 :]:
             r = _pearson(clean[a], clean[b])
-            null = np.concatenate(
-                [
-                    [_pearson(s, clean[b]) for s in nulls[a]],
-                    [_pearson(clean[a], s) for s in nulls[b]],
-                ]
-            )
-            p = (1 + int((np.abs(null) >= abs(r)).sum())) / (1 + null.size)
-            raw.append((a, b, r, p, effective_months(clean[a], clean[b])))
+            pooled.append([abs(_pearson(s, clean[b])) for s in nulls[a]])
+            pooled.append([abs(_pearson(clean[a], s)) for s in nulls[b]])
+            raw.append((a, b, r, 0.0, effective_months(clean[a], clean[b])))
+    null = np.sort(np.concatenate(pooled)) if pooled else np.zeros(0)
+    raw = [
+        (
+            a,
+            b,
+            r,
+            (1 + null.size - int(np.searchsorted(null, abs(r), side="left"))) / (1 + null.size),
+            n,
+        )
+        for a, b, r, _, n in raw
+    ]
     accepted, adjusted = benjamini_yekutieli(np.array([row[3] for row in raw]), q)
     pairs = tuple(
         MonthPair(a, b, r, p, float(adj), round(n_eff, 1), months, bool(ok))

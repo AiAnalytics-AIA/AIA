@@ -96,6 +96,19 @@ def test_month_relations_find_a_planted_pair_and_refuse_short_series() -> None:
     assert MIN_MONTHS == 36
 
 
+def test_month_relations_can_pass_a_planted_pair_among_many_series() -> None:
+    # 12 series, 66 pairs: a pair's own 2,001 surrogate correlations could never pass BY here
+    rng = np.random.default_rng(13)
+    series = {f"s{i}": _ar1(48, 0.3, rng) for i in range(12)}
+    series["s1"] = series["s0"] + 0.4 * rng.normal(size=48)
+    result = month_relations(
+        series, trend="linear", declared_false_pair_rate=0.05, surrogates=200, seed=14
+    )
+    accepted = {(p.first, p.second) for p in result.pairs if p.accepted}
+    assert ("s0", "s1") in accepted
+    assert len(accepted) <= 2
+
+
 def test_month_relations_draw_few_false_pairs_between_independent_slow_series() -> None:
     rng = np.random.default_rng(6)
     series = {f"s{i}": _ar1(60, 0.9, rng) + 0.05 * np.arange(60) * i for i in range(6)}

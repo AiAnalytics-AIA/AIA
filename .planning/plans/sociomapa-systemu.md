@@ -61,6 +61,12 @@ functions in `domain/sociomap/systems/`; SYS22-SYS24 wire them in.
   history.
 - **SM12 Q-TIMETEST.** The bundle above, plus the false-pair rate on planted no-link data declared
   before use and printed on every month map.
+- **SM12 amendment (24 Nov 2026, user's decision).** The surrogate null is pooled over all pairs.
+  A pair's own null cannot give p below 1 / (2 x surrogates + 1), and Benjamini-Yekutieli multiplies
+  the smallest p by pairs x sum(1/i): with 1,000 surrogates no relation could pass from about 12
+  series (66 pairs) on, however strong. Pooled, a planted pair among 12 series passes
+  (`test_month_relations_can_pass_a_planted_pair_among_many_series`). AIA_SW applies the same rule
+  to its object relations.
 - **SM13 Q-MINROWS.** Each input's minimum from its planted-answer test; below it a table, refused
   by name; starting values months 36, experts 12; printed on every map.
 - **SM14 Q-LINES.** Lines only for tested relations; an uncertainty circle per point (90 % of its
