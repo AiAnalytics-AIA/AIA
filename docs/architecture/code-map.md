@@ -1708,6 +1708,16 @@ packages/aia_core/src/aia_core/
                             AIA-SIGNED-OFF-CREDIBILITY, -RESPONDENTS, -SEGMENTS; Metodika groups
                             "Věrohodnost mapy", "Respondenti a podpora mapy" and S7 (segments).
                             The web draws it on Sociomapa (ObjectMapPanel, lib/sociomap-display.ts)
+      systems/              Sociomapa systémů statistics, the methodologist's 24 Nov 2026 decisions
+                            (MVP Map SM10-SM18; plan sociomapa-systemu SYS13-SYS21), pure
+                            numpy/scipy, not yet wired into compute_object_map: importance
+                            (permutation drop on unseen years, else declared odhad), future_scale
+                            (history, else declared, else own spread), months (declared trend,
+                            IAAFT, Pyper-Peterman, Benjamini-Yekutieli, MIN_MONTHS 36), minimum_rows,
+                            stability (block bootstrap, Procrustes circles, off by default),
+                            one_sided (symmetric layout input, tested arrows), coverage
+                            (Konkurence), influence (Vlivy: MIN_RATERS 5, Krippendorff's alpha,
+                            DEMATEL total influence), register (AWAITING_LABEL per input)
       engine.py, models.py  the pipeline and the v2 artifact
       engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
                             support); read_artifact reads either contract, refuses any other;
